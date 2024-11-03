@@ -1,0 +1,10 @@
+/* Style specific to OTP verification component */
+input[type='text']::-webkit-outer-spin-button,
+input[type='text']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type='text'] {
+  -moz-appearance: textfield;
+}
