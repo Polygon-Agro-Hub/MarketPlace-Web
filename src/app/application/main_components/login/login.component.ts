@@ -47,7 +47,7 @@ export class LoginComponent {
           localStorage.setItem('Token:', res.token);
           localStorage.setItem('userId:', res.userId);
           //   localStorage.setItem('Token Expiration', String(new Date().getTime() + (res.expiresIn * 20)));
-          this.router.navigate(['/']);
+          this.router.navigate(['/home']);
         },
         (error) => {
           console.error('Error updating Market Price', error);
