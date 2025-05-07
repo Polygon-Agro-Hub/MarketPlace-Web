@@ -1,6 +1,6 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import Link from 'next/link'
-import { faAngleDown, faMagnifyingGlass, faBagShopping, faBars, faUser, faClockRotateLeft } from '@fortawesome/free-solid-svg-icons'
+import { faAngleDown, faMagnifyingGlass, faBagShopping, faBars, faUser, faClockRotateLeft, faTimes } from '@fortawesome/free-solid-svg-icons'
 import React, { useEffect, useState } from 'react'
 
 const header = () => {
@@ -109,6 +109,12 @@ const header = () => {
         <div className='relative flex w-full justify-end'>
           <div className="absolute z-50">
             <div className="bg-[#3E206D] text-white w-64 flex flex-col">
+              <div className="flex justify-between items-center border-b border-purple-800 px-6 py-4">
+                <span className="font-semibold">Menu</span>
+                <button onClick={toggleMenue} className="text-white hover:text-purple-200">
+                  <FontAwesomeIcon icon={faTimes} className="text-xl" />
+                </button>
+              </div>
               <nav className="flex flex-col w-full">
                 <Link href="/logout" className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800">
                   Logout
@@ -145,7 +151,6 @@ const header = () => {
             </div>
           </div>
         </div>
-
       )}
     </>
   )
