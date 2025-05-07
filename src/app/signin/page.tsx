@@ -24,7 +24,7 @@ const page = () => {
       
       if (data.token) {
         localStorage.setItem('authToken', data.token);
-        // Redirect to dashboard or home page
+ 
         router.push('/');
       }
       
