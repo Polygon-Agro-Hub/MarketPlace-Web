@@ -1,6 +1,6 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import Link from 'next/link'
-import { faAngleDown, faMagnifyingGlass, faBagShopping, faBars } from '@fortawesome/free-solid-svg-icons'
+import { faAngleDown, faMagnifyingGlass, faBagShopping, faBars, faUser, faClockRotateLeft } from '@fortawesome/free-solid-svg-icons'
 import React, { useEffect, useState } from 'react'
 
 const header = () => {
@@ -89,6 +89,16 @@ const header = () => {
             <div className="text-sm">Rs. 0.00</div>
 
           </div>
+          {!isMobile && (
+            <Link href="/orders">
+              <FontAwesomeIcon className='text-3xl' icon={faClockRotateLeft} />
+            </Link>
+          )}
+          {!isMobile && (
+            <Link className='border-2 w-9 h-9 flex justify-center items-center rounded-full' href="/account">
+              <FontAwesomeIcon className='text-1xl' icon={faUser} />
+            </Link>
+          )}
           {isMobile && (
             <button className='md:hidden'>
               <FontAwesomeIcon className='text-2xl' icon={faBars} />
