@@ -6,6 +6,9 @@ import { GoogleLoginButton, FacebookLoginButton } from 'react-social-login-butto
 import { login } from '@/services/auth-service';
 import { useRouter } from 'next/navigation';
 import Swal from 'sweetalert2';
+import { useDispatch } from 'react-redux';
+import { setCredentials } from '@/store/slices/authSlice';
+
 
 
 const page = () => {
@@ -15,6 +18,7 @@ const page = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const dispatch = useDispatch();
 
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -38,7 +42,8 @@ const page = () => {
 
       // Store token and redirect
       if (data.token) {
-        localStorage.setItem('authToken', data.token);
+        
+        dispatch(setCredentials({ token: data.token, user: data.userData }));
         router.push('/');
       }
 

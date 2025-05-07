@@ -6,7 +6,9 @@ interface LoginPayload {
 }
 
 interface LoginResponse {
+  userData: any;
   token?: string;
+  firstName?: string;
   user?: any;
   message?: string;
 }
