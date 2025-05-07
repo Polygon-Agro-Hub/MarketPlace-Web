@@ -3,10 +3,36 @@
 import React, { useState } from 'react'
 import Head from 'next/head';
 import { GoogleLoginButton, FacebookLoginButton } from 'react-social-login-buttons';
+import { login } from '@/services/auth-service';
+import { useRouter } from 'next/navigation';
 
 
 const page = () => {
+  const router = useRouter();
   const [userType, setUserType] = useState('home');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    try {
+      const data = await login({ email, password });
+      console.log('Login success:', data);
+      
+      if (data.token) {
+        localStorage.setItem('authToken', data.token);
+        // Redirect to dashboard or home page
+        router.push('/');
+      }
+      
+    } catch (err: any) {
+      console.error('Login error:', err);
+      setError(err.message || 'Login failed. Please try again.');
+    }
+  };
   
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
@@ -72,12 +98,16 @@ const page = () => {
       </div>
 
       {/* Email Login Form */}
-      <form className="space-y-4">
+      <form onSubmit={handleLogin} className="space-y-4">
         <div className="relative">
           <input
             type="email"
             placeholder="Email"
             className="w-full px-10 py-2 border rounded-md"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            
           />
           <span className="absolute left-3 top-2.5 text-gray-400">
             <img src="/icons/mail.png" className="w-5 h-5" alt="Google" />
@@ -88,6 +118,10 @@ const page = () => {
             type="password"
             placeholder="Password"
             className="w-full px-10 py-2 border rounded-md"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            
           />
           <span className="absolute left-3 top-2.5 text-gray-400">
             <img src="/icons/Lock.png" className="w-5 h-5" alt="Google" />
