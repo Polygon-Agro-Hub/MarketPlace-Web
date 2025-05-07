@@ -26,10 +26,14 @@ const page = () => {
       
       await Swal.fire({
         title: 'Login Successful!',
-        text: `Welcome back! Redirecting to your ${userType === 'home' ? 'home' : 'business'} dashboard...`,
         icon: 'success',
         timer: 2000,
         showConfirmButton: false,
+        customClass: {
+          popup: '!border-t-4 !border-t-[#3E206D]', // Purple top border
+        },
+        iconColor: '#3E206D', // Purple icon
+        confirmButtonColor: '#3E206D', // Purple confirm button
       });
 
       // Store token and redirect
@@ -55,7 +59,7 @@ const page = () => {
     <div className="min-h-screen flex flex-col md:flex-row">
     {/* Left Panel (Login Form) */}
     <div className="w-full md:w-1/2 flex flex-col justify-center p-6 md:p-16">
-      <h1 className="text-2xl font-bold text-purple-800 mb-2 text-center">MyFarm</h1>
+      <h1 className="text-2xl font-bold text-purple-800 mb-2 text-center">MyFarm {userType}</h1>
       <h2 className="text-lg font-semibold mb-6 text-center">Log in to your Account</h2>
 
       {/* Buyer Type Toggle */}
@@ -93,26 +97,33 @@ const page = () => {
         </button>
       </div>
 
-
+      {userType === 'home' && (
       <p className="mb-4 text-gray-600">Welcome! Select method to log in:</p>
-
+      )}
       {/* Social Login Buttons */}
-      <div className="flex space-x-4 mb-6">
-        <button className="flex-1 py-2 border rounded-md flex items-center justify-center space-x-2">
-          <img src="/icons/google.png" className="w-5 h-5" alt="Google" />
-          <span>Google</span>
-        </button>
-        <button className="flex-1 py-2 border rounded-md flex items-center justify-center space-x-2">
-          <img src="/icons/facebook.png" className="w-5 h-5" alt="Facebook" />
-          <span>Facebook</span>
-        </button>
+     
+      <div className="mb-6">
+        {userType === 'home' && (
+          <div className="flex space-x-4">
+            <button className="flex-1 py-2 border rounded-md flex items-center justify-center space-x-2">
+              <img src="/icons/google.png" className="w-5 h-5" alt="Google" />
+              <span>Google</span>
+            </button>
+            <button className="flex-1 py-2 border rounded-md flex items-center justify-center space-x-2">
+              <img src="/icons/facebook.png" className="w-5 h-5" alt="Facebook" />
+              <span>Facebook</span>
+            </button>
+          </div>
+        )}
       </div>
 
+      {userType === 'home' && (
       <div className="flex items-center mb-6">
         <div className="flex-grow h-px bg-gray-300" />
         <span className="mx-2 text-sm text-gray-400">or continue with email</span>
         <div className="flex-grow h-px bg-gray-300" />
       </div>
+      )}
 
       {/* Email Login Form */}
       <form onSubmit={handleLogin} className="space-y-4">
