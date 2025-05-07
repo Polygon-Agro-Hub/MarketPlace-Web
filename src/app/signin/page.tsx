@@ -8,7 +8,8 @@ import { useRouter } from 'next/navigation';
 import Swal from 'sweetalert2';
 import { useDispatch } from 'react-redux';
 import { setCredentials } from '@/store/slices/authSlice';
-
+import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 
 const page = () => {
@@ -18,6 +19,7 @@ const page = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const dispatch = useDispatch();
 
 
@@ -148,17 +150,23 @@ const page = () => {
         </div>
         <div className="relative">
           <input
-            type="password"
+            type={showPassword ? "text" : "password"}
             placeholder="Password"
             className="w-full px-10 py-2 border rounded-md"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            
           />
           <span className="absolute left-3 top-2.5 text-gray-400">
-            <img src="/icons/Lock.png" className="w-5 h-5" alt="Google" />
+            <img src="/icons/Lock.png" className="w-5 h-5" alt="Lock" />
           </span>
+          <button
+            type="button"
+            onClick={() => setShowPassword((prev) => !prev)}
+            className="absolute right-3 top-2.5 text-gray-400"
+          >
+             <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} className="w-5 h-5" />
+          </button>
         </div>
 
         <div className="flex items-center justify-between text-sm">
