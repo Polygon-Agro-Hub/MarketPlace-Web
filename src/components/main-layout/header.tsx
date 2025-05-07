@@ -6,6 +6,7 @@ import React, { useEffect, useState } from 'react'
 const header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [isCategoryExpanded, setIsCategoryExpanded] = useState(false);
 
   useEffect(() => {
     const handleResize = () => {
@@ -49,12 +50,12 @@ const header = () => {
                 <button className='flex items-center hover:text-purple-200'>
                   Category <span className='ml-1'><FontAwesomeIcon icon={faAngleDown} /></span>
                 </button>
-                <div className='absolute hidden group-hover:block bg-white text-purple-900 w-48 shadow-lg rounded-md mt-1 py-2 z-10'>
-                  <Link href="/category/retail" className="block px-4 py-2 hover:bg-purple-100">
-                    • Retail
+                <div className='absolute hidden group-hover:block bg-[#3E206D] text-white w-48 shadow-lg mt-7 z-10'>
+                  <Link href="/category/retail" className="border-b-1 block px-4 py-2 hover:bg-[#6c5394]">
+                    Retail
                   </Link>
-                  <Link href="/category/wholesale" className="block px-4 py-2 hover:bg-purple-100">
-                    • Wholesale
+                  <Link href="/category/wholesale" className="block px-4 py-2 hover:bg-[#6c5394]">
+                    Wholesale
                   </Link>
                 </div>
               </div>
@@ -91,21 +92,61 @@ const header = () => {
           </div>
           {!isMobile && (
             <Link href="/orders">
-              <FontAwesomeIcon className='text-3xl' icon={faClockRotateLeft} />
+              <FontAwesomeIcon className='text-4xl' icon={faClockRotateLeft} />
             </Link>
           )}
-          {!isMobile && (
-            <Link className='border-2 w-9 h-9 flex justify-center items-center rounded-full' href="/account">
-              <FontAwesomeIcon className='text-1xl' icon={faUser} />
-            </Link>
-          )}
+          <Link className='border-2 w-9 h-9 flex justify-center items-center rounded-full' href="/account">
+            <FontAwesomeIcon className='text-1xl' icon={faUser} />
+          </Link>
           {isMobile && (
-            <button className='md:hidden'>
+            <button onClick={toggleMenue} className='md:hidden'>
               <FontAwesomeIcon className='text-2xl' icon={faBars} />
             </button>
           )}
         </div>
       </header>
+      {isMobile && isMenuOpen && (
+        <div className='relative flex w-full justify-end'>
+          <div className="absolute z-50">
+            <div className="bg-[#3E206D] text-white w-64 flex flex-col">
+              <nav className="flex flex-col w-full">
+                <Link href="/logout" className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800">
+                  Logout
+                </Link>
+                <Link href="/" className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800">
+                  Home
+                </Link>
+                <div className="border-b border-purple-800">
+                  <button
+                    className="py-4 px-6 w-full flex justify-between items-center hover:bg-purple-800 text-left"
+                    onClick={() => setIsCategoryExpanded(!isCategoryExpanded)}
+                  >
+                    Category
+                    <span className="text-xs">{isCategoryExpanded ? '▲' : '▼'}</span>
+                  </button>
+                  {isCategoryExpanded && (
+                    <div className="bg-purple-950">
+                      <Link href="/category/retail" className="block py-3 px-8 hover:bg-purple-800">
+                        • Retail
+                      </Link>
+                      <Link href="/category/wholesale" className="block py-3 px-8 hover:bg-purple-800">
+                        • Wholesale
+                      </Link>
+                    </div>
+                  )}
+                </div>
+                <Link href="/promotions" className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800">
+                  Promotions
+                </Link>
+                <Link href="/order-history" className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800">
+                  Order History
+                </Link>
+              </nav>
+            </div>
+          </div>
+        </div>
+
+      )}
     </>
   )
 }
