@@ -1,11 +1,9 @@
-import React from 'react'
+import MainLayout from "@/components/main-layout/layout";
 
-const page = () => {
+export default function Home() {
   return (
-    <div>
-      home
-    </div>
+    <main>
+      <div>Welcome to the Home Page</div>
+    </main>
   )
 }
-
-export default page
