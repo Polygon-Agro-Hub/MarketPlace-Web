@@ -64,7 +64,7 @@ const page = () => {
     <div className="min-h-screen flex flex-col md:flex-row">
     {/* Left Panel (Login Form) */}
     <div className="w-full md:w-1/2 flex flex-col justify-center p-6 md:p-16">
-      <h1 className="text-2xl font-bold text-purple-800 mb-2 text-center">MyFarm {userType}</h1>
+      <h1 className="text-2xl font-bold text-purple-800 mb-2 text-center">MyFarm</h1>
       <h2 className="text-lg font-semibold mb-6 text-center">Log in to your Account</h2>
 
       {/* Buyer Type Toggle */}
