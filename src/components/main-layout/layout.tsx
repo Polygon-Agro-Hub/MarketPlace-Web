@@ -1,5 +1,4 @@
 import React from 'react'
-
 const layout = () => {
   return (
     <div>
@@ -7,5 +6,4 @@ const layout = () => {
     </div>
   )
 }
-
 export default layout
