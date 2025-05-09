@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { faAngleDown, faMagnifyingGlass, faBagShopping, faBars, faUser, faClockRotateLeft, faTimes } from '@fortawesome/free-solid-svg-icons'
 import React, { useEffect, useState } from 'react'
 
-const header = () => {
+const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isCategoryExpanded, setIsCategoryExpanded] = useState(false);
@@ -155,4 +155,4 @@ const header = () => {
     </>
   )
 }
-export default header
+export default Header
