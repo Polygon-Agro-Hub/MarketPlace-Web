@@ -3,14 +3,15 @@
 import MainLayout from "@/components/main-layout/layout";
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
+import PackageSlider from "@/components/home/PackageSlider";
 
 export default function Home() {
   const user = useSelector((state: RootState) => state.auth.user) || null;
+  
 
   return (
-    <main>
-      <div>Welcome to the Home Page</div>
-      <div>{user ? `Hello, ${user.firstName}` : 'Please sign in'}</div>
+    <main className="flex min-h-screen flex-col items-center justify-between p-5">
+      <PackageSlider/>
     </main>
   );
 }
