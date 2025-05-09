@@ -109,15 +109,18 @@ function DesktopFooter() {
         </div>
       </div>
 
-      <div className="border-t border-gray-800 mt-6 flex justify-between items-center">
-        <p className="text-sm text-gray-400">© All rights reserved by AgroWorld Pvt Ltd</p>
+      <div className="border-t border-gray-800 mt-6 py-3 px-7 flex justify-between items-center">
         <div className="flex">
-          <Image src={Visa} alt="Visa" className='w-auto h-6 object-cover mr-2' />
-          <Image src={MasterCard} alt="MasterCard" className='w-auto h-6 object-cover' />
+          <p className="text-sm text-[#DBDBDB]">© All rights reserved by AgroWorld Pvt Ltd</p>
+          <div className="flex ml-5">
+            <Image src={Visa} alt="Visa" className='w-auto h-6 object-cover mr-2' />
+            <Image src={MasterCard} alt="MasterCard" className='w-auto h-6 object-cover' />
+          </div>
         </div>
+
         <div className="flex space-x-6">
-          <a href="#" className="text-sm text-gray-400 hover:text-white">Terms & Conditions</a>
-          <a href="#" className="text-sm text-gray-400 hover:text-white">Privacy Policy</a>
+          <a href="#" className="text-sm text-[#DBDBDB] hover:text-white underline">Terms & Conditions</a>
+          <a href="#" className="text-sm text-[#DBDBDB] hover:text-white underline">Privacy Policy</a>
         </div>
       </div>
     </div>
