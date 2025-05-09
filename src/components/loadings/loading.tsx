@@ -1,7 +1,17 @@
-import Lottie from 'react-lottie';
-import animationData from '../../assets/animations/Loading.json'
+'use client'
+
+import { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
+import animationData from '../../assets/animations/Loading.json';
+
+const Lottie = dynamic(() => import('react-lottie'), { ssr: false });
 
 const Loading = ({ width = 81, height = 81 }) => {
+    const [domLoaded, setDomLoaded] = useState(false);
+
+    useEffect(() => {
+        setDomLoaded(true);
+    }, []);
 
     const defaultOptions = {
         loop: true,
@@ -11,15 +21,18 @@ const Loading = ({ width = 81, height = 81 }) => {
             preserveAspectRatio: 'xMidYMid slice'
         }
     };
+
     return (
         <div className="flex justify-center items-center">
-            <Lottie
-                options={defaultOptions}
-                height={height}
-                width={width}
-            />
+            {domLoaded && (
+                <Lottie
+                    options={defaultOptions}
+                    height={height}
+                    width={width}
+                />
+            )}
         </div>
-    )
-}
+    );
+};
 
 export default Loading;
