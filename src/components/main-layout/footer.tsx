@@ -129,45 +129,47 @@ function DesktopFooter() {
 
 function MobileFooter() {
   return (
-    <div className="container mx-auto px-4 py-6">
-      <h2 className="text-xl text-center font-bold mb-4">MyFarm</h2>
-
-      <div className="mb-6">
-        <div className="flex items-start mb-2">
-          <div className="text-gray-400 mr-2 mt-1">
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-              <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd"></path>
-            </svg>
+    <div className="mx-auto">
+      <div className="mb-6 p-5 flex flex-col items-center">
+        <h2 className="text-xl text-center font-bold mb-7">MyFarm</h2>
+        <div className="px-10">
+          <div className="flex items-start mb-8">
+            <div className="text-[#8492A3] mr-2 mt-1">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd"></path>
+              </svg>
+            </div>
+            <div>
+              <p className="text-[#8492A3]">Registered Office :</p>
+              <p className="text-sm text-[#8492A3]">No. 14, Sir Baron Jayathilaka Mawatha, Colombo 01.</p>
+            </div>
           </div>
-          <div>
-            <p className="text-gray-400">Registered Office :</p>
-            <p className="text-sm">No. 14, Sir Baron Jayathilaka Mawatha, Colombo 01.</p>
+
+          <div className="flex items-start mb-8">
+            <div className="text-[#8492A3] mr-2 mt-1">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd"></path>
+              </svg>
+            </div>
+            <div>
+              <p className="text-[#8492A3]">Cooperate Office :</p>
+              <p className="text-sm text-[#8492A3]">No. 46/42, Nawam Mawatha, Colombo 02.</p>
+            </div>
+          </div>
+
+          <div className="flex items-center mb-2">
+            <div className="text-[#8492A3] mr-2">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"></path>
+              </svg>
+            </div>
+            <p className="text-sm text-[#8492A3]">+94 77 1666 800</p>
           </div>
         </div>
 
-        <div className="flex items-start mb-2">
-          <div className="text-gray-400 mr-2 mt-1">
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-              <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd"></path>
-            </svg>
-          </div>
-          <div>
-            <p className="text-gray-400">Cooperate Office :</p>
-            <p className="text-sm">No. 46/42, Nawam Mawatha, Colombo 02.</p>
-          </div>
-        </div>
-
-        <div className="flex items-center mb-2">
-          <div className="text-gray-400 mr-2">
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-              <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"></path>
-            </svg>
-          </div>
-          <p className="text-sm">+94 77 1666 800</p>
-        </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-6 mb-6">
+      <div className="flex justify-between mb-6 px-16">
         <div>
           <h3 className="text-lg font-semibold mb-3">Quick Links</h3>
           <ul>
