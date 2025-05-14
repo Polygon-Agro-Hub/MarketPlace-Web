@@ -4,45 +4,53 @@ import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
 import { useEffect, useState } from 'react';
 import Loading from '@/components/loadings/loading';
+import PackageSlider from "@/components/home/PackageSlider";
+import { getAllProduct } from "@/services/product-service";
+
+interface Package {
+  id: number;
+  displayName: string;
+  image: string;
+  subTotal: number;
+}
 
 export default function Home() {
-  const [loading, setLoading] = useState(true)
   const [data, setData] = useState<{ message: string } | null>(null);
   const user = useSelector((state: RootState) => state.auth.user) || null;
+  const [productData, setProductData] = useState<Package[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        setData({ message: "Data loaded successfully!" })
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    fetchAllPackages();
+  }, []);
 
-    fetchData();
-  }, [])
+  async function fetchAllPackages() {
+    try {
+      setLoading(true);
+      const response = await getAllProduct() as any;
+      if (response && response.product) {
+        setProductData(response.product);
+      } else {
+        setError('No products found');
+      }
+    } catch (error) {
+      console.error('Error fetching packages:', error);
+      setError('Failed to fetch packages');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
-    <main>
-      <div className="flex min-h-screen flex-col items-center justify-center p-4">
+      <main className="flex min-h-screen flex-col items-center justify-between p-5">
         {loading ? (
-          <div className="flex flex-col items-center">
-            <Loading width={81} height={81} />
-            <p className="mt-4 text-lg font-medium text-gray-700">Loading your content...</p>
-          </div>
+          <div>Loading packages...</div>
+        ) : error ? (
+          <div className="text-red-500">{error}</div>
         ) : (
-          <>
-            <div>Welcome to the Home Page</div>
-            <div>{user ? `Hello, ${user.firstName}` : 'Please sign in'}</div>
-            <p className="mt-4 text-gray-600">{data?.message}</p>
-          </>
+          <PackageSlider productData={productData} />
         )}
-
-      </div>
-
-    </main>
+      </main>
   );
 }

@@ -15,6 +15,7 @@
     "@fortawesome/free-solid-svg-icons": "^6.7.2",
     "@fortawesome/react-fontawesome": "^0.2.2",
     "@reduxjs/toolkit": "^2.8.0",
+    "@types/react-slick": "^0.23.13",
     "axios": "^1.9.0",
     "lucide": "^0.507.0",
     "lucide-react": "^0.508.0",
@@ -25,7 +26,9 @@
     "react-lottie": "^1.2.10",
     "react-redux": "^9.2.0",
     "react-responsive": "^10.0.1",
+    "react-slick": "^0.30.3",
     "react-social-login-buttons": "^4.1.1",
+    "slick-carousel": "^1.8.1",
     "sweetalert2": "^11.21.0"
   },
   "devDependencies": {
