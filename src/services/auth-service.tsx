@@ -27,19 +27,19 @@ export const login = async (payload: LoginPayload): Promise<LoginResponse> => {
       throw new Error(response.data?.message || 'Login failed');
     }
   } catch (error: any) {
-   
+
     if (error.response) {
-     
+
       throw new Error(
-        error.response.data?.message || 
-        error.response.data?.error || 
+        error.response.data?.message ||
+        error.response.data?.error ||
         `Login failed with status ${error.response.status}`
       );
     } else if (error.request) {
-     
+
       throw new Error('No response received from server. Please check your network connection.');
     } else {
-   
+
       throw new Error(error.message || 'An error occurred during login');
     }
   }
