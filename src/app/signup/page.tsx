@@ -298,9 +298,9 @@ export default function SignupForm() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="flex flex-col md:flex-row md:space-x-4 space-y-2 md:space-y-0">
                 {/* Row for Title + First Name */}
-                <div className="flex flex-row w-full md:w-5/9 space-x-2">
+                <div className="flex flex-row w-full md:w-1/2 space-x-2">
                   {/* Title */}
-                  <div className="w-1/4 md:w-1/5">
+                  <div className="w-1/4 md:w-2/9">
                     <select
                       name="title"
                       value={formData.title}
@@ -316,7 +316,7 @@ export default function SignupForm() {
                   </div>
 
                   {/* First Name */}
-                  <div className="w-3/4 md:w-4/5">
+                  <div className="w-3/4 md:w-7/9">
                     <input
                       type="text"
                       name="firstName"
@@ -330,7 +330,7 @@ export default function SignupForm() {
                 </div>
 
                 {/* Last Name */}
-                <div className="w-full md:w-4/9">
+                <div className="w-full md:w-1/2">
                   <input
                     type="text"
                     name="lastName"
@@ -345,14 +345,14 @@ export default function SignupForm() {
 
               <div className="flex flex-col md:flex-row md:space-x-3 space-y-4 md:space-y-0">
                 {/* Group: +94 + 7XXXXXXXX */}
-                <div className="flex flex-row w-full md:w-5/9 space-x-3">
+                <div className="flex flex-row w-full md:w-1/2 space-x-3">
                   {/* +94 Select */}
-                  <div className="w-1/4 md:w-1/5">
+                  <div className="w-1/4 md:w-2/9">
                     <select
                       name="phoneCode"
                       value={formData.phoneCode}
                       onChange={handleChange}
-                      className="h-10 w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                      className="h-10 w-full !border !border-gray-300 !rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-purple-500"
                     >
                       <option value="+94">+94</option>
                       <option value="+1">+1</option>
@@ -361,7 +361,7 @@ export default function SignupForm() {
                   </div>
 
                   {/* Phone Number Input */}
-                  <div className="w-3/4 md:w-4/5">
+                  <div className="w-3/4 md:w-7/9">
                     <input
                       type="text"
                       name="phoneNumber"
@@ -375,7 +375,7 @@ export default function SignupForm() {
                 </div>
 
                 {/* Email Input */}
-                <div className="w-full md:w-4/9">
+                <div className="w-full md:w-1/2">
                   <input
                     type="email"
                     name="email"
