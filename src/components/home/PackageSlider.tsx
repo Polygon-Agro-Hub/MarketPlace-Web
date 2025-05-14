@@ -1,19 +1,20 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Slider from 'react-slick';
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import PackageCard from './PackageCard';
+import { getPackageDetails } from '@/services/product-service';
 
 interface Package {
-    id: number
-    displayName: string
-    image: string
-    subTotal: number
+    id: number;
+    displayName: string;
+    image: string;
+    subTotal: number;
 }
 
 interface packagesProps {
-    productData: Package[]
+    productData: Package[];
 }
 
 // Custom arrow components
@@ -44,32 +45,31 @@ const PrevArrow = (props: any) => {
 };
 
 const PackageSlider: React.FC<packagesProps> = ({ productData }) => {
-    //   const packages: Package[] = [
-    //     {
-    //       id: 1,
-    //       url: 'https://agroworld-s3-kmtu-hlf64-ituvf.s3.eu-north-1.amazonaws.com/marketplacepackages/image/b459b785-3cbe-4f15-9e51-920df33389e5.jpeg',
-    //       name: 'Family Pack',
-    //       price: 2000
-    //     },
-    //     {
-    //       id: 2,
-    //       url: 'https://agroworld-s3-kmtu-hlf64-ituvf.s3.eu-north-1.amazonaws.com/marketplacepackages/image/b459b785-3cbe-4f15-9e51-920df33389e5.jpeg',
-    //       name: 'Fruity Pack',
-    //       price: 1000
-    //     },
-    //     {
-    //       id: 3,
-    //       url: 'https://agroworld-s3-kmtu-hlf64-ituvf.s3.eu-north-1.amazonaws.com/marketplacepackages/image/b459b785-3cbe-4f15-9e51-920df33389e5.jpeg',
-    //       name: 'All Grains',
-    //       price: 2000
-    //     },
-    //     {
-    //       id: 4,
-    //       url: 'https://agroworld-s3-kmtu-hlf64-ituvf.s3.eu-north-1.amazonaws.com/marketplacepackages/image/b459b785-3cbe-4f15-9e51-920df33389e5.jpeg',
-    //       name: 'Premium Pack',
-    //       price: 3000
-    //     },
-    //   ];
+    const [selectedPackageId, setSelectedPackageId] = useState<number | null>(null);
+    const [packageDetails, setPackageDetails] = useState<any>(null);
+    const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+    const [errorDetails, setErrorDetails] = useState<string | null>(null);
+
+    const handlePackageClick = async (packageId: number) => {
+        setSelectedPackageId(packageId);
+        setIsLoadingDetails(true);
+        setErrorDetails(null);
+
+        try {
+            const res = await getPackageDetails(packageId);
+            setPackageDetails(res.packageItems); // Set the array directly
+        } catch (error: any) {
+            setErrorDetails(error.message || 'Failed to load package details');
+        } finally {
+            setIsLoadingDetails(false);
+        }
+    };
+
+    const handleClosePopup = () => {
+        setSelectedPackageId(null);
+        setPackageDetails(null);
+        setErrorDetails(null);
+    };
 
     const settings = {
         dots: true,
@@ -119,7 +119,15 @@ const PackageSlider: React.FC<packagesProps> = ({ productData }) => {
                 <Slider {...settings}>
                     {productData.map((packageItem) => (
                         <div key={packageItem.id} className="md:px-16 sm:px-8 px-4 py-3">
-                            <PackageCard packageItem={packageItem} />
+                            <PackageCard
+                                packageItem={packageItem}
+                                isSelected={selectedPackageId === packageItem.id}
+                                packageDetails={selectedPackageId === packageItem.id ? packageDetails : undefined}
+                                onPackageClick={handlePackageClick}
+                                onClosePopup={handleClosePopup}
+                                isLoadingDetails={isLoadingDetails && selectedPackageId === packageItem.id}
+                                errorDetails={selectedPackageId === packageItem.id ? errorDetails : undefined}
+                            />
                         </div>
                     ))}
                 </Slider>
