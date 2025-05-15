@@ -1,10 +1,12 @@
 import React from 'react';
+import Image from 'next/image';
 import CategoryTileBG from '../../../public/images/CategoryTileBG.png'
+import { StaticImageData } from 'next/image';
 
 interface CategoryTileProps {
     id: string;
     name: string;
-    imageUrl: string;
+    imageUrl: string | StaticImageData;
     itemCount: number;
     isSelected: boolean;
     onSelect: (id: string) => void;
@@ -44,8 +46,8 @@ const CategoryTile: React.FC<CategoryTileProps> = ({ id, name, imageUrl, itemCou
                     ></div>
                 )}
 
-                <div className="w-24 h-24 mb-2 flex items-center justify-center">
-                    <img
+                <div className="w-56 h-56 mb-2 flex items-center justify-center">
+                    <Image
                         src={imageUrl}
                         alt={name}
                         className="max-w-full max-h-full object-contain"
