@@ -59,7 +59,7 @@ const ItemCard = ({
             {/* Add to cart button */}
             <button
                 onClick={onAddToCart}
-                className="w-full py-1 px-1.5 bg-gray-100 text-gray-400 rounded flex items-center justify-center gap-1 text-xs md:text-sm hover:bg-gray-200 transition-colors"
+                className="w-full py-1 px-1.5 bg-gray-100 text-gray-400 rounded flex items-center justify-center gap-1 text-xs md:text-sm hover:bg-[#3E206D] hover:text-white transition-colors"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
