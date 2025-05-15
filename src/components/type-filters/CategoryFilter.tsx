@@ -44,8 +44,7 @@ export default function CategoryFilter() {
             name: 'Apple',
             originalPrice: 3.00,
             currentPrice: 2.50,
-            image: Fruits,
-            discount: 17
+            image: Fruits
         },
         {
             id: 2,

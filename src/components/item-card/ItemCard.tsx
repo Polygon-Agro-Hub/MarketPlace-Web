@@ -23,7 +23,7 @@ const ItemCard = ({
             {discount && discount > 0 && (
                 <div className="absolute top-0 left-0 ">
                     <div
-                        className="w-8 h-8 rounded-tl-lg md:w-15 md:h-14 bg-purple-900 flex flex-col items-center justify-center text-white"
+                        className="w-8 h-8 rounded-tl-lg md:w-15 md:h-15 sm:w-14 sm:h-14 bg-purple-900 flex flex-col items-center justify-center text-white"
                         style={{
                             clipPath: 'polygon(0 0, 0 100%, 100% 0)'
                         }}
