@@ -63,7 +63,7 @@ const PackageCard: React.FC<PackageProps> = ({
       ) : (
         // Popup Design (with data attribute for identification)
         <div
-          className="w-full h-full bg-[#3E206D] rounded-2xl shadow-lg relative min-h-[480px] max-w-[280px] border border-gray-200 text-white flex flex-col"
+          className="w-full h-full bg-[#3E206D] rounded-2xl shadow-lg relative min-h-[480px] md:max-w-[280px] min-w-[260px] border border-gray-200 text-white flex flex-col "
           data-package-popup={packageItem.id}
         >
           {/* Popup Content */}
@@ -92,7 +92,7 @@ const PackageCard: React.FC<PackageProps> = ({
 
             {/* Product List */}
             <div className="px-8 pt-2 overflow-y-auto max-h-[380px] 
-    scrollbar-thin scrollbar-thumb-white scrollbar-track-purple-800 mb-4">
+    scrollbar mb-4">
               {isLoadingDetails ? (
                 <div className="text-center py-8 text-white">Loading products...</div>
               ) : errorDetails ? (

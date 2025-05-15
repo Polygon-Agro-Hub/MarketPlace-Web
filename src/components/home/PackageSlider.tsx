@@ -188,7 +188,7 @@ const PackageSlider: React.FC<packagesProps> = ({ productData }) => {
                     className="fixed inset-0 bg-transparent bg-opacity-50 z-50 flex items-center justify-center "
                     ref={modalRef}
                 >
-                    <div className="bg-transparent w-full max-w-md max-h-[80vh] overflow-hidden items-center justify-center flex px-17">
+                    <div className="bg-transparent w-full max-w-md  overflow-hidden items-center justify-center flex px-12">
                         <PackageCard
                             packageItem={productData.find(p => p.id === selectedPackageId)!}
                             isSelected={true}
