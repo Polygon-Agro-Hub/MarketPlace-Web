@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Slider from 'react-slick';
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
@@ -49,8 +49,16 @@ const PackageSlider: React.FC<packagesProps> = ({ productData }) => {
     const [packageDetails, setPackageDetails] = useState<any>(null);
     const [isLoadingDetails, setIsLoadingDetails] = useState(false);
     const [errorDetails, setErrorDetails] = useState<string | null>(null);
+    
+    // Ref for the entire container
+    const containerRef = useRef<HTMLDivElement>(null);
 
     const handlePackageClick = async (packageId: number) => {
+        // If the package is already selected, do nothing
+        if (selectedPackageId === packageId) {
+            return;
+        }
+        
         setSelectedPackageId(packageId);
         setIsLoadingDetails(true);
         setErrorDetails(null);
@@ -70,6 +78,40 @@ const PackageSlider: React.FC<packagesProps> = ({ productData }) => {
         setPackageDetails(null);
         setErrorDetails(null);
     };
+
+    // Handle click outside to close popup
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            // Check if we have a selectedPackageId and containerRef exists
+            if (!selectedPackageId || !containerRef.current) return;
+            
+            // Find all elements with the data-package-popup attribute for the selected package
+            const popupElements = containerRef.current.querySelectorAll(`[data-package-popup="${selectedPackageId}"]`);
+            
+            // Check if the click was on any of these elements
+            let clickedOnPopup = false;
+            popupElements.forEach(element => {
+                if (element.contains(event.target as Node)) {
+                    clickedOnPopup = true;
+                }
+            });
+            
+            // If clicked outside the popup, close it
+            if (!clickedOnPopup) {
+                handleClosePopup();
+            }
+        };
+
+        // Add event listener when a popup is open
+        if (selectedPackageId !== null) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        // Clean up event listener
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [selectedPackageId]);
 
     const settings = {
         dots: true,
@@ -106,7 +148,7 @@ const PackageSlider: React.FC<packagesProps> = ({ productData }) => {
     };
 
     return (
-        <div className="flex flex-col items-center w-full">
+        <div className="flex flex-col items-center w-full" ref={containerRef}>
             <div className="flex items-center justify-center gap-2 w-full max-w-4xl mb-8">
                 <div className="w-1/2 border-t-2 border-[#D7D7D7]"></div>
                 <span className="bg-[#FF8F6666] text-[#FF4421] rounded-lg text-sm px-6 py-1">

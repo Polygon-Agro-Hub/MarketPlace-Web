@@ -34,7 +34,7 @@ const PackageCard: React.FC<PackageProps> = ({
   return (
     <div className="w-full h-full">
       {!isSelected ? (
-        // Original Package Card (unchanged)
+        // Original Package Card
         <div
           className="flex flex-col items-center justify-between w-full h-full border border-[#D7D7D7] rounded-lg shadow-lg py-4 px-2 hover:shadow-xl transition-shadow duration-300 min-h-[320px] cursor-pointer"
           onClick={() => onPackageClick(packageItem.id)}
@@ -56,51 +56,44 @@ const PackageCard: React.FC<PackageProps> = ({
           </div>
         </div>
       ) : (
-        // New Popup Design (matches your reference image)
-        <div className="w-full h-full bg-[#4B0082] rounded-2xl shadow-lg relative min-h-[320px] border border-gray-200 text-white flex flex-col">
-          {/* Close Button */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onClosePopup();
-            }}
-            className="absolute top-3 right-3 text-white hover:text-gray-300"
-          >
-            ✕
-          </button>
-  
+        // Popup Design (with data attribute for identification)
+        <div 
+          className="w-full h-full bg-[#3E206D] rounded-2xl shadow-lg relative min-h-[320px] border border-gray-200 text-white flex flex-col"
+          data-package-popup={packageItem.id}
+        >
           {/* Popup Content */}
-          <div className="p-4 h-full flex flex-col">
+          <div className="p-4 h-full flex flex-col" data-package-popup={packageItem.id}>
             {/* Header with Price */}
-            <div className="flex flex-row w-full justify-between">
-              <div className="flex mb-4 items-start justify-start mr-4">
-                <h3 className="text-white font-bold text-xl text-center">
+            <div className="flex flex-row w-full justify-between" data-package-popup={packageItem.id}>
+              <div className="flex mb-4 items-start justify-start mr-4" data-package-popup={packageItem.id}>
+                <h3 className="text-white font-bold text-xl text-center" data-package-popup={packageItem.id}>
                   i
                 </h3>
               </div>
               
-              <div className="flex mb-4 items-end justify-end mr-4">
-                <h3 className="text-white font-bold text-xl text-center">
-                  Rs.{packageItem.subTotal} <span className="text-sm font-normal">/ pack</span>
+              <div className="flex mb-4 items-end justify-end mr-4" data-package-popup={packageItem.id}>
+                <h3 className="text-white font-bold text-xl text-center" data-package-popup={packageItem.id}>
+                  Rs.{packageItem.subTotal} <span className="text-sm font-normal" data-package-popup={packageItem.id}>/ pack</span>
                 </h3>
               </div>
             </div>
   
             {/* Product List */}
-            <div className="flex-grow overflow-y-auto mb-4 max-h-[180px] scrollbar-thin scrollbar-thumb-white scrollbar-track-[#4B0082]">
+            <div className="px-6 flex-grow overflow-y-auto mb-4 max-h-[180px] scrollbar-thin scrollbar-thumb-white scrollbar-track-[#4B0082]" data-package-popup={packageItem.id}>
               {isLoadingDetails ? (
-                <div className="text-center py-8 text-white">Loading products...</div>
+                <div className="text-center py-8 text-white" data-package-popup={packageItem.id}>Loading products...</div>
               ) : errorDetails ? (
-                <div className="text-red-200 text-center py-8">{errorDetails}</div>
+                <div className="text-red-200 text-center py-8" data-package-popup={packageItem.id}>{errorDetails}</div>
               ) : (
-                <ul className="space-y-2 px-1">
+                <ul className="space-y-2 px-1" data-package-popup={packageItem.id}>
                   {packageDetails?.map((item) => (
                     <li
                       key={item.id}
                       className="flex justify-between items-center border-b border-white/30 py-1 text-sm"
+                      data-package-popup={packageItem.id}
                     >
-                      <span>{item.displayName}</span>
-                      <span className="text-white">{item.quantity}</span>
+                      <span data-package-popup={packageItem.id}>{item.displayName}</span>
+                      <span className="text-white" data-package-popup={packageItem.id}>{item.quantity}</span>
                     </li>
                   ))}
                 </ul>
@@ -108,11 +101,13 @@ const PackageCard: React.FC<PackageProps> = ({
             </div>
   
             {/* Spacer to push button to bottom */}
-            <div className="mt-auto"></div>
+            <div className="mt-auto" data-package-popup={packageItem.id}></div>
             
             {/* Add to Cart Button */}
+            <div className="flex px-6">
             <button
-              className="w-full bg-white text-[#4B0082] py-2 rounded-md font-semibold hover:bg-gray-100 transition-colors mt-2"
+              className="w-full bg-white  text-[#000000] py-2 rounded-xl font-semibold hover:bg-gray-100 transition-colors mt-2"
+              data-package-popup={packageItem.id}
               onClick={(e) => {
                 e.stopPropagation();
                 // Add to cart functionality here
@@ -120,6 +115,7 @@ const PackageCard: React.FC<PackageProps> = ({
             >
               Add to Cart
             </button>
+            </div>
           </div>
         </div>
       )}
