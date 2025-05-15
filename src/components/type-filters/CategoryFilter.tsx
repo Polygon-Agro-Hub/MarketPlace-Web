@@ -113,18 +113,19 @@ export default function CategoryFilter() {
                     ))}
                 </div>
             </div>
-            <div className="container mx-auto flex items-center justify-center">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="container mx-auto px-2 py-6">
+                <div className="grid grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-4 lg:gap-6">
                     {products.map((product) => (
-                        <ItemCard
-                            key={product.id}
-                            name={product.name}
-                            originalPrice={product.originalPrice}
-                            currentPrice={product.currentPrice}
-                            image={product.image}
-                            discount={product.discount}
-                            onAddToCart={() => handleAddToCart(product.id)}
-                        />
+                        <div key={product.id} className="w-full flex justify-center">
+                            <ItemCard
+                                name={product.name}
+                                originalPrice={product.originalPrice}
+                                currentPrice={product.currentPrice}
+                                image={product.image}
+                                discount={product.discount}
+                                onAddToCart={() => handleAddToCart(product.id)}
+                            />
+                        </div>
                     ))}
                 </div>
             </div>
