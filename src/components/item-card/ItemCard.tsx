@@ -21,17 +21,17 @@ const ItemCard = ({
         <div className="relative bg-white rounded-lg shadow-sm border border-gray-200 p-2 w-full flex flex-col items-center transition-all duration-300 hover:shadow-md">
             {/* Discount badge */}
             {discount && discount > 0 && (
-                <div className="absolute top-0 left-0 ">
+                <div className="absolute top-0 left-0">
                     <div
-                        className="w-8 h-8 rounded-tl-lg md:w-15 md:h-15 sm:w-14 sm:h-14 bg-purple-900 flex flex-col items-center justify-center text-white"
+                        className="w-10 h-10 rounded-tl-lg sm:w-14 sm:h-14 md:w-15 md:h-15 bg-purple-900 flex flex-col items-center justify-center text-white"
                         style={{
                             clipPath: 'polygon(0 0, 0 100%, 100% 0)'
                         }}
                     >
-                        <div className="transform -translate-y-2 -translate-x-3 text-[8px] md:text-[10px]">
+                        <div className="transform -translate-y-1/2 -translate-x-1/2 text-[8px] sm:text-[9px] md:text-[10px] absolute top-3 left-3 sm:top-4 sm:left-4">
                             <span className="font-bold">{discount}%</span>
                             <br />
-                            <span className="text-[6px] md:text-xs">Off</span>
+                            <span className="text-[6px] sm:text-[7px] md:text-xs">Off</span>
                         </div>
                     </div>
                 </div>
