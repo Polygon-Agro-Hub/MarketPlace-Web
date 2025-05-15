@@ -5,6 +5,7 @@ import { RootState } from '@/store';
 import { useEffect, useState } from 'react';
 import Loading from '@/components/loadings/loading';
 import PackageSlider from "@/components/home/PackageSlider";
+import CategoryFilter from "@/components/type-filters/CategoryFilter";
 import { getAllProduct } from "@/services/product-service";
 
 interface Package {
@@ -20,10 +21,15 @@ export default function Home() {
   const [productData, setProductData] = useState<Package[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState('fruits');
 
   useEffect(() => {
     fetchAllPackages();
   }, []);
+
+  useEffect(() => {
+    console.log(`Category changed to: ${selectedCategory}`);
+  }, [selectedCategory]);
 
   async function fetchAllPackages() {
     try {
@@ -42,15 +48,23 @@ export default function Home() {
     }
   }
 
+  const handleCategorySelect = (categoryId) => {
+    setSelectedCategory(categoryId);
+  };
+
   return (
-      <main className="flex min-h-screen flex-col items-center justify-between p-5">
-        {loading ? (
-          <div>Loading packages...</div>
-        ) : error ? (
-          <div className="text-red-500">{error}</div>
-        ) : (
-          <PackageSlider productData={productData} />
-        )}
-      </main>
+    <main className="flex min-h-screen flex-col items-center justify-between">
+      {loading ? (
+        <div>Loading packages...</div>
+      ) : error ? (
+        <div className="text-red-500">{error}</div>
+      ) : (
+        <PackageSlider productData={productData} />
+      )}
+
+      <div className="w-full mb-8">
+        <CategoryFilter />
+      </div>
+    </main>
   );
 }
