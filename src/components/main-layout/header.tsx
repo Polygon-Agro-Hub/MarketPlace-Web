@@ -2,6 +2,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import Link from 'next/link'
 import { faAngleDown, faMagnifyingGlass, faBagShopping, faBars, faUser, faClockRotateLeft, faTimes } from '@fortawesome/free-solid-svg-icons'
 import React, { useEffect, useState, useRef } from 'react'
+import { useSelector } from 'react-redux';
+import { RootState } from '@/store';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -9,6 +11,7 @@ const Header = () => {
   const [isCategoryExpanded, setIsCategoryExpanded] = useState(false);
   const [isDesktopCategoryOpen, setIsDesktopCategoryOpen] = useState(false);
   const categoryRef = useRef<HTMLDivElement | null>(null);
+  const user = useSelector((state: RootState) => state.auth.user);
 
   useEffect(() => {
     const handleResize = () => {
@@ -47,7 +50,9 @@ const Header = () => {
       {!isMobile && (
         <div className='bg-[#2C2C2C] text-gray-300 py-2 px-7'>
           <div className="mx-auto flex justify-between items-center">
-            <span className="text-sm italic">Call us for any query or help +94 770 111 999</span>
+            <span className="text-sm italic">
+              Call us for any query or help +94 770 111 999 {user ? user.firstName : ''}
+            </span>
             <div className="flex gap-2">
               <Link href="/signup" className="text-sm bg-gray-700 rounded-full px-4 py-1 hover:bg-gray-600">
                 Signup
