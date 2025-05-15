@@ -4,6 +4,12 @@ import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { signup } from '@/services/auth-service';
 import { useRouter } from 'next/navigation';
 import Swal from 'sweetalert2';
+import CustomDropdown from '../../components/home/CustomDropdown';
+
+// interface FruitOption {
+//   value: string;
+//   label: string;
+// }
 
 type FormErrors = {
   title?: string;
@@ -25,6 +31,7 @@ export default function SignupForm() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [success, setSuccess] = useState<string | null>(null);
   const [isPasswordValid, setIsPasswordValid] = useState<boolean>(false);
+  const [selectedFruit, setSelectedFruit] = useState<string | null>(null);
 
   // Form data state
   const [formData, setFormData] = useState({
@@ -39,6 +46,14 @@ export default function SignupForm() {
     agreeToTerms: false,
     agreeToMarketing: false
   });
+
+  // const fruitOptions: FruitOption[] = [
+  //   { value: 'apple', label: 'Apple' },
+  //   { value: 'banana', label: 'Banana' },
+  //   { value: 'orange', label: 'Orange' },
+  //   { value: 'grape', label: 'Grape' },
+  //   { value: 'strawberry', label: 'Strawberry' },
+  // ];
 
   // Handle input changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -301,17 +316,24 @@ export default function SignupForm() {
                 <div className="flex flex-row w-full md:w-1/2 space-x-2">
                   {/* Title */}
                   <div className="w-1/4 md:w-2/9">
-                    <select
-                      name="title"
-                      value={formData.title}
-                      onChange={handleChange}
-                      className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass('title')}`}
-                    >
-                      <option value="">Title</option>
-                      <option value="Mr.">Mr.</option>
-                      <option value="Mrs.">Mrs.</option>
-                      <option value="Ms.">Ms.</option>
-                    </select>
+                    <CustomDropdown
+                      options={[
+                        { value: "Mr.", label: "Mr." },
+                        { value: "Mrs.", label: "Mrs." },
+                        { value: "Ms.", label: "Ms." }
+                      ]}
+                      selectedValue={formData.title}
+                      onSelect={(value) => {
+                        handleChange({
+                          target: {
+                            name: 'title',
+                            value: value
+                          }
+                        } as React.ChangeEvent<HTMLSelectElement>);
+                      }}
+                      placeholder="Title"
+                      // className={getInputClass('title')} // Pass your error class if needed
+                    />
                     {errors.title && <p className="mt-1 text-sm text-red-600">{errors.title}</p>}
                   </div>
 
@@ -348,16 +370,24 @@ export default function SignupForm() {
                 <div className="flex flex-row w-full md:w-1/2 space-x-3">
                   {/* +94 Select */}
                   <div className="w-1/4 md:w-2/9">
-                    <select
-                      name="phoneCode"
-                      value={formData.phoneCode}
-                      onChange={handleChange}
-                      className="h-10 w-full !border !border-gray-300 !rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                    >
-                      <option value="+94">+94</option>
-                      <option value="+1">+1</option>
-                      <option value="+44">+44</option>
-                    </select>
+                    <CustomDropdown
+                      options={[
+                        { value: '+94', label: '+94' },
+                        { value: '+1', label: '+1' },
+                        { value: '+44', label: '+44' },
+                      ]}
+                      selectedValue={formData.phoneCode}
+                      onSelect={(value) => {
+                        // Update your form data state
+                        handleChange({
+                          target: {
+                            name: 'phoneCode',
+                            value: value
+                          }
+                        } as React.ChangeEvent<HTMLSelectElement>);
+                      }}
+                      placeholder="Select code"
+                    />
                   </div>
 
                   {/* Phone Number Input */}
@@ -519,5 +549,6 @@ export default function SignupForm() {
         </div>
       </div>
     </div>
+
   );
 }
