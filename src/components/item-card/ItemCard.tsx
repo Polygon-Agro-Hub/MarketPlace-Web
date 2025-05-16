@@ -131,7 +131,7 @@ const ItemCard = ({
 
                     {/* Quantity adjuster */}
                     <div className="flex items-center justify-center">
-                        <div className="flex w-full max-w-36 rounded-lg bg-white border-1 border-[#3E206D]">
+                        <div className="flex w-full max-w-28 rounded-lg bg-white border-1 border-[#3E206D]">
                             <button
                                 onClick={decrementQuantity}
                                 className="flex-none px-2 py-1 bg-[#3E206D] text-white font-bold rounded-l-md hover:bg-purple-800"
