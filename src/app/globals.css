@@ -24,3 +24,27 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Custom scrollbar */
+@layer utilities {
+  .scrollbar::-webkit-scrollbar {
+    width: 4px; /* Increased from 2px to 4px */
+    height: 100%;
+  }
+
+  .scrollbar::-webkit-scrollbar-track {
+    background: #4a2a82; /* Deep purple background */
+    border-radius: 0;
+  }
+
+  .scrollbar::-webkit-scrollbar-thumb {
+    background: #e6e6e6; /* Light gray/white thumb */
+    border-radius: 10px;
+    border: none;
+    height: 30px; /* Small height for the thumb */
+  }
+
+  .scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #ffffff; /* Slightly brighter on hover */
+  }
+}
