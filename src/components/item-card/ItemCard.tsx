@@ -31,7 +31,7 @@ const ItemCard = ({
                             clipPath: 'polygon(0 0, 0 100%, 100% 0)'
                         }}
                     >
-                        <div className="transform -translate-y-1/2 -translate-x-1/2 text-[8px] sm:text-[9px] md:text-[10px] absolute top-3 left-3 sm:top-4 sm:left-4">
+                        <div className="transform -translate-y-1/3 -translate-x-1/3 text-[8px] sm:text-[9px] md:text-[10px] absolute top-3 left-3 sm:top-4 sm:left-4">
                             <span className="font-bold">{discount}%</span>
                             <br />
                             <span className="text-[6px] sm:text-[7px] md:text-xs">Off</span>
