@@ -53,7 +53,7 @@ const ItemCard = ({
 
             {/* Price section */}
             <div className="flex flex-col items-center space-y-0.5 mb-1 md:mb-2">
-                <span className="text-purple-900 text-xs md:text-sm font-semibold">Rs.{currentPrice.toFixed(2)}</span>
+                <span className="text-purple-900 text-xs md:text-sm font-semibold">Rs.{currentPrice}</span>
             </div>
 
             {/* Add to cart button */}
