@@ -1,14 +1,39 @@
-// CategoryFilter.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import CategoryTile from './CategoryTile';
 import Vegetables from '../../../public/images/Vegetables.png';
 import Fruits from '../../../public/images/Fruits.png';
 import Grains from '../../../public/images/Grains.png';
 import Mushrooms from '../../../public/images/Mushrooms.png';
-import ItemCard from '../../components/item-card/ItemCard'
+import ItemCard from '../../components/item-card/ItemCard';
+import { getProductsByCategory } from '@/services/product-service';
+
+interface Product {
+    id: number;
+    displayName: string;
+    normalPrice: number;
+    discountedPrice: number;
+    discount: number;
+    promo: boolean;
+    unitType: string;
+    startValue: number;
+    changeby: number;
+    displayType: string;
+    tags: string;
+    varietyNameEnglish: string;
+    varietyNameSinhala: string;
+    varietyNameTamil: string;
+    image: string;
+    cropNameEnglish: string;
+    cropNameSinhala: string;
+    cropNameTamil: string;
+    category: string;
+}
 
 export default function CategoryFilter() {
     const [selectedCategory, setSelectedCategory] = useState('fruits');
+    const [products, setProducts] = useState<Product[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const categories = [
         {
@@ -36,53 +61,31 @@ export default function CategoryFilter() {
             itemCount: 10
         }
     ];
+    const handleCategorySelect = (categoryId: string) => {
+        setSelectedCategory(categoryId);
+    };
 
-    // Dummy products array for demonstration; replace with real data as needed
-    const products = [
-        {
-            id: 1,
-            name: 'Apple',
-            originalPrice: 3.00,
-            currentPrice: 2.50,
-            image: Fruits
-        },
-        {
-            id: 2,
-            name: 'Carrot',
-            originalPrice: 2.00,
-            currentPrice: 1.50,
-            image: Vegetables,
-            discount: 25
-        },
-        {
-            id: 3,
-            name: 'Rice',
-            originalPrice: 5.00,
-            currentPrice: 4.00,
-            image: Grains,
-            discount: 20
-        },
-        {
-            id: 4,
-            name: 'Shiitake',
-            originalPrice: 6.00,
-            currentPrice: 5.00,
-            image: Mushrooms,
-            discount: 17
-        },
-        {
-            id: 4,
-            name: 'Shiitake',
-            originalPrice: 6.00,
-            currentPrice: 5.00,
-            image: Mushrooms,
-            discount: 17
-        }
-    ];
+    useEffect(() => {
+        const fetchProducts = async () => {
+            setLoading(true);
+            setError(null);
 
-    // Dummy handler for add to cart
+            try {
+                const response = await getProductsByCategory(selectedCategory);
+                setProducts(response.products);
+            } catch (err) {
+                console.error('Error fetching products:', err);
+                setError('Failed to load products. Please try again.');
+                setProducts([]);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchProducts();
+    }, [selectedCategory]);
+
     const handleAddToCart = (id: number) => {
-        // Implement add to cart logic here
         console.log(`Add product ${id} to cart`);
     };
 
@@ -106,30 +109,45 @@ export default function CategoryFilter() {
                                 imageUrl={category.imageUrl}
                                 itemCount={category.itemCount}
                                 isSelected={selectedCategory === category.id}
-                                onSelect={setSelectedCategory}
+                                onSelect={handleCategorySelect}
                             />
                         </div>
                     ))}
                 </div>
             </div>
+
             <div className="container mx-auto px-2 py-6">
-                <div className="grid grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-4 lg:gap-6">
-                    {products.map((product) => (
-                        <div key={product.id} className="w-full flex justify-center">
-                            <ItemCard
-                                name={product.name}
-                                originalPrice={product.originalPrice}
-                                currentPrice={product.currentPrice}
-                                image={product.image}
-                                discount={product.discount}
-                                onAddToCart={() => handleAddToCart(product.id)}
-                            />
-                        </div>
-                    ))}
-                </div>
+                {loading ? (
+                    <div className="flex justify-center items-center py-10">
+                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#3E206D]"></div>
+                    </div>
+                ) : error ? (
+                    <div className="flex justify-center items-center py-10">
+                        <p className="text-red-500">{error}</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-4 lg:gap-6">
+                        {products.length > 0 ? (
+                            products.map((product) => (
+                                <div key={product.id} className="w-full flex justify-center">
+                                    <ItemCard
+                                        name={product.displayName}
+                                        originalPrice={product.normalPrice}
+                                        currentPrice={product.discountedPrice}
+                                        image={product.image}
+                                        discount={product.discount}
+                                        onAddToCart={() => handleAddToCart(product.id)}
+                                    />
+                                </div>
+                            ))
+                        ) : (
+                            <div className="col-span-full text-center py-10">
+                                <p className="text-gray-500">No products found in this category.</p>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
         </div>
-
-
     );
 }
