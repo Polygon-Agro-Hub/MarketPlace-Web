@@ -119,7 +119,7 @@ export default function CategoryFilter() {
             <div className="container mx-auto px-2 py-6">
                 {loading ? (
                     <div className="flex justify-center items-center py-10">
-                        <p className="text-gray-500">Loading products...</p>
+                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#3E206D]"></div>
                     </div>
                 ) : error ? (
                     <div className="flex justify-center items-center py-10">
