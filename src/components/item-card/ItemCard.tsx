@@ -17,6 +17,9 @@ const ItemCard = ({
     discount = null,
     onAddToCart = () => { }
 }: ItemCardProps) => {
+    // Check if the image is a string URL or a StaticImageData
+    const isImageUrl = typeof image === 'string';
+
     return (
         <div className="relative bg-white rounded-lg shadow-sm border border-gray-200 p-2 w-full flex flex-col items-center transition-all duration-300 hover:shadow-md">
             {/* Discount badge */}
@@ -39,13 +42,25 @@ const ItemCard = ({
 
             {/* Product image */}
             <div className="w-full h-16 md:h-24 lg:h-32 mb-1 md:mb-2 flex items-center justify-center">
-                <Image
-                    src={image}
-                    alt={name}
-                    width={80}
-                    height={80}
-                    className="object-contain max-h-full"
-                />
+                {isImageUrl ? (
+                    // Handle string URL images (from API)
+                    <div className="relative w-full h-full">
+                        <img
+                            src={image as string}
+                            alt={name}
+                            className="object-contain w-full h-full flex justify-center items-center"
+                        />
+                    </div>
+                ) : (
+                    // Handle local StaticImageData images (imported)
+                    <Image
+                        src={image}
+                        alt={name}
+                        width={80}
+                        height={80}
+                        className="object-contain max-h-full"
+                    />
+                )}
             </div>
 
             {/* Product name */}
