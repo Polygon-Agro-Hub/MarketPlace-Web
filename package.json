@@ -14,6 +14,7 @@
     "@fortawesome/free-regular-svg-icons": "^6.7.2",
     "@fortawesome/free-solid-svg-icons": "^6.7.2",
     "@fortawesome/react-fontawesome": "^0.2.2",
+    "@hookform/resolvers": "^5.0.1",
     "@reduxjs/toolkit": "^2.8.0",
     "axios": "^1.9.0",
     "lucide-react": "^0.508.0",
@@ -21,9 +22,12 @@
     "next": "15.3.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-hook-form": "^7.56.3",
+    "react-icons": "^5.5.0",
     "react-redux": "^9.2.0",
     "react-social-login-buttons": "^4.1.1",
-    "sweetalert2": "^11.21.0"
+    "sweetalert2": "^11.21.0",
+    "yup": "^1.6.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
