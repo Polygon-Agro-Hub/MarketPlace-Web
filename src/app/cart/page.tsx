@@ -1,7 +1,9 @@
 'use client';
+import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 import { Plus, Minus, Trash2 } from 'lucide-react';
 import TopNavigation from '@/components/top-navigation/TopNavigation';
+// import router from 'next/router';
 
 interface Item {
   id: number;
@@ -19,12 +21,15 @@ interface Package {
   Items: Item[];
 }
 
+
+
 const Page: React.FC = () => {
     const NavArray = [
     { name: 'Cart', path: '/cart', status:true },
     { name: 'Checkout', path: '/checkout', status:false },
     { name: 'Payment', path: '/payment', status:false },
   ]
+  const router = useRouter();
   const [unitSelection, setUnitSelection] = useState<Record<number, 'kg' | 'g'>>({});
   const [dataArray, setDataArray] = useState<Package[]>([
     {
@@ -250,7 +255,9 @@ const Page: React.FC = () => {
               <p className='font-semibold'>Rs.{grandTotal.toFixed(2)}</p>
             </div>
 
-            <button className='w-full bg-[#3E206D] text-white font-semibold rounded-lg px-4 py-3 text-sm sm:text-base hover:bg-[#2d174f] transition-colors'>
+            <button 
+            onClick={() => router.push('/checkout')}
+            className='w-full bg-[#3E206D] text-white font-semibold rounded-lg px-4 py-3 text-sm sm:text-base hover:bg-[#2d174f] transition-colors'>
               Checkout now
             </button>
           </div>
