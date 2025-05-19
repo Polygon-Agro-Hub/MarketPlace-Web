@@ -6,7 +6,7 @@ import Grains from '../../../public/images/Grains.png';
 import Mushrooms from '../../../public/images/Mushrooms.png';
 import ItemCard from '../../components/item-card/ItemCard';
 import { getProductsByCategory } from '@/services/product-service';
-import { getCategoryCounts } from '@/services/product-service'; // Import the new service
+import { getCategoryCounts } from '@/services/product-service';
 
 interface Product {
     id: number;
@@ -45,7 +45,6 @@ export default function CategoryFilter() {
     const [categories, setCategories] = useState<Category[]>([]);
     const [countsLoading, setCountsLoading] = useState(true);
 
-    // Initialize with default categories (will be updated after API call)
     const defaultCategories = [
         {
             id: 'vegetables',
@@ -80,9 +79,7 @@ export default function CategoryFilter() {
                 const response = await getCategoryCounts();
 
                 if (response.status && response.counts) {
-                    // Map API response to our categories
                     const updatedCategories = defaultCategories.map(cat => {
-                        // Find matching category from API (case insensitive)
                         const apiCategory = response.counts.find(
                             (apiCat: any) => apiCat.category.toLowerCase() === cat.name.toLowerCase()
                         );
@@ -97,7 +94,6 @@ export default function CategoryFilter() {
                 }
             } catch (err) {
                 console.error('Error fetching category counts:', err);
-                // Fallback to default categories if API fails
                 setCategories(defaultCategories);
             } finally {
                 setCountsLoading(false);
