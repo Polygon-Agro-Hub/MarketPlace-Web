@@ -1,12 +1,17 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import Link from 'next/link'
 import { faAngleDown, faMagnifyingGlass, faBagShopping, faBars, faUser, faClockRotateLeft, faTimes } from '@fortawesome/free-solid-svg-icons'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
+import { useSelector } from 'react-redux';
+import { RootState } from '@/store';
 
-const header = () => {
+const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isCategoryExpanded, setIsCategoryExpanded] = useState(false);
+  const [isDesktopCategoryOpen, setIsDesktopCategoryOpen] = useState(false);
+  const categoryRef = useRef<HTMLDivElement | null>(null);
+  const user = useSelector((state: RootState) => state.auth.user);
 
   useEffect(() => {
     const handleResize = () => {
@@ -16,18 +21,38 @@ const header = () => {
 
     window.addEventListener('resize', handleResize);
 
-    return () => window.removeEventListener('resize', handleResize);
+    // Close desktop category menu when clicking outside
+    const handleClickOutside = (event: MouseEvent) => {
+      if (categoryRef.current && !categoryRef.current.contains(event.target as Node)) {
+        setIsDesktopCategoryOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, []);
 
-  const toggleMenue = () => {
+  const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   }
+
+  const toggleDesktopCategory = (e: { preventDefault: () => void }) => {
+    e.preventDefault();
+    setIsDesktopCategoryOpen(!isDesktopCategoryOpen);
+  }
+
   return (
     <>
       {!isMobile && (
         <div className='bg-[#2C2C2C] text-gray-300 py-2 px-7'>
           <div className="mx-auto flex justify-between items-center">
-            <span className="text-sm italic">Call us for any query or help +94 770 111 999</span>
+            <span className="text-sm italic">
+              Call us for any query or help +94 770 111 999 {user ? user.firstName : ''}
+            </span>
             <div className="flex gap-2">
               <Link href="/signup" className="text-sm bg-gray-700 rounded-full px-4 py-1 hover:bg-gray-600">
                 Signup
@@ -46,18 +71,23 @@ const header = () => {
           {!isMobile && (
             <nav className='hidden md:flex space-x-6'>
               <Link href='/' className='hover:text-purple-200'>Home</Link>
-              <div className='relative group'>
-                <button className='flex items-center hover:text-purple-200'>
+              <div className='relative' ref={categoryRef}>
+                <button
+                  className='flex items-center hover:text-purple-200'
+                  onClick={toggleDesktopCategory}
+                >
                   Category <span className='ml-1'><FontAwesomeIcon icon={faAngleDown} /></span>
                 </button>
-                <div className='absolute hidden group-hover:block bg-[#3E206D] text-white w-48 shadow-lg mt-7 z-10'>
-                  <Link href="/category/retail" className="border-b-1 block px-4 py-2 hover:bg-[#6c5394]">
-                    Retail
-                  </Link>
-                  <Link href="/category/wholesale" className="block px-4 py-2 hover:bg-[#6c5394]">
-                    Wholesale
-                  </Link>
-                </div>
+                {isDesktopCategoryOpen && (
+                  <div className='absolute bg-[#3E206D] text-white w-48 shadow-lg mt-7 z-10'>
+                    <Link href="/category/retail" className="border-b-1 block px-4 py-2 hover:bg-[#6c5394]">
+                      Retail
+                    </Link>
+                    <Link href="/category/wholesale" className="block px-4 py-2 hover:bg-[#6c5394]">
+                      Wholesale
+                    </Link>
+                  </div>
+                )}
               </div>
               <Link href="/promotions" className="hover:text-purple-200">
                 Promotions
@@ -99,7 +129,7 @@ const header = () => {
             <FontAwesomeIcon className='text-1xl' icon={faUser} />
           </Link>
           {isMobile && (
-            <button onClick={toggleMenue} className='md:hidden'>
+            <button onClick={toggleMenu} className='md:hidden'>
               <FontAwesomeIcon className='text-2xl' icon={faBars} />
             </button>
           )}
@@ -111,7 +141,7 @@ const header = () => {
             <div className="bg-[#3E206D] text-white w-64 flex flex-col">
               <div className="flex justify-between items-center border-b border-purple-800 px-6 py-4">
                 <span className="font-semibold">Menu</span>
-                <button onClick={toggleMenue} className="text-white hover:text-purple-200">
+                <button onClick={toggleMenu} className="text-white hover:text-purple-200">
                   <FontAwesomeIcon icon={faTimes} className="text-xl" />
                 </button>
               </div>
@@ -155,4 +185,4 @@ const header = () => {
     </>
   )
 }
-export default header
+export default Header

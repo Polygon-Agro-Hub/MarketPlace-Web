@@ -16,7 +16,9 @@
     "@fortawesome/react-fontawesome": "^0.2.2",
     "@hookform/resolvers": "^5.0.1",
     "@reduxjs/toolkit": "^2.8.0",
+    "@types/react-slick": "^0.23.13",
     "axios": "^1.9.0",
+    "lucide": "^0.507.0",
     "lucide-react": "^0.508.0",
     "my-app": "file:",
     "next": "15.3.2",
@@ -24,8 +26,13 @@
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.56.3",
     "react-icons": "^5.5.0",
+    "react-lottie": "^1.2.10",
     "react-redux": "^9.2.0",
+    "react-responsive": "^10.0.1",
+    "react-slick": "^0.30.3",
     "react-social-login-buttons": "^4.1.1",
+    "redux-persist": "^6.0.0",
+    "slick-carousel": "^1.8.1",
     "sweetalert2": "^11.21.0",
     "yup": "^1.6.1"
   },
@@ -35,9 +42,10 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/react-lottie": "^1.2.10",
     "eslint": "^9",
     "eslint-config-next": "15.3.2",
-    "tailwindcss": "^4",
+    "tailwindcss": "^4.1.5",
     "typescript": "^5"
   }
 }
