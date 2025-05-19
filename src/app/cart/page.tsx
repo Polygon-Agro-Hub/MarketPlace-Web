@@ -256,7 +256,7 @@ const Page: React.FC = () => {
             </div>
 
             <button 
-            onClick={() => router.push('/checkout')}
+            onClick={() => router.push('/test')}
             className='w-full bg-[#3E206D] text-white font-semibold rounded-lg px-4 py-3 text-sm sm:text-base hover:bg-[#2d174f] transition-colors'>
               Checkout now
             </button>
