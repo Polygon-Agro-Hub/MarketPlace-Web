@@ -55,7 +55,7 @@ export default function Home() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-between">
-      <div className='my-8'>
+      <div className='mt-0 my-8'>
         <TopBanner/>
       </div>
       {loading ? (
