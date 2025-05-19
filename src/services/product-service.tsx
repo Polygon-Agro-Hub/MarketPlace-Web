@@ -151,6 +151,43 @@ export const getCategoryCounts = async (): Promise<any> => {
   }
 };
 
+export const productAddToCart = async (productData: any, token: string | null): Promise<any> => {
+  console.log("productData", productData);
+
+  try {
+    const response = await axios.post(`/product/product-add-to-cart`, productData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (response.status >= 200 && response.status < 300) {
+      console.log("service response", response);
+      return response.data;
+    } else {
+      throw new Error(response.data?.message || 'Failed to add product to cart');
+    }
+  } catch (error: any) {
+    if (error.response) {
+      // Handle specific error cases
+      if (error.response.status === 200 && error.response.data.status === false) {
+        // Product already in cart case
+        throw new Error('Product already added to cart');
+      }
+      throw new Error(
+        error.response.data?.message ||
+        error.response.data?.error ||
+        `Failed with status ${error.response.status}`
+      );
+    } else if (error.request) {
+      throw new Error('No response received from server');
+    } else {
+      throw new Error(error.message || 'An error occurred while adding product to cart');
+    }
+  }
+};
+
 
 interface Package {
   product(product: any): unknown;
