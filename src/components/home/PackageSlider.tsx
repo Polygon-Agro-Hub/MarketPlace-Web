@@ -52,7 +52,7 @@ const PackageSlider: React.FC<packagesProps> = ({ productData }) => {
     const [packageDetails, setPackageDetails] = useState<any>(null);
     const [isLoadingDetails, setIsLoadingDetails] = useState(false);
     const [errorDetails, setErrorDetails] = useState<string | null>(null);
-    
+
     // Ref for the entire container
     const containerRef = useRef<HTMLDivElement>(null);
     // Ref for the mobile popup modal
@@ -60,7 +60,7 @@ const PackageSlider: React.FC<packagesProps> = ({ productData }) => {
 
     const handlePackageClick = async (packageId: number) => {
         if (selectedPackageId === packageId) return;
-        
+
         setSelectedPackageId(packageId);
         setIsLoadingDetails(true);
         setErrorDetails(null);
@@ -88,8 +88,8 @@ const PackageSlider: React.FC<packagesProps> = ({ productData }) => {
             if (isMobile && selectedPackageId && modalRef.current) {
                 // Check if click is inside the modal content but not on the modal background
                 const modalContent = modalRef.current.querySelector('[data-package-popup]');
-                
-                if (modalRef.current.contains(event.target as Node) && 
+
+                if (modalRef.current.contains(event.target as Node) &&
                     (!modalContent || !modalContent.contains(event.target as Node))) {
                     // Clicked on the modal background but not on the modal content
                     handleClosePopup();
@@ -99,7 +99,7 @@ const PackageSlider: React.FC<packagesProps> = ({ productData }) => {
             else if (!isMobile && selectedPackageId && containerRef.current) {
                 // Find all elements with the data-package-popup attribute for the selected package
                 const popupElements = containerRef.current.querySelectorAll(`[data-package-popup="${selectedPackageId}"]`);
-                
+
                 // Check if the click was on any of these elements
                 let clickedOnPopup = false;
                 popupElements.forEach(element => {
@@ -107,7 +107,7 @@ const PackageSlider: React.FC<packagesProps> = ({ productData }) => {
                         clickedOnPopup = true;
                     }
                 });
-                
+
                 // If clicked outside the popup, close it
                 if (!clickedOnPopup) {
                     handleClosePopup();
@@ -163,9 +163,9 @@ const PackageSlider: React.FC<packagesProps> = ({ productData }) => {
     return (
         <div className="flex flex-col items-center w-full my-5 ref={containerRef}">
             {/* ... (keep your header section) */}
-            <div className="flex items-center justify-center gap-2 w-full max-w-4xl mb-8">
+            <div className="flex items-center justify-center gap-2 w-full my-4 md:my-8 px-2 md:px-20">
                 <div className="w-1/2 border-t-2 border-[#D7D7D7]"></div>
-                <span className="bg-[#FF8F6666] text-[#FF4421] rounded-lg text-sm px-6 py-1">
+                <span className="bg-[#FF8F6666] text-[#FF4421] rounded-lg text-xs md:text-sm px-3 md:px-6 py-1">
                     Packages
                 </span>
                 <div className="w-1/2 border-t-2 border-[#D7D7D7]"></div>
@@ -191,7 +191,7 @@ const PackageSlider: React.FC<packagesProps> = ({ productData }) => {
 
             {/* Mobile Popup Modal */}
             {isMobile && selectedPackageId && (
-                <div 
+                <div
                     className="fixed inset-0 bg-transparent bg-opacity-50 z-50 flex items-center justify-center "
                     ref={modalRef}
                 >

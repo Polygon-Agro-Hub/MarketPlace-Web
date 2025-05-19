@@ -1,6 +1,9 @@
 import React from 'react';
 import { useViewport } from './hooks/useViewport';
 import Image from 'next/image';
+import { packageAddToCart } from '@/services/product-service';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/store';
 
 interface PackageItem {
   id: number;
@@ -8,6 +11,7 @@ interface PackageItem {
   quantity: string;
   quantityType: string;
   packageId: number;
+  mpItemId: number;
 }
 
 interface PackageProps {
@@ -35,6 +39,36 @@ const PackageCard: React.FC<PackageProps> = ({
   errorDetails
 }) => {
   const { isMobile } = useViewport();
+  const token = useSelector((state: RootState) => state.auth.token) as string | null;
+
+
+  const handlePackageAddToCart = async () => {
+    if (!packageDetails || packageDetails.length === 0) {
+      alert('Package details are empty');
+      return;
+    }
+
+    if (!token) {
+      alert('Please login to add items to cart');
+      return;
+    }
+
+    try {
+      const res = await packageAddToCart(packageDetails, token);
+      console.log("res", res);
+
+      if (res.status === true) {
+        console.log(res.message);
+        onClosePopup();
+      }else{
+        console.log(res.message);
+      }
+      // alert('Package added to cart successfully!');
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      // alert('Failed to add package to cart. Please try again.');
+    }
+  }
 
   return (
     <div className="w-full h-full ">
@@ -122,10 +156,7 @@ const PackageCard: React.FC<PackageProps> = ({
             <div className="flex px-8 mt-4">
               <button
                 className="w-full bg-white text-[#000000] py-2 rounded-xl font-normal hover:bg-gray-100 transition-colors"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  // Add to cart functionality here
-                }}
+                onClick={() => handlePackageAddToCart()}
               >
                 Add to Cart
               </button>
