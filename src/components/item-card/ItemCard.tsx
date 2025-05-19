@@ -36,15 +36,30 @@ const ItemCard = ({
         }
     };
 
+    // State for tracking if item has been added to cart
+    const [addedToCart, setAddedToCart] = useState(false);
+
     // Handle add to cart button click
     const handleAddToCartClick = () => {
         if (!showQuantitySelector) {
             setShowQuantitySelector(true);
         } else {
+            // Call the onAddToCart function passed from parent
             onAddToCart(quantity, unit);
-            // You might want to hide the selector after adding to cart
-            // Uncomment this line if you want that behavior:
-            // setShowQuantitySelector(false);
+
+            // Hide the quantity selector
+            setShowQuantitySelector(false);
+
+            // Show the "Added to the Cart" button
+            setAddedToCart(true);
+
+            // After 2 seconds, restore the card to its original state
+            setTimeout(() => {
+                setAddedToCart(false);
+                // Reset quantity to default if needed
+                setQuantity(50);
+                setUnit('g');
+            }, 2000);
         }
     };
 
@@ -73,28 +88,30 @@ const ItemCard = ({
                 </div>
             )}
 
-            {/* Product image */}
-            <div className="w-full h-16 md:h-24 lg:h-32 mb-1 md:mb-2 flex items-center justify-center">
-                {isImageUrl ? (
-                    // Handle string URL images (from API)
-                    <div className="relative w-full h-full">
-                        <img
-                            src={image as string}
+            {/* Product image - only shown when quantity selector is not visible and item is not added to cart */}
+            {!showQuantitySelector && !addedToCart && (
+                <div className="w-full h-16 md:h-24 lg:h-32 mb-1 md:mb-2 flex items-center justify-center">
+                    {isImageUrl ? (
+                        // Handle string URL images (from API)
+                        <div className="relative w-full h-full">
+                            <img
+                                src={image as string}
+                                alt={name}
+                                className="object-contain w-full h-full flex justify-center items-center"
+                            />
+                        </div>
+                    ) : (
+                        // Handle local StaticImageData images (imported)
+                        <Image
+                            src={image}
                             alt={name}
-                            className="object-contain w-full h-full flex justify-center items-center"
+                            width={80}
+                            height={80}
+                            className="object-contain max-h-full"
                         />
-                    </div>
-                ) : (
-                    // Handle local StaticImageData images (imported)
-                    <Image
-                        src={image}
-                        alt={name}
-                        width={80}
-                        height={80}
-                        className="object-contain max-h-full"
-                    />
-                )}
-            </div>
+                    )}
+                </div>
+            )}
 
             {/* Product name */}
             <h3 className="text-xs md:text-sm lg:text-base font-medium text-gray-800 text-center mb-0.5">{name}</h3>
@@ -106,7 +123,7 @@ const ItemCard = ({
 
             {/* Quantity selector (shown after clicking Add to Cart) */}
             {showQuantitySelector && (
-                <div className="w-full space-y-2 mb-2">
+                <div className="w-full space-y-2 mb-2 flex flex-col items-center justify-center">
                     {/* Unit selector (kg/g) */}
                     <div className="flex justify-center">
                         <div className="flex rounded overflow-hidden gap-2">
@@ -130,7 +147,7 @@ const ItemCard = ({
                     </div>
 
                     {/* Quantity adjuster */}
-                    <div className="flex items-center justify-center">
+                    <div className="flex items-center justify-center w-full">
                         <div className="flex w-full max-w-28 rounded-lg bg-white border-1 border-[#3E206D]">
                             <button
                                 onClick={decrementQuantity}
@@ -152,21 +169,32 @@ const ItemCard = ({
                 </div>
             )}
 
-            {/* Add to cart button */}
-            <button
-                onClick={handleAddToCartClick}
-                className={`w-full py-1 px-1.5 rounded flex items-center justify-center gap-1 text-xs md:text-sm transition-colors ${showQuantitySelector
-                    ? "bg-purple-900 text-white hover:bg-purple-800"
-                    : "bg-gray-100 text-gray-400 hover:bg-[#3E206D] hover:text-white"
-                    }`}
-            >
-                {!showQuantitySelector && (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            {/* Add to cart button or Added to Cart button */}
+            {addedToCart ? (
+                <button
+                    className="w-full py-2 px-4 rounded-full flex items-center justify-center gap-2 text-sm md:text-base bg-purple-100 text-purple-900 transition-colors"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
-                )}
-                {showQuantitySelector ? "Add" : "Add to Cart"}
-            </button>
+                    Added to the Cart
+                </button>
+            ) : (
+                <button
+                    onClick={handleAddToCartClick}
+                    className={`w-full py-1 px-1.5 rounded flex items-center justify-center gap-1 text-xs md:text-sm transition-colors ${showQuantitySelector
+                        ? "bg-purple-900 text-white hover:bg-purple-800"
+                        : "bg-gray-100 text-gray-400 hover:bg-[#3E206D] hover:text-white"
+                        }`}
+                >
+                    {!showQuantitySelector && (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                        </svg>
+                    )}
+                    {showQuantitySelector ? "Add" : "Add to Cart"}
+                </button>
+            )}
         </div>
     );
 };
