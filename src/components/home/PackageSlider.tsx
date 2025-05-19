@@ -161,7 +161,7 @@ const PackageSlider: React.FC<packagesProps> = ({ productData }) => {
     };
 
     return (
-        <div className="flex flex-col items-center w-full ref={containerRef}">
+        <div className="flex flex-col items-center w-full my-5 ref={containerRef}">
             {/* ... (keep your header section) */}
             <div className="flex items-center justify-center gap-2 w-full max-w-4xl mb-8">
                 <div className="w-1/2 border-t-2 border-[#D7D7D7]"></div>
