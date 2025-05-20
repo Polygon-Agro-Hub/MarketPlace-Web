@@ -1,9 +1,12 @@
 'use client';
 import { useRouter } from 'next/navigation';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Plus, Minus, Trash2 } from 'lucide-react';
 import TopNavigation from '@/components/top-navigation/TopNavigation';
 // import router from 'next/router';
+import { getRetailCart } from '@/services/retail-order-service';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/store';
 
 interface Item {
   id: number;
@@ -30,6 +33,7 @@ const Page: React.FC = () => {
     { name: 'Payment', path: '/payment', status:false },
   ]
   const router = useRouter();
+  const token = useSelector((state: RootState) => state.auth.token) as string | null;
   const [unitSelection, setUnitSelection] = useState<Record<number, 'kg' | 'g'>>({});
   const [dataArray, setDataArray] = useState<Package[]>([
     {
@@ -81,6 +85,20 @@ const Page: React.FC = () => {
       ]
     }
   ]);
+
+  useEffect(() => {
+    fetchCartData()
+  },[])
+
+  const fetchCartData = async () => {
+    try {
+      const data = await getRetailCart(token);
+      console.log("data", data);
+    } catch (error) {
+      console.error("Error fetching cart data:", error);
+    }
+  };
+
 
   const handleUnitChange = (itemId: number, unit: 'kg' | 'g') => {
     setUnitSelection(prev => ({
