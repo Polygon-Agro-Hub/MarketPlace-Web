@@ -123,13 +123,10 @@ export default function CategoryFilter() {
         fetchProducts();
     }, [selectedCategory]);
 
-    const handleAddToCart = (id: number) => {
-        console.log(`Add product ${id} to cart`);
-    };
-
     function handleCategorySelect(id: string): void {
         setSelectedCategory(id);
     }
+
     return (
         <div className='mx-auto w-full'>
             <div className='flex flex-col'>
@@ -178,12 +175,12 @@ export default function CategoryFilter() {
                             products.map((product) => (
                                 <div key={product.id} className="w-full flex justify-center">
                                     <ItemCard
+                                        id={product.id}
                                         name={product.displayName}
                                         originalPrice={product.normalPrice}
                                         currentPrice={product.discountedPrice}
                                         image={product.image}
                                         discount={product.discount}
-                                        onAddToCart={() => handleAddToCart(product.id)}
                                     />
                                 </div>
                             ))
