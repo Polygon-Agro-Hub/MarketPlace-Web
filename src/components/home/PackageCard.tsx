@@ -54,7 +54,7 @@ const PackageCard: React.FC<PackageProps> = ({
     }
 
     try {
-      const res = await packageAddToCart(packageDetails, token);
+      const res = await packageAddToCart(packageItem.id, token);
       console.log("res", res);
 
       if (res.status === true) {
