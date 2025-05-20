@@ -174,7 +174,7 @@ const Header = () => {
                 <Link href="/promotions" className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800">
                   Promotions
                 </Link>
-                <Link href="/order-history" className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800">
+                <Link href="/history" className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800">
                   Order History
                 </Link>
               </nav>
