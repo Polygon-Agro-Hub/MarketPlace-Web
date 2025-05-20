@@ -2,40 +2,62 @@
 
 import React, { useState, useEffect } from 'react';
 import CustomDropdown from '../../components/home/CustomDropdown';
-
-interface FormData {
-    name: string;
-    email: string;
-    deliveryMethod: string;
-}
-
-// Simulated fetched data from a DB
-const fetchedData: FormData = {
-    name: 'John Doe',
-    email: 'john@example.com',
-    deliveryMethod: 'pickup',
-};
+import { updateForm, getForm } from '../../services/retail-service';
 
 const CustomForm = () => {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
-    const [deliveryMethod, setDeliveryMethod] = useState('');
+    const [deliveryMethod, setDeliveryMethod] = useState('home');
     const [buildingType, setBuildingType] = useState('');
+    const [usePreviousAddress, setUsePreviousAddress] = useState(false);
+    const [initialData, setInitialData] = useState<any>(null);
+
     const [errors, setErrors] = useState({
         name: '',
         email: '',
         deliveryMethod: '',
-        buildingType: '', // ✅ new error field
-      });
+        buildingType: '',
+    });
 
-    // Simulate data fetch and pre-fill the form on component mount
+    const [loading, setLoading] = useState(false);
+    const [fetching, setFetching] = useState(true);
+    const [successMsg, setSuccessMsg] = useState('');
+    const [errorMsg, setErrorMsg] = useState('');
+
     useEffect(() => {
-        setName(fetchedData.name);
-        setEmail(fetchedData.email);
-        setDeliveryMethod(fetchedData.deliveryMethod);
+        const fetchData = async () => {
+            try {
+                const data = await getForm();
+                setInitialData(data); // Save fetched data
+            } catch (error: any) {
+                setErrorMsg(error.message || 'Failed to load form data.');
+            } finally {
+                setFetching(false);
+            }
+        };
+
+        fetchData();
     }, []);
 
-    // === Live Validation Handlers ===
+    const handleAddressOptionChange = (value: string) => {
+        if (value === 'previous') {
+            setUsePreviousAddress(true);
+            if (initialData) {
+                setName(initialData.name || '');
+                setEmail(initialData.email || '');
+                setDeliveryMethod(initialData.deliveryMethod || '');
+                setBuildingType(initialData.buildingType || '');
+            }
+        } else {
+            setUsePreviousAddress(false);
+            setName('');
+            setEmail('');
+            setDeliveryMethod('');
+            setBuildingType('');
+        }
+    };
+
+
     const handleNameChange = (value: string) => {
         setName(value);
         if (!value.trim()) {
@@ -46,6 +68,7 @@ const CustomForm = () => {
             setErrors(prev => ({ ...prev, name: '' }));
         }
     };
+
 
     const handleEmailChange = (value: string) => {
         setEmail(value);
@@ -58,6 +81,8 @@ const CustomForm = () => {
         }
     };
 
+
+
     const handleDeliveryChange = (value: string) => {
         setDeliveryMethod(value);
         if (!value) {
@@ -69,13 +94,12 @@ const CustomForm = () => {
 
     const handleBuildingTypeChange = (value: string) => {
         setBuildingType(value);
-        console.log(buildingType)
         if (!value) {
-          setErrors(prev => ({ ...prev, buildingType: 'Building type is required.' }));
+            setErrors(prev => ({ ...prev, buildingType: 'Building type is required.' }));
         } else {
-          setErrors(prev => ({ ...prev, buildingType: '' }));
+            setErrors(prev => ({ ...prev, buildingType: '' }));
         }
-      };
+    };
 
     const validate = () => {
         const newErrors = { name: '', email: '', deliveryMethod: '', buildingType: '' };
@@ -105,24 +129,67 @@ const CustomForm = () => {
         if (!buildingType) {
             newErrors.buildingType = 'Building type is required.';
             valid = false;
-          }
+        }
 
         setErrors(newErrors);
         return valid;
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setSuccessMsg('');
+        setErrorMsg('');
 
         if (!validate()) return;
 
         const formData = { name, email, deliveryMethod, buildingType };
-        console.log('Updated form data:', formData);
-        // Here you would typically send a PATCH/PUT request
+
+        try {
+            setLoading(true);
+            await updateForm(formData);
+            setSuccessMsg('Form updated successfully!');
+        } catch (err: any) {
+            setErrorMsg(err.message || 'Failed to update form.');
+        } finally {
+            setLoading(false);
+        }
     };
+
+    if (fetching) {
+        return <div className="text-center mt-10">Loading form data...</div>;
+    }
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4 p-4 border rounded shadow-md w-full max-w-md mx-auto">
+
+            <div className="mb-4">
+                <label className="block font-medium mb-1">Select Address Mode:</label>
+                <div className="flex gap-4">
+                    <label className="flex items-center">
+                        <input
+                            type="radio"
+                            name="addressMode"
+                            value="new"
+                            checked={!usePreviousAddress}
+                            onChange={() => handleAddressOptionChange('new')}
+                            className="mr-2"
+                        />
+                        Use New Address
+                    </label>
+                    <label className="flex items-center">
+                        <input
+                            type="radio"
+                            name="addressMode"
+                            value="previous"
+                            checked={usePreviousAddress}
+                            onChange={() => handleAddressOptionChange('previous')}
+                            className="mr-2"
+                        />
+                        Use Previous Address
+                    </label>
+                </div>
+            </div>
+            {/* Name */}
             <div>
                 <label htmlFor="name" className="block font-medium mb-1">Name:</label>
                 <input
@@ -135,6 +202,7 @@ const CustomForm = () => {
                 {errors.name && <p className="text-red-600 text-sm mt-1">{errors.name}</p>}
             </div>
 
+            {/* Email */}
             <div>
                 <label htmlFor="email" className="block font-medium mb-1">Email:</label>
                 <input
@@ -147,6 +215,7 @@ const CustomForm = () => {
                 {errors.email && <p className="text-red-600 text-sm mt-1">{errors.email}</p>}
             </div>
 
+            {/* Delivery Method */}
             <div>
                 <label className="block font-medium mb-1">Delivery Method:</label>
                 <CustomDropdown
@@ -160,6 +229,7 @@ const CustomForm = () => {
                 {errors.deliveryMethod && <p className="text-red-600 text-sm mt-1">{errors.deliveryMethod}</p>}
             </div>
 
+            {/* Building Type */}
             <div>
                 <label className="block font-medium mb-1">Building Type:</label>
                 <CustomDropdown
@@ -170,17 +240,22 @@ const CustomForm = () => {
                     ]}
                     selectedValue={buildingType}
                     onSelect={handleBuildingTypeChange}
-                    placeholder="Select building type" // optional, in your CustomDropdown
+                    placeholder="Select building type"
                 />
                 {errors.buildingType && <p className="text-red-600 text-sm mt-1">{errors.buildingType}</p>}
             </div>
 
+            {/* Feedback */}
+            {successMsg && <p className="text-green-600 text-sm mt-1">{successMsg}</p>}
+            {errorMsg && <p className="text-red-600 text-sm mt-1">{errorMsg}</p>}
 
+            {/* Submit */}
             <button
                 type="submit"
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                disabled={loading}
+                className={`bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-                Update
+                {loading ? 'Updating...' : 'Update'}
             </button>
         </form>
     );

@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Plus, Minus, Trash2 } from 'lucide-react';
 import TopNavigation from '@/components/top-navigation/TopNavigation';
 import CustomDropdown from '../../components/home/CustomDropdown';
+import { updateForm, getForm } from '../../services/retail-service';
 
 const Page: React.FC = () => {
     const NavArray = [
@@ -12,12 +13,12 @@ const Page: React.FC = () => {
     ];
 
     const [deliveryMethod, setDeliveryMethod] = useState('home');
-    const [title, setTitle] = useState('');
+    const [title, setTitle] = useState<string>('');
     const [fullName, setFullName] = useState('');
     const [phone1, setPhone1] = useState('');
     const [phone2, setPhone2] = useState('');
     const [buildingType, setBuildingType] = useState('Apartment');
-    const [deliveryDate, setDeliveryDate] = useState('');
+    const [deliveryDate, setDeliveryDate] = useState<string>('');
     const [timeSlot, setTimeSlot] = useState('');
     const [phoneCode2, setPhoneCode2] = useState('94');
     const [phoneCode1, setPhoneCode1] = useState('94');
@@ -43,11 +44,16 @@ const Page: React.FC = () => {
         houseNumber: '',
         streetName: '',
         cityName: '',
-        // deliveryDate: '',
+        deliveryDate: '',
         timeSlot: '',
         // phoneCode2: '',
         // phoneCode1: '',
     });
+
+    const [loading, setLoading] = useState(false);
+    const [fetching, setFetching] = useState(true);
+    const [successMsg, setSuccessMsg] = useState('');
+    const [errorMsg, setErrorMsg] = useState('');
 
     // === Live Validation Handlers ===
     const handleFullNameChange = (value: string) => {
@@ -179,10 +185,25 @@ const Page: React.FC = () => {
         }
     };
 
+    const handleDeliveryDateChange = (value: string) => {
+        setDeliveryDate(value);
+
+        if (!value) {
+            setErrors(prev => ({ ...prev, deliveryDate: 'Delivery Date is required.' }));
+        } else {
+            setErrors(prev => ({ ...prev, deliveryDate: '' }));
+        }
+    };
+
 
 
     const validate = () => {
-        const newErrors = { fullName: '', title: '', phone1: '', phone2: '', timeSlot: '', buildingType: '', buildingName: '', buildingNumber: '', streetName: '', cityName: '', houseNumber: '', floorNumber: '', flatNumber: '' };
+        const newErrors = {
+            fullName: '', title: '', phone1: '', phone2: '', timeSlot: '',
+            buildingType: '', buildingName: '', buildingNumber: '',
+            streetName: '', cityName: '', houseNumber: '',
+            floorNumber: '', flatNumber: '', deliveryDate: ''
+        };
         let valid = true;
 
         if (!fullName.trim()) {
@@ -195,9 +216,6 @@ const Page: React.FC = () => {
 
         if (!title.trim()) {
             newErrors.title = 'Title is required.';
-            valid = false;
-        } else if (!/^\S+@\S+\.\S+$/.test(title)) {
-            newErrors.title = 'Title is not valid.';
             valid = false;
         }
 
@@ -216,60 +234,95 @@ const Page: React.FC = () => {
             valid = false;
         }
 
-        if (!buildingName) {
-            newErrors.buildingName = 'Building name is required.';
+        if (!deliveryDate) {
+            newErrors.deliveryDate = 'Delivery Date is required.';
             valid = false;
         }
 
-        if (!buildingType) {
-            newErrors.buildingType = 'Building type is required.';
-            valid = false;
-        }
+        // Validate address only if deliveryMethod is "home"
+        if (deliveryMethod === 'home') {
+            if (!buildingType) {
+                newErrors.buildingType = 'Building type is required.';
+                valid = false;
+            }
 
-        if (!buildingNumber) {
-            newErrors.buildingNumber = 'Building number is required.';
-            valid = false;
-        }
+            if (!buildingName) {
+                newErrors.buildingName = 'Building name is required.';
+                valid = false;
+            }
 
-        if (!flatNumber) {
-            newErrors.flatNumber = 'Flat number is required.';
-            valid = false;
-        }
+            if (!buildingNumber) {
+                newErrors.buildingNumber = 'Building number is required.';
+                valid = false;
+            }
 
-        if (!floorNumber) {
-            newErrors.floorNumber = 'Floor number is required.';
-            valid = false;
-        }
+            if (!streetName) {
+                newErrors.streetName = 'Street name is required.';
+                valid = false;
+            }
 
-        if (!houseNumber) {
-            newErrors.houseNumber = 'House number is required.';
-            valid = false;
-        }
+            if (!cityName) {
+                newErrors.cityName = 'City name is required.';
+                valid = false;
+            }
 
-        if (!streetName) {
-            newErrors.streetName = 'Street name is required.';
-            valid = false;
-        }
+            if (!houseNumber) {
+                newErrors.houseNumber = 'House number is required.';
+                valid = false;
+            }
 
-        if (!cityName) {
-            newErrors.cityName = 'City name is required.';
-            valid = false;
+            if (!floorNumber) {
+                newErrors.floorNumber = 'Floor number is required.';
+                valid = false;
+            }
+
+            if (!flatNumber) {
+                newErrors.flatNumber = 'Flat number is required.';
+                valid = false;
+            }
         }
 
         setErrors(newErrors);
         return valid;
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setSuccessMsg('');
+        setErrorMsg('');
 
         if (!validate()) return;
 
-        const formData = { fullName, title, phone1, phone2, buildingNumber, buildingName, buildingType, flatNumber, floorNumber, houseNumber, streetName, cityName };
-        console.log(formData)
+        const formData: any = {
+            fullName, title, phone1, phone2, timeSlot, deliveryDate, phoneCode1, phoneCode2, deliveryMethod
+        };
+
+        // Include address fields only if deliveryMethod is "home"
+        if (deliveryMethod === 'home') {
+            formData.buildingType = buildingType;
+            formData.buildingName = buildingName;
+            formData.buildingNumber = buildingNumber;
+            formData.streetName = streetName;
+            formData.cityName = cityName;
+            formData.houseNumber = houseNumber;
+            formData.floorNumber = floorNumber;
+            formData.flatNumber = flatNumber;
+        }
+
         console.log('Updated form data:', formData);
-        // Here you would typically send a PATCH/PUT request
+
+        try {
+            setLoading(true);
+            await updateForm(formData);
+            setSuccessMsg('Form updated successfully!');
+        } catch (err: any) {
+            setErrorMsg(err.message || 'Failed to update form.');
+        } finally {
+            setLoading(false);
+        }
     };
+
 
     return (
         <form onSubmit={handleSubmit}>
@@ -295,23 +348,33 @@ const Page: React.FC = () => {
                                 />
                             </div>
 
-                            {/* Last Order Address */}
-                            <div className='w-full md:w-[32%] flex items-center justify-center h-[40px] px-4 border border-gray-300 rounded-lg'>
+
+                            {/* <div className='w-full md:w-[32%] flex items-center justify-center h-[40px] px-4 border border-gray-300 rounded-lg'>
                                 <h2 className='font-semibold text-center'>Your Last Order Address</h2>
                             </div>
 
-                            {/* New Address Selector */}
+                            
                             <div
                                 className={`w-full md:w-[32%] flex items-center justify-center h-[40px] px-4 border rounded-lg cursor-pointer ${deliveryMethod === 'new' ? 'border-purple-600 bg-purple-50' : 'border-gray-300'}`}
                                 onClick={() => setDeliveryMethod('new')}
                             >
                                 <h2 className='font-semibold text-center'>Enter New Address</h2>
-                            </div>
+                            </div> */}
+
+
                         </div>
 
-
-
                         <div className='border-t border-gray-300 my-6'></div>
+
+                        {deliveryMethod === 'pickup' && (
+                            <div className="w-full">
+                                <h2 className='text-xl font-bold mb-6 mt-8 text-[#252525]'>
+                                    Find your nearest center
+                                </h2>
+
+                                <h1>Agroword center</h1>
+                            </div>
+                        )}
 
                         <h2 className='text-xl font-bold mb-6 mt-8 text-[#252525]'>
                             {deliveryMethod === 'pickup' ? 'Pickup Person Information' : 'Delivery Information'}
@@ -535,8 +598,9 @@ const Page: React.FC = () => {
                                     type="date"
                                     className='w-full border h-[39px]  border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2 text-[#3D3D3D]'
                                     value={deliveryDate}
-                                    onChange={(e) => setDeliveryDate(e.target.value)}
+                                    onChange={(e) => handleDeliveryDateChange(e.target.value)}
                                 />
+                                {errors.deliveryDate && <p className="text-red-600 text-sm mt-1">{errors.deliveryDate}</p>}
                             </div>
                             <div className="md:w-1/2 w-full">
                                 <label className='block font-semibold mb-4'>Time Slot *</label>
@@ -558,10 +622,63 @@ const Page: React.FC = () => {
 
 
 
-                    <div className='w-full lg:w-1/3 mt-6 lg:mt-0'>
+                    {/* <div className='w-full lg:w-1/3 mt-6 lg:mt-0'>
                         <button type="submit" className='w-full bg-purple-800 text-white font-semibold rounded-lg px-4 py-3 hover:bg-purple-900 transition-colors'>
                             Continue to Payment
                         </button>
+                    </div> */}
+                    {/* Right Section - Order Summary */}
+                    <div className='w-full lg:w-1/3 mt-6 lg:mt-0'>
+                        <div className='border border-gray-300 rounded-lg shadow-md p-4 sm:p-5 md:p-6'>
+                            <h2 className='font-semibold text-lg mb-4'>Your Order</h2>
+
+                            <div className='flex justify-between items-center mb-4'>
+                                <p className="text-gray-600">18 items</p>
+                                <p className='font-semibold'>Rs.3685.00</p>
+                            </div>
+
+                            <div className='border-t border-gray-300 my-4' />
+
+                            <p className='font-semibold text-sm mb-2'>Coupon Code</p>
+                            <div className='flex flex-row gap-3 w-full mt-2'>
+                                <input
+                                    type="text"
+                                    className='border border-gray-300 rounded-lg px-3 py-2 text-sm w-3/4'
+                                    placeholder='Add coupon code'
+                                />
+                                <button className='bg-purple-800 text-white font-semibold rounded-lg px-3 py-2 text-sm w-1/4'>
+                                    Apply
+                                </button>
+                            </div>
+
+                            <div className='border-t border-gray-300 my-4' />
+
+                            <div className='flex justify-between text-sm mb-2'>
+                                <p className='text-gray-600'>Total</p>
+                                <p className='font-semibold'>Rs.3670.00</p>
+                            </div>
+
+                            <div className='flex justify-between text-sm mb-2'>
+                                <p className='text-gray-600'>Discount</p>
+                                <p className='text-gray-600'>Rs.170.00</p>
+                            </div>
+
+                            <div className='flex justify-between text-sm mb-2'>
+                                <p className='text-gray-600'>Delivery Charges</p>
+                                <p className='text-gray-600'>Rs.185.00</p>
+                            </div>
+
+                            <div className='border-t border-gray-300 my-4' />
+
+                            <div className='flex justify-between mb-4'>
+                                <p className='font-semibold'>Grand Total</p>
+                                <p className='font-semibold'>Rs.3685.00</p>
+                            </div>
+
+                            <button type="submit" className='w-full bg-purple-800 text-white font-semibold rounded-lg px-4 py-3 hover:bg-purple-900 transition-colors'>
+                                Continue to Payment
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
