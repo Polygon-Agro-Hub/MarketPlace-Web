@@ -151,6 +151,49 @@ export const getCategoryCounts = async (): Promise<any> => {
   }
 };
 
+export const productAddToCart = async (productData: ProductCartData, token: string | null): Promise<any> => {
+  if (!token) {
+    throw new Error('Authentication required');
+  }
+
+  try {
+    const response = await axios.post(
+      `/product/product-add-to-cart`,
+      productData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (response.status >= 200 && response.status < 300) {
+      return response.data;
+    }
+    throw new Error(response.data?.message || 'Failed to add product to cart');
+  } catch (error: any) {
+    if (error.response) {
+      // Handle specific error cases
+      if (error.response.status === 200 && error.response.data.status === false) {
+        throw new Error('Product already in cart');
+      }
+      if (error.response.status === 401) {
+        throw new Error('Please login to add items to cart');
+      }
+      throw new Error(
+        error.response.data?.message ||
+        error.response.data?.error ||
+        'Failed to add product to cart'
+      );
+    } else if (error.request) {
+      throw new Error('No response from server. Please try again.');
+    } else {
+      throw new Error(error.message || 'Failed to add product to cart');
+    }
+  }
+};
+
 
 interface Package {
   product(product: any): unknown;
@@ -186,4 +229,10 @@ interface ProductResponse {
   status: boolean;
   message: string;
   products: Product[];
+}
+
+export interface ProductCartData {
+  mpItemId: number;
+  quantityType: 'kg' | 'g';
+  quantity: number;
 }
