@@ -4,15 +4,29 @@ import React, { useState, useEffect } from 'react';
 import CustomDropdown from '../../components/home/CustomDropdown';
 import { updateForm, getForm } from '../../services/retail-service';
 
-const CustomForm = () => {
-    const [name, setName] = useState('');
-    const [email, setEmail] = useState('');
-    const [deliveryMethod, setDeliveryMethod] = useState('home');
-    const [buildingType, setBuildingType] = useState('');
-    const [usePreviousAddress, setUsePreviousAddress] = useState(false);
-    const [initialData, setInitialData] = useState<any>(null);
+interface FormData {
+    name: string;
+    email: string;
+    deliveryMethod: string;
+    buildingType: string;
+}
 
-    const [errors, setErrors] = useState({
+interface FormErrors {
+    name: string;
+    email: string;
+    deliveryMethod: string;
+    buildingType: string;
+}
+
+const CustomForm = () => {
+    const [formData, setFormData] = useState<FormData>({
+        name: '',
+        email: '',
+        deliveryMethod: 'home',
+        buildingType: '',
+    });
+
+    const [errors, setErrors] = useState<FormErrors>({
         name: '',
         email: '',
         deliveryMethod: '',
@@ -24,115 +38,56 @@ const CustomForm = () => {
     const [successMsg, setSuccessMsg] = useState('');
     const [errorMsg, setErrorMsg] = useState('');
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const data = await getForm();
-                setInitialData(data); // Save fetched data
-            } catch (error: any) {
-                setErrorMsg(error.message || 'Failed to load form data.');
-            } finally {
-                setFetching(false);
-            }
-        };
-
-        fetchData();
-    }, []);
-
-    const handleAddressOptionChange = (value: string) => {
-        if (value === 'previous') {
-            setUsePreviousAddress(true);
-            if (initialData) {
-                setName(initialData.name || '');
-                setEmail(initialData.email || '');
-                setDeliveryMethod(initialData.deliveryMethod || '');
-                setBuildingType(initialData.buildingType || '');
-            }
-        } else {
-            setUsePreviousAddress(false);
-            setName('');
-            setEmail('');
-            setDeliveryMethod('');
-            setBuildingType('');
-        }
+    // Unified field change handler
+    const handleFieldChange = (field: keyof FormData, value: string) => {
+        setFormData(prev => ({ ...prev, [field]: value }));
+        validateField(field, value);
     };
 
-
-    const handleNameChange = (value: string) => {
-        setName(value);
-        if (!value.trim()) {
-            setErrors(prev => ({ ...prev, name: 'Name is required.' }));
-        } else if (value.trim().length < 2) {
-            setErrors(prev => ({ ...prev, name: 'Name must be at least 2 characters.' }));
-        } else {
-            setErrors(prev => ({ ...prev, name: '' }));
+    // Field-specific validation
+    const validateField = (field: keyof FormData, value: string) => {
+        let error = '';
+        
+        switch (field) {
+            case 'name':
+                if (!value.trim()) {
+                    error = 'Name is required.';
+                } else if (value.trim().length < 2) {
+                    error = 'Name must be at least 2 characters.';
+                }
+                break;
+                
+            case 'email':
+                if (!value.trim()) {
+                    error = 'Email is required.';
+                } else if (!/^\S+@\S+\.\S+$/.test(value)) {
+                    error = 'Email is not valid.';
+                }
+                break;
+                
+            case 'deliveryMethod':
+            case 'buildingType':
+                if (!value) {
+                    error = `${field === 'deliveryMethod' ? 'Delivery method' : 'Building type'} is required.`;
+                }
+                break;
         }
+
+        setErrors(prev => ({ ...prev, [field]: error }));
     };
 
+    // Form-wide validation
+    const validateForm = () => {
+        let isValid = true;
+        const newErrors = { ...errors };
 
-    const handleEmailChange = (value: string) => {
-        setEmail(value);
-        if (!value.trim()) {
-            setErrors(prev => ({ ...prev, email: 'Email is required.' }));
-        } else if (!/^\S+@\S+\.\S+$/.test(value)) {
-            setErrors(prev => ({ ...prev, email: 'Email is not valid.' }));
-        } else {
-            setErrors(prev => ({ ...prev, email: '' }));
-        }
-    };
+        // Validate all fields
+        (Object.keys(formData) as Array<keyof FormData>).forEach(field => {
+            validateField(field, formData[field]);
+            if (errors[field]) isValid = false;
+        });
 
-
-
-    const handleDeliveryChange = (value: string) => {
-        setDeliveryMethod(value);
-        if (!value) {
-            setErrors(prev => ({ ...prev, deliveryMethod: 'Delivery method is required.' }));
-        } else {
-            setErrors(prev => ({ ...prev, deliveryMethod: '' }));
-        }
-    };
-
-    const handleBuildingTypeChange = (value: string) => {
-        setBuildingType(value);
-        if (!value) {
-            setErrors(prev => ({ ...prev, buildingType: 'Building type is required.' }));
-        } else {
-            setErrors(prev => ({ ...prev, buildingType: '' }));
-        }
-    };
-
-    const validate = () => {
-        const newErrors = { name: '', email: '', deliveryMethod: '', buildingType: '' };
-        let valid = true;
-
-        if (!name.trim()) {
-            newErrors.name = 'Name is required.';
-            valid = false;
-        } else if (name.trim().length < 2) {
-            newErrors.name = 'Name must be at least 2 characters.';
-            valid = false;
-        }
-
-        if (!email.trim()) {
-            newErrors.email = 'Email is required.';
-            valid = false;
-        } else if (!/^\S+@\S+\.\S+$/.test(email)) {
-            newErrors.email = 'Email is not valid.';
-            valid = false;
-        }
-
-        if (!deliveryMethod) {
-            newErrors.deliveryMethod = 'Delivery method is required.';
-            valid = false;
-        }
-
-        if (!buildingType) {
-            newErrors.buildingType = 'Building type is required.';
-            valid = false;
-        }
-
-        setErrors(newErrors);
-        return valid;
+        return isValid;
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -140,9 +95,7 @@ const CustomForm = () => {
         setSuccessMsg('');
         setErrorMsg('');
 
-        if (!validate()) return;
-
-        const formData = { name, email, deliveryMethod, buildingType };
+        if (!validateForm()) return;
 
         try {
             setLoading(true);
@@ -155,40 +108,8 @@ const CustomForm = () => {
         }
     };
 
-    if (fetching) {
-        return <div className="text-center mt-10">Loading form data...</div>;
-    }
-
     return (
         <form onSubmit={handleSubmit} className="space-y-4 p-4 border rounded shadow-md w-full max-w-md mx-auto">
-
-            <div className="mb-4">
-                <label className="block font-medium mb-1">Select Address Mode:</label>
-                <div className="flex gap-4">
-                    <label className="flex items-center">
-                        <input
-                            type="radio"
-                            name="addressMode"
-                            value="new"
-                            checked={!usePreviousAddress}
-                            onChange={() => handleAddressOptionChange('new')}
-                            className="mr-2"
-                        />
-                        Use New Address
-                    </label>
-                    <label className="flex items-center">
-                        <input
-                            type="radio"
-                            name="addressMode"
-                            value="previous"
-                            checked={usePreviousAddress}
-                            onChange={() => handleAddressOptionChange('previous')}
-                            className="mr-2"
-                        />
-                        Use Previous Address
-                    </label>
-                </div>
-            </div>
             {/* Name */}
             <div>
                 <label htmlFor="name" className="block font-medium mb-1">Name:</label>
@@ -196,8 +117,8 @@ const CustomForm = () => {
                     type="text"
                     id="name"
                     className="w-full border p-2 rounded"
-                    value={name}
-                    onChange={(e) => handleNameChange(e.target.value)}
+                    value={formData.name}
+                    onChange={(e) => handleFieldChange('name', e.target.value)}
                 />
                 {errors.name && <p className="text-red-600 text-sm mt-1">{errors.name}</p>}
             </div>
@@ -209,8 +130,8 @@ const CustomForm = () => {
                     type="email"
                     id="email"
                     className="w-full border p-2 rounded"
-                    value={email}
-                    onChange={(e) => handleEmailChange(e.target.value)}
+                    value={formData.email}
+                    onChange={(e) => handleFieldChange('email', e.target.value)}
                 />
                 {errors.email && <p className="text-red-600 text-sm mt-1">{errors.email}</p>}
             </div>
@@ -223,8 +144,8 @@ const CustomForm = () => {
                         { value: 'home', label: 'Home Delivery' },
                         { value: 'pickup', label: 'Pickup' },
                     ]}
-                    selectedValue={deliveryMethod}
-                    onSelect={handleDeliveryChange}
+                    selectedValue={formData.deliveryMethod}
+                    onSelect={(value) => handleFieldChange('deliveryMethod', value)}
                 />
                 {errors.deliveryMethod && <p className="text-red-600 text-sm mt-1">{errors.deliveryMethod}</p>}
             </div>
@@ -238,8 +159,8 @@ const CustomForm = () => {
                         { value: 'house', label: 'House' },
                         { value: 'office', label: 'Office' },
                     ]}
-                    selectedValue={buildingType}
-                    onSelect={handleBuildingTypeChange}
+                    selectedValue={formData.buildingType}
+                    onSelect={(value) => handleFieldChange('buildingType', value)}
                     placeholder="Select building type"
                 />
                 {errors.buildingType && <p className="text-red-600 text-sm mt-1">{errors.buildingType}</p>}

@@ -1,9 +1,31 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Minus, Trash2 } from 'lucide-react';
 import TopNavigation from '@/components/top-navigation/TopNavigation';
 import CustomDropdown from '../../components/home/CustomDropdown';
 import { updateForm, getForm } from '../../services/retail-service';
+import { RootState } from '@/store';
+import { useSelector } from 'react-redux';
+import Swal from 'sweetalert2';
+
+const initialFormData = {
+    fullName: '',
+    title: '',
+    phone1: '',
+    phone2: '',
+    buildingNumber: '',
+    buildingName: '',
+    buildingType: '',
+    flatNumber: '',
+    floorNumber: '',
+    houseNo: '',
+    street: '',
+    city: '',
+    phoneCode1: '',
+    phoneCode2: '',
+    scheduleType: '',
+
+}
 
 const Page: React.FC = () => {
     const NavArray = [
@@ -22,13 +44,39 @@ const Page: React.FC = () => {
     const [timeSlot, setTimeSlot] = useState('');
     const [phoneCode2, setPhoneCode2] = useState('94');
     const [phoneCode1, setPhoneCode1] = useState('94');
-    const [buildingNumber, setBuildingNumber] = useState('');
+    const [buildingNo, setBuildingNumber] = useState('');
     const [buildingName, setBuildingName] = useState('');
     const [flatNumber, setFlatNumber] = useState('');
     const [floorNumber, setFloorNumber] = useState('');
-    const [houseNumber, setHouseNumber] = useState('');
-    const [streetName, setStreetName] = useState('');
+    const [houseNo, setHouseNumber] = useState('');
+    const [street, setStreetName] = useState('');
     const [cityName, setCityName] = useState('');
+    const [scheduleType, setScheduleType] = useState<string>('One Time');
+    const [centerId, setCenterId] = useState<number>();
+    const [number, setNumber] = useState('');
+
+    const token = useSelector((state: RootState) => state.auth.token) as string | null;
+    const [usePreviousAddress, setUsePreviousAddress] = useState(false);
+
+
+    interface InitialData {
+        fullName: string;
+        title: string;
+        phone1: string;
+        phone2: string;
+        buildingNumber: string;
+        buildingName: string;
+        buildingType: string;
+        flatNumber: string;
+        floorNumber: string;
+        houseNo: string;
+        street: string;
+        city: string;
+        phoneCode1: string;
+        phoneCode2: string;
+        scheduleType: string;
+
+    }
 
 
     const [errors, setErrors] = useState({
@@ -50,22 +98,93 @@ const Page: React.FC = () => {
         // phoneCode1: '',
     });
 
-    const [loading, setLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
     const [fetching, setFetching] = useState(true);
     const [successMsg, setSuccessMsg] = useState('');
     const [errorMsg, setErrorMsg] = useState('');
 
+    const fetchData = async () => {
+        try {
+            const data = await getForm(token);
+            console.log('data fetched');
+            console.log('data', data.results);
+
+            const dataNew = data.results;
+            return dataNew;
+        } catch (error: any) {
+            setErrorMsg(error.message || 'Failed to load form data.');
+            return null;
+        } finally {
+            setFetching(false);
+        }
+    };
+
+
+    useEffect(() => {
+        fetchData();
+    }, []);
+
+    const handleAddressOptionChange = async (value: string) => {
+        if (value === 'previous') {
+            setUsePreviousAddress(true);
+            const dataNew = await fetchData();
+            console.log('data new', dataNew);
+            if (dataNew) {
+
+                setBuildingNumber(dataNew.buildingNo || '');
+                setBuildingType(dataNew.buildingType || 'Apartment');
+                setCityName(dataNew.city || '');
+                setHouseNumber(dataNew.houseNo || '');
+                setPhone1(dataNew.phone1 || '');
+                setPhone2(dataNew.phone2 || '');
+                setPhoneCode1(dataNew.phoneCode1 || '94');
+                setPhoneCode2(dataNew.phoneCode2 || '94');
+                setStreetName(dataNew.street || '');
+                setTitle(dataNew.title || '');
+                setBuildingName(dataNew.buildingName || '');
+                setFlatNumber(dataNew.flatNo || '');
+                setFloorNumber(dataNew.floorNo || '');
+                setScheduleType('One Time');
+                setFullName(dataNew.fullName || '');
+            }
+        } else {
+            setUsePreviousAddress(false);
+            setFullName('');
+            setTitle('');
+            setPhone1('');
+            setPhone2('');
+            setPhoneCode1('94');
+            setPhoneCode2('94');
+            setBuildingType('Apartment');
+            setDeliveryDate('');
+            setTimeSlot('');
+            setBuildingNumber('');
+            setBuildingName('');
+            setFlatNumber('');
+            setFloorNumber('');
+            setHouseNumber('');
+            setStreetName('');
+            setCityName('');
+            setScheduleType('One Time');
+        }
+    };
+
+
     // === Live Validation Handlers ===
     const handleFullNameChange = (value: string) => {
         setFullName(value);
-        if (!value.trim()) {
+
+        const trimmed = value.trim();
+
+        if (!trimmed) {
             setErrors(prev => ({ ...prev, fullName: 'Full Name is required.' }));
-        } else if (value.trim().length < 2) {
-            setErrors(prev => ({ ...prev, fullName: 'Full Name must be at least 2 characters.' }));
+        } else if (!/^[A-Za-z\s]+$/.test(trimmed)) {
+            setErrors(prev => ({ ...prev, fullName: 'Full Name must only contain letters and spaces.' }));
         } else {
             setErrors(prev => ({ ...prev, fullName: '' }));
         }
     };
+
 
     const handleTitleChange = (value: string) => {
         setTitle(value);
@@ -79,17 +198,21 @@ const Page: React.FC = () => {
 
     const handlePhone1Change = (value: string) => {
         setPhone1(value);
+    
         if (!value) {
-            setErrors(prev => ({ ...prev, phone1: 'Delivery method is required.' }));
+            setErrors(prev => ({ ...prev, phone1: 'Phone number 1 is required.' }));
+        } else if (!/^\d{9}$/.test(value)) {
+            setErrors(prev => ({ ...prev, phone1: 'Please enter a valid phone number' }));
         } else {
             setErrors(prev => ({ ...prev, phone1: '' }));
         }
     };
+    
 
     const handlePhone2Change = (value: string) => {
         setPhone2(value);
-        if (!value) {
-            setErrors(prev => ({ ...prev, phone2: 'Delivery method is required.' }));
+        if (!/^\d{9}$/.test(value)) {
+            setErrors(prev => ({ ...prev, phone1: 'Please enter a valid phone number' }));
         } else {
             setErrors(prev => ({ ...prev, phone2: '' }));
         }
@@ -224,10 +347,10 @@ const Page: React.FC = () => {
             valid = false;
         }
 
-        if (!phone2) {
-            newErrors.phone2 = 'Phone number 02 is required.';
-            valid = false;
-        }
+        // if (!phone2) {
+        //     newErrors.phone2 = 'Phone number 02 is required.';
+        //     valid = false;
+        // }
 
         if (!timeSlot) {
             newErrors.timeSlot = 'Time Slot is required.';
@@ -251,12 +374,12 @@ const Page: React.FC = () => {
                 valid = false;
             }
 
-            if (!buildingNumber) {
+            if (!buildingNo) {
                 newErrors.buildingNumber = 'Building number is required.';
                 valid = false;
             }
 
-            if (!streetName) {
+            if (!street) {
                 newErrors.streetName = 'Street name is required.';
                 valid = false;
             }
@@ -266,7 +389,7 @@ const Page: React.FC = () => {
                 valid = false;
             }
 
-            if (!houseNumber) {
+            if (!houseNo) {
                 newErrors.houseNumber = 'House number is required.';
                 valid = false;
             }
@@ -292,20 +415,27 @@ const Page: React.FC = () => {
         setSuccessMsg('');
         setErrorMsg('');
 
-        if (!validate()) return;
+        if (!validate()) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Form',
+                text: 'Please correctly fill all the required fields.',
+            });
+            return;
+        }
 
         const formData: any = {
-            fullName, title, phone1, phone2, timeSlot, deliveryDate, phoneCode1, phoneCode2, deliveryMethod
+            fullName, title, phone1, phone2, timeSlot, deliveryDate, phoneCode1, phoneCode2, deliveryMethod, scheduleType
         };
 
         // Include address fields only if deliveryMethod is "home"
         if (deliveryMethod === 'home') {
             formData.buildingType = buildingType;
             formData.buildingName = buildingName;
-            formData.buildingNumber = buildingNumber;
-            formData.streetName = streetName;
+            formData.buildingNumber = buildingNo;
+            formData.streetName = street;
             formData.cityName = cityName;
-            formData.houseNumber = houseNumber;
+            formData.houseNumber = houseNo;
             formData.floorNumber = floorNumber;
             formData.flatNumber = flatNumber;
         }
@@ -313,13 +443,31 @@ const Page: React.FC = () => {
         console.log('Updated form data:', formData);
 
         try {
-            setLoading(true);
-            await updateForm(formData);
+            setIsLoading(true);
+            await updateForm(formData, token);
             setSuccessMsg('Form updated successfully!');
+            await Swal.fire({
+                title: 'Form uploaded Successful!',
+                icon: 'success',
+                timer: 2000,
+                showConfirmButton: false,
+                customClass: {
+                    popup: '!border-t-4 !border-t-[#3E206D]', // Purple top border
+                },
+                iconColor: '#3E206D', // Purple icon
+                confirmButtonColor: '#3E206D', // Purple confirm button
+            });
         } catch (err: any) {
             setErrorMsg(err.message || 'Failed to update form.');
+            await Swal.fire({
+                title: 'Form upload failed',
+                // text: err.message || 'Invalid email or password. Please try again.',
+                icon: 'error',
+                confirmButtonText: 'Try Again',
+                confirmButtonColor: '#3E206D',
+            });
         } finally {
-            setLoading(false);
+            setIsLoading(false);
         }
     };
 
@@ -334,7 +482,7 @@ const Page: React.FC = () => {
                     <div className='w-full min-h-[1100px] lg:w-2/3  bg-white p-4 sm:p-5 md:p-6 rounded-lg shadow-md border border-gray-300'>
                         <h1 className='text-xl font-bold mb-6'>Delivery Method</h1>
 
-                        <div className='flex flex-col md:flex-row flex-wrap gap-2 mb-8'>
+                        <div className='flex flex-col md:flex-row flex-wrap gap-4 mb-8'>
                             {/* Dropdown - Full width on all screens */}
                             <div className="w-full md:w-[32%]">
 
@@ -348,18 +496,36 @@ const Page: React.FC = () => {
                                 />
                             </div>
 
+                            <div className="flex flex-col md:flex-row ">
 
-                            {/* <div className='w-full md:w-[32%] flex items-center justify-center h-[40px] px-4 border border-gray-300 rounded-lg'>
-                                <h2 className='font-semibold text-center'>Your Last Order Address</h2>
+                                <div className="flex gap-8 flex-nowrap">
+
+                                    <label className="flex items-center flex-nowrap">
+                                        <input
+                                            type="radio"
+                                            name="addressMode"
+                                            value="previous"
+                                            checked={usePreviousAddress}
+                                            onChange={() => handleAddressOptionChange('previous')}
+                                            className="mr-2"
+                                        />
+                                        Your Last Order Address
+                                    </label>
+
+                                    <label className="flex items-center flex-nowrap">
+                                        <input
+                                            type="radio"
+                                            name="addressMode"
+                                            value="new"
+                                            checked={!usePreviousAddress}
+                                            onChange={() => handleAddressOptionChange('new')}
+                                            className="mr-2"
+                                        />
+                                        Enter New Address
+                                    </label>
+
+                                </div>
                             </div>
-
-                            
-                            <div
-                                className={`w-full md:w-[32%] flex items-center justify-center h-[40px] px-4 border rounded-lg cursor-pointer ${deliveryMethod === 'new' ? 'border-purple-600 bg-purple-50' : 'border-gray-300'}`}
-                                onClick={() => setDeliveryMethod('new')}
-                            >
-                                <h2 className='font-semibold text-center'>Enter New Address</h2>
-                            </div> */}
 
 
                         </div>
@@ -501,6 +667,7 @@ const Page: React.FC = () => {
                                 <div className="w-full md:w-1/2 px-2 mb-4">
                                     <label className="block  font-semibold text-[#2E2E2E] mb-1">Apartment or Building No *</label>
                                     <input
+                                        value={buildingNo}
                                         onChange={(e) => handleBuildingNumberChange(e.target.value)}
                                         type="text"
                                         placeholder="Enter House / Building No"
@@ -509,13 +676,27 @@ const Page: React.FC = () => {
                                     {errors.buildingNumber && <p className="text-red-600 text-sm mt-1">{errors.buildingNumber}</p>}
                                 </div>
 
+                                {/* <div className="w-full md:w-1/2 px-2 mb-4">
+                                    <input
+                                        type="text"
+                                        className="w-full px-4 py-2 border h-[39px] border-gray-300 rounded-lg bg-gray-50 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                                        value={phone2}
+                                        onChange={(e) => handlePhone2Change(e.target.value)}
+                                        placeholder='7xxxxxxxx'
+                                    />
+                                    {errors.phone2 && (
+                                        <p className="text-red-600 text-sm mt-1">{errors.phone2}</p>
+                                    )}
+                                </div> */}
+
                                 {/* Apartment or Building Name */}
                                 <div className="w-full md:w-1/2 px-2 mb-4">
                                     <label className="block  font-semibold text-[#2E2E2E] mb-1">Apartment or Building Name *</label>
                                     <input
+                                        value={buildingName}
                                         onChange={(e) => handleBuildingNameChange(e.target.value)}
                                         type="text"
-                                        placeholder="Enter Street Name"
+                                        placeholder="Enter building name"
                                         className="w-full px-4 py-2 border h-[39px] border-gray-300 rounded-lg bg-gray-50 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
                                     />
                                     {errors.buildingName && <p className="text-red-600 text-sm mt-1">{errors.buildingName}</p>}
@@ -525,9 +706,10 @@ const Page: React.FC = () => {
                                 <div className="w-full md:w-1/2 px-2 mb-4">
                                     <label className="block  font-semibold text-[#2E2E2E] mb-1">Flat / Unit Number *</label>
                                     <input
+                                        value={flatNumber}
                                         onChange={(e) => handleFlatNumberChange(e.target.value)}
                                         type="text"
-                                        placeholder="Enter City"
+                                        placeholder="Enter flat number"
                                         className="w-full px-4 py-2 border h-[39px] border-gray-300 rounded-lg bg-gray-50 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
                                     />
                                     {errors.flatNumber && <p className="text-red-600 text-sm mt-1">{errors.flatNumber}</p>}
@@ -537,9 +719,10 @@ const Page: React.FC = () => {
                                 <div className="w-full md:w-1/2 px-2 mb-4">
                                     <label className="block  font-semibold  text-[#2E2E2E] mb-1">Floor Number *</label>
                                     <input
+                                        value={floorNumber}
                                         onChange={(e) => handleFloorNumberChange(e.target.value)}
                                         type="text"
-                                        placeholder="Enter Street Name"
+                                        placeholder="Enter floor number"
                                         className="w-full px-4 py-2 border h-[39px] border-gray-300 rounded-lg bg-gray-50 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
                                     />
                                     {errors.floorNumber && <p className="text-red-600 text-sm mt-1">{errors.floorNumber}</p>}
@@ -549,9 +732,10 @@ const Page: React.FC = () => {
                                 <div className="w-full md:w-1/2 px-2 mb-4">
                                     <label className="block  font-semibold text-[#2E2E2E] mb-1">House Number *</label>
                                     <input
+                                        value={houseNo}
                                         onChange={(e) => handleHouseNumberChange(e.target.value)}
                                         type="text"
-                                        placeholder="Enter City"
+                                        placeholder="Enter house number"
                                         className="w-full px-4 py-2 border h-[39px] border-gray-300 rounded-lg bg-gray-50 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
                                     />
                                     {errors.houseNumber && <p className="text-red-600 text-sm mt-1">{errors.houseNumber}</p>}
@@ -561,6 +745,7 @@ const Page: React.FC = () => {
                                 <div className="w-full md:w-1/2 px-2 mb-4">
                                     <label className="block  font-semibold text-[#2E2E2E] mb-1">Street Name *</label>
                                     <input
+                                        value={street}
                                         onChange={(e) => handleStreetNameChange(e.target.value)}
                                         type="text"
                                         placeholder="Enter Street Name"
@@ -573,9 +758,10 @@ const Page: React.FC = () => {
                                 <div className="w-full md:w-1/2 px-2 mb-4">
                                     <label className="block font-semibold text-[#2E2E2E] mb-1">City *</label>
                                     <input
+                                        value={cityName}
                                         onChange={(e) => handleCityNameChange(e.target.value)}
                                         type="text"
-                                        placeholder="Enter City"
+                                        placeholder="Enter City name"
                                         className="w-full px-4 py-2 border h-[39px] border-gray-300 rounded-lg bg-gray-50 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
                                     />
                                     {errors.cityName && <p className="text-red-600 text-sm mt-1">{errors.cityName}</p>}
