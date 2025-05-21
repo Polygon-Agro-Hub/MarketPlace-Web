@@ -209,9 +209,10 @@ const Page: React.FC = () => {
   const validateField = (field: keyof FormData, value: string, formData: FormData): string => {
     const trimmed = typeof value === 'string' ? value.trim() : '';
     const isHomeDelivery = formData.deliveryMethod === 'home';
+    const isApartment = formData.buildingType === 'Apartment';
 
     // Define which fields are conditionally required
-    const addressFields = [
+    const apartmentFields = [
       'buildingType',
       'buildingName',
       'buildingNo',
@@ -220,6 +221,12 @@ const Page: React.FC = () => {
       'houseNo',
       'floorNumber',
       'flatNumber'
+    ];
+
+    const houseFields = [
+      'street',
+      'cityName',
+      'houseNo'
     ];
 
     switch (field) {
@@ -247,13 +254,21 @@ const Page: React.FC = () => {
 
       // Address fields - conditionally required
       case 'buildingType':
+        return isHomeDelivery && !trimmed ? 'Building type is required.' : '';
+
       case 'buildingName':
       case 'buildingNo':
+      case 'floorNumber':
+      case 'flatNumber':
+        // Only required for apartment and home delivery
+        return isHomeDelivery && isApartment && !trimmed ?
+          `${field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} is required.` :
+          '';
+
       case 'street':
       case 'cityName':
       case 'houseNo':
-      case 'floorNumber':
-      case 'flatNumber':
+        // Required for both house and apartment when home delivery
         return isHomeDelivery && !trimmed ?
           `${field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} is required.` :
           '';
@@ -531,6 +546,7 @@ const Page: React.FC = () => {
                 </div>
 
                 {/* Apartment or Building No */}
+                {formData.buildingType === 'Apartment' && (
                 <div className="w-full md:w-1/2 px-2 mb-4">
                   <label className="block font-semibold text-[#2E2E2E] mb-1">Apartment or Building No *</label>
                   <input
@@ -542,8 +558,10 @@ const Page: React.FC = () => {
                   />
                   {errors.buildingNo && <p className="text-red-600 text-sm mt-1">{errors.buildingNo}</p>}
                 </div>
+                )}
 
                 {/* Apartment or Building Name */}
+                {formData.buildingType === 'Apartment' && (
                 <div className="w-full md:w-1/2 px-2 mb-4">
                   <label className="block font-semibold text-[#2E2E2E] mb-1">Apartment or Building Name *</label>
                   <input
@@ -555,8 +573,10 @@ const Page: React.FC = () => {
                   />
                   {errors.buildingName && <p className="text-red-600 text-sm mt-1">{errors.buildingName}</p>}
                 </div>
+                )}
 
                 {/* Flat / Unit Number */}
+                {formData.buildingType === 'Apartment' && (
                 <div className="w-full md:w-1/2 px-2 mb-4">
                   <label className="block font-semibold text-[#2E2E2E] mb-1">Flat / Unit Number *</label>
                   <input
@@ -568,19 +588,25 @@ const Page: React.FC = () => {
                   />
                   {errors.flatNumber && <p className="text-red-600 text-sm mt-1">{errors.flatNumber}</p>}
                 </div>
+                )}
 
                 {/* Floor Number */}
-                <div className="w-full md:w-1/2 px-2 mb-4">
-                  <label className="block font-semibold text-[#2E2E2E] mb-1">Floor Number *</label>
-                  <input
-                    value={formData.floorNumber}
-                    onChange={(e) => handleFieldChange('floorNumber', e.target.value)}
-                    type="text"
-                    placeholder="Enter floor number"
-                    className="w-full px-4 py-2 border h-[39px] border-gray-300 rounded-lg bg-gray-50 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
-                  />
-                  {errors.floorNumber && <p className="text-red-600 text-sm mt-1">{errors.floorNumber}</p>}
-                </div>
+                {formData.buildingType === 'Apartment' && (
+                  <div className="w-full md:w-1/2 px-2 mb-4">
+                    <label className="block font-semibold text-[#2E2E2E] mb-1">Floor Number *</label>
+                    <input
+                      value={formData.floorNumber}
+                      onChange={(e) => handleFieldChange('floorNumber', e.target.value)}
+                      type="text"
+                      placeholder="Enter floor number"
+                      className="w-full px-4 py-2 border h-[39px] border-gray-300 rounded-lg bg-gray-50 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                    />
+                    {errors.floorNumber && <p className="text-red-600 text-sm mt-1">{errors.floorNumber}</p>}
+                  </div>
+                )}
+
+
+
 
                 {/* House Number */}
                 <div className="w-full md:w-1/2 px-2 mb-4">
