@@ -5,6 +5,7 @@ import { signup } from '@/services/auth-service';
 import { useRouter } from 'next/navigation';
 import Swal from 'sweetalert2';
 import CustomDropdown from '../../components/home/CustomDropdown';
+import SuccessPopup from '@/components/toast-messages/success-message';
 
 // interface FruitOption {
 //   value: string;
@@ -32,6 +33,7 @@ export default function SignupForm() {
   const [success, setSuccess] = useState<string | null>(null);
   const [isPasswordValid, setIsPasswordValid] = useState<boolean>(false);
   const [selectedFruit, setSelectedFruit] = useState<string | null>(null);
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
 
   // Form data state
   const [formData, setFormData] = useState({
@@ -170,17 +172,7 @@ export default function SignupForm() {
         buyerType: isHome ? 'retail' : 'business',
       });
 
-      await Swal.fire({
-        title: 'Registration Successful!',
-        icon: 'success',
-        timer: 2000,
-        showConfirmButton: false,
-        customClass: {
-          popup: '!border-t-4 !border-t-[#3E206D]', // Purple top border
-        },
-        iconColor: '#3E206D', // Purple icon
-        confirmButtonColor: '#3E206D', // Purple confirm button
-      });
+      setShowSuccessPopup(true);
 
       // Redirect to login page after successful registration
       setTimeout(() => {
@@ -219,6 +211,13 @@ export default function SignupForm() {
   return (
     <div className="flex w-full bg-gray-100 min-h-screen overflow-auto ">
       <div className="flex min-w-full mx-auto shadow-lg rounded-lgbg-[white]  overflow-auto">
+
+        <SuccessPopup
+          isVisible={showSuccessPopup}
+          onClose={() => setShowSuccessPopup(false)}
+          title="Your account created successfully!"
+        />
+
         {/* Left side - Form */}
         <div className="w-full md:w-5/11 px-6 pt-8 md:px-10 md:pt-8">
           <h1 className="text-4xl font-bold text-[#3E206D] mb-4 text-center">MyFarm</h1>
@@ -332,7 +331,7 @@ export default function SignupForm() {
                         } as React.ChangeEvent<HTMLSelectElement>);
                       }}
                       placeholder="Title"
-                      // className={getInputClass('title')} // Pass your error class if needed
+                    // className={getInputClass('title')} // Pass your error class if needed
                     />
                     {errors.title && <p className="mt-1 text-sm text-red-600">{errors.title}</p>}
                   </div>
@@ -534,7 +533,7 @@ export default function SignupForm() {
               </button>
 
               <p className="text-center text-md text-[#6B6B6B] mt-4 md:mt-2 mb-4 md:mb-0">
-                Already have an account? <a href="/login" className="text-[#094EE8] hover:underline">Login here</a>
+                Already have an account? <a href="../signin" className="text-[#094EE8] hover:underline">Login here</a>
               </p>
             </form>
           </div>

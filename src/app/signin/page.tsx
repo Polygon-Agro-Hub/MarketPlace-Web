@@ -10,6 +10,8 @@ import { useDispatch } from 'react-redux';
 import { setCredentials } from '@/store/slices/authSlice';
 import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import SuccessPopup from '@/components/toast-messages/success-message';
+import ErrorPopup from '@/components/toast-messages/error-message';
 
 
 const page = () => {
@@ -21,6 +23,8 @@ const page = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const dispatch = useDispatch();
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [showErrorPopup, setShowErrorPopup] = useState(false);
 
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -29,182 +33,171 @@ const page = () => {
     try {
       setIsLoading(true);
       const data = await login({ email, password });
-      
-      await Swal.fire({
-        title: 'Login Successful!',
-        icon: 'success',
-        timer: 2000,
-        showConfirmButton: false,
-        customClass: {
-          popup: '!border-t-4 !border-t-[#3E206D]', // Purple top border
-        },
-        iconColor: '#3E206D', // Purple icon
-        confirmButtonColor: '#3E206D', // Purple confirm button
-      });
-
+      setShowSuccessPopup(true);
       // Store token and redirect
       if (data.token) {
-        
         dispatch(setCredentials({ token: data.token, user: data.userData }));
         router.push('/');
       }
 
     } catch (err: any) {
-      await Swal.fire({
-        title: 'Login Failed',
-        text: err.message || 'Invalid email or password. Please try again.',
-        icon: 'error',
-        confirmButtonText: 'Try Again',
-        confirmButtonColor: '#3E206D',
-      });
+      setShowErrorPopup(true);
     } finally {
       setIsLoading(false);
     }
   };
-  
+
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
-    {/* Left Panel (Login Form) */}
-    <div className="w-full md:w-1/2 flex flex-col justify-center p-6 md:p-16">
-      <h1 className="text-2xl font-bold text-purple-800 mb-2 text-center">MyFarm</h1>
-      <h2 className="text-lg font-semibold mb-6 text-center">Log in to your Account</h2>
+      <SuccessPopup
+        isVisible={showSuccessPopup}
+        onClose={() => setShowSuccessPopup(false)}
+        title="Signed in!"
+        description="Let's find something amazing today"
+      />
+      <ErrorPopup
+        isVisible={showErrorPopup}
+        onClose={() => setShowErrorPopup(false)}
+        title="Oops!"
+        description="Incorrect password, Please try again!"
+      />
+      {/* Left Panel (Login Form) */}
+      <div className="w-full md:w-1/2 flex flex-col justify-center p-6 md:p-16">
+        <h1 className="text-2xl font-bold text-purple-800 mb-2 text-center">MyFarm</h1>
+        <h2 className="text-lg font-semibold mb-6 text-center">Log in to your Account</h2>
 
-      {/* Buyer Type Toggle */}
-      <div className="flex mb-6 space-x-2">
-        <button
-          onClick={() => setUserType('home')}
-          className={`flex-1 px-4 py-2 border rounded-md flex items-center justify-start space-x-2 text-sm sm:text-base ${
-            userType === 'home'
-              ? 'bg-purple-100 text-purple-800 border-purple-500'
-              : 'bg-white text-gray-800 border-gray-300'
-          }`}
-        >
-          <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-            userType === 'home' ? 'border-purple-800' : 'border-gray-400'
-          }`}>
-            {userType === 'home' && <span className="w-2 h-2 bg-purple-800 rounded-full" />}
-          </span>
-          <span>I’m Buying for Home</span>
-        </button>
-
-        <button
-          onClick={() => setUserType('business')}
-          className={`flex-1 px-4 py-2 border rounded-md flex items-center justify-start space-x-2 text-sm sm:text-base ${
-            userType === 'business'
-              ? 'bg-purple-100 text-purple-800 border-purple-500'
-              : 'bg-white text-gray-800 border-gray-300'
-          }`}
-        >
-          <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-            userType === 'business' ? 'border-purple-800' : 'border-gray-400'
-          }`}>
-            {userType === 'business' && <span className="w-2 h-2 bg-purple-800 rounded-full" />}
-          </span>
-          <span>I’m Buying for Business</span>
-        </button>
-      </div>
-
-      {userType === 'home' && (
-      <p className="mb-4 text-gray-600">Welcome! Select method to log in:</p>
-      )}
-      {/* Social Login Buttons */}
-     
-      <div className="mb-6">
-        {userType === 'home' && (
-          <div className="flex space-x-4">
-            <button className="flex-1 py-2 border rounded-md flex items-center justify-center space-x-2">
-              <img src="/icons/google.png" className="w-5 h-5" alt="Google" />
-              <span>Google</span>
-            </button>
-            <button className="flex-1 py-2 border rounded-md flex items-center justify-center space-x-2">
-              <img src="/icons/facebook.png" className="w-5 h-5" alt="Facebook" />
-              <span>Facebook</span>
-            </button>
-          </div>
-        )}
-      </div>
-
-      {userType === 'home' && (
-      <div className="flex items-center mb-6">
-        <div className="flex-grow h-px bg-gray-300" />
-        <span className="mx-2 text-sm text-gray-400">or continue with email</span>
-        <div className="flex-grow h-px bg-gray-300" />
-      </div>
-      )}
-
-      {/* Email Login Form */}
-      <form onSubmit={handleLogin} className="space-y-4">
-        <div className="relative">
-          <input
-            type="email"
-            placeholder="Email"
-            className="w-full px-10 py-2 border rounded-md"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            
-          />
-          <span className="absolute left-3 top-2.5 text-gray-400">
-            <img src="/icons/mail.png" className="w-5 h-5" alt="Google" />
-          </span>
-        </div>
-        <div className="relative">
-          <input
-            type={showPassword ? "text" : "password"}
-            placeholder="Password"
-            className="w-full px-10 py-2 border rounded-md"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-          <span className="absolute left-3 top-2.5 text-gray-400">
-            <img src="/icons/Lock.png" className="w-5 h-5" alt="Lock" />
-          </span>
+        {/* Buyer Type Toggle */}
+        <div className="flex mb-6 space-x-2">
           <button
-            type="button"
-            onClick={() => setShowPassword((prev) => !prev)}
-            className="absolute right-3 top-2.5 text-gray-400"
+            onClick={() => setUserType('home')}
+            className={`flex-1 px-4 py-2 border rounded-md flex items-center justify-start space-x-2 text-sm sm:text-base ${userType === 'home'
+              ? 'bg-purple-100 text-purple-800 border-purple-500'
+              : 'bg-white text-gray-800 border-gray-300'
+              }`}
           >
-             <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} className="w-5 h-5" />
+            <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${userType === 'home' ? 'border-purple-800' : 'border-gray-400'
+              }`}>
+              {userType === 'home' && <span className="w-2 h-2 bg-purple-800 rounded-full" />}
+            </span>
+            <span>I’m Buying for Home</span>
+          </button>
+
+          <button
+            onClick={() => setUserType('business')}
+            className={`flex-1 px-4 py-2 border rounded-md flex items-center justify-start space-x-2 text-sm sm:text-base ${userType === 'business'
+              ? 'bg-purple-100 text-purple-800 border-purple-500'
+              : 'bg-white text-gray-800 border-gray-300'
+              }`}
+          >
+            <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${userType === 'business' ? 'border-purple-800' : 'border-gray-400'
+              }`}>
+              {userType === 'business' && <span className="w-2 h-2 bg-purple-800 rounded-full" />}
+            </span>
+            <span>I’m Buying for Business</span>
           </button>
         </div>
 
-        <div className="flex items-center justify-between text-sm">
-          <label className="flex items-center space-x-2">
-            <input type="checkbox" className="accent-[#229e11]" />
-            <span>Remember me</span>
-          </label>
-          <a href="#" className="text-[#094EE8] hover:underline">Forgot Password?</a>
+        {userType === 'home' && (
+          <p className="mb-4 text-gray-600">Welcome! Select method to log in:</p>
+        )}
+        {/* Social Login Buttons */}
+
+        <div className="mb-6">
+          {userType === 'home' && (
+            <div className="flex space-x-4">
+              <button className="flex-1 py-2 border rounded-md flex items-center justify-center space-x-2">
+                <img src="/icons/google.png" className="w-5 h-5" alt="Google" />
+                <span>Google</span>
+              </button>
+              <button className="flex-1 py-2 border rounded-md flex items-center justify-center space-x-2">
+                <img src="/icons/facebook.png" className="w-5 h-5" alt="Facebook" />
+                <span>Facebook</span>
+              </button>
+            </div>
+          )}
         </div>
 
-        <button 
-        type="submit" 
-        className="w-full bg-[#3E206D] text-white py-2 rounded-md mt-4"
-        disabled={isLoading}
-      >
-        {isLoading ? (
-          <span className="flex items-center justify-center">
-            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            Logging in...
-          </span>
-        ) : 'Log in'}
-      </button>
-      </form>
+        {userType === 'home' && (
+          <div className="flex items-center mb-6">
+            <div className="flex-grow h-px bg-gray-300" />
+            <span className="mx-2 text-sm text-gray-400">or continue with email</span>
+            <div className="flex-grow h-px bg-gray-300" />
+          </div>
+        )}
 
-      <p className="mt-4 text-sm text-center">
-        Don’t have an account?{' '}
-        <a href="#" className="text-[#094EE8] hover:underline">Create an account</a>
-      </p>
-    </div>
+        {/* Email Login Form */}
+        <form onSubmit={handleLogin} className="space-y-4">
+          <div className="relative">
+            <input
+              type="email"
+              placeholder="Email"
+              className="w-full px-10 py-2 border rounded-md"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
 
-    {/* Right Panel (Image) - Hidden on small screens */}
-    <div className="hidden md:flex md:w-1/2 items-center justify-center bg-[#3E206D] relative">
-      <img src="/images/login.png" alt="Farmer" className="w-full h-full absolute inset object-cover" />
+            />
+            <span className="absolute left-3 top-2.5 text-gray-400">
+              <img src="/icons/mail.png" className="w-5 h-5" alt="Google" />
+            </span>
+          </div>
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Password"
+              className="w-full px-10 py-2 border rounded-md"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+            <span className="absolute left-3 top-2.5 text-gray-400">
+              <img src="/icons/Lock.png" className="w-5 h-5" alt="Lock" />
+            </span>
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              className="absolute right-3 top-2.5 text-gray-400"
+            >
+              <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between text-sm">
+            <label className="flex items-center space-x-2">
+              <input type="checkbox" className="accent-[#229e11]" />
+              <span>Remember me</span>
+            </label>
+            <a href="#" className="text-[#094EE8] hover:underline">Forgot Password?</a>
+          </div>
+
+          <button
+            type="submit"
+            className="w-full bg-[#3E206D] text-white py-2 rounded-md mt-4"
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <span className="flex items-center justify-center">
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Logging in...
+              </span>
+            ) : 'Log in'}
+          </button>
+        </form>
+
+        <p className="mt-4 text-sm text-center">
+          Don’t have an account?{' '}
+          <a href="../signup" className="text-[#094EE8] hover:underline">Create an account</a>
+        </p>
+      </div>
+
+      {/* Right Panel (Image) - Hidden on small screens */}
+      <div className="hidden md:flex md:w-1/2 items-center justify-center bg-[#3E206D] relative">
+        <img src="/images/login.png" alt="Farmer" className="w-full h-full absolute inset object-cover" />
+      </div>
     </div>
-  </div>
   )
 }
 
