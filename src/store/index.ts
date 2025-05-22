@@ -4,7 +4,6 @@ import authReducer from './slices/authSlice';
 import storage from 'redux-persist/lib/storage'; // defaults to localStorage
 import { persistReducer, persistStore } from 'redux-persist';
 import { combineReducers } from 'redux';
-import formReducer from './slices/formSlice';
 import checkoutReducer from './slices/checkoutSlice';
 
 const persistConfig = {
@@ -15,7 +14,6 @@ const persistConfig = {
 
 const rootReducer = combineReducers({
   auth: authReducer,
-  form: formReducer,  
   checkout: checkoutReducer,
 });
 
