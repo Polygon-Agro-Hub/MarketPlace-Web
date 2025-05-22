@@ -4,15 +4,17 @@ import authReducer from './slices/authSlice';
 import storage from 'redux-persist/lib/storage'; // defaults to localStorage
 import { persistReducer, persistStore } from 'redux-persist';
 import { combineReducers } from 'redux';
+import checkoutReducer from './slices/checkoutSlice';
 
 const persistConfig = {
   key: 'root',
   storage,
-  whitelist: ['auth'], // only persist the auth slice
+  whitelist: ['auth', 'form', 'checkout'],
 };
 
 const rootReducer = combineReducers({
   auth: authReducer,
+  checkout: checkoutReducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
