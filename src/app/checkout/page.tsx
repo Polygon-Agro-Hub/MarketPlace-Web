@@ -195,7 +195,7 @@ const Page: React.FC = () => {
     const trimmed = typeof value === 'string' ? value.trim() : '';
     const isHomeDelivery = formData.deliveryMethod === 'home';
     const isApartment = formData.buildingType === 'Apartment';
-
+    
     // Define which fields are conditionally required
     const apartmentFields = [
       'buildingType',
