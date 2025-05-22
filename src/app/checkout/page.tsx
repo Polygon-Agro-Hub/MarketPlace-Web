@@ -457,7 +457,7 @@ const Page: React.FC = () => {
                 <label htmlFor="fullName" className='block font-semibold mb-1 text-[#2E2E2E]'>Full name *</label>
                 <input
                   type="text"
-                  className='w-full border h-[39px] border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-3 text-base'
+                  className='w-full border-2 border-[#F2F4F7] bg-[#F9FAFB] h-[39px] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-3 text-base'
                   placeholder='Enter your full name'
                   value={formData.fullName}
                   onChange={(e) => handleFieldChange('fullName', e.target.value)}
@@ -485,7 +485,7 @@ const Page: React.FC = () => {
                   <div className="w-full">
                     <input
                       type="text"
-                      className='w-full border h-[39px] border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2 text-[#808FA2]'
+                      className='w-full h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2 text-[#808FA2]'
                       value={formData.phone1}
                       onChange={(e) => handleFieldChange('phone1', e.target.value)}
                       placeholder='7xxxxxxxx'
@@ -515,7 +515,7 @@ const Page: React.FC = () => {
                   <div className="w-full">
                     <input
                       type="text"
-                      className='w-full border h-[39px] border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2 text-[#808FA2]'
+                      className='w-full  h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2 text-[#808FA2]'
                       value={formData.phone2}
                       onChange={(e) => handleFieldChange('phone2', e.target.value)}
                       placeholder='7xxxxxxxx'
@@ -555,7 +555,7 @@ const Page: React.FC = () => {
                     onChange={(e) => handleFieldChange('buildingNo', e.target.value)}
                     type="text"
                     placeholder="Enter House / Building No"
-                    className="w-full px-4 py-2 border h-[39px] border-gray-300 rounded-lg bg-gray-50 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                    className="w-full px-4 py-2 h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] rounded-lg  placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
                   />
                   {errors.buildingNo && <p className="text-red-600 text-sm mt-1">{errors.buildingNo}</p>}
                 </div>
@@ -570,7 +570,7 @@ const Page: React.FC = () => {
                     onChange={(e) => handleFieldChange('buildingName', e.target.value)}
                     type="text"
                     placeholder="Enter building name"
-                    className="w-full px-4 py-2 border h-[39px] border-gray-300 rounded-lg bg-gray-50 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                    className="w-full px-4 py-2 border-2 h-[39px] border-[#F2F4F7] bg-[#F9FAFB] rounded-lg  placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
                   />
                   {errors.buildingName && <p className="text-red-600 text-sm mt-1">{errors.buildingName}</p>}
                 </div>
@@ -585,7 +585,7 @@ const Page: React.FC = () => {
                     onChange={(e) => handleFieldChange('flatNumber', e.target.value)}
                     type="text"
                     placeholder="Enter flat number"
-                    className="w-full px-4 py-2 border h-[39px] border-gray-300 rounded-lg bg-gray-50 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                    className="w-full px-4 py-2 border-2 h-[39px] border-[#F2F4F7] bg-[#F9FAFB] rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
                   />
                   {errors.flatNumber && <p className="text-red-600 text-sm mt-1">{errors.flatNumber}</p>}
                 </div>
@@ -600,7 +600,7 @@ const Page: React.FC = () => {
                       onChange={(e) => handleFieldChange('floorNumber', e.target.value)}
                       type="text"
                       placeholder="Enter floor number"
-                      className="w-full px-4 py-2 border h-[39px] border-gray-300 rounded-lg bg-gray-50 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                      className="w-full px-4 py-2 border-2 h-[39px] border-[#F2F4F7] bg-[#F9FAFB] rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
                     />
                     {errors.floorNumber && <p className="text-red-600 text-sm mt-1">{errors.floorNumber}</p>}
                   </div>
@@ -614,7 +614,7 @@ const Page: React.FC = () => {
                     onChange={(e) => handleFieldChange('houseNo', e.target.value)}
                     type="text"
                     placeholder="Enter house number"
-                    className="w-full px-4 py-2 border h-[39px] border-gray-300 rounded-lg bg-gray-50 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                    className="w-full px-4 py-2 border-2 h-[39px] border-[#F2F4F7] bg-[#F9FAFB] rounded-lg  placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
                   />
                   {errors.houseNo && <p className="text-red-600 text-sm mt-1">{errors.houseNo}</p>}
                 </div>
@@ -627,7 +627,7 @@ const Page: React.FC = () => {
                     onChange={(e) => handleFieldChange('street', e.target.value)}
                     type="text"
                     placeholder="Enter Street Name"
-                    className="w-full px-4 py-2 border h-[39px] border-gray-300 rounded-lg bg-gray-50 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                    className="w-full px-4 py-2 border-2 h-[39px] border-[#F2F4F7] bg-[#F9FAFB] rounded-lg  placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
                   />
                   {errors.street && <p className="text-red-600 text-sm mt-1">{errors.street}</p>}
                 </div>
@@ -640,7 +640,7 @@ const Page: React.FC = () => {
                     onChange={(e) => handleFieldChange('cityName', e.target.value)}
                     type="text"
                     placeholder="Enter Nearest City"
-                    className="w-full px-4 py-2 border h-[39px] border-gray-300 rounded-lg bg-gray-50 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                    className="w-full px-4 py-2 border-2 h-[39px] border-[#F2F4F7] bg-[#F9FAFB] rounded-lg  placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
                   />
                   {errors.cityName && <p className="text-red-600 text-sm mt-1">{errors.cityName}</p>}
                 </div>
