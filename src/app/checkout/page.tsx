@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Minus, Trash2 } from 'lucide-react';
 import TopNavigation from '@/components/top-navigation/TopNavigation';
 import CustomDropdown from '../../components/home/CustomDropdown';
-import { updateForm, getForm } from '../../services/retail-service';
 import Swal from 'sweetalert2';
 import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch, RootState } from '../../store';
