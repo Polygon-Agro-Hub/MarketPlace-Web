@@ -151,8 +151,8 @@ const ItemCard = ({
                     )}
                 </div>
 
-                {/* Quantity selector */}
-                {showQuantitySelector && (
+                {/* Quantity selector - Only show if user is logged in */}
+                {token && user && showQuantitySelector && (
                     <div className="w-full space-y-2 mb-2 flex flex-col items-center justify-center">
                         <div className="flex justify-center">
                             <div className="flex rounded overflow-hidden gap-2">
@@ -212,7 +212,7 @@ const ItemCard = ({
                         <button
                             onClick={handleAddToCartClick}
                             disabled={isLoading}
-                            className={`w-full py-1 px-1.5 rounded flex items-center justify-center gap-1 text-xs md:text-sm transition-colors ${showQuantitySelector
+                            className={`w-full py-1 px-1.5 rounded flex items-center justify-center gap-1 text-xs md:text-sm transition-colors ${token && user && showQuantitySelector
                                 ? "bg-purple-900 text-white hover:bg-purple-800"
                                 : "bg-gray-100 text-gray-400 hover:bg-[#3E206D] hover:text-white"
                                 } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -222,7 +222,7 @@ const ItemCard = ({
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                                 </svg>
                             )}
-                            {showQuantitySelector ? "Add to Cart" : "Add to Cart"}
+                            {token && user && showQuantitySelector ? "Add to Cart" : "Add to Cart"}
                         </button>
                     )}
                 </div>
