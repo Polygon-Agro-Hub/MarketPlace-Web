@@ -24,8 +24,13 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState('fruits');
 
+  const cart = useSelector((state: RootState) => state.checkout) || null;
+
+
   useEffect(() => {
     fetchAllPackages();
+    console.log("Car:", cart);
+    
   }, []);
 
   useEffect(() => {

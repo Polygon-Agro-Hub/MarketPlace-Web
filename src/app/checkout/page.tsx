@@ -4,9 +4,10 @@ import { Plus, Minus, Trash2 } from 'lucide-react';
 import TopNavigation from '@/components/top-navigation/TopNavigation';
 import CustomDropdown from '../../components/home/CustomDropdown';
 import { updateForm, getForm } from '../../services/retail-service';
-import { RootState } from '@/store';
-import { useSelector } from 'react-redux';
 import Swal from 'sweetalert2';
+import { useDispatch, useSelector } from 'react-redux';
+import type { AppDispatch, RootState } from '../../store';
+import { setFormData, resetFormData } from '../../store/slices/checkoutSlice';
 
 interface FormData {
   deliveryMethod: string;
@@ -50,33 +51,38 @@ interface FormErrors {
   scheduleType: string;
 }
 
+const initialFormState: FormData = {
+  deliveryMethod: 'home',
+  title: '',
+  fullName: '',
+  phone1: '',
+  phone2: '',
+  buildingType: 'Apartment',
+  deliveryDate: '',
+  timeSlot: '',
+  phoneCode1: '94',
+  phoneCode2: '94',
+  buildingNo: '',
+  buildingName: '',
+  flatNumber: '',
+  floorNumber: '',
+  houseNo: '',
+  street: '',
+  cityName: '',
+  scheduleType: 'One Time',
+};
+
 const Page: React.FC = () => {
   const NavArray = [
     { name: 'Cart', path: '/cart', status: true },
     { name: 'Checkout', path: '/checkout', status: true },
     { name: 'Payment', path: '/payment', status: false },
   ];
+  const dispatch = useDispatch<AppDispatch>();
+  const storedFormData = useSelector((state: RootState) => state.checkout);
+  console.log('data from store', storedFormData);
 
-  const [formData, setFormData] = useState<FormData>({
-    deliveryMethod: 'home',
-    title: '',
-    fullName: '',
-    phone1: '',
-    phone2: '',
-    buildingType: 'Apartment',
-    deliveryDate: '',
-    timeSlot: '',
-    phoneCode1: '94',
-    phoneCode2: '94',
-    buildingNo: '',
-    buildingName: '',
-    flatNumber: '',
-    floorNumber: '',
-    houseNo: '',
-    street: '',
-    cityName: '',
-    scheduleType: 'One Time',
-  });
+  const [formData, setFormDataLocal] = useState<FormData>(initialFormState);
 
   const [errors, setErrors] = useState<FormErrors>({
     deliveryMethod: '',
@@ -107,56 +113,35 @@ const Page: React.FC = () => {
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
-  const fetchData = async () => {
-    try {
-      const data = await getForm(token);
-      console.log('data fetched');
-      console.log('data', data.results);
-
-      const dataNew = data.results;
-      return dataNew;
-    } catch (error: any) {
-      setErrorMsg(error.message || 'Failed to load form data.');
-      return null;
-    } finally {
-      setFetching(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const handleAddressOptionChange = async (value: string) => {
+  const handleAddressOptionChange = (value: string) => {
     if (value === 'previous') {
       setUsePreviousAddress(true);
-      const dataNew = await fetchData();
-      console.log('data new', dataNew);
-      if (dataNew) {
-        // Update formData with the fetched data
-        setFormData(prev => ({
+  
+      if (storedFormData) {
+        // Conditionally apply only selected fields from Redux
+        setFormDataLocal(prev => ({
           ...prev,
-          buildingNo: dataNew.buildingNo || '',
-          buildingType: dataNew.buildingType || 'Apartment',
-          cityName: dataNew.city || '',
-          houseNo: dataNew.houseNo || '',
-          phone1: dataNew.phone1 || '',
-          phone2: dataNew.phone2 || '',
-          phoneCode1: dataNew.phoneCode1 || '94',
-          phoneCode2: dataNew.phoneCode2 || '94',
-          street: dataNew.street || '',
-          title: dataNew.title || '',
-          buildingName: dataNew.buildingName || '',
-          flatNumber: dataNew.flatNo || '',
-          floorNumber: dataNew.floorNo || '',
-          scheduleType: 'One Time',
-          fullName: dataNew.fullName || ''
+          buildingNo: storedFormData.buildingNo || '',
+          buildingType: storedFormData.buildingType || 'Apartment',
+          cityName: storedFormData.cityName || '',
+          houseNo: storedFormData.houseNo || '',
+          phone1: storedFormData.phone1 || '',
+          phone2: storedFormData.phone2 || '',
+          phoneCode1: storedFormData.phoneCode1 || '94',
+          phoneCode2: storedFormData.phoneCode2 || '94',
+          street: storedFormData.street || '',
+          title: storedFormData.title || '',
+          buildingName: storedFormData.buildingName || '',
+          flatNumber: storedFormData.flatNumber || '',
+          floorNumber: storedFormData.floorNumber || '',
+          fullName: storedFormData.fullName || '',
+          scheduleType: 'One Time', // force default
         }));
       }
     } else {
       setUsePreviousAddress(false);
       // Reset formData to initial values
-      setFormData({
+      setFormDataLocal({
         deliveryMethod: 'home',
         title: '',
         fullName: '',
@@ -178,10 +163,11 @@ const Page: React.FC = () => {
       });
     }
   };
+  
 
   const handleFieldChange = (field: keyof FormData, value: string) => {
     // Update the form state
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormDataLocal(prev => ({ ...prev, [field]: value }));
 
     // Validate the field with access to current form data
     const error = validateField(field, value, formData);
@@ -296,7 +282,7 @@ const Page: React.FC = () => {
     e.preventDefault();
     setSuccessMsg('');
     setErrorMsg('');
-
+  
     if (!validateForm()) {
       Swal.fire({
         icon: 'error',
@@ -305,42 +291,57 @@ const Page: React.FC = () => {
       });
       return;
     }
-
-    // Prepare the data to submit
-    const dataToSubmit: any = {
-      fullName: formData.fullName,
-      title: formData.title,
-      phone1: formData.phone1,
-      phone2: formData.phone2,
-      timeSlot: formData.timeSlot,
-      deliveryDate: formData.deliveryDate,
-      phoneCode1: formData.phoneCode1,
-      phoneCode2: formData.phoneCode2,
-      deliveryMethod: formData.deliveryMethod,
-      scheduleType: formData.scheduleType
-    };
-
-    // Include address fields only if deliveryMethod is "home"
-    if (formData.deliveryMethod === 'home') {
-      dataToSubmit.buildingType = formData.buildingType;
-      dataToSubmit.buildingName = formData.buildingName;
-      dataToSubmit.buildingNumber = formData.buildingNo;
-      dataToSubmit.streetName = formData.street;
-      dataToSubmit.cityName = formData.cityName;
-      dataToSubmit.houseNumber = formData.houseNo;
-      dataToSubmit.floorNumber = formData.floorNumber;
-      dataToSubmit.flatNumber = formData.flatNumber;
-    }
-
-    console.log('Submitting form data:', dataToSubmit);
-
+  
     try {
       setIsLoading(true);
-      await updateForm(dataToSubmit, token);
-      setSuccessMsg('Form updated successfully!');
 
+      let dataToSubmit: FormData = initialFormState;
+  
+      // Always include shared fields
+      dataToSubmit = {
+        ...dataToSubmit,
+        deliveryMethod: formData.deliveryMethod,
+        title: formData.title,
+        fullName: formData.fullName,
+        phone1: formData.phone1,
+        phone2: formData.phone2,
+        phoneCode1: formData.phoneCode1,
+        phoneCode2: formData.phoneCode2,
+        deliveryDate: formData.deliveryDate,
+        timeSlot: formData.timeSlot,
+        scheduleType: formData.scheduleType,
+      };
+  
+      if (formData.deliveryMethod === 'home') {
+        if (formData.buildingType === 'Apartment') {
+          dataToSubmit = {
+            ...dataToSubmit,
+            buildingType: formData.buildingType,
+            buildingNo: formData.buildingNo,
+            buildingName: formData.buildingName,
+            flatNumber: formData.flatNumber,
+            floorNumber: formData.floorNumber,
+            houseNo: formData.houseNo,
+            street: formData.street,
+            cityName: formData.cityName,
+          };
+        } else if (formData.buildingType === 'House') {
+          dataToSubmit = {
+            ...dataToSubmit,
+            buildingType: formData.buildingType,
+            houseNo: formData.houseNo,
+            street: formData.street,
+            cityName: formData.cityName,
+          };
+        }
+      }
+      dispatch(resetFormData());
+  
+      dispatch(setFormData(dataToSubmit));
+  
+      setSuccessMsg('Check out successfull!');
       await Swal.fire({
-        title: 'Form uploaded Successful!',
+        title: 'Check out successfull!',
         icon: 'success',
         timer: 2000,
         showConfirmButton: false,
@@ -351,9 +352,9 @@ const Page: React.FC = () => {
         confirmButtonColor: '#3E206D',
       });
     } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to update form.');
+      setErrorMsg(err.message || 'Check out failed!');
       await Swal.fire({
-        title: 'Form upload failed',
+        title: 'Check out failed',
         icon: 'error',
         confirmButtonText: 'Try Again',
         confirmButtonColor: '#3E206D',
@@ -362,6 +363,7 @@ const Page: React.FC = () => {
       setIsLoading(false);
     }
   };
+  
 
   return (
     <form onSubmit={handleSubmit}>
@@ -416,6 +418,7 @@ const Page: React.FC = () => {
                   </div>
                 </div>
               )}
+
             </div>
             <div className='border-t border-gray-300 my-6'></div>
 
@@ -441,7 +444,6 @@ const Page: React.FC = () => {
                     options={[
                       { value: 'Mr', label: 'Mr' },
                       { value: 'Ms', label: 'Ms' },
-                      { value: 'Dr', label: 'Dr' },
                     ]}
                     selectedValue={formData.title}
                     onSelect={(value) => handleFieldChange('title', value)}
@@ -536,7 +538,7 @@ const Page: React.FC = () => {
                     options={[
                       { value: 'Apartment', label: 'Apartment' },
                       { value: 'House', label: 'House' },
-                      { value: 'Other', label: 'Other' }
+
                     ]}
                     selectedValue={formData.buildingType}
                     onSelect={(value) => handleFieldChange('buildingType', value)}
@@ -604,9 +606,6 @@ const Page: React.FC = () => {
                     {errors.floorNumber && <p className="text-red-600 text-sm mt-1">{errors.floorNumber}</p>}
                   </div>
                 )}
-
-
-
 
                 {/* House Number */}
                 <div className="w-full md:w-1/2 px-2 mb-4">

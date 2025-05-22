@@ -1,185 +1,181 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import type { AppDispatch, RootState } from '../../store';
+import { setFormData } from '../../store/slices/formSlice';
 import CustomDropdown from '../../components/home/CustomDropdown';
-import { updateForm, getForm } from '../../services/retail-service';
 
 interface FormData {
-    name: string;
-    email: string;
-    deliveryMethod: string;
-    buildingType: string;
+  name: string;
+  email: string;
+  deliveryMethod: string;
+  buildingType: string;
 }
 
 interface FormErrors {
-    name: string;
-    email: string;
-    deliveryMethod: string;
-    buildingType: string;
+  name: string;
+  email: string;
+  deliveryMethod: string;
+  buildingType: string;
 }
 
-const CustomForm = () => {
-    const [formData, setFormData] = useState<FormData>({
-        name: '',
-        email: '',
-        deliveryMethod: 'home',
-        buildingType: '',
+const TestPage = () => {
+  const dispatch = useDispatch<AppDispatch>();
+  const storedFormData = useSelector((state: RootState) => state.form);
+
+  const [formData, setFormDataLocal] = useState<FormData>({
+    name: '',
+    email: '',
+    deliveryMethod: '',
+    buildingType: '',
+  });
+
+  const [errors, setErrors] = useState<FormErrors>({
+    name: '',
+    email: '',
+    deliveryMethod: '',
+    buildingType: '',
+  });
+
+  const [loading, setLoading] = useState(false);
+  const [successMsg, setSuccessMsg] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+
+  // ✅ Load Redux data into local form state on mount
+  useEffect(() => {
+    setFormDataLocal(storedFormData);
+  }, [storedFormData]);
+
+  const handleFieldChange = (field: keyof FormData, value: string) => {
+    setFormDataLocal((prev) => ({ ...prev, [field]: value }));
+    validateField(field, value);
+  };
+
+  const validateField = (field: keyof FormData, value: string) => {
+    let error = '';
+
+    switch (field) {
+      case 'name':
+        if (!value.trim()) error = 'Name is required.';
+        else if (value.length < 2) error = 'Name must be at least 2 characters.';
+        break;
+      case 'email':
+        if (!value.trim()) error = 'Email is required.';
+        else if (!/^\S+@\S+\.\S+$/.test(value)) error = 'Email is not valid.';
+        break;
+      case 'deliveryMethod':
+      case 'buildingType':
+        if (!value) error = `${field === 'deliveryMethod' ? 'Delivery method' : 'Building type'} is required.`;
+        break;
+    }
+
+    setErrors((prev) => ({ ...prev, [field]: error }));
+  };
+
+  const validateForm = () => {
+    let isValid = true;
+    const newErrors: FormErrors = { ...errors };
+
+    (Object.keys(formData) as Array<keyof FormData>).forEach((field) => {
+      validateField(field, formData[field]);
+      if (formData[field].trim() === '') isValid = false;
     });
 
-    const [errors, setErrors] = useState<FormErrors>({
-        name: '',
-        email: '',
-        deliveryMethod: '',
-        buildingType: '',
-    });
+    setErrors(newErrors);
+    return isValid;
+  };
 
-    const [loading, setLoading] = useState(false);
-    const [fetching, setFetching] = useState(true);
-    const [successMsg, setSuccessMsg] = useState('');
-    const [errorMsg, setErrorMsg] = useState('');
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSuccessMsg('');
+    setErrorMsg('');
 
-    // Unified field change handler
-    const handleFieldChange = (field: keyof FormData, value: string) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
-        validateField(field, value);
-    };
+    if (!validateForm()) return;
 
-    // Field-specific validation
-    const validateField = (field: keyof FormData, value: string) => {
-        let error = '';
-        
-        switch (field) {
-            case 'name':
-                if (!value.trim()) {
-                    error = 'Name is required.';
-                } else if (value.trim().length < 2) {
-                    error = 'Name must be at least 2 characters.';
-                }
-                break;
-                
-            case 'email':
-                if (!value.trim()) {
-                    error = 'Email is required.';
-                } else if (!/^\S+@\S+\.\S+$/.test(value)) {
-                    error = 'Email is not valid.';
-                }
-                break;
-                
-            case 'deliveryMethod':
-            case 'buildingType':
-                if (!value) {
-                    error = `${field === 'deliveryMethod' ? 'Delivery method' : 'Building type'} is required.`;
-                }
-                break;
-        }
+    try {
+      setLoading(true);
 
-        setErrors(prev => ({ ...prev, [field]: error }));
-    };
+      // ✅ Store to Redux
+      dispatch(setFormData(formData));
 
-    // Form-wide validation
-    const validateForm = () => {
-        let isValid = true;
-        const newErrors = { ...errors };
+      setSuccessMsg('Form submitted and stored in Redux!');
+    } catch (err) {
+      setErrorMsg('Failed to submit form.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        // Validate all fields
-        (Object.keys(formData) as Array<keyof FormData>).forEach(field => {
-            validateField(field, formData[field]);
-            if (errors[field]) isValid = false;
-        });
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4 p-4 border rounded shadow-md w-full max-w-md mx-auto">
+      {/* Name */}
+      <div>
+        <label className="block mb-1 font-medium">Name:</label>
+        <input
+          type="text"
+          className="w-full p-2 border rounded"
+          value={formData.name}
+          onChange={(e) => handleFieldChange('name', e.target.value)}
+        />
+        {errors.name && <p className="text-red-600 text-sm">{errors.name}</p>}
+      </div>
 
-        return isValid;
-    };
+      {/* Email */}
+      <div>
+        <label className="block mb-1 font-medium">Email:</label>
+        <input
+          type="email"
+          className="w-full p-2 border rounded"
+          value={formData.email}
+          onChange={(e) => handleFieldChange('email', e.target.value)}
+        />
+        {errors.email && <p className="text-red-600 text-sm">{errors.email}</p>}
+      </div>
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setSuccessMsg('');
-        setErrorMsg('');
+      {/* Delivery Method */}
+      <div>
+        <label className="block mb-1 font-medium">Delivery Method:</label>
+        <CustomDropdown
+          options={[
+            { value: 'home', label: 'Home Delivery' },
+            { value: 'pickup', label: 'Pickup' },
+          ]}
+          selectedValue={formData.deliveryMethod}
+          onSelect={(value) => handleFieldChange('deliveryMethod', value)}
+        />
+        {errors.deliveryMethod && <p className="text-red-600 text-sm">{errors.deliveryMethod}</p>}
+      </div>
 
-        if (!validateForm()) return;
+      {/* Building Type */}
+      <div>
+        <label className="block mb-1 font-medium">Building Type:</label>
+        <CustomDropdown
+          options={[
+            { value: 'apartment', label: 'Apartment' },
+            { value: 'house', label: 'House' },
+            { value: 'office', label: 'Office' },
+          ]}
+          selectedValue={formData.buildingType}
+          onSelect={(value) => handleFieldChange('buildingType', value)}
+          placeholder="Select building type"
+        />
+        {errors.buildingType && <p className="text-red-600 text-sm">{errors.buildingType}</p>}
+      </div>
 
-        try {
-            setLoading(true);
-            await updateForm(formData);
-            setSuccessMsg('Form updated successfully!');
-        } catch (err: any) {
-            setErrorMsg(err.message || 'Failed to update form.');
-        } finally {
-            setLoading(false);
-        }
-    };
+      {/* Messages */}
+      {successMsg && <p className="text-green-600">{successMsg}</p>}
+      {errorMsg && <p className="text-red-600">{errorMsg}</p>}
 
-    return (
-        <form onSubmit={handleSubmit} className="space-y-4 p-4 border rounded shadow-md w-full max-w-md mx-auto">
-            {/* Name */}
-            <div>
-                <label htmlFor="name" className="block font-medium mb-1">Name:</label>
-                <input
-                    type="text"
-                    id="name"
-                    className="w-full border p-2 rounded"
-                    value={formData.name}
-                    onChange={(e) => handleFieldChange('name', e.target.value)}
-                />
-                {errors.name && <p className="text-red-600 text-sm mt-1">{errors.name}</p>}
-            </div>
-
-            {/* Email */}
-            <div>
-                <label htmlFor="email" className="block font-medium mb-1">Email:</label>
-                <input
-                    type="email"
-                    id="email"
-                    className="w-full border p-2 rounded"
-                    value={formData.email}
-                    onChange={(e) => handleFieldChange('email', e.target.value)}
-                />
-                {errors.email && <p className="text-red-600 text-sm mt-1">{errors.email}</p>}
-            </div>
-
-            {/* Delivery Method */}
-            <div>
-                <label className="block font-medium mb-1">Delivery Method:</label>
-                <CustomDropdown
-                    options={[
-                        { value: 'home', label: 'Home Delivery' },
-                        { value: 'pickup', label: 'Pickup' },
-                    ]}
-                    selectedValue={formData.deliveryMethod}
-                    onSelect={(value) => handleFieldChange('deliveryMethod', value)}
-                />
-                {errors.deliveryMethod && <p className="text-red-600 text-sm mt-1">{errors.deliveryMethod}</p>}
-            </div>
-
-            {/* Building Type */}
-            <div>
-                <label className="block font-medium mb-1">Building Type:</label>
-                <CustomDropdown
-                    options={[
-                        { value: 'apartment', label: 'Apartment' },
-                        { value: 'house', label: 'House' },
-                        { value: 'office', label: 'Office' },
-                    ]}
-                    selectedValue={formData.buildingType}
-                    onSelect={(value) => handleFieldChange('buildingType', value)}
-                    placeholder="Select building type"
-                />
-                {errors.buildingType && <p className="text-red-600 text-sm mt-1">{errors.buildingType}</p>}
-            </div>
-
-            {/* Feedback */}
-            {successMsg && <p className="text-green-600 text-sm mt-1">{successMsg}</p>}
-            {errorMsg && <p className="text-red-600 text-sm mt-1">{errorMsg}</p>}
-
-            {/* Submit */}
-            <button
-                type="submit"
-                disabled={loading}
-                className={`bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-                {loading ? 'Updating...' : 'Update'}
-            </button>
-        </form>
-    );
+      <button
+        type="submit"
+        className={`bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+        disabled={loading}
+      >
+        {loading ? 'Submitting...' : 'Submit'}
+      </button>
+    </form>
+  );
 };
 
-export default CustomForm;
+export default TestPage;
