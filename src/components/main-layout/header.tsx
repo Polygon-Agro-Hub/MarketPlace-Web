@@ -51,7 +51,7 @@ const Header = () => {
         <div className='bg-[#2C2C2C] text-gray-300 py-2 px-7'>
           <div className="mx-auto flex justify-between items-center">
             <span className="text-sm italic">
-              Call us for any query or help +94 770 111 999 {user ? user.firstName : ''}
+              Call us for any query or help +94 770 111 999
             </span>
             <div className="flex gap-2">
               <Link href="/signup" className="text-sm bg-gray-700 rounded-full px-4 py-1 hover:bg-gray-600">
