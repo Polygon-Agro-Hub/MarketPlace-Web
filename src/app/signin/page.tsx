@@ -136,7 +136,7 @@ const page = () => {
       <form onSubmit={handleLogin} className="space-y-4">
         <div className="relative">
           <input
-            type="email"
+            type="text"
             placeholder="Email"
             className="w-full px-10 py-2 border rounded-md"
             value={email}
