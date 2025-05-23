@@ -4,6 +4,8 @@ import { faAngleDown, faMagnifyingGlass, faBagShopping, faBars, faUser, faClockR
 import React, { useEffect, useState, useRef } from 'react'
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
+import { useDispatch } from 'react-redux';
+import { logout } from '../../store/slices/authSlice';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -45,6 +47,7 @@ const Header = () => {
     setIsDesktopCategoryOpen(!isDesktopCategoryOpen);
   }
 
+  const dispatch = useDispatch();
   return (
     <>
       {!isMobile && (
@@ -54,12 +57,32 @@ const Header = () => {
               Call us for any query or help +94 770 111 999
             </span>
             <div className="flex gap-2">
-              <Link href="/signup" className="text-sm bg-gray-700 rounded-full px-4 py-1 hover:bg-gray-600">
-                Signup
-              </Link>
-              <Link href="/signin" className="text-sm bg-gray-700 rounded-full px-4 py-1 hover:bg-gray-600">
-                Login
-              </Link>
+              {user ? (
+                <Link
+                  href="/"
+                  className="text-sm flex items-center gap-2"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    dispatch(logout());
+                  }}
+                >
+                  <img
+                    src="/icons/Exit.png"
+                    alt="Logout"
+                    className="w-4 h-4"
+                  />
+                  Logout
+                </Link>
+              ) : (
+                <>
+                  <Link href="/signup" className="text-sm bg-gray-700 rounded-full px-4 py-1 hover:bg-gray-600">
+                    Signup
+                  </Link>
+                  <Link href="/signin" className="text-sm bg-gray-700 rounded-full px-4 py-1 hover:bg-gray-600">
+                    Login
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
