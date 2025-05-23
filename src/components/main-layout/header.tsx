@@ -48,6 +48,12 @@ const Header = () => {
   }
 
   const dispatch = useDispatch();
+
+  const handleLogout = (e: React.MouseEvent) => {
+    e.preventDefault();
+    dispatch(logout());
+  }
+
   return (
     <>
       {!isMobile && (
@@ -169,9 +175,30 @@ const Header = () => {
                 </button>
               </div>
               <nav className="flex flex-col w-full">
-                <Link href="/logout" className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800">
-                  Logout
-                </Link>
+                {user ? (
+                  <Link
+                    href="/logout"
+                    className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800 flex items-center gap-2"
+                    onClick={handleLogout}
+                  >
+                    Logout
+                  </Link>
+                ) : (
+                  <>
+                    <Link
+                      href="/signin"
+                      className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800 flex items-center gap-2"
+                    >
+                      Login
+                    </Link>
+                    <Link
+                      href="/signup"
+                      className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800 flex items-center gap-2"
+                    >
+                      Signup
+                    </Link>
+                  </>
+                )}
                 <Link href="/" className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800">
                   Home
                 </Link>
