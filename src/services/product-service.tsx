@@ -61,11 +61,11 @@ export const getPackageDetails = async (packageId: number): Promise<any> => {
   }
 };
 
-export const packageAddToCart = async (formData: any, token: string | null): Promise<any> => {
+export const packageAddToCart = async (formData: number, token: string | null): Promise<any> => {
   console.log("formData", formData);
 
   try {
-    const response = await axios.post(`/product/package-add-to-cart`, formData, {
+    const response = await axios.post(`/product/package-add-to-cart`, { id: formData }, {
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',

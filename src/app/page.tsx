@@ -54,9 +54,9 @@ export default function Home() {
     }
   }
 
-  const handleCategorySelect = (categoryId) => {
-    setSelectedCategory(categoryId);
-  };
+  // const handleCategorySelect = (categoryId) => {
+  //   setSelectedCategory(categoryId);
+  // };
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-between">
