@@ -2,7 +2,7 @@ import axios from '@/lib/axios';
 
 export const getRetailCart = async (token: string | null): Promise<any> => {
     try {
-        const response = await axios.get(`/retail-order/get-retail-cart`, {
+        const response = await axios.get(`/cart/cart/1`, {
             headers: {
                 Authorization: `Bearer ${token}`,
                 'Content-Type': 'application/json',
