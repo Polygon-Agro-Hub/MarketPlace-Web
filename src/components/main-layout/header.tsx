@@ -6,6 +6,7 @@ import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
 import { useDispatch } from 'react-redux';
 import { logout } from '../../store/slices/authSlice';
+import { clearCart } from '@/store/slices/cartSlice';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -70,6 +71,7 @@ const Header = () => {
                   onClick={(e) => {
                     e.preventDefault();
                     dispatch(logout());
+                    dispatch(clearCart());
                   }}
                 >
                   <img

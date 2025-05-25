@@ -684,10 +684,10 @@ const Page: React.FC = () => {
           {/* Right Section - Order Summary */}
           <div className='w-full lg:w-1/3 mt-6 lg:mt-0'>
             <div className='border border-gray-300 rounded-lg shadow-md p-4 sm:p-5 md:p-6'>
-              <h2 className='font-semibold text-lg mb-4'>Your Order</h2>
+              <h2 className='font-semibold text-lg mb-4'>Your Order </h2>
 
               <div className='flex justify-between items-center mb-4'>
-                <p className="text-gray-600">{cartPrices.totalItems}</p>
+                <p className="text-gray-600">{cartPrices.totalItems} {cartPrices.paymentMethod}</p>
                 <p className='font-semibold'>Rs.{cartPrices.grandTotal}</p>
               </div>
 

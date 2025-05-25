@@ -2,6 +2,8 @@ import { useRouter } from 'next/navigation'; // Changed from 'next/router'
 import Image from 'next/image';
 import { useDispatch } from 'react-redux';
 import { setCartDetails } from '@/store/slices/cartSlice';
+import { useState } from 'react';
+import PaymentMethodPopup from '../payment-popup/paymentMethodPopup';
 
 interface OrderSummaryProps {
     totalItems: number;
@@ -18,11 +20,16 @@ const OrderSummary = ({
 }: OrderSummaryProps) => {
     const dispatch = useDispatch();
     const router = useRouter();
+    const [showPopup, setShowPopup] = useState(false);
 
     const handleCheckout = () => {
         dispatch(setCartDetails({ totalItems, totalPrice, discountAmount, grandTotal }));
-        router.push('/checkout'); 
-  };
+        setShowPopup(true);
+    };
+
+    const closePopup = () => {
+        setShowPopup(false); // Close the popup
+    };
 
     return (
         <div className='border border-[#171717] rounded-lg shadow-md p-4 sm:p-5 md:p-6 md:mx-10 sm:mr-10'>
@@ -82,6 +89,10 @@ const OrderSummary = ({
             >
                 Checkout now
             </button>
+
+            {showPopup && <PaymentMethodPopup closePopup={closePopup} />}
+
+            
         </div>
     );
 };

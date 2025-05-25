@@ -5,6 +5,7 @@ interface CartState {
   totalPrice: number;
   discountAmount: number;
   grandTotal: number;
+  paymentMethod: string | null;
 }
 
 const initialState: CartState = {
@@ -12,6 +13,7 @@ const initialState: CartState = {
   totalPrice: 0,
   discountAmount: 0,
   grandTotal: 0,
+  paymentMethod: null,
 };
 
 const cartSlice = createSlice({
@@ -33,15 +35,19 @@ const cartSlice = createSlice({
       state.discountAmount = discountAmount;
       state.grandTotal = grandTotal;
     },
+     setPaymentMethod: (state, action: PayloadAction<string>) => {
+      state.paymentMethod = action.payload; // Set the payment method
+    },
     clearCart: (state) => {
       state.totalItems = 0;
       state.totalPrice = 0;
       state.discountAmount = 0;
       state.grandTotal = 0;
+      state.paymentMethod = null;
     },
   },
 });
 
-export const { setCartDetails, clearCart } = cartSlice.actions;
+export const { setCartDetails, setPaymentMethod, clearCart } = cartSlice.actions;
 
 export default cartSlice.reducer;
