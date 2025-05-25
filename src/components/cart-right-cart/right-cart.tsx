@@ -1,5 +1,7 @@
 import { useRouter } from 'next/navigation'; // Changed from 'next/router'
 import Image from 'next/image';
+import { useDispatch } from 'react-redux';
+import { setCartDetails } from '@/store/slices/cartSlice';
 
 interface OrderSummaryProps {
     totalItems: number;
@@ -14,7 +16,13 @@ const OrderSummary = ({
     discountAmount,
     grandTotal
 }: OrderSummaryProps) => {
+    const dispatch = useDispatch();
     const router = useRouter();
+
+    const handleCheckout = () => {
+        dispatch(setCartDetails({ totalItems, totalPrice, discountAmount, grandTotal }));
+        router.push('/checkout'); 
+  };
 
     return (
         <div className='border border-[#171717] rounded-lg shadow-md p-4 sm:p-5 md:p-6 md:mx-10 sm:mr-10'>
@@ -69,7 +77,7 @@ const OrderSummary = ({
             </div>
 
             <button
-                onClick={() => router.push('/test')}
+                onClick={handleCheckout}
                 className='w-full bg-[#3E206D] text-white font-semibold rounded-lg px-4 py-3 text-sm sm:text-base hover:bg-[#2d174f] transition-colors'
             >
                 Checkout now

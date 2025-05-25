@@ -219,10 +219,10 @@ const Page: React.FC = () => {
                             </div>
                           </td>
                           <td className="px-3 sm:px-4 py-3 sm:py-4 text-center text-sm whitespace-nowrap">
-                            Rs.{item.totalDiscount}
+                            Rs.{parseFloat(item.totalDiscount).toFixed(2)}
                           </td>
                           <td className="px-3 sm:px-4 py-3 sm:py-4 text-center text-sm whitespace-nowrap">
-                            Rs.{item.totalPrice}
+                            Rs.{parseFloat(item.totalPrice).toFixed(2)}
                           </td>
                           <td className="px-3 sm:px-4 py-3 sm:py-4 text-center">
                             <button className="hover:text-red-500 transition-colors p-1 flex items-center justify-center mx-auto">

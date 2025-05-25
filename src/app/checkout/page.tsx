@@ -111,6 +111,7 @@ const Page: React.FC = () => {
   const [fetching, setFetching] = useState(true);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+ const cartPrices = useSelector((state: RootState) => state.cart) || null;
 
   const handleAddressOptionChange = (value: string) => {
     if (value === 'previous') {
@@ -686,8 +687,8 @@ const Page: React.FC = () => {
               <h2 className='font-semibold text-lg mb-4'>Your Order</h2>
 
               <div className='flex justify-between items-center mb-4'>
-                <p className="text-gray-600">18 items</p>
-                <p className='font-semibold'>Rs.3685.00</p>
+                <p className="text-gray-600">{cartPrices.totalItems}</p>
+                <p className='font-semibold'>Rs.{cartPrices.grandTotal}</p>
               </div>
 
               <div className='border-t border-gray-300 my-4' />
@@ -708,12 +709,12 @@ const Page: React.FC = () => {
 
               <div className='flex justify-between text-sm mb-2'>
                 <p className='text-gray-600'>Total</p>
-                <p className='font-semibold'>Rs.3670.00</p>
+                <p className='font-semibold'>{cartPrices.totalPrice}</p>
               </div>
 
               <div className='flex justify-between text-sm mb-2'>
                 <p className='text-gray-600'>Discount</p>
-                <p className='text-gray-600'>Rs.170.00</p>
+                <p className='text-gray-600'>Rs.{cartPrices.discountAmount}</p>
               </div>
 
               <div className='flex justify-between text-sm mb-2'>
@@ -725,7 +726,7 @@ const Page: React.FC = () => {
 
               <div className='flex justify-between mb-4'>
                 <p className='font-semibold'>Grand Total</p>
-                <p className='font-semibold'>Rs.3685.00</p>
+                <p className='font-semibold'>Rs.{cartPrices.grandTotal}</p>
               </div>
 
               <button type="submit" className='w-full bg-purple-800 text-white font-semibold rounded-lg px-4 py-3 hover:bg-purple-900 transition-colors'>
