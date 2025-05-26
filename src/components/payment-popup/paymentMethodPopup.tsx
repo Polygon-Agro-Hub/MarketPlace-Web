@@ -22,14 +22,14 @@ const PaymentMethodPopup = ({ closePopup }: { closePopup: () => void }) => {
         <h2 className="text-lg font-semibold mb-4 text-white text-center">Select a Method</h2>
         <div className="flex gap-4 justify-center">
           <button
-            onClick={() => handlePaymentMethodSelect('In-store pickup')}
+            onClick={() => handlePaymentMethodSelect('pickup')}
             className="flex flex-col items-center bg-white text-black p-4 rounded-lg shadow-md w-1/2"
           >
             <Image src="/images/instorePickup.png" alt="In-store" width={80} height={80} />
             <p className="mt-2">In-store Pickup</p>
           </button>
           <button
-            onClick={() => handlePaymentMethodSelect('Home delivery')}
+            onClick={() => handlePaymentMethodSelect('home')}
             className="flex flex-col items-center bg-white text-black p-4 rounded-lg shadow-md w-1/2"
           >
             <Image src="/images/homeDelivery.png" alt="Home Delivery" width={80} height={80} />

@@ -383,7 +383,7 @@ const Page: React.FC = () => {
                     { value: 'home', label: 'Home Delivery' },
                     { value: 'pickup', label: 'Pickup' },
                   ]}
-                  selectedValue={formData.deliveryMethod}
+                  selectedValue={cartPrices.paymentMethod}
                   onSelect={(value) => handleFieldChange('deliveryMethod', value)}
                 />
               </div>
