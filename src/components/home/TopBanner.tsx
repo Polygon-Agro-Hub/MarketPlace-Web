@@ -62,7 +62,7 @@ const TopBanner: React.FC = () => {
   const currentSlide = slides[currentIndex];
 
   return (
-    <div className="relative w-screen overflow-hidden rounded-none m-0 p-0">
+    <div className="w-auto flex flex-col">
       <div
         className="w-full"
         style={{
@@ -83,9 +83,8 @@ const TopBanner: React.FC = () => {
           <button
             key={slide.id}
             onClick={() => setCurrentIndex(idx)}
-            className={`rounded-full w-2 h-2 sm:w-3 sm:h-3 ${
-              idx === currentIndex ? "bg-[#3E206D]" : "bg-gray-300"
-            }`}
+            className={`rounded-full w-2 h-2 sm:w-3 sm:h-3 ${idx === currentIndex ? "bg-[#3E206D]" : "bg-gray-300"
+              }`}
             aria-label={`Go to slide ${idx + 1}`}
           />
         ))}
