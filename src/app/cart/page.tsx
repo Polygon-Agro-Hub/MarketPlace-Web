@@ -329,6 +329,7 @@ const Page: React.FC = () => {
             totalPrice={totalPrice}
             discountAmount={discountAmount}
             grandTotal={grandTotal}
+            cartData={cartData}
           />
         </div>
       </div>

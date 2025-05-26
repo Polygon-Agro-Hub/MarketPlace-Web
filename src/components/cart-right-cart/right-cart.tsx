@@ -1,31 +1,82 @@
 import { useRouter } from 'next/navigation'; // Changed from 'next/router'
 import Image from 'next/image';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { setCartDetails } from '@/store/slices/cartSlice';
 import { useState } from 'react';
 import PaymentMethodPopup from '../payment-popup/paymentMethodPopup';
+import { setCartItems } from '@/store/slices/cartItemsSlice';
+import { RootState } from '@/store';
+import { submitPayment } from '@/services/retail-order-service';
 
 interface OrderSummaryProps {
     totalItems: number;
     totalPrice: number;
     discountAmount: number;
     grandTotal: number;
+     cartData?: any;
+     fromPayment?: any;
+     paymentMethod?: any;
 }
 
 const OrderSummary = ({
     totalItems,
     totalPrice,
     discountAmount,
-    grandTotal
+    grandTotal,
+    cartData,
+    fromPayment,
+    paymentMethod
 }: OrderSummaryProps) => {
     const dispatch = useDispatch();
     const router = useRouter();
     const [showPopup, setShowPopup] = useState(false);
+    const { items, cartId } = useSelector((state: RootState) => state.cartItems);
+    const storedFormData = useSelector((state: RootState) => state.checkout);
+
+
+    const handleSubmitPayment = async () => {
+        const payload = {
+            grandTotal,
+            discountAmount,
+            paymentMethod,
+            cartId: String(cartId),
+            items,
+            checkoutDetails: storedFormData,
+        };
+    
+        try {
+            const result = await submitPayment(payload);
+            console.log('Payment submitted successfully:', result);
+    
+            // Optional: Redirect or display success
+        } catch (error: any) {
+            console.error('Error submitting payment:', error.message);
+            // Optional: show error toast
+        }
+    };
 
     const handleCheckout = () => {
-        dispatch(setCartDetails({ totalItems, totalPrice, discountAmount, grandTotal }));
-        setShowPopup(true);
-    };
+
+        if (fromPayment  == true && paymentMethod) {
+            handleSubmitPayment();
+            // Redirect to checkout page after payment submission
+        }else{
+            
+            dispatch(setCartDetails({ totalItems, totalPrice, discountAmount, grandTotal }));
+
+            
+            if (cartData) {
+                console.log(cartData);
+                dispatch(setCartItems({
+                    cartId: cartData.cartId,
+                    additionalItems: cartData.additionalItems,
+                    packageItems: cartData.packageItems
+                }));
+            }
+
+            setShowPopup(true)}
+        
+        };
 
     const closePopup = () => {
         setShowPopup(false); // Close the popup

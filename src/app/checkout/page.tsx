@@ -7,6 +7,7 @@ import Swal from 'sweetalert2';
 import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch, RootState } from '../../store';
 import { setFormData, resetFormData } from '../../store/slices/checkoutSlice';
+import { useRouter } from 'next/navigation';
 
 interface FormData {
   deliveryMethod: string;
@@ -79,7 +80,7 @@ const Page: React.FC = () => {
   ];
   const dispatch = useDispatch<AppDispatch>();
   const storedFormData = useSelector((state: RootState) => state.checkout);
-  console.log('data from store', storedFormData);
+  
 
   const [formData, setFormDataLocal] = useState<FormData>(initialFormState);
 
@@ -112,6 +113,13 @@ const Page: React.FC = () => {
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
  const cartPrices = useSelector((state: RootState) => state.cart) || null;
+  const { items, cartId } = useSelector((state: RootState) => state.cartItems);
+  const router = useRouter();
+
+    useEffect(() => {
+      console.log('useEffect called with cart items by chalana:', items);
+      console.log('data from store', storedFormData);
+    }, []);
 
   const handleAddressOptionChange = (value: string) => {
     if (value === 'previous') {
@@ -351,6 +359,7 @@ const Page: React.FC = () => {
         iconColor: '#3E206D',
         confirmButtonColor: '#3E206D',
       });
+       router.push('/payment'); 
     } catch (err: any) {
       setErrorMsg(err.message || 'Check out failed!');
       await Swal.fire({
@@ -729,7 +738,7 @@ const Page: React.FC = () => {
                 <p className='font-semibold'>Rs.{cartPrices.grandTotal}</p>
               </div>
 
-              <button type="submit" className='w-full bg-purple-800 text-white font-semibold rounded-lg px-4 py-3 hover:bg-purple-900 transition-colors'>
+              <button  type="submit" className='w-full bg-purple-800 text-white font-semibold rounded-lg px-4 py-3 hover:bg-purple-900 transition-colors'>
                 Continue to Payment
               </button>
             </div>

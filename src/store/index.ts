@@ -6,17 +6,19 @@ import { persistReducer, persistStore } from 'redux-persist';
 import { combineReducers } from 'redux';
 import checkoutReducer from './slices/checkoutSlice';
 import cartReducer from './slices/cartSlice'
+import cartItemsReducer  from './slices/cartItemsSlice'
 
 const persistConfig = {
   key: 'root',
   storage,
-  whitelist: ['auth', 'form', 'checkout', 'cart'], // Specify which reducers to persist
+  whitelist: ['auth', 'form', 'checkout', 'cart', 'cartItems'], // Specify which reducers to persist
 };
 
 const rootReducer = combineReducers({
   auth: authReducer,
   checkout: checkoutReducer,
   cart: cartReducer,
+  cartItems: cartItemsReducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
