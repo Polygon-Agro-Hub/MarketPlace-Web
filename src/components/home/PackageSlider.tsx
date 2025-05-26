@@ -169,13 +169,13 @@ const PackageSlider: React.FC<packagesProps> = ({ productData }) => {
                 <span className="bg-[#FF8F6666] text-[#FF4421] rounded-lg text-xs md:text-sm px-3 md:px-6 py-1">
                     Packages
                 </span>
-                <div className="w-1/2 border-t-2 border-[#D7D7D7]"></div>
+                <div className="w-1/2 border-t-2 border-[#D7D7D7] "></div>
             </div>
 
-            <div className="w-full relative sm:px-3 md:px-10">
+            <div className="w-full relative sm:px-3 md:px-10 ">
                 <Slider {...settings}>
                     {productData.map((packageItem) => (
-                        <div key={packageItem.id} className="md:px-16 sm:px-8 px-4 py-3">
+                        <div key={packageItem.id} className="md:pr-14 md:pl-32 sm:px-8 pl-6 px-4 py-3">
                             <PackageCard
                                 packageItem={packageItem}
                                 isSelected={selectedPackageId === packageItem.id && !isMobile}

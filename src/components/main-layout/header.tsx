@@ -15,8 +15,13 @@ const Header = () => {
   const [isDesktopCategoryOpen, setIsDesktopCategoryOpen] = useState(false);
   const categoryRef = useRef<HTMLDivElement | null>(null);
   const user = useSelector((state: RootState) => state.auth.user);
+  const [isClient, setIsClient] = useState(false); // Add this state
+
 
   useEffect(() => {
+
+    setIsClient(true);
+
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768)
     };
@@ -64,7 +69,10 @@ const Header = () => {
               Call us for any query or help +94 770 111 999
             </span>
             <div className="flex gap-2">
-              {user ? (
+              {!isClient ? (
+                // Show loading or placeholder during SSR/hydration
+                <div className="w-32 h-8 bg-gray-700 rounded-full animate-pulse"></div>
+              ) : user ? (
                 <Link
                   href="/"
                   className="text-sm flex items-center gap-2"
@@ -177,7 +185,12 @@ const Header = () => {
                 </button>
               </div>
               <nav className="flex flex-col w-full">
-                {user ? (
+              {!isClient ? (
+                  // Show placeholder during SSR/hydration
+                  <div className="py-4 px-6 border-b border-purple-800">
+                    <div className="w-20 h-4 bg-purple-700 rounded animate-pulse"></div>
+                  </div>
+                ) : user ? (
                   <Link
                     href="/logout"
                     className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800 flex items-center gap-2"
