@@ -4,15 +4,19 @@ import authReducer from './slices/authSlice';
 import storage from 'redux-persist/lib/storage'; // defaults to localStorage
 import { persistReducer, persistStore } from 'redux-persist';
 import { combineReducers } from 'redux';
+import checkoutReducer from './slices/checkoutSlice';
+import cartReducer from './slices/cartSlice'
 
 const persistConfig = {
   key: 'root',
   storage,
-  whitelist: ['auth'], // only persist the auth slice
+  whitelist: ['auth', 'form', 'checkout', 'cart'], // Specify which reducers to persist
 };
 
 const rootReducer = combineReducers({
   auth: authReducer,
+  checkout: checkoutReducer,
+  cart: cartReducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

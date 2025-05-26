@@ -26,7 +26,7 @@ const CategoryTile: React.FC<CategoryTileProps> = ({
         <div
             className={`
         relative flex flex-col items-center justify-between p-2 cursor-pointer 
-        transition-all duration-300 border border-gray-200 h-38 md:h-40 lg:h-60
+        transition-all duration-300 border border-gray-200 h-38 md:h-40 lg:h-90
         ${isSelected ? 'transform scale-[1.02] shadow-md z-10' : 'hover:bg-opacity-10'}
       `}
             onClick={() => onSelect(id)}
@@ -47,7 +47,7 @@ const CategoryTile: React.FC<CategoryTileProps> = ({
                 />
             )}
 
-            <div className="w-14 h-14 md:w-20 md:h-20 lg:w-full lg:h-36 mt-1 flex items-center justify-center">
+            <div className="w-14 h-14 md:w-20 md:h-20 lg:w-full lg:h-60 mt-1 flex items-center justify-center">
                 <Image
                     src={imageUrl}
                     alt={name}

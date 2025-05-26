@@ -7,6 +7,7 @@ import Loading from '@/components/loadings/loading';
 import PackageSlider from "@/components/home/PackageSlider";
 import CategoryFilter from "@/components/type-filters/CategoryFilter";
 import { getAllProduct } from "@/services/product-service";
+import TopBanner from '@/components/home/TopBanner';
 
 interface Package {
   id: number;
@@ -23,8 +24,13 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState('fruits');
 
+  const cart = useSelector((state: RootState) => state.checkout) || null;
+
+
   useEffect(() => {
     fetchAllPackages();
+    console.log("Car:", cart);
+    
   }, []);
 
   useEffect(() => {
@@ -48,12 +54,15 @@ export default function Home() {
     }
   }
 
-  const handleCategorySelect = (categoryId) => {
-    setSelectedCategory(categoryId);
-  };
+  // const handleCategorySelect = (categoryId) => {
+  //   setSelectedCategory(categoryId);
+  // };
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-between">
+      <div className='mt-0 my-8'>
+        <TopBanner/>
+      </div>
       {loading ? (
         <div>Loading packages...</div>
       ) : error ? (

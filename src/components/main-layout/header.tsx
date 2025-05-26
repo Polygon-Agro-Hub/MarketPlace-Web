@@ -4,6 +4,9 @@ import { faAngleDown, faMagnifyingGlass, faBagShopping, faBars, faUser, faClockR
 import React, { useEffect, useState, useRef } from 'react'
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
+import { useDispatch } from 'react-redux';
+import { logout } from '../../store/slices/authSlice';
+import { clearCart } from '@/store/slices/cartSlice';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -45,21 +48,49 @@ const Header = () => {
     setIsDesktopCategoryOpen(!isDesktopCategoryOpen);
   }
 
+  const dispatch = useDispatch();
+
+  const handleLogout = (e: React.MouseEvent) => {
+    e.preventDefault();
+    dispatch(logout());
+  }
+
   return (
     <>
       {!isMobile && (
         <div className='bg-[#2C2C2C] text-gray-300 py-2 px-7'>
           <div className="mx-auto flex justify-between items-center">
             <span className="text-sm italic">
-              Call us for any query or help +94 770 111 999 {user ? user.firstName : ''}
+              Call us for any query or help +94 770 111 999
             </span>
             <div className="flex gap-2">
-              <Link href="/signup" className="text-sm bg-gray-700 rounded-full px-4 py-1 hover:bg-gray-600">
-                Signup
-              </Link>
-              <Link href="/signin" className="text-sm bg-gray-700 rounded-full px-4 py-1 hover:bg-gray-600">
-                Login
-              </Link>
+              {user ? (
+                <Link
+                  href="/"
+                  className="text-sm flex items-center gap-2"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    dispatch(logout());
+                    dispatch(clearCart());
+                  }}
+                >
+                  <img
+                    src="/icons/Exit.png"
+                    alt="Logout"
+                    className="w-4 h-4"
+                  />
+                  Logout
+                </Link>
+              ) : (
+                <>
+                  <Link href="/signup" className="text-sm bg-gray-700 rounded-full px-4 py-1 hover:bg-gray-600">
+                    Signup
+                  </Link>
+                  <Link href="/signin" className="text-sm bg-gray-700 rounded-full px-4 py-1 hover:bg-gray-600">
+                    Login
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -146,9 +177,30 @@ const Header = () => {
                 </button>
               </div>
               <nav className="flex flex-col w-full">
-                <Link href="/logout" className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800">
-                  Logout
-                </Link>
+                {user ? (
+                  <Link
+                    href="/logout"
+                    className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800 flex items-center gap-2"
+                    onClick={handleLogout}
+                  >
+                    Logout
+                  </Link>
+                ) : (
+                  <>
+                    <Link
+                      href="/signin"
+                      className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800 flex items-center gap-2"
+                    >
+                      Login
+                    </Link>
+                    <Link
+                      href="/signup"
+                      className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800 flex items-center gap-2"
+                    >
+                      Signup
+                    </Link>
+                  </>
+                )}
                 <Link href="/" className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800">
                   Home
                 </Link>
@@ -174,7 +226,7 @@ const Header = () => {
                 <Link href="/promotions" className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800">
                   Promotions
                 </Link>
-                <Link href="/order-history" className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800">
+                <Link href="/history" className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800">
                   Order History
                 </Link>
               </nav>
