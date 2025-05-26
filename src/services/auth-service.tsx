@@ -1,4 +1,5 @@
 import axios from '@/lib/axios';
+import { environment } from '@/environment/environment';    
 
 interface LoginPayload {
   email: string;
@@ -114,65 +115,6 @@ export const signup = async (payload: SignupPayload): Promise<SignupResponse> =>
 };
 
 
-// // Forgot Password function
-// export const sendResetEmail = async (email: string): Promise<{ message: string }> => {
-//   try {
-//     const response = await axios.post('/auth/forgot-password', { email }, {
-//       headers: {
-//         'Content-Type': 'application/json',
-//       },
-//     });
-
-//     if (response.status >= 200 && response.status < 300) {
-//       return response.data; // { message: "Reset link sent to email." }
-//     } else {
-//       throw new Error(response.data?.message || 'Failed to send reset link');
-//     }
-//   } catch (error: any) {
-//     if (error.response) {
-//       throw new Error(
-//         error.response.data?.message ||
-//         error.response.data?.error ||
-//         `Reset link failed with status ${error.response.status}`
-//       );
-//     } else if (error.request) {
-//       throw new Error('No response received from server. Please check your network connection.');
-//     } else {
-//       throw new Error(error.message || 'An error occurred while sending reset link');
-//     }
-//   }
-// };
-
-// // services/auth.ts or similar
-
-// export const resetPassword = async (email: string, newPassword: string): Promise<{ message: string }> => {
-//   try {
-//     const response = await axios.put('/auth/reset-password', { email, newPassword }, {
-//       headers: {
-//         'Content-Type': 'application/json',
-//       },
-//     });
-
-//     if (response.status >= 200 && response.status < 300) {
-//       return response.data;
-//     } else {
-//       throw new Error(response.data?.message || 'Reset password failed');
-//     }
-//   } catch (error: any) {
-//     if (error.response) {
-//       throw new Error(
-//         error.response.data?.message ||
-//         error.response.data?.error ||
-//         `Reset password failed with status ${error.response.status}`
-//       );
-//     } else if (error.request) {
-//       throw new Error('No response received from server. Please check your network connection.');
-//     } else {
-//       throw new Error(error.message || 'An error occurred while resetting password');
-//     }
-//   }
-// };
-
 export const sendResetEmail = async (email: string): Promise<{ message: string }> => {
   try {
     const response = await axios.post('/auth/forgot-password', { email });
@@ -228,5 +170,115 @@ export const resetPassword = async (
       );
     }
     throw new Error(error.message || 'Failed to reset password');
+  }
+};
+
+type OTPServiceResponse = {
+  referenceId?: string;
+  error?: string;
+};
+
+export const sendOTP = async (
+  phoneNumber: string,
+  countryCode: string,
+  options?: {
+    checkPhoneExists?: boolean;
+    message?: string;
+    source?: string;
+  }
+): Promise<OTPServiceResponse> => {
+  try {
+    const formattedPhone = phoneNumber.replace(/\s+/g, "");
+    const fullPhoneNumber = `${countryCode}${formattedPhone}`;
+
+    // Default options
+    const {
+      checkPhoneExists = true,
+      message = `Your OTP for verification is: {{code}}`,
+      source = "AgroWorld"
+    } = options || {};
+
+    // Step 1: Optionally check if phone number exists
+    if (checkPhoneExists) {
+      try {
+        const checkResponse = await axios.post("/auth/check-phone", {
+          phoneNumber: formattedPhone,
+        });
+        console.log('phone number',formattedPhone)
+        console.log("Check phone response:", checkResponse.data);
+
+        if (!checkResponse.data.exists) {
+          return { error: 'PHONE_NOT_FOUND' };
+        }
+      } catch (error) {
+        console.error("Error checking phone:", error);
+        throw new Error("Failed to verify phone number");
+      }
+    }
+
+    // Step 2: Send OTP
+    const apiUrl = "https://api.getshoutout.com/otpservice/send";
+    const headers = {
+      Authorization: `Apikey ${environment.SHOUTOUT_API_KEY}`,
+      "Content-Type": "application/json",
+    };
+
+    const body = {
+      source,
+      transport: "sms",
+      content: {
+        sms: message,
+      },
+      destination: fullPhoneNumber,
+    };
+
+    const response = await axios.post(apiUrl, body, { headers });
+    
+    console.log("OTP response:", response.data);
+
+    if (response.data.referenceId) {
+      return { referenceId: response.data.referenceId };
+    }
+
+    throw new Error("Failed to send OTP: No reference ID received");
+  } catch (error: any) {
+    console.error("Error sending OTP:", error);
+    if (error.response) {
+      throw new Error(
+        error.response.data?.message ||
+        `Failed to send OTP (${error.response.status})`
+      );
+    }
+    throw new Error(error.message || "Failed to send OTP");
+  }
+};
+
+export const verifyOTP = async (code: string, referenceId: string) => {
+  try {
+    const url = 'https://api.getshoutout.com/otpservice/verify';
+    const headers = {
+      Authorization: `Apikey ${environment.SHOUTOUT_API_KEY}`,
+      'Content-Type': 'application/json',
+    };
+    const body = { code, referenceId };
+    
+    const response = await axios.post(url, body, { headers });
+    return response.data;
+  } catch (error) {
+    console.error('OTP verification error:', error);
+    throw error;
+  }
+};
+
+export const resetPasswordByPhone = async (phoneNumber: string, newPassword: string) => {
+  try {
+    const response = await axios.post('/auth/reset-password-by-phone', {
+      phoneNumber,
+      newPassword
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('Error resetting password:', error);
+    throw new Error(error.response?.data?.message || 'Failed to reset password');
   }
 };

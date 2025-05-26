@@ -1,50 +1,34 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { useSearchParams, useRouter, useParams } from 'next/navigation';
-import { resetPassword, validateResetToken } from '@/services/auth-service';
+import { useRouter } from 'next/navigation';
+import { resetPasswordByPhone } from '@/services/auth-service';
 
 const Page = () => {
   const router = useRouter();
-  const params = useParams();
-  const token = params?.token as string || '';
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isError, setIsError] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [isTokenValid, setIsTokenValid] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState('');
 
-  // Validate token on component mount
+  // Get phone number from localStorage on component mount
   useEffect(() => {
-    const validateToken = async () => {
-      try {
-        if (!token) {
-          throw new Error('No token provided');
-        }
-
-        const validation = await validateResetToken(token);
-        if (validation.success) {
-          setIsTokenValid(true);
-        } else {
-          throw new Error(validation.message || 'Invalid token');
-        }
-      } catch (err: any) {
-        setIsError(true);
-        setModalMessage(err.message || 'Invalid or expired token');
-        setIsModalOpen(true);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    validateToken();
-  }, [token]);
+    const storedPhone = localStorage.getItem('otpPhoneOnly');
+    console.log('Phone:', storedPhone);
+    if (!storedPhone) {
+      setIsError(true);
+      setModalMessage('Phone number not found. Please restart the password reset process.');
+      setIsModalOpen(true);
+    } else {
+      setPhoneNumber(storedPhone);
+    }
+  }, []);
 
   const handleResetPassword = async () => {
-    if (!isTokenValid) {
+    if (!phoneNumber) {
       setIsError(true);
-      setModalMessage('Invalid reset token');
+      setModalMessage('Phone number not found');
       setIsModalOpen(true);
       return;
     }
@@ -63,11 +47,13 @@ const Page = () => {
       setIsModalOpen(true);
       return;
     }
-      console.log('Resetting password with token:', token);
-      console.log('New password:', newPassword);
 
     try {
-      const res = await resetPassword(token, newPassword);
+      await resetPasswordByPhone(phoneNumber, newPassword);
+      
+      // Clear stored phone number after successful reset
+      localStorage.removeItem('otpPhoneOnly');
+      
       setIsError(false);
       setModalMessage('Your password has been updated successfully. You will be redirected to the login page.');
       setIsModalOpen(true);
@@ -82,15 +68,7 @@ const Page = () => {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-black/40">
-        <div className="text-white text-xl">Validating token...</div>
-      </div>
-    );
-  }
-
-  if (!isTokenValid) {
+  if (!phoneNumber) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black/40">
         <div className="bg-white p-8 rounded-xl text-center w-[90%] max-w-md shadow-xl">
@@ -129,6 +107,10 @@ const Page = () => {
           <div className="w-full max-w-md text-center">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Reset</h1>
             <h1 className="text-3xl font-bold text-gray-900 mb-6">Password</h1>
+
+            <p className="text-gray-600 mb-4">
+              Updating password for: {phoneNumber.substring(0, 3)}****{phoneNumber.slice(-3)}
+            </p>
 
             <div className="mb-4">
               <input

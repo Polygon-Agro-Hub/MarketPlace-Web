@@ -1,19 +1,41 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import Swal from 'sweetalert2';
+import { verifyOTP, sendOTP } from '@/services/auth-service';
+import { environment } from '@/environment/environment';
 
 export default function Page() {
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
-  const [timer, setTimer] = useState(76);
+  const [otp, setOtp] = useState(['', '', '', '', '']);
+  const [timer, setTimer] = useState(60);
+  const [disabledResend, setDisabledResend] = useState(true);
+  const [isVerified, setIsVerified] = useState(false);
+  const [referenceId, setReferenceId] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
   const router = useRouter();
 
-  React.useEffect(() => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isError, setIsError] = useState(false);
+  const [modalMessage, setModalMessage] = useState('');
+
+  useEffect(() => {
+    // Load referenceId and phone number from localStorage
+    const refId = localStorage.getItem('otpReferenceId');
+    const phone = localStorage.getItem('otpPhone');
+    
+    console.log('Phone:', phone);
+    
+    if (refId) setReferenceId(refId);
+    if (phone) setPhoneNumber(phone);
+  }, []);
+
+  useEffect(() => {
     if (timer > 0) {
-      const interval = setInterval(() => setTimer(t => t - 1), 1000);
+      const interval = setInterval(() => setTimer(prev => prev - 1), 1000);
       return () => clearInterval(interval);
+    } else {
+      setDisabledResend(false);
     }
   }, [timer]);
 
@@ -22,29 +44,70 @@ export default function Page() {
     const newOtp = [...otp];
     newOtp[idx] = value;
     setOtp(newOtp);
-    if (value && idx < 5) {
+    if (value && idx < 4) {
       inputsRef.current[idx + 1]?.focus();
     }
   };
 
   const handleVerify = async () => {
-    const enteredOtp = otp.join('');
-    if (enteredOtp.length !== 6) {
-      Swal.fire('Incomplete OTP', 'Please enter all 6 digits.', 'warning');
+    const code = otp.join('');
+    if (code.length !== 5) {
+      setIsError(true);
+      setModalMessage('Please enter all 5 digits.');
+      setIsModalOpen(true);
       return;
     }
+
     try {
-      await Swal.fire({
-        title: 'OTP Verified!',
-        icon: 'success',
-        timer: 2000,
-        showConfirmButton: false,
-        customClass: { popup: '!border-t-4 !border-t-[#3E206D]' },
-        iconColor: '#3E206D',
-      });
-      router.push('/');
-    } catch {
-      Swal.fire('Error', 'Invalid OTP. Please try again.', 'error');
+      const response = await verifyOTP(code, referenceId);
+      const { statusCode } = response;
+      
+      if (statusCode === '1000') {
+        setIsVerified(true);
+        setIsError(false);
+        setModalMessage('OTP Verified Successfully!');
+        setIsModalOpen(true);
+        localStorage.removeItem('otpReferenceId');
+        setTimeout(() => router.push('/reset-password-phone'), 2000);
+      } else if (statusCode === '1001') {
+        setIsError(true);
+        setModalMessage('Invalid OTP. Please try again.');
+        setIsModalOpen(true);
+      } else {
+        setIsError(true);
+        setModalMessage('Something went wrong. Please try again.');
+        setIsModalOpen(true);
+      }
+    } catch (error) {
+      setIsError(true);
+      setModalMessage('Failed to verify OTP. Try again later.');
+      setIsModalOpen(true);
+    }
+  };
+
+  const handleResendOTP = async () => {
+    if (disabledResend) return;
+    
+    try {
+      // Extract country code from stored phone number
+      const countryCode = phoneNumber.substring(0, phoneNumber.length - 10); // Adjust based on your format
+      const phone = phoneNumber.substring(countryCode.length);
+      
+      const res = await sendOTP(phone, countryCode);
+      
+      if (res.referenceId) {
+        setReferenceId(res.referenceId);
+        localStorage.setItem('otpReferenceId', res.referenceId);
+        setTimer(60);
+        setDisabledResend(true);
+        setIsError(false);
+        setModalMessage('New OTP has been sent to your mobile number.');
+        setIsModalOpen(true);
+      }
+    } catch (error: any) {
+      setIsError(true);
+      setModalMessage(error.message || 'Failed to resend OTP');
+      setIsModalOpen(true);
     }
   };
 
@@ -52,29 +115,13 @@ export default function Page() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#F8F9FB] px-4">
-      <div
-        className="bg-white rounded-[10px] shadow-xl flex flex-col items-center p-10"
-        style={{
-          width: '90%',
-          maxWidth: '523px',
-          height: 'auto',
-          position: 'absolute',
-          top: '97px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          boxShadow: '0px 6px 40px rgba(0, 149, 125, 0.1)',
-        }}
-      >
+      <div className="bg-white rounded-[10px] shadow-xl flex flex-col items-center p-10 w-full max-w-md">
         <h1 className="text-[36px] sm:text-[40px] font-[700] text-center text-[#3E206D] font-inter mb-2">
           MyFarm
         </h1>
-        {/* <h2 className="text-lg sm:text-xl font-semibold text-center mb-1">
-          Please Verify your OTP
-        </h2> */}
         <h2 className="text-lg sm:text-xl font-semibold text-center mb-1 text-[#001535]">
-  Please Verify your OTP
-</h2>
-
+          Please Verify your OTP
+        </h2>
         <p className="text-center text-gray-500 mb-6 text-sm sm:text-base">
           The OTP has been sent to your mobile number
         </p>
@@ -83,7 +130,7 @@ export default function Page() {
           {otp.map((digit, idx) => (
             <input
               key={idx}
-              ref={el => (inputsRef.current[idx] = el)}
+              ref={el => { inputsRef.current[idx] = el; }}
               type="text"
               maxLength={1}
               value={digit}
@@ -97,23 +144,48 @@ export default function Page() {
         <div className="text-xs sm:text-sm text-gray-500 text-center mb-1">
           I didn't receive the OTP message
         </div>
-        <div className="text-xs sm:text-sm text-[#3E206D] font-semibold text-center mb-6">
-          Resend in {timerText}
-        </div>
+        <button
+          onClick={handleResendOTP}
+          disabled={disabledResend}
+          className={`text-xs sm:text-sm mb-6 ${
+            disabledResend 
+              ? 'text-gray-400 cursor-not-allowed' 
+              : 'text-[#3E206D] font-semibold hover:underline'
+          }`}
+        >
+          {disabledResend ? `Resend in ${timerText}` : 'Resend OTP'}
+        </button>
 
         <button
           onClick={handleVerify}
-          className="bg-[#3E206D] text-white font-semibold"
-          style={{
-            width: '307px',
-            height: '45px',
-            borderRadius: '10px',
-            marginTop: '5px',
-          }}
+          className="bg-[#3E206D] text-white font-semibold w-full max-w-[307px] h-[45px] rounded-[10px] mt-1"
         >
           Verify
         </button>
       </div>
+
+      {/* Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+          <div className="bg-white p-8 rounded-xl text-center w-[90%] max-w-md shadow-xl">
+            <img
+              src={isError ? '/images/wrong.png' : '/images/correct.png'}
+              alt={isError ? 'Error' : 'Success'}
+              className="w-20 h-20 mx-auto mb-4"
+            />
+            <h2 className="text-xl font-bold mb-2">
+              {isError ? 'Error' : 'OTP Verified'}
+            </h2>
+            <p className="text-gray-700 mb-4">{modalMessage}</p>
+            <button
+              onClick={() => setIsModalOpen(false)}
+              className="px-6 py-2 bg-gray-200 rounded hover:bg-gray-300 transition"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
