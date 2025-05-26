@@ -163,7 +163,160 @@ const Header = () => {
             </button>
           )}
         </div>
+
+        <style jsx>{`
+          @media screen and (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
+            header {
+              padding: 12px 16px !important;
+            }
+            header > div {
+              gap: 8px;
+            }
+            header .text-2xl {
+              font-size: 18px !important;
+            }
+            header nav {
+              gap: 12px !important;
+            }
+            header nav a,
+            header nav button {
+              font-size: 14px !important;
+            }
+            header .flex-1 {
+              max-width: 280px !important;
+              margin: 0 8px !important;
+            }
+            header input {
+              padding: 6px 12px !important;
+              font-size: 13px !important;
+            }
+            header .bg-\\[\\#502496\\] {
+              padding: 6px 12px !important;
+              gap: 6px !important;
+            }
+            header .bg-\\[\\#502496\\] svg {
+              font-size: 16px !important;
+            }
+            header .bg-\\[\\#502496\\] .text-sm {
+              font-size: 11px !important;
+            }
+            header .text-4xl {
+              font-size: 22px !important;
+            }
+            header .w-9 {
+              width: 30px !important;
+              height: 30px !important;
+            }
+            header .text-1xl {
+              font-size: 13px !important;
+            }
+          }
+
+          @media screen and (min-width: 768px) and (max-width: 1024px) and (orientation: landscape) {
+            header {
+              padding: 16px 20px !important;
+            }
+            header > div {
+              gap: 12px;
+            }
+            header nav {
+              gap: 16px !important;
+            }
+            header nav a,
+            header nav button {
+              font-size: 15px !important;
+            }
+            header .flex-1 {
+              max-width: 320px !important;
+              margin: 0 12px !important;
+            }
+            header input {
+              padding: 8px 14px !important;
+              font-size: 14px !important;
+            }
+            header .bg-\\[\\#502496\\] {
+              padding: 8px 16px !important;
+              gap: 8px !important;
+            }
+            header .bg-\\[\\#502496\\] svg {
+              font-size: 18px !important;
+            }
+            header .bg-\\[\\#502496\\] .text-sm {
+              font-size: 12px !important;
+            }
+            header .text-4xl {
+              font-size: 28px !important;
+            }
+            header .w-9 {
+              width: 34px !important;
+              height: 34px !important;
+            }
+            header .text-1xl {
+              font-size: 15px !important;
+            }
+          }
+
+          /* Small tablets: 481px - 767px */
+          @media screen and (min-width: 481px) and (max-width: 767px) {
+            header {
+              padding: 10px 12px !important;
+            }
+            header > div {
+              gap: 6px;
+            }
+            header .text-2xl {
+              font-size: 16px !important;
+            }
+            header nav {
+              gap: 8px !important;
+            }
+            header nav a,
+            header nav button {
+              font-size: 13px !important;
+            }
+            header .flex-1 {
+              max-width: 200px !important;
+              margin: 0 6px !important;
+            }
+            header input {
+              padding: 5px 10px !important;
+              font-size: 12px !important;
+            }
+            header .bg-\\[\\#502496\\] {
+              padding: 5px 10px !important;
+              gap: 4px !important;
+            }
+            header .bg-\\[\\#502496\\] svg {
+              font-size: 14px !important;
+            }
+            header .bg-\\[\\#502496\\] .text-sm {
+              font-size: 10px !important;
+            }
+            header .text-4xl {
+              font-size: 18px !important;
+            }
+            header .w-9 {
+              width: 26px !important;
+              height: 26px !important;
+            }
+            header .text-1xl {
+              font-size: 11px !important;
+            }
+          }
+
+          /* Large tablets/small desktops: 1025px - 1200px */
+          @media screen and (min-width: 1025px) and (max-width: 1200px) {
+            header .flex-1 {
+              max-width: 450px !important;
+            }
+            header .bg-\\[\\#502496\\] {
+              padding: 8px 20px !important;
+            }
+          }
+        `}</style>
       </header>
+
+      {/* Mobile Menu */}
       {isMobile && isMenuOpen && (
         <div className='relative flex w-full justify-end'>
           <div className="absolute z-50">
@@ -235,4 +388,5 @@ const Header = () => {
     </>
   )
 }
+
 export default Header
