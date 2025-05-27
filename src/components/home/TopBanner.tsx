@@ -62,7 +62,7 @@ const TopBanner: React.FC = () => {
   const currentSlide = slides[currentIndex];
 
   return (
-    <div className="w-auto flex flex-col">
+    <div className="w-screen flex flex-col">
       <div
         className="w-full"
         style={{
