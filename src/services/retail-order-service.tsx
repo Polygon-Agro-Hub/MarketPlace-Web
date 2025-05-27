@@ -7,9 +7,9 @@ export interface PaymentPayload {
     checkoutDetails: any;
 }
 
-export const getRetailCart = async (token: string | null): Promise<any> => {
+export const getRetailCart = async (token: string | null, userId: number): Promise<any> => {
     try {
-        const response = await axios.get(`/cart/cart/1`, {
+        const response = await axios.get(`/cart/cart/${userId}`, {
             headers: {
                 Authorization: `Bearer ${token}`,
                 'Content-Type': 'application/json',

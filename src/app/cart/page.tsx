@@ -18,12 +18,14 @@ interface CartItem {
   displayName: string;
   totalDiscount: string;
   totalPrice: string;
+  image: string; // Assuming the API returns an image URL
 }
 
 interface PackageFinalItem {
   id: number;
   mpItemId: number;
   displayName: string;
+  image: string; // Assuming the API returns an image URL
   quantity: string;
   discount: string;
   price: string;
@@ -56,6 +58,7 @@ const Page: React.FC = () => {
     additionalItems: [],
     packageItems: []
   });
+  const userId = useSelector((state: RootState) => state.auth.user?.id);
 
   useEffect(() => {
     fetchCartData();
@@ -63,7 +66,10 @@ const Page: React.FC = () => {
 
   const fetchCartData = async () => {
     try {
-      const data = await getRetailCart(token);
+      if (typeof userId !== 'number') {
+        throw new Error('User ID is undefined');
+      }
+      const data = await getRetailCart(token, userId);
       setCartData(data);
       
       // Initialize unit selection state
@@ -150,6 +156,8 @@ const Page: React.FC = () => {
 
   return (
     <div className='px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5'>
+
+      
       <TopNavigation NavArray={NavArray} />
 
       <div className='flex flex-col lg:flex-row lg:items-start gap-4 sm:gap-6 items-start'>
@@ -184,7 +192,13 @@ const Page: React.FC = () => {
                           <td className="px-3 sm:px-4 py-3 sm:py-4">
                             <div className="flex items-center gap-3 sm:gap-4">
                               {/* Assuming you'll add images to your API response */}
-                              <div className='w-10 sm:w-12 md:w-14 h-10 sm:h-12 md:h-14 bg-gray-200 rounded'></div>
+                              <div className='w-10 sm:w-12 md:w-14 h-10 sm:h-12 md:h-14 bg-gray-200 rounded'>
+                                <img
+                                  src={item.image} // <-- Replace with the correct property
+                                  alt={item.displayName}
+                                  className="w-10 sm:w-12 md:w-14 h-10 sm:h-12 md:h-14 rounded object-cover bg-gray-200"
+                                />
+                              </div>
                               <p className="text-sm sm:text-base whitespace-nowrap">{item.displayName}</p>
                             </div>
                           </td>
@@ -267,7 +281,13 @@ const Page: React.FC = () => {
                           <td className="px-3 sm:px-4 py-3 sm:py-4">
                             <div className="flex items-center gap-3 sm:gap-4">
                               {/* Assuming you'll add images to your API response */}
-                              <div className='w-10 sm:w-12 md:w-14 h-10 sm:h-12 md:h-14 bg-gray-200 rounded'></div>
+                              <div className='w-10 sm:w-12 md:w-14 h-10 sm:h-12 md:h-14 bg-gray-200 rounded'>
+                                <img
+                                  src={item.image} // <-- Replace with the correct property
+                                  alt={item.displayName}
+                                  className="w-10 sm:w-12 md:w-14 h-10 sm:h-12 md:h-14 rounded object-cover bg-gray-200"
+                                />
+                              </div>
                               <p className="text-sm sm:text-base whitespace-nowrap">{item.displayName}</p>
                             </div>
                           </td>
