@@ -1,0 +1,53 @@
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+
+interface CartState {
+  totalItems: number;
+  totalPrice: number;
+  discountAmount: number;
+  grandTotal: number;
+  paymentMethod: string | null;
+}
+
+const initialState: CartState = {
+  totalItems: 0,
+  totalPrice: 0,
+  discountAmount: 0,
+  grandTotal: 0,
+  paymentMethod: null,
+};
+
+const cartSlice = createSlice({
+  name: 'carts',
+  initialState,
+  reducers: {
+    setCartDetails: (
+      state,
+      action: PayloadAction<{
+        totalItems: number;
+        totalPrice: number;
+        discountAmount: number;
+        grandTotal: number;
+      }>
+    ) => {
+      const { totalItems, totalPrice, discountAmount, grandTotal } = action.payload;
+      state.totalItems = totalItems;
+      state.totalPrice = totalPrice;
+      state.discountAmount = discountAmount;
+      state.grandTotal = grandTotal;
+    },
+     setPaymentMethod: (state, action: PayloadAction<string>) => {
+      state.paymentMethod = action.payload; // Set the payment method
+    },
+    clearCart: (state) => {
+      state.totalItems = 0;
+      state.totalPrice = 0;
+      state.discountAmount = 0;
+      state.grandTotal = 0;
+      state.paymentMethod = null;
+    },
+  },
+});
+
+export const { setCartDetails, setPaymentMethod, clearCart } = cartSlice.actions;
+
+export default cartSlice.reducer;

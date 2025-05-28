@@ -1,8 +1,15 @@
 import axios from '@/lib/axios';
 
-export const getRetailCart = async (token: string | null): Promise<any> => {
+export interface PaymentPayload {
+    paymentMethod: 'card' | 'cash';
+    cartId: string;
+    items: any[];
+    checkoutDetails: any;
+}
+
+export const getRetailCart = async (token: string | null, userId: number): Promise<any> => {
     try {
-        const response = await axios.get(`/retail-order/get-retail-cart`, {
+        const response = await axios.get(`/cart/cart/${userId}`, {
             headers: {
                 Authorization: `Bearer ${token}`,
                 'Content-Type': 'application/json',
@@ -26,5 +33,22 @@ export const getRetailCart = async (token: string | null): Promise<any> => {
         } else {
             throw new Error(error.message || 'An error occurred');
         }
+    }
+};
+
+
+
+export const submitPayment = async (payload: PaymentPayload) => {
+    try {
+        const response = await axios.post('/cart/create-order', payload, {
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+        return response.data;
+    } catch (error: any) {
+        const message =
+            error.response?.data?.message || 'Failed to submit payment';
+        throw new Error(message);
     }
 };
