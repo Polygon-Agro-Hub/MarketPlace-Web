@@ -1,10 +1,13 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import TopNavigation from '@/components/top-navigation/TopNavigation';
 import OrderSummary from '@/components/cart-right-cart/right-cart';
 import Visa from "../../../public/images/Visa.png";
 import MasterCard from "../../../public/images/Mastercard.png";
+import { useSelector } from 'react-redux';
+import { RootState } from '@/store';
+import { submitPayment } from '@/services/retail-order-service';
 
 const Page: React.FC = () => {
     const NavArray = [
@@ -13,63 +16,41 @@ const Page: React.FC = () => {
         { name: 'Payment', path: '/payment', status: true },
     ];
 
-    const [dataArray, setDataArray] = useState<Package[]>([
-        {
-            id: 1,
-            packageName: "Family Pack",
-            Items: [
-                {
-                    id: 1,
-                    name: "Tomato",
-                    unit: "kg",
-                    quantity: 52,
-                    discount: 104,
-                    price: 571.48,
-                    image: "https://agroworld-s3-kmtu-hlf64-ituvf.s3.eu-north-1.amazonaws.com/cropgroup/image/92953533-462a-49f7-ba6d-7ef20a035a4f.png"
-                },
-                {
-                    id: 2,
-                    name: "Potato",
-                    unit: "kg",
-                    quantity: 56,
-                    discount: 112,
-                    price: 615.44,
-                    image: "https://agroworld-s3-kmtu-hlf64-ituvf.s3.eu-north-1.amazonaws.com/cropgroup/image/92953533-462a-49f7-ba6d-7ef20a035a4f.png"
-                }
-            ]
-        },
-        {
-            id: 2,
-            packageName: "Additional Items",
-            Items: [
-                {
-                    id: 3,
-                    name: "Green chilly",
-                    unit: "kg",
-                    quantity: 52,
-                    discount: 104,
-                    price: 571.48,
-                    image: "https://agroworld-s3-kmtu-hlf64-ituvf.s3.eu-north-1.amazonaws.com/cropgroup/image/92953533-462a-49f7-ba6d-7ef20a035a4f.png"
-                },
-                {
-                    id: 4,
-                    name: "Banana",
-                    unit: "kg",
-                    quantity: 56,
-                    discount: 112,
-                    price: 615.44,
-                    image: "https://agroworld-s3-kmtu-hlf64-ituvf.s3.eu-north-1.amazonaws.com/cropgroup/image/92953533-462a-49f7-ba6d-7ef20a035a4f.png"
-                }
-            ]
-        }
-    ]);
+    const cartPrices = useSelector((state: RootState) => state.cart) || null;
 
     const [paymentMethod, setPaymentMethod] = useState<'card' | 'cash'>('card');
-    const totalItems = dataArray.reduce((total, pkg) => total + pkg.Items.length, 0);
-    const totalPrice = dataArray.reduce((total, pkg) =>
-        total + pkg.Items.reduce((pkgTotal, item) => pkgTotal + item.price, 0), 0);
-    const discountAmount = 170.00;
-    const grandTotal = totalPrice - discountAmount;
+    const { items, cartId } = useSelector((state: RootState) => state.cartItems);
+    const storedFormData = useSelector((state: RootState) => state.checkout);
+
+
+       useEffect(() => {
+          console.log('useEffect called with cart items by chalana:', items);
+          console.log('data from store', storedFormData);
+        }, []);
+
+
+
+
+const handleSubmitPayment = async () => {
+    const payload = {
+        paymentMethod,
+        cartId: String(cartId),
+        items,
+        checkoutDetails: storedFormData,
+    };
+
+    try {
+        const result = await submitPayment(payload);
+        console.log('Payment submitted successfully:', result);
+
+        // Optional: Redirect or display success
+    } catch (error: any) {
+        console.error('Error submitting payment:', error.message);
+        // Optional: show error toast
+    }
+};
+
+
 
     return (
         <div className='px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5'>
@@ -154,10 +135,12 @@ const Page: React.FC = () => {
                 </div>
                 <div className='w-full lg:w-1/3 mt-6 lg:mt-0 pt-14'>
                     <OrderSummary
-                        totalItems={totalItems}
-                        totalPrice={totalPrice}
-                        discountAmount={discountAmount}
-                        grandTotal={grandTotal}
+                        totalItems={cartPrices.totalItems}
+                        totalPrice={cartPrices.totalPrice}
+                        discountAmount={cartPrices.discountAmount}
+                        grandTotal={cartPrices.grandTotal}
+                        fromPayment={true}
+                        paymentMethod={paymentMethod}
                     />
                 </div>
             </div>

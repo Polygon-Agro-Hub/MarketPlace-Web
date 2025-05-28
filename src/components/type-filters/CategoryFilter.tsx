@@ -7,6 +7,7 @@ import Mushrooms from '../../../public/images/Mushrooms.png';
 import ItemCard from '../../components/item-card/ItemCard';
 import { getProductsByCategory } from '@/services/product-service';
 import { getCategoryCounts } from '@/services/product-service';
+import { StaticImageData } from 'next/image';
 
 interface Product {
     id: number;
@@ -38,7 +39,7 @@ interface Category {
 }
 
 export default function CategoryFilter() {
-    const [selectedCategory, setSelectedCategory] = useState('fruits');
+    const [selectedCategory, setSelectedCategory] = useState('Fruit');
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -47,25 +48,25 @@ export default function CategoryFilter() {
 
     const defaultCategories = [
         {
-            id: 'vegetables',
+            id: 'Vegetables',
             name: 'Vegetables',
             imageUrl: Vegetables,
             itemCount: 0
         },
         {
-            id: 'fruits',
-            name: 'Fruits',
+            id: 'Fruit',
+            name: 'Fruit',
             imageUrl: Fruits,
             itemCount: 0
         },
         {
-            id: 'grains',
-            name: 'Grains',
+            id: 'Grain',
+            name: 'Grain',
             imageUrl: Grains,
             itemCount: 0
         },
         {
-            id: 'mushrooms',
+            id: 'Mushrooms',
             name: 'Mushrooms',
             imageUrl: Mushrooms,
             itemCount: 0
@@ -109,6 +110,8 @@ export default function CategoryFilter() {
             setError(null);
 
             try {
+                console.log(selectedCategory);
+                
                 const response = await getProductsByCategory(selectedCategory);
                 setProducts(response.products);
             } catch (err) {

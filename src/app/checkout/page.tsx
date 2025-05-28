@@ -7,6 +7,9 @@ import Swal from 'sweetalert2';
 import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch, RootState } from '../../store';
 import { setFormData, resetFormData } from '../../store/slices/checkoutSlice';
+import { useRouter } from 'next/navigation';
+import SuccessPopup from '@/components/toast-messages/success-message-with-button';
+import ErrorPopup from '@/components/toast-messages/error-message';
 
 interface FormData {
   deliveryMethod: string;
@@ -79,7 +82,7 @@ const Page: React.FC = () => {
   ];
   const dispatch = useDispatch<AppDispatch>();
   const storedFormData = useSelector((state: RootState) => state.checkout);
-  console.log('data from store', storedFormData);
+  
 
   const [formData, setFormDataLocal] = useState<FormData>(initialFormState);
 
@@ -112,6 +115,15 @@ const Page: React.FC = () => {
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
  const cartPrices = useSelector((state: RootState) => state.cart) || null;
+  const { items, cartId } = useSelector((state: RootState) => state.cartItems);
+  const router = useRouter();
+  const [showErrorPopup, setShowErrorPopup] = useState(false);
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+
+    useEffect(() => {
+      console.log('useEffect called with cart items by chalana:', items);
+      console.log('data from store', storedFormData);
+    }, []);
 
   const handleAddressOptionChange = (value: string) => {
     if (value === 'previous') {
@@ -340,17 +352,8 @@ const Page: React.FC = () => {
       dispatch(setFormData(dataToSubmit));
   
       setSuccessMsg('Check out successfull!');
-      await Swal.fire({
-        title: 'Check out successfull!',
-        icon: 'success',
-        timer: 2000,
-        showConfirmButton: false,
-        customClass: {
-          popup: '!border-t-4 !border-t-[#3E206D]',
-        },
-        iconColor: '#3E206D',
-        confirmButtonColor: '#3E206D',
-      });
+      setShowSuccessPopup(true);
+      
     } catch (err: any) {
       setErrorMsg(err.message || 'Check out failed!');
       await Swal.fire({
@@ -366,6 +369,20 @@ const Page: React.FC = () => {
   
 
   return (
+    <div>
+       <SuccessPopup
+        isVisible={showSuccessPopup}
+        onClose={() => setShowSuccessPopup(false)}
+        title="Check out successfull!"
+        description="Let's move to next step."
+        path='/payment'
+      />
+      <ErrorPopup
+        isVisible={showErrorPopup}
+        onClose={() => setShowErrorPopup(false)}
+        title="Oops!"
+        description="Something happen, Please try again!"
+      />
     <form onSubmit={handleSubmit}>
       <div className='px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5 '>
         <TopNavigation NavArray={NavArray} />
@@ -729,7 +746,7 @@ const Page: React.FC = () => {
                 <p className='font-semibold'>Rs.{cartPrices.grandTotal}</p>
               </div>
 
-              <button type="submit" className='w-full bg-purple-800 text-white font-semibold rounded-lg px-4 py-3 hover:bg-purple-900 transition-colors'>
+              <button  type="submit" className='w-full bg-purple-800 text-white font-semibold rounded-lg px-4 py-3 hover:bg-purple-900 transition-colors'>
                 Continue to Payment
               </button>
             </div>
@@ -737,6 +754,7 @@ const Page: React.FC = () => {
         </div>
       </div>
     </form>
+    </div>
   );
 };
 

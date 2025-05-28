@@ -1,3 +1,4 @@
+import { useRouter } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
 
 type SuccessPopupProps = {
@@ -7,6 +8,7 @@ type SuccessPopupProps = {
     title?: string;
     description?: string;
     duration?: number;
+    path?: string; // Optional path prop for future use
 };
 
 const SuccessPopup = ({
@@ -15,10 +17,12 @@ const SuccessPopup = ({
     onCancel,
     title = "Email has been sent!",
     description = "Please check your emails, a password reset link has been sent.",
-    duration = 0 // Changed to 0 to not auto-close when there's a cancel button
+    duration = 0, // Changed to 0 to not auto-close when there's a cancel button
+    path
 }: SuccessPopupProps) => {
     const [show, setShow] = useState(false);
     const [animate, setAnimate] = useState(false);
+    const router = useRouter();
 
     useEffect(() => {
         if (isVisible) {
@@ -41,6 +45,16 @@ const SuccessPopup = ({
             setShow(false);
             onClose?.();
         }, 300);
+    };
+
+
+    const handleOk = () => {
+        setAnimate(false);
+        setTimeout(() => {
+            setShow(false);
+            onClose?.();
+        }, 300);
+        router.push(`${path}`);
     };
 
     if (!show) return null;
@@ -66,7 +80,7 @@ const SuccessPopup = ({
                     <div className="relative w-24 h-24">
                         {/* Blue Square Background */}
                         <div
-                            className={`absolute inset-0 rounded-lg bg-blue-100 border-2 border-blue-400 transition-all duration-700 ease-out ${animate ? 'scale-100 opacity-100' : 'scale-50 opacity-0'
+                            className={`absolute inset-0 rounded-lg transition-all duration-700 ease-out ${animate ? 'scale-100 opacity-100' : 'scale-50 opacity-0'
                                 }`}
                             style={{
                                 transformOrigin: 'center',
@@ -126,6 +140,12 @@ const SuccessPopup = ({
                         }`}
                     style={{ transitionDelay: '0.6s' }}
                 >
+                    <button
+                        onClick={onCancel || handleOk}
+                        className="px-8 py-3 text-gray-500 font-medium text-lg hover:text-gray-700 transition-colors duration-200"
+                    >
+                        Ok
+                    </button>
                     <button
                         onClick={onCancel || handleClose}
                         className="px-8 py-3 text-gray-500 font-medium text-lg hover:text-gray-700 transition-colors duration-200"
