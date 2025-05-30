@@ -56,7 +56,7 @@ interface SignupPayload {
   email: string;
   password: string;
   confirmPassword: string;
-  buyerType: 'retail' | 'business';
+  buyerType: 'Retail' | 'Wholesale';
   agreeToTerms: boolean;
   agreeToMarketing: boolean;
 }
@@ -215,6 +215,64 @@ export const sendOTP = async (
         throw new Error("Failed to verify phone number");
       }
     }
+
+    // Step 2: Send OTP
+    const apiUrl = "https://api.getshoutout.com/otpservice/send";
+    const headers = {
+      Authorization: `Apikey ${environment.SHOUTOUT_API_KEY}`,
+      "Content-Type": "application/json",
+    };
+
+    const body = {
+      source,
+      transport: "sms",
+      content: {
+        sms: message,
+      },
+      destination: fullPhoneNumber,
+    };
+
+    const response = await axios.post(apiUrl, body, { headers });
+    
+    console.log("OTP response:", response.data);
+
+    if (response.data.referenceId) {
+      return { referenceId: response.data.referenceId };
+    }
+
+    throw new Error("Failed to send OTP: No reference ID received");
+  } catch (error: any) {
+    console.error("Error sending OTP:", error);
+    if (error.response) {
+      throw new Error(
+        error.response.data?.message ||
+        `Failed to send OTP (${error.response.status})`
+      );
+    }
+    throw new Error(error.message || "Failed to send OTP");
+  }
+};
+
+export const sendOTPInSignup = async (
+  phoneNumber: string,
+  countryCode: string,
+  options?: {
+    checkPhoneExists?: boolean;
+    message?: string;
+    source?: string;
+  }
+): Promise<OTPServiceResponse> => {
+  try {
+    const formattedPhone = phoneNumber.replace(/\s+/g, "");
+    const fullPhoneNumber = `${countryCode}${formattedPhone}`;
+
+    console.log('phone numbers ',formattedPhone,fullPhoneNumber)
+
+    // Default options
+    const {
+      message = `Your OTP for verification is: {{code}}`,
+      source = "AgroWorld"
+    } = options || {};
 
     // Step 2: Send OTP
     const apiUrl = "https://api.getshoutout.com/otpservice/send";
