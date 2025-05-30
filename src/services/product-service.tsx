@@ -236,3 +236,65 @@ export interface ProductCartData {
   quantityType: 'kg' | 'g';
   quantity: number;
 }
+
+
+//whole sale api calls
+
+export const getProductsByCategoryWholesale = async (category: string): Promise<ProductResponse> => {
+  try {
+    const response = await axios.get('/product/wholesale', {
+      params: { category },
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    console.log('products',response.data)
+
+    if (response.status >= 200 && response.status < 300) {
+      return response.data;
+    } else {
+      throw new Error(response.data?.message || 'Failed to fetch products by category');
+    }
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(
+        error.response.data?.message ||
+        error.response.data?.error ||
+        `Failed with status ${error.response.status}`
+      );
+    } else if (error.request) {
+      throw new Error('No response received from server. Please check your network connection.');
+    } else {
+      throw new Error(error.message || 'An error occurred while fetching products by category');
+    }
+  }
+};
+
+export const getCategoryCountsWholesale = async (): Promise<any> => {
+  try {
+    const response = await axios.get('/product/get-item-count/wholesale', {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (response.status >= 200 && response.status < 300) {
+      return response.data;
+    } else {
+      throw new Error(response.data?.message || 'Failed to fetch category counts');
+    }
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(
+        error.response.data?.message ||
+        error.response.data?.error ||
+        `Failed with status ${error.response.status}`
+      );
+    } else if (error.request) {
+      throw new Error('No response received from server');
+    } else {
+      throw new Error(error.message || 'An error occurred while fetching category counts');
+    }
+  }
+};

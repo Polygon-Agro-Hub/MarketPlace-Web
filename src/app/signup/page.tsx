@@ -1,11 +1,12 @@
 "use client"
-import React, { useState, FormEvent } from 'react';
+import React, { useState, FormEvent, useEffect } from 'react';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
-import { signup } from '@/services/auth-service';
+import {  sendOTPInSignup, signup } from '@/services/auth-service';
 import { useRouter } from 'next/navigation';
 import CustomDropdown from '../../components/home/CustomDropdown';
 import SuccessPopup from '@/components/toast-messages/success-message';
 import ErrorPopup from '@/components/toast-messages/error-message';
+import OTPComponent from '@/components/otp-registration/OTPComponent';
 
 type FormErrors = {
   title?: string;
@@ -31,6 +32,9 @@ export default function SignupForm() {
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [showErrorPopup, setShowErrorPopup] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [showOTPVerification, setShowOTPVerification] = useState(false);
+  const [otpReferenceId, setOtpReferenceId] = useState('');
+  const [fullPhoneNumber, setFullPhoneNumber] = useState('');
 
   // Form data state
   const [formData, setFormData] = useState({
@@ -141,25 +145,50 @@ export default function SignupForm() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Handle form submission
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setErrors({});
-    setSuccess(null);
+ const handleSubmit = async (e: FormEvent) => {
+  e.preventDefault();
+  setErrors({});
+  setSuccess(null);
 
-    if (!validateForm()) return;
+  if (!validateForm()) return;
 
+  setLoading(true);
+
+  try {
+    // Send OTP
+    const res = await sendOTPInSignup(formData.phoneNumber, formData.phoneCode);
+    
+    // Show success popup instead of alert
+    setSuccess(`OTP code has been sent to ${formData.phoneCode}${formData.phoneNumber}`);
+    setShowSuccessPopup(true);
+
+
+    // Store reference ID and phone number in state
+    if (res && res.referenceId) {
+      setOtpReferenceId(res.referenceId);
+      setFullPhoneNumber(`${formData.phoneCode}${formData.phoneNumber}`);
+      setShowOTPVerification(true); // Show OTP verification component
+    }
+
+  } catch (err: any) {
+    const errorMessage = err.message || 'Failed to send OTP. Please try again.';
+    setErrorMessage(errorMessage);
+    setShowErrorPopup(true);
+  } finally {
+    setLoading(false);
+  }
+};
+
+  // MODIFIED completeSignup function - remove localStorage operations
+  const completeSignup = async () => {
     setLoading(true);
-
     try {
       const response = await signup({
         ...formData,
-        buyerType: isHome ? 'retail' : 'business',
+        buyerType: isHome ? 'Retail' : 'Wholesale',
       });
 
       setShowSuccessPopup(true);
-
-      // Redirect to login page after successful registration
       setTimeout(() => {
         window.location.href = '/signin';
       }, 2000);
@@ -168,11 +197,26 @@ export default function SignupForm() {
       const errorMessage = err.message || 'Registration failed. Please try again.';
       setErrorMessage(errorMessage);
       setShowErrorPopup(true);
-
     } finally {
       setLoading(false);
     }
   };
+
+  // NEW callback functions for OTP component
+  const handleOTPVerificationSuccess = () => {
+    setShowOTPVerification(false);
+    completeSignup();
+  };
+
+  const handleOTPVerificationFailure = () => {
+    setShowOTPVerification(false);
+  };
+
+    const handleOTPResend = (newReferenceId: string) => {
+    setOtpReferenceId(newReferenceId);
+  };
+
+
 
   // Helper function to apply error styles
   const getInputClass = (fieldName: keyof FormErrors) => {
@@ -181,7 +225,19 @@ export default function SignupForm() {
       : 'border-gray-300 focus:ring-purple-500 focus:border-purple-500';
   };
 
-  return (
+ if (showOTPVerification) {
+    return (
+      <OTPComponent
+        phoneNumber={fullPhoneNumber}
+        referenceId={otpReferenceId}
+        onVerificationSuccess={handleOTPVerificationSuccess}
+        onVerificationFailure={handleOTPVerificationFailure}
+        onResendOTP={handleOTPResend}
+      />
+    );
+  }
+
+  return(
     <div className="flex w-full bg-gray-100 min-h-screen overflow-auto ">
       <div className="flex min-w-full mx-auto shadow-lg rounded-lgbg-[white]  overflow-auto">
 
@@ -297,9 +353,9 @@ export default function SignupForm() {
                   <div className="w-1/4 md:w-2/9">
                     <CustomDropdown
                       options={[
-                        { value: "Mr.", label: "Mr." },
-                        { value: "Mrs.", label: "Mrs." },
-                        { value: "Ms.", label: "Ms." }
+                        { value: "Mr", label: "Mr." },
+                        { value: "Mrs", label: "Mrs." },
+                        { value: "Ms", label: "Ms." }
                       ]}
                       selectedValue={formData.title}
                       onSelect={(value) => {
@@ -522,5 +578,6 @@ export default function SignupForm() {
         </div>
       </div>
     </div>
-  );
+  )
+
 }

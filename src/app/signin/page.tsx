@@ -28,24 +28,36 @@ const page = () => {
 
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    try {
-      setIsLoading(true);
-      const data = await login({ email, password });
-      setShowSuccessPopup(true);
-      // Store token and redirect
-      if (data.token) {
-        dispatch(setCredentials({ token: data.token, user: data.userData }));
+  try {
+    setIsLoading(true);
+    const data = await login({ email, password });
+    setShowSuccessPopup(true);
+
+    console.log('token details', data.userData, data.token);
+    
+    // Store token and redirect based on buyerType
+    if (data.token) {
+      dispatch(setCredentials({ token: data.token, user: data.userData }));
+      
+      // Check buyerType and redirect accordingly
+      if (data.userData.buyerType === 'Wholesale') {
+        router.push('/wholesale/home');
+      } else if (data.userData.buyerType === 'Retail') {
         router.push('/');
+      } else {
+        // Fallback for unknown buyerType
+        router.push('/signin');
       }
-
-    } catch (err: any) {
-      setShowErrorPopup(true);
-    } finally {
-      setIsLoading(false);
     }
-  };
+
+  } catch (err: any) {
+    setShowErrorPopup(true);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
