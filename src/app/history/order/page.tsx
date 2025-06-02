@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, RefObject } from 'react';
 import Image from 'next/image';
 import { FaAngleDown } from 'react-icons/fa';
 import { useSelector } from 'react-redux';
@@ -848,7 +848,8 @@ export default function OrderHistoryPage() {
             <InvoiceView
               invoice={selectedInvoice}
               onClose={() => setSelectedInvoice(null)}
-              invoiceRef={invoiceRef}
+              // invoiceRef={invoiceRef}
+              invoiceRef={invoiceRef as RefObject<HTMLDivElement>}
             />
           </div>
         </div>
