@@ -8,7 +8,7 @@ import { store } from '@/store';
 export default function ClientLayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
-  const excludedRoutes = ['/signin', '/signup', '/otp', '/forget-password', '/reset-password','/error/404','/error/451'];
+  const excludedRoutes = ['/signin', '/signup', '/otp', '/forget-password', '/reset-password','/error/404','/error/451','/unsubscribe'];
   const shouldExcludeLayout = excludedRoutes.includes(pathname);
 
   return (
