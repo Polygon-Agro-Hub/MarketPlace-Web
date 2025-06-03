@@ -17,7 +17,7 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   // basePath: process.env.NODE_ENV == "development" ? '' : process.env.NEXT_PUBLIC_BASE_PATH ?? '/market',
-  // assetPrefix: process.env.NODE_ENV == "development" ? '' : process.env.NEXT_PUBLIC_BASE_PATH ??  '/market/',
+  assetPrefix: process.env.NODE_ENV == "development" ? '' : process.env.NEXT_PUBLIC_BASE_PATH ??  '/market/',
 
   /* other config options here */
 };
