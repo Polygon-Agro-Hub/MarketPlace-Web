@@ -568,7 +568,7 @@ export default function SignupForm() {
               </button>
 
               <p className="text-center text-md text-[#6B6B6B] mt-4 md:mt-2 mb-4 md:mb-0">
-                Already have an account? <a href="../signin" className="text-[#0f1013] hover:underline">Login here</a>
+                Already have an account? <a href="../signin" className="text-[#094EE8] hover:underline">Login here</a>
               </p>
             </form>
           </div>
@@ -582,4 +582,3 @@ export default function SignupForm() {
   )
 
 }
-
