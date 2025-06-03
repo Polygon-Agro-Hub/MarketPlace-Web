@@ -26,7 +26,6 @@
     "lucide-react": "^0.508.0",
     "my-app": "file:",
     "next": "15.3.2",
-    "postcss": "^8.5.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.56.3",
@@ -49,8 +48,10 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/react-lottie": "^1.2.10",
+    "autoprefixer": "^10.4.21",
     "eslint": "^9",
     "eslint-config-next": "15.3.2",
+    "postcss": "^8.5.4",
     "tailwindcss": "^4.1.8",
     "typescript": "^5"
   }
