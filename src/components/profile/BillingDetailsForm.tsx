@@ -254,7 +254,7 @@ const BillingDetailsForm = () => {
                   className="appearance-none block w-full border rounded-lg border-[#CECECE] py-2 px-4 pr-8 text-xs sm:text-sm h-[42px]"
                   defaultValue=""
                 >
-                  <option value="" disabled>Select Billing Title</option>
+                  {/* <option value="" disabled>Select Billing Title</option> */}
                   <option value="Mr.">Mr.</option>
                   <option value="Ms.">Ms.</option>
                   <option value="Mrs.">Mrs.</option>
@@ -277,52 +277,6 @@ const BillingDetailsForm = () => {
             </div>
           </div>
 
-          <div className="flex gap-4 md:gap-8 mt-4">
-            {/* Title */}
-            <div className="w-[10%] min-w-[70px]">
-              <label className="block text-xs sm:text-sm font-medium text-[#626D76] mb-1">
-                Title
-              </label>
-              <div className="relative">
-                <select
-                  {...register('title', { required: 'Title is required' })}
-                  className="appearance-none border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm pr-8"
-                  defaultValue=""
-                >
-                  <option value="" disabled>Select Title</option>
-                  <option value="Mr.">Mr.</option>
-                  <option value="Ms.">Ms.</option>
-                  <option value="Mrs.">Mrs.</option>
-                </select>
-                <FaAngleDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none" />
-              </div>
-              <p className="text-red-500 text-xs">{errors.title?.message}</p>
-            </div>
-
-            {/* First Name */}
-            <div className="w-[45%]">
-              <label className="block text-xs sm:text-sm font-medium text-[#626D76] mb-1">
-                First Name
-              </label>
-              <input
-                {...register('firstName', { required: 'First Name is required' })}
-                className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm"
-              />
-              <p className="text-red-500 text-xs">{errors.firstName?.message}</p>
-            </div>
-
-            {/* Last Name */}
-            <div className="w-[45%]">
-              <label className="block text-xs sm:text-sm font-medium text-[#626D76] mb-1">
-                Last Name
-              </label>
-              <input
-                {...register('lastName')}
-                className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm"
-              />
-              <p className="text-red-500 text-xs">{errors.lastName?.message}</p>
-            </div>
-          </div>
         </div>
 
         <div className="border-t border-[#BDBDBD] my-6" />
