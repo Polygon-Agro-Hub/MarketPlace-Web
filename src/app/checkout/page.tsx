@@ -10,6 +10,7 @@ import { setFormData, resetFormData } from '../../store/slices/checkoutSlice';
 import { useRouter } from 'next/navigation';
 import SuccessPopup from '@/components/toast-messages/success-message-with-button';
 import ErrorPopup from '@/components/toast-messages/error-message';
+import { getForm } from '@/services/retail-service';
 
 interface FormData {
   deliveryMethod: string;
@@ -81,7 +82,7 @@ const Page: React.FC = () => {
     { name: 'Payment', path: '/payment', status: false },
   ];
   const dispatch = useDispatch<AppDispatch>();
-  const storedFormData = useSelector((state: RootState) => state.checkout);
+  // const storedFormData = useSelector((state: RootState) => state.checkout);
   
 
   const [formData, setFormDataLocal] = useState<FormData>(initialFormState);
@@ -122,59 +123,56 @@ const Page: React.FC = () => {
 
     useEffect(() => {
       console.log('useEffect called with cart items by chalana:', items);
-      console.log('data from store', storedFormData);
+      // console.log('data from store', storedFormData);
+  
     }, []);
 
-  const handleAddressOptionChange = (value: string) => {
-    if (value === 'previous') {
-      setUsePreviousAddress(true);
-  
-      if (storedFormData) {
-        // Conditionally apply only selected fields from Redux
-        setFormDataLocal(prev => ({
-          ...prev,
-          buildingNo: storedFormData.buildingNo || '',
-          buildingType: storedFormData.buildingType || 'Apartment',
-          cityName: storedFormData.cityName || '',
-          houseNo: storedFormData.houseNo || '',
-          phone1: storedFormData.phone1 || '',
-          phone2: storedFormData.phone2 || '',
-          phoneCode1: storedFormData.phoneCode1 || '94',
-          phoneCode2: storedFormData.phoneCode2 || '94',
-          street: storedFormData.street || '',
-          title: storedFormData.title || '',
-          buildingName: storedFormData.buildingName || '',
-          flatNumber: storedFormData.flatNumber || '',
-          floorNumber: storedFormData.floorNumber || '',
-          fullName: storedFormData.fullName || '',
-          scheduleType: 'One Time', // force default
-        }));
+    const handleAddressOptionChange = async (value: string) => {
+      if (value === 'previous') {
+        console.log('fetching')
+        setUsePreviousAddress(true);
+        setFetching(true);
+    
+        try {
+          const response = await getForm(token);
+          
+    
+          if (response) {
+            // const data = response;
+            console.log('fetch data', response);
+    
+            setFormDataLocal(prev => ({
+              ...prev,
+              buildingNo: response.result.buildingNo || '',
+              buildingType: response.result.buildingType || 'Apartment',
+              cityName: response.result.city || '',
+              houseNo: response.result.houseNo || '',
+              phone1: response.result.phone1 || '',
+              phone2: response.result.phone2 || '',
+              phoneCode1: response.result.phonecode1 || '94',
+              phoneCode2: response.result.phonecode2 || '94',
+              street: response.result.streetName || '',
+              title: response.result.title || '',
+              buildingName: response.result.buildingName || '',
+              flatNumber: response.result.unitNo || '',
+              floorNumber: response.result.floorNo || '',
+              fullName: response.result.fullName || '',
+              scheduleType: 'One Time', // default
+            }));
+          }
+        } catch (error: any) {
+          console.error('Failed to fetch previous address data:', error);
+          setErrorMsg(error.message || 'Failed to fetch form data.');
+          setShowErrorPopup(true);
+        } finally {
+          setFetching(false);
+        }
+      } else {
+        setUsePreviousAddress(false);
+        setFormDataLocal(initialFormState);
       }
-    } else {
-      setUsePreviousAddress(false);
-      // Reset formData to initial values
-      setFormDataLocal({
-        deliveryMethod: 'home',
-        title: '',
-        fullName: '',
-        phone1: '',
-        phone2: '',
-        buildingType: 'Apartment',
-        deliveryDate: '',
-        timeSlot: '',
-        phoneCode1: '94',
-        phoneCode2: '94',
-        buildingNo: '',
-        buildingName: '',
-        flatNumber: '',
-        floorNumber: '',
-        houseNo: '',
-        street: '',
-        cityName: '',
-        scheduleType: 'One Time',
-      });
-    }
-  };
+    };
+    
   
 
   const handleFieldChange = (field: keyof FormData, value: string) => {
@@ -350,6 +348,7 @@ const Page: React.FC = () => {
       dispatch(resetFormData());
   
       dispatch(setFormData(dataToSubmit));
+      console.log('submitting', dataToSubmit)
   
       setSuccessMsg('Check out successfull!');
       setShowSuccessPopup(true);
