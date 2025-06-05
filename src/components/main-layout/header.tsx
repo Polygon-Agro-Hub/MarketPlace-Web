@@ -119,10 +119,10 @@ const Header = () => {
                 </button>
                 {isDesktopCategoryOpen && (
                   <div className='absolute bg-[#3E206D] text-white w-48 shadow-lg mt-7 z-10'>
-                    <Link href="/category/retail" className="border-b-1 block px-4 py-2 hover:bg-[#6c5394]">
+                    <Link href="/" className="border-b-1 block px-4 py-2 hover:bg-[#6c5394]">
                       Retail
                     </Link>
-                    <Link href="/category/wholesale" className="block px-4 py-2 hover:bg-[#6c5394]">
+                    <Link href="/wholesale/home" className="block px-4 py-2 hover:bg-[#6c5394]">
                       Wholesale
                     </Link>
                   </div>
@@ -160,7 +160,7 @@ const Header = () => {
 
           </div>
           {!isMobile && (
-            <Link href="/orders">
+            <Link href="/history/order">
               <FontAwesomeIcon className='text-4xl' icon={faClockRotateLeft} />
             </Link>
           )}
