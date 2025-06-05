@@ -20,6 +20,7 @@ type FormErrors = {
   general?: string;
 };
 
+
 export default function SignupForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);

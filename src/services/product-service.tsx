@@ -39,7 +39,9 @@ export const getPackageDetails = async (packageId: number): Promise<any> => {
       headers: {
         'Content-Type': 'application/json',
       },
-    });
+    })
+
+    console.log('pkg service',response.data)
 
     if (response.status >= 200 && response.status < 300) {
       return response.data;
