@@ -1,81 +1,105 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Minus, Trash2 } from 'lucide-react';
 import TopNavigation from '@/components/top-navigation/TopNavigation';
+import { getCartData, updateCartItemQuantity, removeCartItem } from '@/services/cart-service';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/store';
 
-interface Item {
+interface PackageItem {
+  name: string;
+  quantity: number;
+  hasSpecialBadge: boolean;
+}
+
+interface CartPackage {
   id: number;
+  cartItemId: number;
+  packageName: string;
+  totalItems: number;
+  price: number;
+  quantity: number;
+  image: string;
+  description: string;
+  items: PackageItem[];
+}
+
+interface CartItem {
+  id: number;
+  cartItemId: number;
   name: string;
   unit: 'kg' | 'g';
   quantity: number;
   discount: number;
   price: number;
+  normalPrice: number;
+  discountedPrice: number | null;
   image: string;
+  varietyNameEnglish: string;
+  category: string;
+  createdAt: string;
 }
 
-interface Package {
+interface AdditionalItems {
   id: number;
   packageName: string;
-  Items: Item[];
+  Items: CartItem[];
+}
+
+interface CartSummary {
+  totalPackages: number;
+  totalProducts: number;
+  packageTotal: number;
+  productTotal: number;
+  grandTotal: number;
+  totalItems: number;
+  couponDiscount: number;
+  finalTotal: number;
 }
 
 const Page: React.FC = () => {
-    const NavArray = [
-    { name: 'Cart', path: '/cart', status:true },
-    { name: 'Checkout', path: '/checkout', status:false },
-    { name: 'Payment', path: '/payment', status:false },
-  ]
+  const NavArray = [
+    { name: 'Cart', path: '/cart', status: true },
+    { name: 'Checkout', path: '/checkout', status: false },
+    { name: 'Payment', path: '/payment', status: false },
+  ];
+
+  const token = useSelector((state: RootState) => state.auth.token) as string | null;
   const [unitSelection, setUnitSelection] = useState<Record<number, 'kg' | 'g'>>({});
-  const [dataArray, setDataArray] = useState<Package[]>([
-    {
-      id: 1,
-      packageName: "Family Pack",
-      Items: [
-        {
-          id: 1,
-          name: "Tomato",
-          unit: "kg",
-          quantity: 52,
-          discount: 104,
-          price: 571.48,
-          image: "https://agroworld-s3-kmtu-hlf64-ituvf.s3.eu-north-1.amazonaws.com/cropgroup/image/92953533-462a-49f7-ba6d-7ef20a035a4f.png"
-        },
-        {
-          id: 2,
-          name: "Potato",
-          unit: "kg",
-          quantity: 56,
-          discount: 112,
-          price: 615.44,
-          image: "https://agroworld-s3-kmtu-hlf64-ituvf.s3.eu-north-1.amazonaws.com/cropgroup/image/92953533-462a-49f7-ba6d-7ef20a035a4f.png"
-        }
-      ]
-    },
-    {
-      id: 2,
-      packageName: "Additional Items",
-      Items: [
-        {
-          id: 3,
-          name: "Green chilly",
-          unit: "kg",
-          quantity: 52,
-          discount: 104,
-          price: 571.48,
-          image: "https://agroworld-s3-kmtu-hlf64-ituvf.s3.eu-north-1.amazonaws.com/cropgroup/image/92953533-462a-49f7-ba6d-7ef20a035a4f.png"
-        },
-        {
-          id: 4,
-          name: "Banana",
-          unit: "kg",
-          quantity: 56,
-          discount: 112,
-          price: 615.44,
-          image: "https://agroworld-s3-kmtu-hlf64-ituvf.s3.eu-north-1.amazonaws.com/cropgroup/image/92953533-462a-49f7-ba6d-7ef20a035a4f.png"
-        }
-      ]
-    }
-  ]);
+  const [packages, setPackages] = useState<CartPackage[]>([]);
+  const [additionalItems, setAdditionalItems] = useState<AdditionalItems[]>([]);
+  const [summary, setSummary] = useState<CartSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchCartData = async () => {
+      try {
+        setLoading(true);
+        const cartData = await getCartData(token);
+        setPackages(cartData.packages);
+        setAdditionalItems(cartData.additionalItems);
+        setSummary(cartData.summary);
+        
+        // Initialize unit selection for additional items
+        const initialUnits = cartData.additionalItems.reduce((acc, itemGroup) => {
+          itemGroup.Items.forEach(item => {
+            acc[item.id] = item.unit;
+          });
+          return acc;
+        }, {} as Record<number, 'kg' | 'g'>);
+        setUnitSelection(initialUnits);
+        
+        setError(null);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCartData();
+  }, [token]);
 
   const handleUnitChange = (itemId: number, unit: 'kg' | 'g') => {
     setUnitSelection(prev => ({
@@ -84,46 +108,104 @@ const Page: React.FC = () => {
     }));
   };
 
-  const handleQuantityChange = (itemId: number, delta: number) => {
-    const updatedPackages = dataArray.map(pkg => ({
-      ...pkg,
-      Items: pkg.Items.map(item => {
-        if (item.id === itemId) {
-          const newQuantity = Math.max(1, item.quantity + delta);
-          return {
-            ...item,
-            quantity: newQuantity,
-            discount: newQuantity * 2,
-            price: newQuantity * 10.99
-          };
+  const handleQuantityChange = async (cartItemId: number, delta: number) => {
+    try {
+      // Find the item to get current quantity
+      let currentQuantity = 1;
+      for (const itemGroup of additionalItems) {
+        const item = itemGroup.Items.find(item => item.cartItemId === cartItemId);
+        if (item) {
+          currentQuantity = item.quantity;
+          break;
         }
-        return item;
-      })
-    }));
-    setDataArray(updatedPackages);
+      }
+      
+      const newQuantity = Math.max(1, currentQuantity + delta);
+      await updateCartItemQuantity(cartItemId, newQuantity, token);
+      
+      // Update local state
+      setAdditionalItems(prev => 
+        prev.map(itemGroup => ({
+          ...itemGroup,
+          Items: itemGroup.Items.map(item => 
+            item.cartItemId === cartItemId ? { ...item, quantity: newQuantity } : item
+          )
+        }))
+      );
+      
+      // Refetch summary to get updated totals
+      const cartData = await getCartData(token);
+      setSummary(cartData.summary);
+    } catch (err: any) {
+      setError(err.message);
+    }
   };
 
-  // Calculate total items and total price
-  const totalItems = dataArray.reduce((total, pkg) => total + pkg.Items.length, 0);
-  const totalPrice = dataArray.reduce((total, pkg) => 
-    total + pkg.Items.reduce((pkgTotal, item) => pkgTotal + item.price, 0), 0);
-  const discountAmount = 170.00;
-  const grandTotal = totalPrice - discountAmount;
+  const handleRemoveItem = async (cartItemId: number) => {
+    try {
+      await removeCartItem(cartItemId, token);
+      
+      // Update packages or additional items based on where the item was
+      if (packages.some(pkg => pkg.cartItemId === cartItemId)) {
+        setPackages(prev => prev.filter(pkg => pkg.cartItemId !== cartItemId));
+      } else {
+        setAdditionalItems(prev => 
+          prev.map(itemGroup => ({
+            ...itemGroup,
+            Items: itemGroup.Items.filter(item => item.cartItemId !== cartItemId)
+          })).filter(itemGroup => itemGroup.Items.length > 0)
+        );
+      }
+      
+      // Refetch summary to get updated totals
+      const cartData = await getCartData(token);
+      setSummary(cartData.summary);
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5">
+        <TopNavigation NavArray={NavArray} />
+        <div className="text-red-500 text-center py-10">{error}</div>
+      </div>
+    );
+  }
+
+  if (!summary || (packages.length === 0 && additionalItems.length === 0)) {
+    return (
+      <div className="px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5">
+        <TopNavigation NavArray={NavArray} />
+        <div className="text-center py-10">Your cart is empty</div>
+      </div>
+    );
+  }
 
   return (
     <div className='px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5'>
-      <TopNavigation NavArray={NavArray}/>
+      <TopNavigation NavArray={NavArray} />
 
       <div className='flex flex-col lg:flex-row lg:items-start gap-4 sm:gap-6 items-start'>
         {/* Left Section */}
         <div className='w-full lg:w-2/3'>
-          {dataArray.map((pkg) => (
-            <div key={pkg.id} className='my-4 sm:my-6 lg:my-8'>
-              <p className='text-sm sm:text-base font-semibold mb-2'>Your Selected Package: {pkg.packageName}</p>
+          {/* Additional Items Section */}
+          {additionalItems.map((itemGroup) => (
+            <div key={itemGroup.id} className='my-4 sm:my-6 lg:my-8'>
+              <p className='text-sm sm:text-base font-semibold mb-2'>Your Selected Package: {itemGroup.packageName}</p>
               <hr className='border-[#3E206D80] mb-2 sm:mb-3' />
 
               <div className="overflow-x-auto w-full">
-                <div className="min-w-[700px]"> {/* Set minimum width to ensure horizontal scroll */}
+                <div className="min-w-[700px]">
                   <table className="w-full text-xs sm:text-sm text-left">
                     <thead className="text-xs bg-gray-100">
                       <tr>
@@ -136,71 +218,130 @@ const Page: React.FC = () => {
                         <th className="px-3 sm:px-4 py-3 sm:py-4 text-center w-10"></th>
                       </tr>
                     </thead>
-                    <tbody>
-                      {pkg.Items.map((item) => {
-                        const selectedUnit = unitSelection[item.id] || item.unit;
+                   <tbody>
+  {itemGroup.Items.map((item) => {
+    const selectedUnit = unitSelection[item.id] || item.unit;
 
-                        return (
-                          <tr key={item.id} className=" hover:bg-gray-50">
-                            <td className="p-3 sm:p-4">
-                              <input type="checkbox" className="w-4 h-4 sm:w-5 sm:h-5" />
-                            </td>
-                            <td className="px-3 sm:px-4 py-3 sm:py-4">
-                              <div className="flex items-center gap-3 sm:gap-4">
-                                <img className='w-10 sm:w-12 md:w-14 h-auto object-contain' src={item.image} alt={item.name} />
-                                <p className="text-sm sm:text-base whitespace-nowrap">{item.name}</p>
-                              </div>
-                            </td>
-                            <td className="px-3 sm:px-4 py-3 sm:py-4">
-                              <div className='flex gap-2 justify-center'>
-                                {(['kg', 'g'] as const).map(unit => (
-                                  <button
-                                    key={unit}
-                                    onClick={() => handleUnitChange(item.id, unit)}
-                                    className={`text-sm px-3 py-1 rounded border ${selectedUnit === unit ? 'bg-[#EDE1FF] font-semibold' : 'text-gray-500'}`}
-                                  >
-                                    {unit}
-                                  </button>
-                                ))}
-                              </div>
-                            </td>
-                            <td className="px-3 sm:px-4 py-3 sm:py-4">
-                              <div className='flex items-center gap-2 border rounded px-2 py-2 justify-between w-24 sm:w-28 md:w-32 mx-auto'>
-                                <button 
-                                  onClick={() => handleQuantityChange(item.id, -1)} 
-                                  className="hover:bg-gray-100 p-1 rounded-full flex items-center justify-center"
-                                >
-                                  <Minus size={14} />
-                                </button>
-                                <span className="text-sm sm:text-base">{item.quantity}</span>
-                                <button 
-                                  onClick={() => handleQuantityChange(item.id, 1)} 
-                                  className="hover:bg-gray-100 p-1 rounded-full flex items-center justify-center"
-                                >
-                                  <Plus size={14} />
-                                </button>
-                              </div>
-                            </td>
-                            <td className="px-3 sm:px-4 py-3 sm:py-4 text-center text-sm whitespace-nowrap">
-                              {item.discount.toFixed(2)}
-                            </td>
-                            <td className="px-3 sm:px-4 py-3 sm:py-4 text-center text-sm whitespace-nowrap">
-                              Rs.{item.price.toFixed(2)}
-                            </td>
-                            <td className="px-3 sm:px-4 py-3 sm:py-4 text-center">
-                              <button className="hover:text-red-500 transition-colors p-1 flex items-center justify-center mx-auto">
-                                <Trash2 size={18} />
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
+    return (
+      <tr key={item.id} className="hover:bg-gray-50">
+        <td className="p-3 sm:p-4">
+          <input type="checkbox" className="w-4 h-4 sm:w-5 sm:h-5" />
+        </td>
+        <td className="px-3 sm:px-4 py-3 sm:py-4">
+          <div className="flex items-center gap-3 sm:gap-4">
+            {/* ✅ Updated Image Styles */}
+            <img
+              src={item.image}
+              alt={item.name}
+              className="w-10 sm:w-12 md:w-14 h-auto object-contain"
+            />
+            <p className="text-sm sm:text-base whitespace-nowrap">{item.name}</p>
+          </div>
+        </td>
+        <td className="px-3 sm:px-4 py-3 sm:py-4">
+          <div className="flex gap-2 justify-center">
+            {(['kg', 'g'] as const).map(unit => (
+              <button
+                key={unit}
+                onClick={() => handleUnitChange(item.id, unit)}
+                className={`text-sm px-3 py-1 rounded border ${selectedUnit === unit ? 'bg-[#EDE1FF] font-semibold' : 'text-gray-500'}`}
+              >
+                {unit}
+              </button>
+            ))}
+          </div>
+        </td>
+        <td className="px-3 sm:px-4 py-3 sm:py-4">
+          <div className='flex items-center gap-2 border rounded px-2 py-2 justify-between w-24 sm:w-28 md:w-32 mx-auto'>
+            <button 
+              onClick={() => handleQuantityChange(item.cartItemId, -1)} 
+              className="hover:bg-gray-100 p-1 rounded-full flex items-center justify-center"
+            >
+              <Minus size={14} />
+            </button>
+            <span className="text-sm sm:text-base">{item.quantity}</span>
+            <button 
+              onClick={() => handleQuantityChange(item.cartItemId, 1)} 
+              className="hover:bg-gray-100 p-1 rounded-full flex items-center justify-center"
+            >
+              <Plus size={14} />
+            </button>
+          </div>
+        </td>
+        <td className="px-3 sm:px-4 py-3 sm:py-4 text-center text-sm whitespace-nowrap">
+          Rs.{item.discount.toFixed(2)}
+        </td>
+        <td className="px-3 sm:px-4 py-3 sm:py-4 text-center text-sm whitespace-nowrap">
+          Rs.{item.price.toFixed(2)}
+        </td>
+        <td className="px-3 sm:px-4 py-3 sm:py-4 text-center">
+          <button 
+            onClick={() => handleRemoveItem(item.cartItemId)}
+            className="hover:text-red-500 transition-colors p-1 flex items-center justify-center mx-auto"
+          >
+            <Trash2 size={18} />
+          </button>
+        </td>
+      </tr>
+    );
+  })}
+</tbody>
+
                   </table>
                 </div>
               </div>
             </div>
           ))}
+
+          {/* Package Cards Section */}
+          <div className='space-y-4 sm:space-y-6 mt-6 sm:mt-8'>
+            {packages.map((pkg) => (
+              <div key={pkg.id} className='w-full'>
+                {/* Header */}
+                <div className='flex flex-col sm:flex-row sm:justify-between sm:items-center mb-3 sm:mb-4 pb-2 border-b border-gray-300 gap-2 sm:gap-0'>
+                  <h3 className='text-sm sm:text-base font-normal text-gray-800 leading-relaxed'>
+                    Your Selected Package : <span className='font-semibold'>{pkg.packageName}</span> ({pkg.totalItems} Items)
+                  </h3>
+                  <div className='flex items-center justify-between sm:justify-end gap-3 sm:gap-4'>
+                    <button 
+                      onClick={() => handleRemoveItem(pkg.cartItemId)}
+                      className='text-red-500 hover:scale-105 transition-transform'
+                    >
+                      <Trash2 size={18} className='sm:w-5 sm:h-5' />
+                    </button>
+                    <span className='text-base sm:text-lg font-bold text-gray-900'>Rs. {pkg.price.toFixed(2)}</span>
+                  </div>
+                </div>
+
+                {/* Package Card */}
+                <div className='bg-white border border-gray-200 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-sm'>
+                  {/* Table Header */}
+                  <div className='grid grid-cols-2 pb-3 sm:pb-4 mb-3 sm:mb-4 border-b border-gray-200'>
+                    <span className='text-xs sm:text-sm font-medium text-gray-500 uppercase tracking-wide'>ITEMS</span>
+                    <span className='text-xs sm:text-sm font-medium text-gray-500 uppercase tracking-wide text-right'>QUANTITY</span>
+                  </div>
+
+                  {/* Items List */}
+                  <div className='space-y-3 sm:space-y-4'>
+                    {pkg.items.map((item, index) => (
+                      <div key={index} className='grid grid-cols-2 items-center gap-2'>
+                        <div className='flex items-center gap-2 sm:gap-3 min-w-0'>
+                          <span className='text-sm sm:text-base text-gray-900 font-medium truncate pr-1'>
+                            {item.name}
+                          </span>
+                        </div>
+                        <div className='text-right'>
+                          <span className='text-sm sm:text-base text-gray-900 font-medium'>
+                            {String(item.quantity).padStart(2, '0')}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Right Section - Order Summary */}
@@ -210,10 +351,14 @@ const Page: React.FC = () => {
 
             <div className='flex justify-between items-center mb-3 sm:mb-4'>
               <div className='flex items-center gap-2 sm:gap-3'>
-                <img className='w-12 sm:w-14 md:w-16 h-auto' src={"https://agroworld-s3-kmtu-hlf64-ituvf.s3.eu-north-1.amazonaws.com/cropgroup/image/92953533-462a-49f7-ba6d-7ef20a035a4f.png"} alt="Order" />
-                <p className="text-sm sm:text-base">{totalItems} items</p>
+                <div className="w-12 sm:w-14 md:w-16 h-12 sm:h-14 md:h-16 bg-gray-200 rounded-lg flex items-center justify-center">
+                  <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+                  </svg>
+                </div>
+                <p className="text-sm sm:text-base">{summary.totalItems} items</p>
               </div>
-              <p className='font-semibold text-sm sm:text-base'>Rs.{totalPrice.toFixed(2)}</p>
+              <p className='font-semibold text-sm sm:text-base'>Rs.{summary.grandTotal.toFixed(2)}</p>
             </div>
 
             <div className='border-t border-dotted border-gray-300 my-3' />
@@ -235,19 +380,19 @@ const Page: React.FC = () => {
 
             <div className='flex justify-between text-sm sm:text-base'>
               <p className='text-gray-600'>Total</p>
-              <p className='font-semibold'>Rs.{totalPrice.toFixed(2)}</p>
+              <p className='font-semibold'>Rs.{summary.grandTotal.toFixed(2)}</p>
             </div>
 
             <div className='flex justify-between text-sm sm:text-base mt-2'>
               <p className='text-gray-600'>Discount</p>
-              <p className='text-gray-600'>Rs.{discountAmount.toFixed(2)}</p>
+              <p className='text-gray-600'>Rs.{summary.couponDiscount.toFixed(2)}</p>
             </div>
 
             <div className='border-t border-dotted border-gray-300 my-3 sm:my-4' />
 
             <div className='flex justify-between mb-4 sm:mb-5 text-sm sm:text-base'>
               <p className='font-semibold'>Grand Total</p>
-              <p className='font-semibold'>Rs.{grandTotal.toFixed(2)}</p>
+              <p className='font-semibold'>Rs.{summary.finalTotal.toFixed(2)}</p>
             </div>
 
             <button className='w-full bg-[#3E206D] text-white font-semibold rounded-lg px-4 py-3 text-sm sm:text-base hover:bg-[#2d174f] transition-colors'>
@@ -261,7 +406,6 @@ const Page: React.FC = () => {
 };
 
 export default Page;
-
 
 // 'use client';
 // import React, { useEffect, useState } from 'react';
