@@ -26,6 +26,42 @@ export default function Home() {
 
   const cart = useSelector((state: RootState) => state.checkout) || null;
 
+  const cartState = useSelector((state: RootState) => state.cart);
+  const cartItemsState = useSelector((state: RootState) => state.cartItems);
+  const authState = useSelector((state: RootState) => state.auth); // If you want to see auth state too
+
+  // Console log Redux data whenever it changes
+  useEffect(() => {
+    console.log('=== REDUX STATE UPDATE ===');
+    console.log('Cart State:', cartState);
+    console.log('Cart Items State:', cartItemsState);
+    console.log('Auth State:', authState);
+    console.log('==========================');
+  }, [cartState, cartItemsState, authState]);
+
+  // Alternative: Log only when specific values change
+  useEffect(() => {
+    if (cartState.totalItems > 0) {
+      console.log('🛒 Cart has items:', {
+        totalItems: cartState.totalItems,
+        grandTotal: cartState.grandTotal,
+        finalTotal: cartState.finalTotal,
+        itemsCount: cartItemsState.items.length
+      });
+    }
+  }, [cartState.totalItems, cartState.grandTotal, cartItemsState.items.length]);
+
+  // You can also add a button to manually log the state
+  const logReduxState = () => {
+    console.log('📊 MANUAL REDUX STATE CHECK:');
+    console.log('Full Cart State:', cartState);
+    console.log('Full Cart Items State:', cartItemsState);
+    console.log('Individual Items:', cartItemsState.items);
+    console.log('Packages:', cartItemsState.packages);
+    console.log('Additional Items:', cartItemsState.additionalItems);
+  };
+
+
 
   useEffect(() => {
     fetchAllPackages();

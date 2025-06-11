@@ -62,6 +62,8 @@ export const getOrderHistory = async (token: string | null): Promise<any> => {
         });
 
         if (response.status >= 200 && response.status < 300) {
+            console.log('Order history fetched successfully:', response.data);
+            
             return response.data;
         } else {
             throw new Error(response.data?.message || 'Failed to fetch order history');
