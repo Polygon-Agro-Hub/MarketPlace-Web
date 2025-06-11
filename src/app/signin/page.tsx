@@ -12,6 +12,7 @@ import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import SuccessPopup from '@/components/toast-messages/success-message';
 import ErrorPopup from '@/components/toast-messages/error-message';
+import { Lock, Mail } from 'lucide-react';
 
 
 const page = () => {
@@ -28,36 +29,36 @@ const page = () => {
 
 
   const handleLogin = async (e: React.FormEvent) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  try {
-    setIsLoading(true);
-    const data = await login({ email, password });
-    setShowSuccessPopup(true);
+    try {
+      setIsLoading(true);
+      const data = await login({ email, password });
+      setShowSuccessPopup(true);
 
-    console.log('token details', data.userData, data.token);
-    
-    // Store token and redirect based on buyerType
-    if (data.token) {
-      dispatch(setCredentials({ token: data.token, user: data.userData }));
-      
-      // Check buyerType and redirect accordingly
-      if (data.userData.buyerType === 'Wholesale') {
-        router.push('/wholesale/home');
-      } else if (data.userData.buyerType === 'Retail') {
-        router.push('/');
-      } else {
-        // Fallback for unknown buyerType
-        router.push('/signin');
+      console.log('token details', data.userData, data.token);
+
+      // Store token and redirect based on buyerType
+      if (data.token) {
+        dispatch(setCredentials({ token: data.token, user: data.userData }));
+
+        // Check buyerType and redirect accordingly
+        if (data.userData.buyerType === 'Wholesale') {
+          router.push('/wholesale/home');
+        } else if (data.userData.buyerType === 'Retail') {
+          router.push('/');
+        } else {
+          // Fallback for unknown buyerType
+          router.push('/signin');
+        }
       }
-    }
 
-  } catch (err: any) {
-    setShowErrorPopup(true);
-  } finally {
-    setIsLoading(false);
-  }
-};
+    } catch (err: any) {
+      setShowErrorPopup(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
@@ -137,42 +138,44 @@ const page = () => {
           </div>
         )}
 
-      {/* Email Login Form */}
-      <form onSubmit={handleLogin} className="space-y-4">
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="Email"
-            className="w-full px-10 py-2 border rounded-md"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            
-          />
-          <span className="absolute left-3 top-2.5 text-gray-400">
-            <img src="/icons/mail.png" className="w-5 h-5" alt="Google" />
-          </span>
-        </div>
-        <div className="relative">
-          <input
-            type={showPassword ? "text" : "password"}
-            placeholder="Password"
-            className="w-full px-10 py-2 border rounded-md"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-          <span className="absolute left-3 top-2.5 text-gray-400">
-            <img src="/icons/Lock.png" className="w-5 h-5" alt="Lock" />
-          </span>
-          <button
-            type="button"
-            onClick={() => setShowPassword((prev) => !prev)}
-            className="absolute right-3 top-2.5 text-gray-400"
-          >
-             <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} className="w-5 h-5" />
-          </button>
-        </div>
+        {/* Email Login Form */}
+        <form onSubmit={handleLogin} className="space-y-4">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Email"
+              className="w-full px-10 py-2 border rounded-md"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+
+            />
+            <span className="absolute left-3 top-2.5 text-gray-400">
+              {/* <img src="/icons/mail.png" className="w-5 h-5" alt="Google" /> */}
+               <Mail className='w-5 h-5'/>
+            </span>
+          </div>
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Password"
+              className="w-full px-10 py-2 border rounded-md"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+            <span className="absolute left-3 top-2.5 text-gray-400">
+              {/* <img src="/icons/Lock.png" className="w-5 h-5" alt="Lock" /> */}
+              <Lock className='w-5 h-5' />
+            </span>
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              className="absolute right-3 top-2.5 text-gray-400"
+            >
+              <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} className="w-5 h-5" />
+            </button>
+          </div>
 
           <div className="flex items-center justify-between text-sm">
             <label className="flex items-center space-x-2">

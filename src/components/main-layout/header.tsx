@@ -119,10 +119,10 @@ const Header = () => {
                 </button>
                 {isDesktopCategoryOpen && (
                   <div className='absolute bg-[#3E206D] text-white w-48 shadow-lg mt-7 z-10'>
-                    <Link href="/category/retail" className="border-b-1 block px-4 py-2 hover:bg-[#6c5394]">
+                    <Link href="/" className="border-b-1 block px-4 py-2 hover:bg-[#6c5394]">
                       Retail
                     </Link>
-                    <Link href="/category/wholesale" className="block px-4 py-2 hover:bg-[#6c5394]">
+                    <Link href="/wholesale/home" className="block px-4 py-2 hover:bg-[#6c5394]">
                       Wholesale
                     </Link>
                   </div>
@@ -149,18 +149,20 @@ const Header = () => {
             </div>
           )}
 
-          <div className="flex items-center space-x-4 bg-[#502496] px-8 py-2 rounded-full">
-            <Link href='/cart' className='relative'>
-              <FontAwesomeIcon className='text-2xl' icon={faBagShopping} />
-              <span className="absolute top-3 -right-2 bg-[#FF8F66] text-white rounded-full w-4 h-4 flex items-center justify-center text-xs">
-                0
-              </span>
-            </Link>
-            <div className="text-sm">Rs. 0.00</div>
+          <Link href='/cart'>
+            <div className="flex items-center space-x-4 bg-[#502496] px-8 py-2 rounded-full">
+              <div className='relative'>
+                <FontAwesomeIcon className='text-2xl' icon={faBagShopping} />
+                <span className="absolute top-3 -right-2 bg-[#FF8F66] text-white rounded-full w-4 h-4 flex items-center justify-center text-xs">
+                  0
+                </span>
+              </div>
+              <div className="text-sm">Rs. 0.00</div>
 
-          </div>
+            </div>
+          </Link>
           {!isMobile && (
-            <Link href="/orders">
+            <Link href="/history/order">
               <FontAwesomeIcon className='text-4xl' icon={faClockRotateLeft} />
             </Link>
           )}
@@ -338,7 +340,7 @@ const Header = () => {
                 </button>
               </div>
               <nav className="flex flex-col w-full">
-              {!isClient ? (
+                {!isClient ? (
                   // Show placeholder during SSR/hydration
                   <div className="py-4 px-6 border-b border-purple-800">
                     <div className="w-20 h-4 bg-purple-700 rounded animate-pulse"></div>

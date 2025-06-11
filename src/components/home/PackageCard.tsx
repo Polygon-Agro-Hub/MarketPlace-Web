@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { packageAddToCart } from '@/services/product-service';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
+import { useRouter } from 'next/navigation';
 
 interface PackageItem {
   id: number;
@@ -44,6 +45,8 @@ const PackageCard: React.FC<PackageProps> = ({
 }) => {
   const { isMobile } = useViewport();
   const token = useSelector((state: RootState) => state.auth.token) as string | null;
+  const router = useRouter();
+
 
   const handlePackageAddToCart = async () => {
     if (!packageDetails || packageDetails.length === 0) {
@@ -55,7 +58,9 @@ const PackageCard: React.FC<PackageProps> = ({
 
     if (!token) {
       if (onAddToCartError) {
-        onAddToCartError('Please login to add items to cart');
+        // onAddToCartError('Please login to add items to cart');
+        router.push('/signin');
+
       }
       return;
     }

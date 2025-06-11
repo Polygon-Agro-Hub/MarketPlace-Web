@@ -16,6 +16,9 @@
     "@fortawesome/react-fontawesome": "^0.2.2",
     "@hookform/resolvers": "^5.0.1",
     "@reduxjs/toolkit": "^2.8.0",
+    "@tailwindcss/container-queries": "^0.1.1",
+    "@tailwindcss/typography": "^0.5.16",
+    "@types/pdfmake": "^0.2.11",
     "@types/react-slick": "^0.23.13",
     "axios": "^1.9.0",
     "html2canvas": "^1.4.1",
@@ -24,6 +27,8 @@
     "lucide-react": "^0.508.0",
     "my-app": "file:",
     "next": "15.3.2",
+    "pdfmake": "^0.2.20",
+    "postcss": "^8.5.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.56.3",
@@ -41,14 +46,14 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
-    "@tailwindcss/postcss": "^4",
+    "@tailwindcss/postcss": "^4.1.8",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/react-lottie": "^1.2.10",
     "eslint": "^9",
     "eslint-config-next": "15.3.2",
-    "tailwindcss": "^4.1.5",
+    "tailwindcss": "^4.1.8",
     "typescript": "^5"
   }
 }
