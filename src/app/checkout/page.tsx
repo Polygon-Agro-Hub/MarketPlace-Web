@@ -114,7 +114,7 @@ const Page: React.FC = () => {
   const [fetching, setFetching] = useState(true);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
- const cartPrices = useSelector((state: RootState) => state.cart) || null;
+  const cartPrices = useSelector((state: RootState) => state.cart) || null;
   const { items, cartId } = useSelector((state: RootState) => state.cartItems);
   const router = useRouter();
   const [showErrorPopup, setShowErrorPopup] = useState(false);
