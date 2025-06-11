@@ -9,7 +9,7 @@ import { getInvoice, getOrderDetails } from '@/services/retail-order-service';
 import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
 pdfMake.vfs = (pdfFonts as any).vfs;
-
+import { Suspense } from 'react'
 // Define interfaces based on the API responses
 export interface InvoiceItem {
   id: number;
@@ -101,9 +101,11 @@ function InvoiceView({
 }) {
   if (!invoice) {
     return (
-      <div className="w-full p-8">
-        <p className="text-red-600 text-center">Loading...</p>
-      </div>
+      <Suspense>
+        <div className="w-full p-8">
+          <p className="text-red-600 text-center">Loading...</p>
+        </div>
+      </Suspense>
     );
   }
 
@@ -785,7 +787,7 @@ export default function InvoicePage() {
         <InvoiceView
           invoice={selectedInvoice}
           onClose={() => router.push('/history/order')}
-          invoiceRef ={invoiceRef as any}
+          invoiceRef={invoiceRef as any}
         />
       </main>
     </div>
