@@ -799,3 +799,14 @@
 //     </Suspense>
 //   );
 // }
+
+'use client'
+import React from 'react'
+
+const page = () => {
+  return (
+    <div>commented code</div>
+  )
+}
+
+export default page
