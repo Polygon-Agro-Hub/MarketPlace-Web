@@ -101,11 +101,9 @@ function InvoiceView({
 }) {
   if (!invoice) {
     return (
-      <Suspense>
-        <div className="w-full p-8">
-          <p className="text-red-600 text-center">Loading...</p>
-        </div>
-      </Suspense>
+      <div className="w-full p-8">
+        <p className="text-red-600 text-center">Loading...</p>
+      </div>
     );
   }
 
@@ -295,7 +293,7 @@ function InvoiceView({
   );
 }
 
-export default function InvoicePage() {
+function InvoicePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = useSelector((state: RootState) => state.auth.token);
@@ -791,5 +789,13 @@ export default function InvoicePage() {
         />
       </main>
     </div>
+  );
+}
+
+export default function InvoicePage() {
+  return (
+    <Suspense fallback={<div className="p-10 text-center">Loading invoice data...</div>}>
+      <InvoicePageContent />
+    </Suspense>
   );
 }
