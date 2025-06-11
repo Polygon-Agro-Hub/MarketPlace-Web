@@ -817,7 +817,7 @@ export default function SignupForm() {
               ? "OTP Sent Successfully"
               : "Your account created successfully!"
           }
-          description={success}
+          description={success as any}
         />
 
         <ErrorPopup
