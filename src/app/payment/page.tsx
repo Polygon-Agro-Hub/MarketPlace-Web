@@ -1,151 +1,305 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, MouseEvent } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import TopNavigation from '@/components/top-navigation/TopNavigation';
 import OrderSummary from '@/components/cart-right-cart/right-cart';
-import Visa from "../../../public/images/Visa.png";
-import MasterCard from "../../../public/images/Mastercard.png";
+import SuccessPopup from '@/components/toast-messages/success-message-with-button';
+import ErrorPopup from '@/components/toast-messages/error-message';
+import Visa from '../../../public/images/Visa.png';
+import MasterCard from '../../../public/images/Mastercard.png';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
-import { submitPayment } from '@/services/retail-order-service';
+import { submitOrderToBackend, validateOrderData, OrderPayload } from '@/services/cart-service';
 
 const Page: React.FC = () => {
-    const NavArray = [
-        { name: 'Cart', path: '/cart', status: true },
-        { name: 'Checkout', path: '/checkout', status: false },
-        { name: 'Payment', path: '/payment', status: true },
+  const router = useRouter();
+  const NavArray = [
+    { name: 'Cart', path: '/cart', status: true },
+    { name: 'Checkout', path: '/checkout', status: false },
+    { name: 'Payment', path: '/payment', status: true },
+  ];
+
+  // Redux state selectors - using only cartItems slice
+  const cartItems = useSelector((state: RootState) => state.cartItems);
+  const checkoutDetails = useSelector((state: RootState) => state.checkout);
+  const token = useSelector((state: RootState) => state.auth?.token) || null;
+
+  // Local state
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'cash'>('card');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [cardDetails, setCardDetails] = useState({
+    cardNumber: '',
+    nameOnCard: '',
+    expirationDate: '',
+    cvv: '',
+  });
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [showErrorPopup, setShowErrorPopup] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [orderId, setOrderId] = useState<number | null>(null);
+
+  useEffect(() => {
+    console.log('Cart Items:', cartItems);
+    console.log('Checkout Details:', checkoutDetails);
+  }, [cartItems, checkoutDetails]);
+
+  const handleCardInputChange = (field: string, value: string) => {
+    setCardDetails((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const prepareOrderPayload = (): OrderPayload => {
+    const items = [
+      // Map items from cartItems.items array
+      ...(cartItems.items || []).map((item) => ({
+        productId: Number(item.productId || item.id) || 0,
+        unit: String(item.unit || 'unit'),
+        qty: Number(item.quantity) || 1,
+        totalDiscount: Number(item.totalDiscount) || 0,
+        totalPrice: Number(item.totalPrice || item.unitPrice * item.quantity) || 0,
+        itemType: item.itemType === 'package' ? 'package' as const : 'product' as const,
+        packageId: item.packageId || null,
+        id: item.itemType === 'package' ? (item.packageId || null) : null,
+      })),
     ];
 
-    const cartPrices = useSelector((state: RootState) => state.cart) || null;
+    // Calculate totals from cartItems.summary or fallback to items calculation
+    const summary = cartItems.summary;
+    const grandTotal = summary?.grandTotal || summary?.finalTotal || 0;
+    const discountAmount = summary?.couponDiscount || 0;
 
-    const [paymentMethod, setPaymentMethod] = useState<'card' | 'cash'>('card');
-    const { items, cartId } = useSelector((state: RootState) => state.cartItems);
-    const storedFormData = useSelector((state: RootState) => state.checkout);
-
-
-       useEffect(() => {
-          console.log('useEffect called with cart items by chalana:', items);
-          console.log('data from store', storedFormData);
-        }, []);
-
-
-
-
-const handleSubmitPayment = async () => {
-    const payload = {
-        paymentMethod,
-        cartId: String(cartId),
-        items,
-        checkoutDetails: storedFormData,
+    return {
+      items,
+      cartId: cartItems.cartId || 0,
+      checkoutDetails: {
+        deliveryMethod: checkoutDetails.deliveryMethod || 'home',
+        title: checkoutDetails.title || '',
+        fullName: checkoutDetails.fullName || '',
+        phoneCode1: checkoutDetails.phoneCode1 || '+94',
+        phone1: checkoutDetails.phone1 || '',
+        phoneCode2: checkoutDetails.phoneCode2 || '',
+        phone2: checkoutDetails.phone2 || '',
+        // Convert buildingType to lowercase to match backend validation
+        buildingType: (checkoutDetails.buildingType || 'apartment').toLowerCase(),
+        deliveryDate: checkoutDetails.deliveryDate || '',
+        timeSlot: checkoutDetails.timeSlot || '',
+        buildingNo: checkoutDetails.buildingNo || '',
+        buildingName: checkoutDetails.buildingName || '',
+        flatNumber: checkoutDetails.flatNumber || '',
+        floorNumber: checkoutDetails.floorNumber || '',
+        houseNo: checkoutDetails.houseNo || '',
+        street: checkoutDetails.street || '',
+        cityName: checkoutDetails.cityName || '',
+        scheduleType: checkoutDetails.scheduleType || 'One Time',
+        centerId: checkoutDetails.deliveryMethod === 'pickup' ? (checkoutDetails.centerId || null) : null,
+        couponValue: Number(summary?.couponDiscount) || 0,
+        isCoupon: (summary?.couponDiscount || 0) > 0,
+      },
+      paymentMethod,
+      discountAmount: Number(discountAmount) || 0,
+      grandTotal: Number(grandTotal) || 0,
+      orderApp: 'marketplace',
     };
+  };
+
+  console.log('cartId',cartItems.cartId)
+
+  const handleSubmitOrder = async (event: MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    setIsSubmitting(true);
 
     try {
-        const result = await submitPayment(payload);
-        console.log('Payment submitted successfully:', result);
+      // Validate required data is available
+      if (!cartItems || !checkoutDetails) {
+        throw new Error('Missing required order data. Please go back and complete all steps.');
+      }
 
-        // Optional: Redirect or display success
+      if (!cartItems.items || cartItems.items.length === 0) {
+        throw new Error('No items in cart. Please add items before placing order.');
+      }
+
+      if (!token) {
+        throw new Error('Authentication required. Please log in again.');
+      }
+
+      const payload = prepareOrderPayload();
+
+      // Validate the payload
+      const validation = validateOrderData(payload);
+      if (!validation.isValid) {
+        console.error('Validation errors:', validation.errors);
+        setErrorMessage(validation.errors.join('\n'));
+        setShowErrorPopup(true);
+        return;
+      }
+
+      console.log('Prepared Order Payload:', payload);
+
+      // Submit to backend with token from Redux
+      const result = await submitOrderToBackend(payload, token);
+      console.log('Order submitted successfully:', result);
+
+      // Check if the response has the expected structure
+      if (result.status && result.orderId) {
+        setOrderId(result.orderId);
+        setShowSuccessPopup(true);
+      } else {
+        throw new Error('Invalid response from server');
+      }
     } catch (error: any) {
-        console.error('Error submitting payment:', error.message);
-        // Optional: show error toast
+      console.error('Error submitting order:', error.message);
+      setErrorMessage(error.message || 'Order submission failed. Please try again.');
+      setShowErrorPopup(true);
+    } finally {
+      setIsSubmitting(false);
     }
-};
+  };
 
+  return (
+    <div className="px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5">
+      <SuccessPopup
+        isVisible={showSuccessPopup}
+        onClose={() => {
+          setShowSuccessPopup(false);
+          router.push(`/order-confirmation?orderId=${orderId}`);
+        }}
+        title="Order Placed Successfully!"
+        description="Your order has been confirmed. View details in your order history."
+        path={`/order-confirmation?orderId=${orderId}`}
+      />
+      <ErrorPopup
+        isVisible={showErrorPopup}
+        onClose={() => setShowErrorPopup(false)}
+        title="Error"
+        description={errorMessage}
+      />
+      <TopNavigation NavArray={NavArray} />
 
+      <div className="flex flex-col lg:flex-row lg:items-start gap-4 sm:gap-6 items-start">
+        <div className="w-full lg:w-2/3 mt-6 pt-8">
+          <div className="bg-white rounded-3xl border border-gray-200 p-8">
+            <h1 className="text-2xl font-semibold mb-6">Select Payment Method</h1>
 
-    return (
-        <div className='px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5'>
-            <TopNavigation NavArray={NavArray} />
-
-            <div className='flex flex-col lg:flex-row lg:items-start gap-4 sm:gap-6 items-start'>
-                <div className='w-full lg:w-2/3 mt-6 pt-8'>
-                    <div className='bg-white rounded-3xl border border-gray-200 p-8'>
-                        <h1 className='text-2xl font-semibold mb-6'>Select Payment Method</h1>
-
-                        {/* Credit/Debit Card Option */}
-                        <div className='mb-5 border border-gray-200 rounded-lg overflow-hidden'>
-                            <div
-                                className='rounded-t-lg p-4 flex justify-between items-center cursor-pointer'
-                                onClick={() => setPaymentMethod('card')}
-                            >
-                                <div className='flex items-center'>
-                                    <div className={`w-5 h-5 rounded-full ${paymentMethod === 'card' ? 'bg-indigo-800 border-2 border-indigo-800 ring-2 ring-indigo-100' : 'border border-gray-400'}`}></div>
-                                    <span className='ml-3 text-base'>Credit / Debit Card</span>
-                                </div>
-                                <div className='flex space-x-2 lg:mr-8'>
-                                    <Image src={Visa} alt="Visa" className='w-auto h-6 object-cover mr-2' />
-                                    <Image src={MasterCard} alt="MasterCard" className='w-auto h-6 object-cover' />
-                                </div>
-                            </div>
-                            {paymentMethod === 'card' && (
-                                <div className='mb-5 rounded-b-lg p-10 border-t border-gray-200'>
-                                    <div className='mb-4'>
-                                        <input
-                                            type="text"
-                                            placeholder="Enter Card Number"
-                                            className='w-full p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm'
-                                        />
-                                    </div>
-                                    <div className='mb-4'>
-                                        <input
-                                            type="text"
-                                            placeholder="Enter Name on Card"
-                                            className='w-full p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm'
-                                        />
-                                    </div>
-                                    <div className='flex gap-4'>
-                                        <input
-                                            type="text"
-                                            placeholder="Enter Expiration Date (MM/YY)"
-                                            className='w-3/5 p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm'
-                                        />
-                                        <input
-                                            type="text"
-                                            placeholder="Enter CVV"
-                                            className='w-2/5 p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm'
-                                        />
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className='mb-5 border border-gray-200 rounded-lg'>
-                            <div
-                                className='rounded-lg p-4 flex justify-between items-center cursor-pointer'
-                                onClick={() => setPaymentMethod('cash')}
-                            >
-                                <div className='flex items-center'>
-                                    <div className={`w-5 h-5 rounded-full ${paymentMethod === 'cash' ? 'bg-indigo-800 border-2 border-indigo-800 ring-2 ring-indigo-100' : 'border border-gray-400'}`}></div>
-                                    <span className='ml-3 text-base'>Pay by Cash</span>
-                                </div>
-                            </div>
-
-                            {/* Cash Payment Instructions - Only shown when cash payment is selected */}
-                            {paymentMethod === 'cash' && (
-                                <div className='p-10 border-t border-gray-200'>
-                                    <div className='text-gray-700 space-y-6'>
-                                        <p>- You may pay in cash to our courier upon receiving your parcel at the doorstep.</p>
-                                        <p>- Before agreeing to receive the parcel, check if your delivery status has been updated to "Out of Delivery".</p>
-                                        <p>- Before receiving, confirm that the airway bill shows that the parcel fro, Agro World.</p>
-                                        <p>- Before you make the payment to the courier, confirm your order number, sender information and tracking number on the parcel.</p>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
+            {/* Credit/Debit Card Option */}
+            <div className="mb-5 border border-gray-200 rounded-lg overflow-hidden">
+              <div
+                className="rounded-t-lg p-4 flex justify-between items-center cursor-pointer"
+                onClick={() => setPaymentMethod('card')}
+              >
+                <div className="flex items-center">
+                  <div
+                    className={`w-5 h-5 rounded-full ${
+                      paymentMethod === 'card'
+                        ? 'bg-indigo-800 border-2 border-indigo-800 ring-2 ring-indigo-100'
+                        : 'border border-gray-400'
+                    }`}
+                  ></div>
+                  <span className="ml-3 text-base">Credit / Debit Card</span>
                 </div>
-                <div className='w-full lg:w-1/3 mt-6 lg:mt-0 pt-14'>
-                    <OrderSummary
-                        totalItems={cartPrices.totalItems}
-                        totalPrice={cartPrices.totalPrice}
-                        discountAmount={cartPrices.discountAmount}
-                        grandTotal={cartPrices.grandTotal}
-                        fromPayment={true}
-                        paymentMethod={paymentMethod}
+                <div className="flex space-x-2 lg:mr-8">
+                  <Image src={Visa} alt="Visa" className="w-auto h-6 object-cover mr-2" />
+                  <Image src={MasterCard} alt="MasterCard" className="w-auto h-6 object-cover" />
+                </div>
+              </div>
+              {paymentMethod === 'card' && (
+                <div className="mb-5 rounded-b-lg p-10 border-t border-gray-200">
+                  <div className="mb-4">
+                    <input
+                      type="text"
+                      placeholder="Enter Card Number"
+                      value={cardDetails.cardNumber}
+                      onChange={(e) => handleCardInputChange('cardNumber', e.target.value)}
+                      className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm"
                     />
+                  </div>
+                  <div className="mb-4">
+                    <input
+                      type="text"
+                      placeholder="Enter Name on Card"
+                      value={cardDetails.nameOnCard}
+                      onChange={(e) => handleCardInputChange('nameOnCard', e.target.value)}
+                      className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm"
+                    />
+                  </div>
+                  <div className="flex gap-4">
+                    <input
+                      type="text"
+                      placeholder="Enter Expiration Date (MM/YY)"
+                      value={cardDetails.expirationDate}
+                      onChange={(e) => handleCardInputChange('expirationDate', e.target.value)}
+                      className="w-3/5 p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Enter CVV"
+                      value={cardDetails.cvv}
+                      onChange={(e) => handleCardInputChange('cvv', e.target.value)}
+                      className="w-2/5 p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm"
+                    />
+                  </div>
                 </div>
+              )}
             </div>
+
+            {/* Cash Payment Option */}
+            <div className="mb-5 border border-gray-200 rounded-lg">
+              <div
+                className="rounded-lg p-4 flex justify-between items-center cursor-pointer"
+                onClick={() => setPaymentMethod('cash')}
+              >
+                <div className="flex items-center">
+                  <div
+                    className={`w-5 h-5 rounded-full ${
+                      paymentMethod === 'cash'
+                        ? 'bg-indigo-800 border-2 border-indigo-800 ring-2 ring-indigo-100'
+                        : 'border border-gray-400'
+                    }`}
+                  ></div>
+                  <span className="ml-3 text-base">Pay by Cash</span>
+                </div>
+              </div>
+              {paymentMethod === 'cash' && (
+                <div className="p-10 border-t border-gray-200">
+                  <div className="text-gray-700 space-y-6">
+                    <p>- You may pay in cash to our courier upon receiving your parcel at the doorstep.</p>
+                    <p>- Before agreeing to receive the parcel, check if your delivery status has been updated to "Out of Delivery".</p>
+                    <p>- Before receiving, confirm that the airway bill shows that the parcel from Agro World.</p>
+                    <p>- Before you make the payment to the courier, confirm your order number, sender information, and tracking number on the parcel.</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Submit Order Button */}
+            <div className="mt-8">
+              <button
+                onClick={handleSubmitOrder}
+                disabled={isSubmitting}
+                className={`w-full py-4 px-6 rounded-lg text-white font-semibold ${
+                  isSubmitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-indigo-800 hover:bg-indigo-900'
+                } transition-colors`}
+              >
+                {isSubmitting ? 'Processing Order...' : 'Place Order'}
+              </button>
+            </div>
+          </div>
         </div>
-    );
+        <div className="w-full lg:w-1/3 mt-6 lg:mt-0 pt-14">
+          <OrderSummary
+            totalItems={cartItems.summary?.totalItems || 0}
+            totalPrice={(cartItems.summary?.packageTotal || 0) + (cartItems.summary?.productTotal || 0)}
+            discountAmount={cartItems.summary?.couponDiscount || 0}
+            grandTotal={cartItems.summary?.grandTotal || cartItems.summary?.finalTotal || 0}
+            fromPayment={true}
+            paymentMethod={paymentMethod}
+          />
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default Page;

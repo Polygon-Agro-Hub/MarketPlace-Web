@@ -2,6 +2,7 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 interface FormState {
+    centerId: number | null;
     deliveryMethod: string;
     title: string;
     fullName: string;
@@ -22,25 +23,27 @@ interface FormState {
     scheduleType: string;
 }
 
+
 const initialState: FormState = {
-    deliveryMethod: 'home',
-    title: '',
-    fullName: '',
-    phone1: '',
-    phone2: '',
-    buildingType: 'Apartment',
-    deliveryDate: '',
-    timeSlot: '',
-    phoneCode1: '94',
-    phoneCode2: '94',
-    buildingNo: '',
-    buildingName: '',
-    flatNumber: '',
-    floorNumber: '',
-    houseNo: '',
-    street: '',
-    cityName: '',
-    scheduleType: 'One Time',
+  deliveryMethod: 'home',
+  title: '',
+  fullName: '',
+  phone1: '',
+  phone2: '',
+  buildingType: 'Apartment',
+  deliveryDate: '',
+  timeSlot: '',
+  phoneCode1: '94',
+  phoneCode2: '94',
+  buildingNo: '',
+  buildingName: '',
+  flatNumber: '',
+  floorNumber: '',
+  houseNo: '',
+  street: '',
+  cityName: '',
+  scheduleType: 'One Time',
+  centerId: null
 };
 
 const checkoutSlice = createSlice({
