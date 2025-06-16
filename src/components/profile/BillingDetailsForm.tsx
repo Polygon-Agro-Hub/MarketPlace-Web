@@ -67,7 +67,7 @@ const BillingDetailsForm = () => {
 
   const buildingType = watch('buildingType');
 
-  // Clear apartment fields when buildingType is not 'apartment'
+  // Clear apartment or house fields based on buildingType
   useEffect(() => {
     if (buildingType.toLowerCase() !== 'apartment') {
       setValue('apartmentName', '');
@@ -120,7 +120,7 @@ const BillingDetailsForm = () => {
           phonecode2: '+94',
           phone2: '',
         });
-      } catch (error) {
+      } catch (error: any) { // Explicitly type error as any
         setErrorMessage(error.message || 'Failed to fetch billing details');
         setShowErrorPopup(true);
       }
@@ -182,48 +182,61 @@ const BillingDetailsForm = () => {
 
       setShowSuccessPopup(true);
 
-      // Refetch billing details to update form
-      const refetch = await fetch('http://localhost:3200/api/auth/billing-details', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (refetch.ok) {
-        const json = await refetch.json();
-        if (json.status && json.data) {
-          const data = json.data;
-          reset({
-            billingTitle: data.billingTitle || '',
-            billingName: data.billingName || '',
-            title: data.title || '',
-            firstName: data.firstName || '',
-            lastName: data.lastName || '',
-            buildingType: data.buildingType ? data.buildingType.toLowerCase() : '',
-            houseNo: data.address?.houseNo || data.address?.buildingNo || '',
-            apartmentName: data.address?.buildingName || '',
-            flatNumber: data.address?.unitNo || '',
-            houseStreet: data.buildingType?.toLowerCase() === 'house' ? data.address?.streetName || '' : '',
-            houseCity: data.buildingType?.toLowerCase() === 'house' ? data.address?.city || '' : '',
-            apartmentStreet: data.buildingType?.toLowerCase() === 'apartment' ? data.address?.streetName || '' : '',
-            apartmentCity: data.buildingType?.toLowerCase() === 'apartment' ? data.address?.city || '' : '',
-            phonecode1: data.phoneCode || '+94',
-            phone1: data.phoneNumber || '',
-            phonecode2: '+94',
-            phone2: '',
-          });
-        }
-      }
-    } catch (error) {
+      // Delay reset to allow SuccessPopup to display
+      setTimeout(() => {
+        setShowSuccessPopup(false);
+        // Refetch billing details to update form
+        const refetchBillingDetails = async () => {
+          try {
+            const refetch = await fetch('http://localhost:3200/api/auth/billing-details', {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            if (refetch.ok) {
+              const json = await refetch.json();
+              if (json.status && json.data) {
+                const data = json.data;
+                reset({
+                  billingTitle: data.billingTitle || '',
+                  billingName: data.billingName || '',
+                  title: data.title || '',
+                  firstName: data.firstName || '',
+                  lastName: data.lastName || '',
+                  buildingType: data.buildingType ? data.buildingType.toLowerCase() : '',
+                  houseNo: data.address?.houseNo || data.address?.buildingNo || '',
+                  apartmentName: data.address?.buildingName || '',
+                  flatNumber: data.address?.unitNo || '',
+                  houseStreet: data.buildingType?.toLowerCase() === 'house' ? data.address?.streetName || '' : '',
+                  houseCity: data.buildingType?.toLowerCase() === 'house' ? data.address?.city || '' : '',
+                  apartmentStreet: data.buildingType?.toLowerCase() === 'apartment' ? data.address?.streetName || '' : '',
+                  apartmentCity: data.buildingType?.toLowerCase() === 'apartment' ? data.address?.city || '' : '',
+                  phonecode1: data.phoneCode || '+94',
+                  phone1: data.phoneNumber || '',
+                  phonecode2: '+94',
+                  phone2: '',
+                });
+              }
+            }
+          } catch (error: any) { // Explicitly type error as any
+            setErrorMessage(error.message || 'Failed to refetch billing details');
+            setShowErrorPopup(true);
+          }
+        };
+        refetchBillingDetails();
+      }, 3000); // Match SuccessPopup duration
+    } catch (error: any) { // Explicitly type error as any
       setErrorMessage(error.message || 'Failed to save billing details');
       setShowErrorPopup(true);
     }
   };
 
   return (
-    <div className="relative">
+    <div className="relative z-50">
       {/* Popup Notifications */}
       <SuccessPopup
         isVisible={showSuccessPopup}
         onClose={() => setShowSuccessPopup(false)}
         title="Billing details saved successfully!"
+        duration={3000}
       />
       <ErrorPopup
         isVisible={showErrorPopup}
@@ -252,9 +265,10 @@ const BillingDetailsForm = () => {
                 <select
                   {...register('billingTitle', { required: 'Billing Title is required' })}
                   className="appearance-none block w-full border rounded-lg border-[#CECECE] py-2 px-4 pr-8 text-xs sm:text-sm h-[42px]"
-                  defaultValue=""
                 >
-                  {/* <option value="" disabled>Select Billing Title</option> */}
+                  <option value="" disabled>
+                    Select Billing Title
+                  </option>
                   <option value="Mr.">Mr.</option>
                   <option value="Ms.">Ms.</option>
                   <option value="Mrs.">Mrs.</option>
@@ -276,7 +290,6 @@ const BillingDetailsForm = () => {
               <p className="text-red-500 text-xs">{errors.billingName?.message}</p>
             </div>
           </div>
-
         </div>
 
         <div className="border-t border-[#BDBDBD] my-6" />
@@ -290,9 +303,10 @@ const BillingDetailsForm = () => {
               <select
                 {...register('buildingType', { required: 'Building type is required' })}
                 className="border border-[#CECECE] rounded p-2 pr-px px-8 w-full text-sm h-[42px] appearance-none"
-                defaultValue=""
               >
-                <option value="" disabled>Select Building Type</option>
+                <option value="" disabled>
+                  Select Building Type
+                </option>
                 <option value="house">House</option>
                 <option value="apartment">Apartment</option>
               </select>
@@ -395,7 +409,7 @@ const BillingDetailsForm = () => {
               <div className="flex gap-4">
                 <div className="relative w-[25%] md:w-[14%] min-w-[70px]">
                   <select
-                    {...register(`phonecode${num}` as const, {
+                    {...register(`phonecode${num}` as 'phonecode1' | 'phonecode2', {
                       required: num === 1 ? 'Phone code is required' : false,
                     })}
                     className="appearance-none border border-[#CECECE] rounded-lg p-2 w-full h-[42px] pr-8 text-sm"
@@ -411,7 +425,7 @@ const BillingDetailsForm = () => {
                 <div className="w-[70%] lg:w-[65%]">
                   <input
                     type="text"
-                    {...register(`phone${num}` as const, {
+                    {...register(`phone${num}` as 'phone1' | 'phone2', {
                       required: num === 1 ? 'Phone number is required' : false,
                       pattern: {
                         value: /^[0-9]{7,10}$/,
@@ -427,7 +441,7 @@ const BillingDetailsForm = () => {
                     }}
                   />
                   <p className="text-red-500 text-xs">
-                    {errors[`phone${num}` as keyof BillingFormData]?.message}
+                    {errors[`phone${num}` as 'phone1' | 'phone2']?.message}
                   </p>
                 </div>
               </div>
@@ -436,10 +450,17 @@ const BillingDetailsForm = () => {
         </div>
 
         <div className="flex justify-end gap-4 mt-10">
-          <button type="button" className="w-[90px] h-[36px] text-sm rounded-lg text-[#757E87] bg-[#F3F4F7] hover:bg-[#e1e2e5]">
+          <button
+            type="button"
+            className="w-[90px] h-[36px] text-sm rounded-lg text-[#757E87] bg-[#F3F4F7] hover:bg-[#e1e2e5]"
+            onClick={() => reset()}
+          >
             Cancel
           </button>
-          <button type="submit" className="w-[90px] h-[36px] text-sm rounded-lg text-white bg-[#3E206D] hover:bg-[#341a5a] mb-4">
+          <button
+            type="submit"
+            className="w-[90px] h-[36px] text-sm rounded-lg text-white bg-[#3E206D] hover:bg-[#341a5a] mb-4"
+          >
             Save
           </button>
         </div>

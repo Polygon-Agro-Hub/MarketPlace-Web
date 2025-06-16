@@ -340,3 +340,226 @@ export const resetPasswordByPhone = async (phoneNumber: string, newPassword: str
     throw new Error(error.response?.data?.message || 'Failed to reset password');
   }
 };
+
+// Interface for complaint payload
+interface ComplaintPayload {
+  userId: number;
+  token: string;
+  complaintCategoryId: number;
+  complaint: string;
+  images: File[];
+  imagesToDelete?: number[];
+  complaintId?: number;
+}
+
+// Interface for complaint response
+interface ComplaintResponse {
+  status: boolean;
+  message: string;
+  complaintId?: number;
+}
+
+export const submitComplaint = async (payload: ComplaintPayload): Promise<ComplaintResponse> => {
+  try {
+    // Validate authentication
+    if (!payload.userId || !payload.token) {
+      throw new Error('You are not authenticated. Please log in first.');
+    }
+
+    // Validate form inputs
+    if (!payload.complaintCategoryId || !payload.complaint) {
+      throw new Error('Please select a category and enter a complaint.');
+    }
+
+    // Validate image types and size
+    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+    const maxFileSize = 5 * 1024 * 1024; // 5MB
+    for (const image of payload.images) {
+      if (!allowedMimeTypes.includes(image.type)) {
+        throw new Error(`Unsupported file type for ${image.name}.`);
+      }
+      if (image.size > maxFileSize) {
+        throw new Error(`File ${image.name} exceeds 5MB limit.`);
+      }
+    }
+
+    // Prepare form data
+    const formData = new FormData();
+    formData.append('complaintCategoryId', payload.complaintCategoryId.toString());
+    formData.append('complaint', payload.complaint);
+    payload.images.forEach((image) => {
+      formData.append('images', image);
+    });
+    if (payload.imagesToDelete && payload.imagesToDelete.length > 0) {
+      formData.append('imagesToDelete', JSON.stringify(payload.imagesToDelete));
+    }
+
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3200';
+    const url = payload.complaintId
+      ? `${API_BASE_URL}/api/auth/update/${payload.userId}/${payload.complaintId}`
+      : `${API_BASE_URL}/api/auth/submit/${payload.userId}`;
+
+    console.log('Sending complaint to:', url); // Debug: Log URL
+
+    const response = await axios({
+      method: payload.complaintId ? 'PUT' : 'POST',
+      url,
+      headers: {
+        Authorization: `Bearer ${payload.token}`,
+        // Note: 'Content-Type' is not set manually for FormData; axios handles it
+      },
+      data: formData,
+    });
+
+    const resData = response.data;
+
+    if (resData.status === true) {
+      return resData;
+    } else {
+      throw new Error(resData.message || 'Complaint submission failed on server.');
+    }
+  } catch (error: any) {
+    if (error.response) {
+      // Check if response is JSON
+      const contentType = error.response.headers['content-type'];
+      if (!contentType || !contentType.includes('application/json')) {
+        console.error('Non-JSON response:', error.response.data); // Debug: Log raw response
+        throw new Error(
+          'Unexpected server response. Expected JSON but received HTML or other content. Please check the server configuration.'
+        );
+      }
+
+      const resData = error.response.data;
+      throw new Error(
+        resData?.message ||
+          resData?.error ||
+          `Complaint submission failed with status ${error.response.status}`
+      );
+    } else if (error.request) {
+      throw new Error('No response received from server. Please check your network connection.');
+    } else {
+      throw new Error(error.message || 'An error occurred during complaint submission.');
+    }
+  }
+};
+
+// Interfaces
+interface Complaint {
+  id: string;
+  category: string;
+  date: string;
+  status: string;
+  description: string;
+  images: string[];
+  isNew: boolean;
+  createdAt: Date;
+  reply?: string;
+  replyDate?: string | null;
+
+  customerName?: string;
+}
+
+interface ApiComplaint {
+  complainId: number;
+  complaiCategoryId: number;
+  createdAt: string | number | Date;
+  status: string;
+  complain: string;
+  images: string[];
+  reply?: string;
+   replyDate?: string | null;
+  customerName?: string;
+}
+
+interface ApiResponse {
+  status: boolean;
+  data: ApiComplaint[];
+  message?: string;
+}
+
+interface FetchComplaintsPayload {
+  userId: number;
+  token: string;
+}
+
+// Map category ID to category name
+const categoryMap: { [key: number]: string } = {
+  1: 'Product Issues',
+  2: 'Delivery Issues',
+  3: 'Payment Issues',
+  4: 'Customer Service',
+};
+
+// Function to format date to "Month Day, Year"
+const formatDate = (dateInput: string | number | Date): string => {
+  const date = new Date(dateInput);
+  return date.toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
+};
+
+export const fetchComplaints = async (payload: FetchComplaintsPayload): Promise<Complaint[]> => {
+  try {
+    if (!payload.userId || !payload.token) {
+      throw new Error('You are not authenticated. Please log in first.');
+    }
+
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3200';
+    const url = `${API_BASE_URL}/api/auth/complaints/user/${payload.userId}`;
+
+    console.log('Fetching complaints from:', url);
+
+    const response = await axios({
+      method: 'GET',
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${payload.token}`,
+      },
+    });
+
+    const resData: ApiResponse = response.data;
+
+    if (resData.status && resData.data) {
+      const mappedComplaints: Complaint[] = resData.data.map((item: ApiComplaint) => ({
+        id: String(item.complainId),
+        category: categoryMap[item.complaiCategoryId] || 'Unknown Category',
+        date: formatDate(item.createdAt),
+        status: item.status || 'Opened',
+        description: item.complain,
+        images: item.images || [],
+        isNew: !item.status || item.status === 'Opened',
+        createdAt: new Date(item.createdAt),
+        reply: item.reply || 'No reply available yet.',
+        replyDate: item.replyDate || null,
+        customerName: item.customerName || 'Unknown Customer',
+      }));
+      return mappedComplaints;
+    } else {
+      throw new Error(resData.message || 'Invalid response format');
+    }
+  } catch (error: any) {
+    if (error.response) {
+      const contentType = error.response.headers['content-type'];
+      if (!contentType || !contentType.includes('application/json')) {
+        console.error('Non-JSON response:', error.response.data);
+        throw new Error(
+          'Unexpected server response. Expected JSON but received HTML or other content. Please check the server configuration.'
+        );
+      }
+
+      const resData = error.response.data;
+      throw new Error(
+        resData?.message ||
+          resData?.error ||
+          `Failed to fetch complaints with status ${error.response.status}`
+      );
+    } else if (error.request) {
+      throw new Error('No response received from server. Please check your network connection.');
+    } else {
+      throw new Error(error.message || 'An error occurred while fetching complaints.');
+    }
+  }
+};
