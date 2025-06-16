@@ -13,7 +13,8 @@ import ErrorPopup from '@/components/toast-messages/error-message';
 import { getForm } from '@/services/retail-service';
 
 interface FormData {
-  deliveryMethod: string;
+  centerId: any, // Added centerId
+  deliveryMethod: any;
   title: string;
   fullName: string;
   phone1: string;
@@ -34,6 +35,7 @@ interface FormData {
 }
 
 interface FormErrors {
+  centerId: any; // Added centerId
   deliveryMethod: string;
   title: string;
   fullName: string;
@@ -55,6 +57,7 @@ interface FormErrors {
 }
 
 const initialFormState: FormData = {
+  centerId: null, // Added centerId
   deliveryMethod: 'home',
   title: '',
   fullName: '',
@@ -88,6 +91,7 @@ const Page: React.FC = () => {
   const [formData, setFormDataLocal] = useState<FormData>(initialFormState);
 
   const [errors, setErrors] = useState<FormErrors>({
+    centerId:null,
     deliveryMethod: '',
     title: '',
     fullName: '',
@@ -274,19 +278,20 @@ const Page: React.FC = () => {
     }
   };
 
-  const validateForm = (): boolean => {
-    const newErrors: FormErrors = {} as FormErrors;
-    let valid = true;
+const validateForm = (): boolean => {
+  const newErrors: FormErrors = {} as FormErrors;
+  let valid = true;
 
-    (Object.keys(formData) as Array<keyof FormData>).forEach(field => {
-      const error = validateField(field, formData[field], formData);
-      newErrors[field] = error;
-      if (error) valid = false;
-    });
+  (Object.keys(formData) as Array<keyof FormData>).forEach(field => {
+    const value = formData[field] != null ? String(formData[field]) : ''; // Convert to string with null check
+    const error = validateField(field, value, formData);
+    newErrors[field] = error;
+    if (error) valid = false;
+  });
 
-    setErrors(newErrors);
-    return valid;
-  };
+  setErrors(newErrors);
+  return valid;
+};
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
