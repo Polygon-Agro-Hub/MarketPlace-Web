@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useSelector } from 'react-redux';
@@ -5,6 +6,7 @@ import { useForm } from 'react-hook-form';
 import { RootState } from '@/store';
 import { useEffect, useState } from 'react';
 import { FaAngleDown } from 'react-icons/fa';
+import { fetchBillingDetails, saveBillingDetails, BillingDetails, BillingAddress } from '@/services/auth-service';
 import SuccessPopup from '@/components/toast-messages/success-message';
 import ErrorPopup from '@/components/toast-messages/error-message';
 
@@ -42,12 +44,12 @@ const BillingDetailsForm = () => {
     reset,
     watch,
     setValue,
-    formState: { errors },
+    formState: { errors, isValid },
   } = useForm<BillingFormData>({
     defaultValues: {
-      billingTitle: '',
+      billingTitle: 'Mr.',
       billingName: '',
-      title: '',
+      title: 'Mr.',
       firstName: '',
       lastName: '',
       houseNo: '',
@@ -63,6 +65,7 @@ const BillingDetailsForm = () => {
       phonecode2: '+94',
       phone2: '',
     },
+    mode: 'onChange',
   });
 
   const buildingType = watch('buildingType');
@@ -82,29 +85,15 @@ const BillingDetailsForm = () => {
 
   // Fetch billing details
   useEffect(() => {
-    const fetchBillingDetails = async () => {
+    const loadBillingDetails = async () => {
       if (!token) return;
 
       try {
-        const res = await fetch('http://localhost:3200/api/auth/billing-details', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!res.ok) throw new Error('Failed to fetch billing details');
-
-        const json = await res.json();
-        if (!json.status || !json.data) {
-          throw new Error('Invalid response or user not found');
-        }
-
-        const data = json.data;
-
+        const data = await fetchBillingDetails({ token });
         reset({
-          billingTitle: data.billingTitle || '',
+          billingTitle: data.billingTitle || 'Mr.',
           billingName: data.billingName || '',
-          title: data.title || '',
+          title: data.title || 'Mr.',
           firstName: data.firstName || '',
           lastName: data.lastName || '',
           buildingType: data.buildingType ? data.buildingType.toLowerCase() : '',
@@ -120,13 +109,13 @@ const BillingDetailsForm = () => {
           phonecode2: '+94',
           phone2: '',
         });
-      } catch (error: any) { // Explicitly type error as any
+      } catch (error: any) {
         setErrorMessage(error.message || 'Failed to fetch billing details');
         setShowErrorPopup(true);
       }
     };
 
-    fetchBillingDetails();
+    loadBillingDetails();
   }, [token, reset]);
 
   const onSubmit = async (data: BillingFormData) => {
@@ -136,94 +125,57 @@ const BillingDetailsForm = () => {
       return;
     }
 
-    // Prepare payload to match backend schema
-    const payload = {
-      billingTitle: data.billingTitle || '',
-      billingName: data.billingName || '',
-      title: data.title || '',
+    // Validate billingTitle
+    if (!data.billingTitle || !['Mr.', 'Ms.', 'Mrs.'].includes(data.billingTitle)) {
+      setErrorMessage('Please select a valid billing title (Mr., Ms., or Mrs.).');
+      setShowErrorPopup(true);
+      return;
+    }
+
+    const address: BillingAddress = {
+      title: data.title || data.billingTitle,
       firstName: data.firstName || '',
       lastName: data.lastName || '',
-      phoneCode: data.phonecode1 || '',
+      phoneCode: data.phonecode1 || '+94',
       phoneNumber: data.phone1 || '',
-      buildingType: data.buildingType.toLowerCase(),
-      address: {
-        ...(data.buildingType.toLowerCase() === 'house'
-          ? {
-              houseNo: data.houseNo || '',
-              streetName: data.houseStreet || '',
-              city: data.houseCity || '',
-            }
-          : {
-              buildingNo: data.houseNo || '',
-              buildingName: data.apartmentName || '',
-              unitNo: data.flatNumber || '',
-              floorNo: null,
-              houseNo: data.houseNo || '',
-              streetName: data.apartmentStreet || '',
-              city: data.apartmentCity || '',
-            }),
-      },
+      houseNo: data.buildingType.toLowerCase() === 'house' ? data.houseNo || undefined : undefined,
+      buildingNo: data.buildingType.toLowerCase() === 'apartment' ? data.houseNo || undefined : undefined,
+      buildingName: data.buildingType.toLowerCase() === 'apartment' ? data.apartmentName || undefined : undefined,
+      unitNo: data.buildingType.toLowerCase() === 'apartment' ? data.flatNumber || undefined : undefined,
+      floorNo: null,
+      streetName:
+        data.buildingType.toLowerCase() === 'house'
+          ? data.houseStreet || undefined
+          : data.buildingType.toLowerCase() === 'apartment'
+          ? data.apartmentStreet || undefined
+          : undefined,
+      city:
+        data.buildingType.toLowerCase() === 'house'
+          ? data.houseCity || undefined
+          : data.buildingType.toLowerCase() === 'apartment'
+          ? data.apartmentCity || undefined
+          : undefined,
+    };
+
+    const billingDetails: BillingDetails = {
+      billingTitle: data.billingTitle,
+      billingName: data.billingName || '',
+      title: data.title || data.billingTitle,
+      firstName: data.firstName || '',
+      lastName: data.lastName || '',
+      phoneCode: data.phonecode1 || '+94',
+      phoneNumber: data.phone1 || '',
+      buildingType: data.buildingType.toLowerCase() || '',
+      address,
     };
 
     try {
-      const res = await fetch('http://localhost:3200/api/auth/billing-details', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || 'Failed to save billing details');
-      }
-
+      await saveBillingDetails({ token, data: billingDetails });
       setShowSuccessPopup(true);
-
-      // Delay reset to allow SuccessPopup to display
       setTimeout(() => {
         setShowSuccessPopup(false);
-        // Refetch billing details to update form
-        const refetchBillingDetails = async () => {
-          try {
-            const refetch = await fetch('http://localhost:3200/api/auth/billing-details', {
-              headers: { Authorization: `Bearer ${token}` },
-            });
-            if (refetch.ok) {
-              const json = await refetch.json();
-              if (json.status && json.data) {
-                const data = json.data;
-                reset({
-                  billingTitle: data.billingTitle || '',
-                  billingName: data.billingName || '',
-                  title: data.title || '',
-                  firstName: data.firstName || '',
-                  lastName: data.lastName || '',
-                  buildingType: data.buildingType ? data.buildingType.toLowerCase() : '',
-                  houseNo: data.address?.houseNo || data.address?.buildingNo || '',
-                  apartmentName: data.address?.buildingName || '',
-                  flatNumber: data.address?.unitNo || '',
-                  houseStreet: data.buildingType?.toLowerCase() === 'house' ? data.address?.streetName || '' : '',
-                  houseCity: data.buildingType?.toLowerCase() === 'house' ? data.address?.city || '' : '',
-                  apartmentStreet: data.buildingType?.toLowerCase() === 'apartment' ? data.address?.streetName || '' : '',
-                  apartmentCity: data.buildingType?.toLowerCase() === 'apartment' ? data.address?.city || '' : '',
-                  phonecode1: data.phoneCode || '+94',
-                  phone1: data.phoneNumber || '',
-                  phonecode2: '+94',
-                  phone2: '',
-                });
-              }
-            }
-          } catch (error: any) { // Explicitly type error as any
-            setErrorMessage(error.message || 'Failed to refetch billing details');
-            setShowErrorPopup(true);
-          }
-        };
-        refetchBillingDetails();
-      }, 3000); // Match SuccessPopup duration
-    } catch (error: any) { // Explicitly type error as any
+      }, 3000);
+    } catch (error: any) {
       setErrorMessage(error.message || 'Failed to save billing details');
       setShowErrorPopup(true);
     }
@@ -265,10 +217,8 @@ const BillingDetailsForm = () => {
                 <select
                   {...register('billingTitle', { required: 'Billing Title is required' })}
                   className="appearance-none block w-full border rounded-lg border-[#CECECE] py-2 px-4 pr-8 text-xs sm:text-sm h-[42px]"
+                  defaultValue="Mr."
                 >
-                  <option value="" disabled>
-                    Select Billing Title
-                  </option>
                   <option value="Mr.">Mr.</option>
                   <option value="Ms.">Ms.</option>
                   <option value="Mrs.">Mrs.</option>
@@ -292,7 +242,7 @@ const BillingDetailsForm = () => {
           </div>
         </div>
 
-        <div className="border-t border-[#BDBDBD] my-6" />
+        <div className=" border-t border-[#BDBDBD] my-6" />
         <h2 className="font-medium text-base sm:text-lg md:text-xl mb-1">Currently Saved Address</h2>
 
         <div className="flex flex-col lg:flex-row gap-4 lg:gap-[100px] mb-6 mt-4 md:w-[89%]">
@@ -302,9 +252,9 @@ const BillingDetailsForm = () => {
             <div className="relative">
               <select
                 {...register('buildingType', { required: 'Building type is required' })}
-                className="border border-[#CECECE] rounded p-2 pr-px px-8 w-full text-sm h-[42px] appearance-none"
+                className="border border-[#CECECE] rounded p-2 pr-4 px-8 w-full text-sm h-[42px] appearance-none"
               >
-                <option value="" disabled>
+                <option value=" disabled=">
                   Select Building Type
                 </option>
                 <option value="house">House</option>
@@ -316,157 +266,160 @@ const BillingDetailsForm = () => {
           </div>
 
           {/* House No or Building No */}
-          <div className="w-full lg:w-1/2">
-            <label className="block text-sm font-medium text-[#626D76] mb-1">
-              {buildingType.toLowerCase() === 'house' ? 'House No' : 'Building No'}
-            </label>
-            <input
-              {...register('houseNo', { required: 'House or Building No is required' })}
-              className="border border-[#CECECE] rounded p-2 w-full text-sm"
-            />
-            <p className="text-red-500 text-xs">{errors.houseNo?.message}</p>
-          </div>
-        </div>
-
-        {/* Apartment-specific fields */}
-        {buildingType.toLowerCase() === 'apartment' && (
-          <div className="flex flex-col lg:flex-row gap-4 lg:gap-[100px] mb-6 md:w-[89%]">
             <div className="w-full lg:w-1/2">
-              <label className="block text-sm font-medium text-[#626D76] mb-1">Apartment or Building Name</label>
-              <input
-                {...register('apartmentName', { required: 'Apartment name is required for apartments' })}
-                className="border border-[#CECECE] rounded p-2 w-full text-sm"
-              />
-              <p className="text-red-500 text-xs">{errors.apartmentName?.message}</p>
-            </div>
-
-            <div className="w-full lg:w-1/2">
-              <label className="block text-sm font-medium text-[#626D76] mb-1">Flat/Unit Number</label>
-              <input
-                {...register('flatNumber', { required: 'Flat number is required for apartments' })}
-                className="border border-[#CECECE] rounded p-2 w-full text-sm"
-              />
-              <p className="text-red-500 text-xs">{errors.flatNumber?.message}</p>
-            </div>
-          </div>
-        )}
-
-        {/* Address fields based on buildingType */}
-        {buildingType.toLowerCase() === 'house' && (
-          <div className="flex flex-col lg:flex-row gap-6 lg:gap-[100px] mb-6 mt-4 md:w-[89%]">
-            <div className="w-full lg:w-1/2">
-              <label className="block text-sm font-medium text-[#626D76] mb-1">House Street Name</label>
-              <input
-                {...register('houseStreet', { required: 'House street name is required' })}
-                className="border border-[#CECECE] rounded p-2 w-full text-sm"
-              />
-              <p className="text-red-500 text-xs">{errors.houseStreet?.message}</p>
-            </div>
-
-            <div className="w-full lg:w-1/2">
-              <label className="block text-sm font-medium text-[#626D76] mb-1">House City</label>
-              <input
-                {...register('houseCity', { required: 'House city is required' })}
-                className="border border-[#CECECE] rounded p-2 w-full text-sm"
-              />
-              <p className="text-red-500 text-xs">{errors.houseCity?.message}</p>
-            </div>
-          </div>
-        )}
-
-        {buildingType.toLowerCase() === 'apartment' && (
-          <div className="flex flex-col lg:flex-row gap-6 lg:gap-[100px] mb-6 mt-4 md:w-[89%]">
-            <div className="w-full lg:w-1/2">
-              <label className="block text-sm font-medium text-[#626D76] mb-1">Apartment Street Name</label>
-              <input
-                {...register('apartmentStreet', { required: 'Apartment street name is required' })}
-                className="border border-[#CECECE] rounded p-2 w-full text-sm"
-              />
-              <p className="text-red-500 text-xs">{errors.apartmentStreet?.message}</p>
-            </div>
-
-            <div className="w-full lg:w-1/2">
-              <label className="block text-sm font-medium text-[#626D76] mb-1">Apartment City</label>
-              <input
-                {...register('apartmentCity', { required: 'Apartment city is required' })}
-                className="border border-[#CECECE] rounded p-2 w-full text-sm"
-              />
-              <p className="text-red-500 text-xs">{errors.apartmentCity?.message}</p>
-            </div>
-          </div>
-        )}
-
-        <div className="border-t border-[#BDBDBD] my-8" />
-        <h2 className="font-medium text-base sm:text-lg md:text-xl mb-1">Contact</h2>
-        <p className="text-xs md:text-sm text-[#626D76] mb-6">Manage your account phone numbers for invoices.</p>
-
-        <div className="flex flex-col lg:flex-row gap-y-1 lg:gap-x-2">
-          {[1, 2].map((num) => (
-            <div key={num} className="flex flex-col w-full md:w-[48.5%]">
-              <label className="block text-sm font-medium text-[#626D76] mb-1">
-                Phone Number {num}
+              <label className="block text-sm sm font-medium text-[#626D76] mb-1">
+                {buildingType.toLowerCase() === 'house' ? 'House No' : 'Building No'}
               </label>
-              <div className="flex gap-4">
-                <div className="relative w-[25%] md:w-[14%] min-w-[70px]">
-                  <select
-                    {...register(`phonecode${num}` as 'phonecode1' | 'phonecode2', {
-                      required: num === 1 ? 'Phone code is required' : false,
-                    })}
-                    className="appearance-none border border-[#CECECE] rounded-lg p-2 w-full h-[42px] pr-8 text-sm"
-                  >
-                    <option value="+94">+94</option>
-                    <option value="+91">+91</option>
-                    <option value="+1">+1</option>
-                    <option value="+44">+44</option>
-                  </select>
-                  <FaAngleDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none" />
-                </div>
+              <input
+                {...register('houseNo')} // Removed required validation
+                className="border border-[#CECECE] rounded p-2 w-full text-sm"
+              />
+              <p className="text-red-500 text-xs">{errors.houseNo?.message}</p>
+            </div>
+          </div>
 
-                <div className="w-[70%] lg:w-[65%]">
-                  <input
-                    type="text"
-                    {...register(`phone${num}` as 'phone1' | 'phone2', {
-                      required: num === 1 ? 'Phone number is required' : false,
-                      pattern: {
-                        value: /^[0-9]{7,10}$/,
-                        message: 'Enter a valid number (7-10 digits)',
-                      },
-                    })}
-                    className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-sm"
-                    placeholder="7XXXXXXXX"
-                    inputMode="numeric"
-                    onKeyDown={(e) => {
-                      const invalidKeys = ['e', 'E', '+', '-', '.', ','];
-                      if (invalidKeys.includes(e.key)) e.preventDefault();
-                    }}
-                  />
-                  <p className="text-red-500 text-xs">
-                    {errors[`phone${num}` as 'phone1' | 'phone2']?.message}
-                  </p>
-                </div>
+          {/* Apartment-specific fields */}
+          {buildingType.toLowerCase() === 'apartment' && (
+            <div className="flex flex-col lg:flex-row gap-4 lg:gap-[100px] mb-6 md:w-[89%]">
+              <div className="w-full lg:w-1/2">
+                <label className="block text-sm font-medium text-[#626D76] mb-1">Apartment or Building Name</label>
+                <input
+                  {...register('apartmentName')} // Removed required validation
+                  className="border border-[#CECECE] rounded p-2 w-full text-sm"
+                />
+                <p className="text-red-500 text-xs">{errors.apartmentName?.message}</p>
+              </div>
+
+              <div className="w-full lg:w-1/2">
+                <label className="block text-sm font-medium text-[#626D76] mb-1">Flat/Unit Number</label>
+                <input
+                  {...register('flatNumber')} // Removed required validation
+                  className="border border-[#CECECE] rounded p-2 w-full text-sm"
+                />
+                <p className="text-red-500 text-xs">{errors.flatNumber?.message}</p>
               </div>
             </div>
-          ))}
-        </div>
+          )}
 
-        <div className="flex justify-end gap-4 mt-10">
-          <button
-            type="button"
-            className="w-[90px] h-[36px] text-sm rounded-lg text-[#757E87] bg-[#F3F4F7] hover:bg-[#e1e2e5]"
-            onClick={() => reset()}
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            className="w-[90px] h-[36px] text-sm rounded-lg text-white bg-[#3E206D] hover:bg-[#341a5a] mb-4"
-          >
-            Save
-          </button>
-        </div>
-      </form>
-    </div>
-  );
+          {/* Address fields based on buildingType */}
+          {buildingType.toLowerCase() === 'house' && (
+            <div className="flex flex-col lg:flex-row gap-6 lg:gap-[100px] mb-6 mt-4 md:w-[89%]">
+              <div className="w-full lg:w-1/2">
+                <label className="block text-sm font-medium text-[#626D76] mb-1">House Street Name</label>
+                <input
+                  {...register('houseStreet')} // Removed required validation
+                  className="border border-[#CECECE] rounded p-2 w-full text-sm"
+                />
+                <p className="text-red-500 text-xs">{errors.houseStreet?.message}</p>
+              </div>
+
+              <div className="w-full lg:w-1/2">
+                <label className="block text-sm font-medium text-[#626D76] mb-1">House City</label>
+                <input
+                  {...register('houseCity')} // Removed required validation
+                  className="border border-[#CECECE] rounded p-2 w-full text-sm"
+                />
+                <p className="text-red-500 text-xs">{errors.houseCity?.message}</p>
+              </div>
+            </div>
+          )}
+
+          {buildingType.toLowerCase() === 'apartment' && (
+            <div className="flex flex-col lg:flex-row gap-6 lg:gap-[100px] mb-6 mt-4 md:w-[89%]">
+              <div className="w-full lg:w-1/2">
+                <label className="block text-sm font-medium text-[#626D76] mb-1">Apartment Street Name</label>
+                <input
+                  {...register('apartmentStreet')} // Removed required validation
+                  className="border border-[#CECECE] rounded p-2 w-full text-sm"
+                />
+                <p className="text-red-500 text-xs">{errors.apartmentStreet?.message}</p>
+              </div>
+
+              <div className="w-full lg:w-1/2">
+                <label className="block text-sm font-medium text-[#626D76] mb-1">Apartment City</label>
+                <input
+                  {...register('apartmentCity')} // Removed required validation
+                  className="border border-[#CECECE] rounded p-2 w-full text-sm"
+                />
+                <p className="text-red-500 text-xs">{errors.apartmentCity?.message}</p>
+              </div>
+            </div>
+          )}
+
+          <div className="border-t border-[#BDBDBD] my-8" />
+          <h2 className="font-medium text-base sm:text-lg md:text-xl mb-1">Contact</h2>
+          <p className="text-xs md:text-sm text-[#626D76] mb-6">Manage your account phone numbers for invoices.</p>
+
+          <div className="flex flex-col lg:flex-row gap-y-1 lg:gap-x-2">
+            {[1, 2].map((num) => (
+              <div key={num} className="flex flex-col w-full md:w-[48.5%]">
+                <label className="block text-sm font-medium text-[#626D76] mb-1">
+                  Phone Number {num}
+                </label>
+                <div className="flex gap-4">
+                  <div className="relative w-[25%] md:w-[14%] min-w-[70px]">
+                    <select
+                      {...register(`phonecode${num}` as 'phonecode1' | 'phonecode2', {
+                        required: num === 1 ? 'Phone code is required' : false,
+                      })}
+                      className="appearance-none border border-[#CECECE] rounded-lg p-2 w-full h-[42px] pr-8 text-sm"
+                    >
+                      <option value="+94">+94</option>
+                      <option value="+91">+91</option>
+                      <option value="+1">+1</option>
+                      <option value="+44">+44</option>
+                    </select>
+                    <FaAngleDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none" />
+                  </div>
+
+                  <div className="w-[70%] lg:w-[65%]">
+                    <input
+                      type="text"
+                      {...register(`phone${num}` as 'phone1' | 'phone2', {
+                        required: num === 1 ? 'Phone number is required' : false,
+                        pattern: {
+                          value: /^[0-9]{7,10}$/,
+                          message: 'Enter a valid number (7-10 digits)',
+                        },
+                      })}
+                      className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-sm"
+                      placeholder="7XXXXXXXX"
+                      inputMode="numeric"
+                      onKeyDown={(e) => {
+                        const invalidKeys = ['e', 'E', '+', '-', '.', ','];
+                        if (invalidKeys.includes(e.key)) e.preventDefault();
+                      }}
+                    />
+                    <p className="text-red-500 text-xs">
+                      {errors[`phone${num}` as 'phone1' | 'phone2']?.message}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex justify-end gap-4 mt-10">
+            <button
+              type="button"
+              className="w-[90px] h-[36px] text-sm rounded-lg text-[#757E87] bg-[#F3F4F7] hover:bg-[#e1e2e5]"
+              onClick={() => reset()}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className={`w-[90px] h-[36px] text-sm rounded-lg text-white ${
+                isValid ? 'bg-[#3E206D] hover:bg-[#341a5a]' : 'bg-gray-400 cursor-not-allowed'
+              } mb-4`}
+              disabled={!isValid}
+            >
+              Save
+            </button>
+          </div>
+        </form>
+      </div>
+    );
 };
 
 export default BillingDetailsForm;

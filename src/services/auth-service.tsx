@@ -14,6 +14,181 @@ interface LoginResponse {
   message?: string;
 }
 
+// Signup interface
+interface SignupPayload {
+  title?: string;
+  firstName: string;
+  lastName: string;
+  phoneCode: string;
+  phoneNumber: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+  buyerType: 'Retail' | 'Wholesale';
+  agreeToTerms: boolean;
+  agreeToMarketing: boolean;
+}
+
+interface SignupResponse {
+  userData?: any;
+  token?: string;
+  user?: any;
+  message?: string;
+}
+
+interface Complaint {
+  id: string;
+  category: string;
+  date: string;
+  status: string;
+  description: string;
+  images: string[];
+  isNew: boolean;
+  createdAt: Date;
+  reply?: string;
+  replyDate?: string | null;
+  customerName?: string;
+}
+
+interface ApiComplaint {
+  complainId: number;
+  complaiCategoryId: number;
+  createdAt: string | number | Date;
+  status: string;
+  complain: string;
+  images: string[];
+  reply?: string;
+  replyDate?: string | null;
+  customerName?: string;
+}
+
+interface Profile {
+  title: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneCode: string;
+  phoneNumber: string;
+  image?: string;
+  profileImageURL?: string;
+}
+
+interface ApiProfile {
+  title: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneCode: string;
+  phoneNumber: string;
+  image?: string;
+  profileImageURL?: string;
+}
+
+export interface BillingAddress {
+  title: string;
+  firstName: string;
+  lastName: string;
+  phoneCode: string;
+  phoneNumber: string;
+  houseNo?: string;
+  buildingNo?: string;
+  buildingName?: string;
+  unitNo?: string;
+  floorNo?: string | null;
+  streetName?: string;
+  city?: string;
+}
+
+export interface BillingDetails {
+  billingName: string | undefined;
+  billingTitle: string; // Required
+  title: string;
+  firstName: string;
+  lastName: string;
+  phoneCode: string;
+  phoneNumber: string;
+  buildingType: string;
+  address: BillingAddress;
+}
+
+export interface BillingAddress {
+  title: string;
+  firstName: string;
+  lastName: string;
+  phoneCode: string;
+  phoneNumber: string;
+  houseNo?: string;
+  buildingNo?: string;
+  buildingName?: string;
+  unitNo?: string;
+  floorNo?: string | null;
+  streetName?: string;
+  city?: string;
+}
+
+interface FetchComplaintsPayload {
+  userId: number;
+  token: string;
+}
+
+interface FetchProfilePayload {
+  token: string;
+}
+
+interface UpdateProfilePayload {
+  token: string;
+  data: {
+    title: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phoneCode: string;
+    phoneNumber: string;
+  };
+  profilePic: File | null;
+}
+
+interface UpdatePasswordPayload {
+  token: string;
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+interface FetchBillingDetailsPayload {
+  token: string;
+}
+
+interface SaveBillingDetailsPayload {
+  token: string;
+  data: BillingDetails;
+}
+
+// Generic ApiResponse interface
+interface ApiResponse<T = any> {
+  status: boolean;
+  data: T;
+  message?: string;
+}
+
+// Interface for complaint payload
+interface ComplaintPayload {
+  userId: number;
+  token: string;
+  complaintCategoryId: number;
+  complaint: string;
+  images: File[];
+  imagesToDelete?: number[];
+  complaintId?: number;
+}
+
+// Interface for complaint response
+interface ComplaintResponse {
+  status: boolean;
+  message: string;
+  complaintId?: number;
+}
+
 export const login = async (payload: LoginPayload): Promise<LoginResponse> => {
   try {
     const response = await axios.post('/auth/login', payload, {
@@ -46,27 +221,6 @@ export const login = async (payload: LoginPayload): Promise<LoginResponse> => {
   }
 };
 
-// Signup interface
-interface SignupPayload {
-  title?: string;
-  firstName: string;
-  lastName: string;
-  phoneCode: string;
-  phoneNumber: string;
-  email: string;
-  password: string;
-  confirmPassword: string;
-  buyerType: 'Retail' | 'Wholesale';
-  agreeToTerms: boolean;
-  agreeToMarketing: boolean;
-}
-
-interface SignupResponse {
-  userData?: any;
-  token?: string;
-  user?: any;
-  message?: string;
-}
 
 export const signup = async (payload: SignupPayload): Promise<SignupResponse> => {
   try {
@@ -341,146 +495,7 @@ export const resetPasswordByPhone = async (phoneNumber: string, newPassword: str
   }
 };
 
-// Interface for complaint payload
-interface ComplaintPayload {
-  userId: number;
-  token: string;
-  complaintCategoryId: number;
-  complaint: string;
-  images: File[];
-  imagesToDelete?: number[];
-  complaintId?: number;
-}
 
-// Interface for complaint response
-interface ComplaintResponse {
-  status: boolean;
-  message: string;
-  complaintId?: number;
-}
-
-export const submitComplaint = async (payload: ComplaintPayload): Promise<ComplaintResponse> => {
-  try {
-    // Validate authentication
-    if (!payload.userId || !payload.token) {
-      throw new Error('You are not authenticated. Please log in first.');
-    }
-
-    // Validate form inputs
-    if (!payload.complaintCategoryId || !payload.complaint) {
-      throw new Error('Please select a category and enter a complaint.');
-    }
-
-    // Validate image types and size
-    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
-    const maxFileSize = 5 * 1024 * 1024; // 5MB
-    for (const image of payload.images) {
-      if (!allowedMimeTypes.includes(image.type)) {
-        throw new Error(`Unsupported file type for ${image.name}.`);
-      }
-      if (image.size > maxFileSize) {
-        throw new Error(`File ${image.name} exceeds 5MB limit.`);
-      }
-    }
-
-    // Prepare form data
-    const formData = new FormData();
-    formData.append('complaintCategoryId', payload.complaintCategoryId.toString());
-    formData.append('complaint', payload.complaint);
-    payload.images.forEach((image) => {
-      formData.append('images', image);
-    });
-    if (payload.imagesToDelete && payload.imagesToDelete.length > 0) {
-      formData.append('imagesToDelete', JSON.stringify(payload.imagesToDelete));
-    }
-
-    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3200';
-    const url = payload.complaintId
-      ? `${API_BASE_URL}/api/auth/update/${payload.userId}/${payload.complaintId}`
-      : `${API_BASE_URL}/api/auth/submit/${payload.userId}`;
-
-    console.log('Sending complaint to:', url); // Debug: Log URL
-
-    const response = await axios({
-      method: payload.complaintId ? 'PUT' : 'POST',
-      url,
-      headers: {
-        Authorization: `Bearer ${payload.token}`,
-        // Note: 'Content-Type' is not set manually for FormData; axios handles it
-      },
-      data: formData,
-    });
-
-    const resData = response.data;
-
-    if (resData.status === true) {
-      return resData;
-    } else {
-      throw new Error(resData.message || 'Complaint submission failed on server.');
-    }
-  } catch (error: any) {
-    if (error.response) {
-      // Check if response is JSON
-      const contentType = error.response.headers['content-type'];
-      if (!contentType || !contentType.includes('application/json')) {
-        console.error('Non-JSON response:', error.response.data); // Debug: Log raw response
-        throw new Error(
-          'Unexpected server response. Expected JSON but received HTML or other content. Please check the server configuration.'
-        );
-      }
-
-      const resData = error.response.data;
-      throw new Error(
-        resData?.message ||
-          resData?.error ||
-          `Complaint submission failed with status ${error.response.status}`
-      );
-    } else if (error.request) {
-      throw new Error('No response received from server. Please check your network connection.');
-    } else {
-      throw new Error(error.message || 'An error occurred during complaint submission.');
-    }
-  }
-};
-
-// Interfaces
-interface Complaint {
-  id: string;
-  category: string;
-  date: string;
-  status: string;
-  description: string;
-  images: string[];
-  isNew: boolean;
-  createdAt: Date;
-  reply?: string;
-  replyDate?: string | null;
-
-  customerName?: string;
-}
-
-interface ApiComplaint {
-  complainId: number;
-  complaiCategoryId: number;
-  createdAt: string | number | Date;
-  status: string;
-  complain: string;
-  images: string[];
-  reply?: string;
-   replyDate?: string | null;
-  customerName?: string;
-}
-
-interface ApiResponse {
-  status: boolean;
-  data: ApiComplaint[];
-  message?: string;
-}
-
-interface FetchComplaintsPayload {
-  userId: number;
-  token: string;
-}
 
 // Map category ID to category name
 const categoryMap: { [key: number]: string } = {
@@ -500,66 +515,370 @@ const formatDate = (dateInput: string | number | Date): string => {
   });
 };
 
-export const fetchComplaints = async (payload: FetchComplaintsPayload): Promise<Complaint[]> => {
+
+export const fetchProfile = async (payload: FetchProfilePayload): Promise<Profile> => {
   try {
-    if (!payload.userId || !payload.token) {
-      throw new Error('You are not authenticated. Please log in first.');
-    }
-
-    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3200';
-    const url = `${API_BASE_URL}/api/auth/complaints/user/${payload.userId}`;
-
-    console.log('Fetching complaints from:', url);
-
-    const response = await axios({
-      method: 'GET',
-      url,
+    const response = await axios.get('/auth/profile', {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${payload.token}`,
       },
     });
 
-    const resData: ApiResponse = response.data;
+    if (response.status >= 200 && response.status < 300) {
+      const resData: ApiResponse<ApiProfile> = response.data;
 
-    if (resData.status && resData.data) {
-      const mappedComplaints: Complaint[] = resData.data.map((item: ApiComplaint) => ({
-        id: String(item.complainId),
-        category: categoryMap[item.complaiCategoryId] || 'Unknown Category',
-        date: formatDate(item.createdAt),
-        status: item.status || 'Opened',
-        description: item.complain,
-        images: item.images || [],
-        isNew: !item.status || item.status === 'Opened',
-        createdAt: new Date(item.createdAt),
-        reply: item.reply || 'No reply available yet.',
-        replyDate: item.replyDate || null,
-        customerName: item.customerName || 'Unknown Customer',
-      }));
-      return mappedComplaints;
+      if (resData.status && resData.data) {
+        return {
+          title: resData.data.title || 'Mr.',
+          firstName: resData.data.firstName || '',
+          lastName: resData.data.lastName || '',
+          email: resData.data.email || '',
+          phoneCode: resData.data.phoneCode || '+94',
+          phoneNumber: resData.data.phoneNumber || '',
+          image: resData.data.image,
+          profileImageURL: resData.data.profileImageURL,
+        };
+      } else {
+        throw new Error(resData.message || 'Invalid response format');
+      }
     } else {
-      throw new Error(resData.message || 'Invalid response format');
+      throw new Error(response.data?.message || 'Failed to fetch profile');
     }
   } catch (error: any) {
     if (error.response) {
-      const contentType = error.response.headers['content-type'];
-      if (!contentType || !contentType.includes('application/json')) {
-        console.error('Non-JSON response:', error.response.data);
-        throw new Error(
-          'Unexpected server response. Expected JSON but received HTML or other content. Please check the server configuration.'
-        );
-      }
-
-      const resData = error.response.data;
       throw new Error(
-        resData?.message ||
-          resData?.error ||
-          `Failed to fetch complaints with status ${error.response.status}`
+        error.response.data?.message ||
+        error.response.data?.error ||
+        `Profile fetch failed with status ${error.response.status}`
       );
     } else if (error.request) {
       throw new Error('No response received from server. Please check your network connection.');
     } else {
-      throw new Error(error.message || 'An error occurred while fetching complaints.');
+      throw new Error(error.message || 'An error occurred while fetching profile');
+    }
+  }
+};
+
+export const updateProfile = async (payload: UpdateProfilePayload): Promise<void> => {
+  try {
+    if (!payload.token) {
+      throw new Error('You are not authenticated. Please log in first.');
+    }
+
+    const formData = new FormData();
+    formData.append('title', payload.data.title);
+    formData.append('firstName', payload.data.firstName);
+    formData.append('lastName', payload.data.lastName);
+    formData.append('email', payload.data.email);
+    formData.append('phoneCode', payload.data.phoneCode);
+    formData.append('phoneNumber', payload.data.phoneNumber);
+
+    if (payload.profilePic) {
+      formData.append('profilePicture', payload.profilePic);
+    }
+
+    const response = await axios.put('/auth/edit-profile', formData, {
+      headers: {
+        Authorization: `Bearer ${payload.token}`,
+      },
+    });
+
+    if (response.status < 200 || response.status >= 300 || !response.data.status) {
+      throw new Error(response.data?.message || 'Failed to update profile');
+    }
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(
+        error.response.data?.message ||
+        error.response.data?.error ||
+        `Profile update failed with status ${error.response.status}`
+      );
+    } else if (error.request) {
+      throw new Error('No response received from server. Please check your network connection.');
+    } else {
+      throw new Error(error.message || 'An error occurred while updating profile');
+    }
+  }
+};
+
+export const updatePassword = async (payload: UpdatePasswordPayload): Promise<{ message: string }> => {
+  try {
+    if (!payload.token) {
+      throw new Error('You are not authenticated. Please log in first.');
+    }
+
+    const response = await axios.put('/auth/update-password', {
+      currentPassword: payload.currentPassword,
+      newPassword: payload.newPassword,
+      confirmNewPassword: payload.confirmPassword,
+    }, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${payload.token}`,
+      },
+    });
+
+    if (response.status >= 200 && response.status < 300) {
+      return {
+        message: response.data?.message || 'Password updated successfully!',
+      };
+    } else {
+      throw new Error(response.data?.message || 'Failed to update password');
+    }
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(
+        error.response.data?.message ||
+        error.response.data?.error ||
+        `Password update failed with status ${error.response.status}`
+      );
+    } else if (error.request) {
+      throw new Error('No response received from server. Please check your network connection.');
+    } else {
+      throw new Error(error.message || 'An error occurred while updating password');
+    }
+  }
+};
+
+
+export const fetchBillingDetails = async (payload: FetchBillingDetailsPayload): Promise<BillingDetails> => {
+  try {
+    if (!payload.token) {
+      throw new Error('You are not authenticated. Please log in first.');
+    }
+
+    const response = await axios.get('/auth/billing-details', {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${payload.token}`,
+      },
+    });
+
+    if (response.status >= 200 && response.status < 300) {
+      const resData: ApiResponse<any> = response.data;
+
+      if (resData.status && resData.data) {
+        const apiData = resData.data;
+
+        const derivedBillingName = `${apiData.firstName || ''} ${apiData.lastName || ''}`.trim() || undefined;
+
+        return {
+          billingName: apiData.billingName || derivedBillingName,
+          billingTitle: apiData.billingTitle || apiData.title || 'Mr.',
+          title: apiData.title || 'Mr.',
+          firstName: apiData.firstName || '',
+          lastName: apiData.lastName || '',
+          phoneCode: apiData.phoneCode || '+94',
+          phoneNumber: apiData.phoneNumber || '',
+          buildingType: apiData.buildingType?.toLowerCase() || 'house',
+          address: {
+            title: apiData.title || 'Mr.',
+            firstName: apiData.firstName || '',
+            lastName: apiData.lastName || '',
+            phoneCode: apiData.phoneCode || '+94',
+            phoneNumber: apiData.phoneNumber || '',
+            houseNo: apiData.address?.houseNo || undefined,
+            buildingNo: apiData.address?.buildingNo || undefined,
+            buildingName: apiData.address?.buildingName || undefined,
+            unitNo: apiData.address?.unitNo || undefined,
+            floorNo: apiData.address?.floorNo || null,
+            streetName: apiData.address?.streetName || undefined,
+            city: apiData.address?.city || undefined,
+          },
+        };
+      } else {
+        throw new Error(resData.message || 'Invalid response format');
+      }
+    } else {
+      throw new Error(response.data?.message || 'Failed to fetch billing details');
+    }
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(
+        error.response.data?.message ||
+        error.response.data?.error ||
+        `Billing details fetch failed with status ${error.response.status}`
+      );
+    } else if (error.request) {
+      throw new Error('No response received from server. Please check your network connection.');
+    } else {
+      throw new Error(error.message || 'An error occurred while fetching billing details');
+    }
+  }
+};
+
+
+export const saveBillingDetails = async (payload: SaveBillingDetailsPayload): Promise<void> => {
+  try {
+    if (!payload.token) {
+      throw new Error('You are not authenticated. Please log in first.');
+    }
+
+    const apiPayload = {
+      billingTitle: payload.data.billingTitle,
+      billingName: payload.data.billingName || `${payload.data.firstName} ${payload.data.lastName}`.trim(),
+      title: payload.data.title,
+      firstName: payload.data.firstName,
+      lastName: payload.data.lastName || '',
+      phoneCode: payload.data.phoneCode,
+      phoneNumber: payload.data.phoneNumber,
+      buildingType: payload.data.buildingType.toLowerCase(),
+      address: {
+        houseNo: payload.data.address.houseNo || null,
+        buildingNo: payload.data.address.buildingNo || null,
+        buildingName: payload.data.address.buildingName || null,
+        unitNo: payload.data.address.unitNo || null,
+        floorNo: payload.data.address.floorNo || null,
+        streetName: payload.data.address.streetName || null,
+        city: payload.data.address.city || null,
+      },
+      phonecode2: payload.data.address.phoneCode || null,
+      phone2: payload.data.address.phoneNumber || null,
+    };
+
+    const response = await axios.post('/auth/billing-details', apiPayload, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${payload.token}`,
+      },
+    });
+
+    if (response.status < 200 || response.status >= 300 || !response.data.status) {
+      throw new Error(response.data?.message || 'Failed to save billing details');
+    }
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(
+        error.response.data?.message ||
+        error.response.data?.error ||
+        `Saving billing details failed with status ${error.response.status}`
+      );
+    } else if (error.request) {
+      throw new Error('No response received from server. Please check your network connection.');
+    } else {
+      throw new Error(error.message || 'An error occurred while saving billing details');
+    }
+  }
+};
+
+export const fetchComplaints = async (payload: FetchComplaintsPayload): Promise<Complaint[]> => {
+  try {
+    if (!payload.userId || !payload.token) {
+      throw new Error('You are not authenticated. Please log in first.');
+    }
+
+    const response = await axios.get(`/auth/complaints/user/${payload.userId}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${payload.token}`,
+      },
+    });
+
+    if (response.status >= 200 && response.status < 300) {
+      const resData: ApiResponse<ApiComplaint[]> = response.data;
+
+      if (resData.status && resData.data) {
+        const mappedComplaints: Complaint[] = resData.data.map((item: ApiComplaint) => ({
+          id: String(item.complainId),
+          category: categoryMap[item.complaiCategoryId] || 'Unknown Category',
+          date: formatDate(item.createdAt),
+          status: item.status || 'Opened',
+          description: item.complain,
+          images: item.images || [],
+          isNew: !item.status || item.status === 'Opened',
+          createdAt: new Date(item.createdAt),
+          reply: item.reply || 'No reply available yet.',
+          replyDate: item.replyDate || null,
+          customerName: item.customerName || 'Unknown Customer',
+        }));
+        return mappedComplaints;
+      } else {
+        throw new Error(resData.message || 'Invalid response format');
+      }
+    } else {
+      throw new Error(response.data?.message || 'Failed to fetch complaints');
+    }
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(
+        error.response.data?.message ||
+        error.response.data?.error ||
+        `Complaint fetch failed with status ${error.response.status}`
+      );
+    } else if (error.request) {
+      throw new Error('No response received from server. Please check your network connection.');
+    } else {
+      throw new Error(error.message || 'An error occurred while fetching complaints');
+    }
+  }
+};
+
+export const submitComplaint = async (payload: ComplaintPayload): Promise<ComplaintResponse> => {
+  try {
+    if (!payload.userId || !payload.token) {
+      throw new Error('You are not authenticated. Please log in first.');
+    }
+
+    if (!payload.complaintCategoryId || !payload.complaint) {
+      throw new Error('Please select a category and enter a complaint.');
+    }
+
+    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+    const maxFileSize = 5 * 1024 * 1024;
+
+    for (const image of payload.images) {
+      if (!allowedMimeTypes.includes(image.type)) {
+        throw new Error(`Unsupported file type for ${image.name}.`);
+      }
+      if (image.size > maxFileSize) {
+        throw new Error(`File ${image.name} exceeds 5MB limit.`);
+      }
+    }
+
+    const formData = new FormData();
+    formData.append('complaintCategoryId', payload.complaintCategoryId.toString());
+    formData.append('complaint', payload.complaint);
+    payload.images.forEach((image) => formData.append('images', image));
+    if (payload.imagesToDelete?.length) {
+      formData.append('imagesToDelete', JSON.stringify(payload.imagesToDelete));
+    }
+
+    const url = payload.complaintId
+      ? `/auth/update/${payload.userId}/${payload.complaintId}`
+      : `/auth/submit/${payload.userId}`;
+
+    const response = await axios({
+      method: payload.complaintId ? 'PUT' : 'POST',
+      url,
+      headers: {
+        Authorization: `Bearer ${payload.token}`,
+      },
+      data: formData,
+    });
+
+    if (response.status >= 200 && response.status < 300 && response.data?.status) {
+      return response.data;
+    } else {
+      throw new Error(response.data?.message || 'Complaint submission failed on server.');
+    }
+  } catch (error: any) {
+    if (error.response) {
+      const contentType = error.response.headers['content-type'];
+      if (!contentType?.includes('application/json')) {
+        console.error('Non-JSON server response:', error.response.data);
+        throw new Error('Unexpected server response. Expected JSON but received non-JSON.');
+      }
+
+      throw new Error(
+        error.response.data?.message ||
+        error.response.data?.error ||
+        `Complaint submission failed with status ${error.response.status}`
+      );
+    } else if (error.request) {
+      throw new Error('No response received from server. Please check your network connection.');
+    } else {
+      throw new Error(error.message || 'An error occurred during complaint submission.');
     }
   }
 };

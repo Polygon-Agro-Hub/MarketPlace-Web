@@ -10,6 +10,7 @@ import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
 import SuccessPopup from '@/components/toast-messages/success-message';
 import ErrorPopup from '@/components/toast-messages/error-message';
+import { fetchProfile, updateProfile, updatePassword } from '@/services/auth-service';
 
 const schema = yup.object().shape({
   title: yup.string().required('Title is required'),
@@ -41,7 +42,6 @@ type FormData = yup.InferType<typeof schema>;
 
 const PersonalDetailsForm = () => {
   const token = useSelector((state: RootState) => state.auth.token);
-
   const [profilePic, setProfilePic] = useState<File | null>(null);
   const [previewURL, setPreviewURL] = useState<string | null>(null);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -50,6 +50,7 @@ const PersonalDetailsForm = () => {
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [showErrorPopup, setShowErrorPopup] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   const {
     register,
@@ -67,27 +68,12 @@ const PersonalDetailsForm = () => {
     },
   });
 
-  // Debug popup state changes
   useEffect(() => {
-    console.log('showSuccessPopup:', showSuccessPopup);
-    console.log('showErrorPopup:', showErrorPopup, 'Error:', errorMessage);
-  }, [showSuccessPopup, showErrorPopup, errorMessage]);
-
-  useEffect(() => {
-    const fetchProfile = async () => {
+    const loadProfile = async () => {
       if (!token) return;
 
       try {
-        const response = await fetch('http://localhost:3200/api/auth/profile', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!response.ok) throw new Error('Failed to fetch profile');
-
-        const { data } = await response.json();
-
+        const data = await fetchProfile({ token });
         reset({
           title: data.title || 'Mr.',
           firstName: data.firstName || '',
@@ -99,15 +85,15 @@ const PersonalDetailsForm = () => {
           newPassword: undefined,
           confirmPassword: undefined,
         });
-
-        setPreviewURL(data.image);
+        setPreviewURL(data.image || data.profileImageURL || null);
       } catch (error: any) {
         setErrorMessage(error.message || 'Failed to fetch profile');
         setShowErrorPopup(true);
+        setShowSuccessPopup(false);
       }
     };
 
-    fetchProfile();
+    loadProfile();
   }, [token, reset]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -118,110 +104,92 @@ const PersonalDetailsForm = () => {
     }
   };
 
-  const onSubmit: SubmitHandler<FormData> = async (data) => {
-    if (!token) {
-      setErrorMessage('You are not authenticated. Please login first.');
-      setShowErrorPopup(true);
-      return;
-    }
+const onSubmit: SubmitHandler<FormData> = async (data) => {
+  if (!token) {
+    setErrorMessage('You are not authenticated. Please login first.');
+    setShowErrorPopup(true);
+    setShowSuccessPopup(false);
+    return;
+  }
 
-    try {
-      // 1. Update profile
-      const formData = new FormData();
-      formData.append('title', data.title);
-      formData.append('firstName', data.firstName);
-      formData.append('lastName', data.lastName);
-      formData.append('email', data.email);
-      formData.append('phoneCode', data.countryCode);
-      formData.append('phoneNumber', data.phoneNumber);
+  try {
+    setShowSuccessPopup(false);
+    setShowErrorPopup(false);
+    setErrorMessage('');
+    setSuccessMessage('');
 
-      if (profilePic) {
-        formData.append('profilePicture', profilePic);
-      }
+    // Update profile
+    await updateProfile({
+      token,
+      data: {
+        title: data.title,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        phoneCode: data.countryCode,
+        phoneNumber: data.phoneNumber,
+      },
+      profilePic,
+    });
 
-      const profileRes = await fetch('http://localhost:3200/api/auth/edit-profile', {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      });
+    let successMessages: string[] = ['Profile updated successfully!'];
 
-      if (!profileRes.ok) {
-        const err = await profileRes.json();
-        throw new Error(err.message || 'Failed to update profile');
-      }
-
-      // 2. Update password (optional)
-      if (data.newPassword && data.currentPassword && data.confirmPassword) {
-        const passwordRes = await fetch('http://localhost:3200/api/auth/update-password', {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            currentPassword: data.currentPassword,
-            newPassword: data.newPassword,
-            confirmNewPassword: data.confirmPassword,
-          }),
+    // Update password if provided
+    if (data.newPassword && data.currentPassword && data.confirmPassword) {
+      try {
+        const passwordResponse = await updatePassword({
+          token,
+          currentPassword: data.currentPassword,
+          newPassword: data.newPassword,
+          confirmPassword: data.confirmPassword,
         });
 
-        if (!passwordRes.ok) {
-          const err = await passwordRes.json();
-          throw new Error(err.message || 'Failed to update password');
-        }
+        console.log('Password Update Success:', passwordResponse);
+        successMessages.push(passwordResponse.message || 'Password updated successfully!');
+      } catch (passwordErr: any) {
+        console.error('Password Update Error:', passwordErr);
+        throw new Error(passwordErr.message || 'Failed to update password.');
       }
-
-      // 3. Re-fetch updated profile
-      const updatedProfile = await fetch('http://localhost:3200/api/auth/profile', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!updatedProfile.ok) {
-        throw new Error('Failed to fetch updated profile');
-      }
-
-      const { data: updatedData } = await updatedProfile.json();
-
-      reset({
-        title: updatedData.title || 'Mr.',
-        firstName: updatedData.firstName || '',
-        lastName: updatedData.lastName || '',
-        email: updatedData.email || '',
-        countryCode: updatedData.phoneCode || '+94',
-        phoneNumber: updatedData.phoneNumber || '',
-        currentPassword: undefined,
-        newPassword: undefined,
-        confirmPassword: undefined,
-      });
-
-      if (updatedData.profileImageURL) {
-        setPreviewURL(updatedData.profileImageURL);
-      }
-
-      setShowSuccessPopup(true);
-
-      // Delay closing the popup to ensure visibility
-      setTimeout(() => {
-        setShowSuccessPopup(false);
-      }, 3000); // Match SuccessPopup duration
-    } catch (error: any) {
-      setErrorMessage(error.message || 'Something went wrong');
-      setShowErrorPopup(true);
     }
-  };
+
+    // Re-fetch updated profile
+    const updatedData = await fetchProfile({ token });
+
+    reset({
+      title: updatedData.title || 'Mr.',
+      firstName: updatedData.firstName || '',
+      lastName: updatedData.lastName || '',
+      email: updatedData.email || '',
+      countryCode: updatedData.phoneCode || '+94',
+      phoneNumber: updatedData.phoneNumber || '',
+      currentPassword: undefined,
+      newPassword: undefined,
+      confirmPassword: undefined,
+    });
+
+    if (updatedData.profileImageURL || updatedData.image) {
+      setPreviewURL(updatedData.profileImageURL || updatedData.image || null);
+    }
+
+    setSuccessMessage(successMessages.join(' '));
+    setShowSuccessPopup(true);
+    setTimeout(() => setShowSuccessPopup(false), 5000);
+  } catch (error: any) {
+    console.error('Final Error Catch:', error);
+    setErrorMessage(error.message || 'Something went wrong');
+    setShowErrorPopup(true);
+    setShowSuccessPopup(false);
+  }
+};
 
   return (
     <>
-      {/* Popup Notifications */}
       <div className="relative z-50">
         <SuccessPopup
           isVisible={showSuccessPopup}
           onClose={() => setShowSuccessPopup(false)}
-          title="Profile updated successfully!"
+          title="Success!"
+          description={successMessage}
           duration={3000}
         />
         <ErrorPopup
@@ -232,7 +200,7 @@ const PersonalDetailsForm = () => {
         />
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit as any)} className="px-2 md:px-10 bg-white">
+      <form onSubmit={handleSubmit(onSubmit)} className="px-2 md:px-10 bg-white">
         <h2 className="font-medium text-base sm:text-lg md:text-xl mb-2 mt-2">Account</h2>
         <p className="text-xs md:text-sm lg:text-sm text-[#626D76] mb-2 whitespace-nowrap">
           Real-time information and activities of your property.
@@ -241,7 +209,6 @@ const PersonalDetailsForm = () => {
 
         {/* Profile Image Section */}
         <div className="w-full flex flex-col md:flex-row md:justify-between items-center md:items-start gap-3 md:gap-6 mt-5 sm:px-2">
-          {/* Left: Profile Image/Icon */}
           <div className="w-32 h-32 text-[#626D76]">
             {previewURL ? (
               <img
@@ -253,16 +220,12 @@ const PersonalDetailsForm = () => {
               <FaUserCircle className="w-full h-full text-[#A0A0A0]" />
             )}
           </div>
-
-          {/* Middle: Label and Format Note */}
           <div className="flex flex-col justify-center text-center md:text-left md:items-start flex-1 mt-2 md:mt-0">
             <label className="font-medium text-base sm:text-lg md:text-xl mb-1">
               Profile Picture
             </label>
             <p className="text-xs md:text-sm text-gray-500">PNG, JPEG under 15MB</p>
           </div>
-
-          {/* Right: Upload Button */}
           <label
             className="px-4 py-1 rounded-lg cursor-pointer text-sm hover:bg-gray-100 mt-2 md:mt-0"
             style={{ border: '1px solid #393939', color: '#393939' }}
