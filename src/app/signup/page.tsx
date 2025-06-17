@@ -158,7 +158,7 @@
 //   try {
 //     // Send OTP
 //     const res = await sendOTPInSignup(formData.phoneNumber, formData.phoneCode);
-    
+
 //     // Show success popup instead of alert
 //     setSuccess(`OTP code has been sent to ${formData.phoneCode}${formData.phoneNumber}`);
 //     setShowSuccessPopup(true);
@@ -1137,9 +1137,8 @@ export default function SignupForm() {
                     name="agreeToTerms"
                     checked={formData.agreeToTerms}
                     onChange={handleChange}
-                    className={`h-4 w-4 accent-[#318831] cursor-pointer focus:ring-purple-500 border-gray-300 rounded ${
-                      errors.agreeToTerms ? "border-red-500" : ""
-                    }`}
+                    className={`h-4 w-4 accent-[#318831] cursor-pointer focus:ring-purple-500 border-gray-300 rounded ${errors.agreeToTerms ? "border-red-500" : ""
+                      }`}
                   />
                   <label
                     htmlFor="terms"
