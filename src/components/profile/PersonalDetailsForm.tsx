@@ -57,7 +57,7 @@ const PersonalDetailsForm = () => {
     reset,
     formState: { errors },
   } = useForm<FormData>({
-    resolver: yupResolver(schema),
+    resolver: yupResolver(schema) as any,
     defaultValues: {
       title: 'Mr.',
       countryCode: '+94',
@@ -232,7 +232,7 @@ const PersonalDetailsForm = () => {
         />
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="px-2 md:px-10 bg-white">
+      <form onSubmit={handleSubmit(onSubmit as any)} className="px-2 md:px-10 bg-white">
         <h2 className="font-medium text-base sm:text-lg md:text-xl mb-2 mt-2">Account</h2>
         <p className="text-xs md:text-sm lg:text-sm text-[#626D76] mb-2 whitespace-nowrap">
           Real-time information and activities of your property.
