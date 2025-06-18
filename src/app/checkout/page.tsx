@@ -120,7 +120,7 @@ const Page: React.FC = () => {
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const cartPrices = useSelector((state: RootState) => state.cart) || null;
-  const { items, cartId } = useSelector((state: RootState) => state.cartItems);
+  const { cartId } = useSelector((state: RootState) => state.cartItems);
   const router = useRouter();
   const [showErrorPopup, setShowErrorPopup] = useState(false);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
@@ -685,9 +685,9 @@ const Page: React.FC = () => {
                   <label className='block font-semibold mb-4'>Time Slot *</label>
                   <CustomDropdown
                     options={[
-                      { value: '8-12', label: 'Within 8 - 12 PM' },
-                      { value: '12-4', label: 'Within 12 - 4 PM' },
-                      { value: '4-8', label: 'Within 4 - 8 PM' },
+                      { value: 'Within 8-12 PM', label: 'Within 8 - 12 PM' },
+                      { value: 'Within 12-4 PM', label: 'Within 12 - 4 PM' },
+                      { value: 'Within  4-8 PM', label: 'Within 4 - 8 PM' },
                     ]}
                     selectedValue={formData.timeSlot}
                     onSelect={(value) => handleFieldChange('timeSlot', value)}

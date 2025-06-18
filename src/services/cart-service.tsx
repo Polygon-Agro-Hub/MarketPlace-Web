@@ -263,16 +263,7 @@ export const removeCartPackage = async (
 
 
 export interface OrderPayload {
-  items: Array<{
-    productId: number;
-    unit: string;
-    qty: number;
-    totalDiscount: number;
-    totalPrice: number;
-    itemType: 'product' | 'package';
-    packageId: number | null;
-    id: number | null;
-  }>;
+  // Remove items array - backend gets it from cartId
   cartId: number;
   checkoutDetails: {
     deliveryMethod: string;
@@ -280,20 +271,20 @@ export interface OrderPayload {
     fullName: string;
     phoneCode1: string;
     phone1: string;
-    phoneCode2: string;
-    phone2: string;
+    phoneCode2?: string;
+    phone2?: string;
     buildingType: string;
     deliveryDate: string;
     timeSlot: string;
-    buildingNo: string;
-    buildingName: string;
-    flatNumber: string;
-    floorNumber: string;
-    houseNo: string;
-    street: string;
-    cityName: string;
+    buildingNo?: string;
+    buildingName?: string;
+    flatNumber?: string;  // Maps to unitNo in backend
+    floorNumber?: string; // Maps to floorNo in backend
+    houseNo?: string;
+    street?: string;      // Maps to streetName in backend
+    cityName: string;     // Maps to city in backend
     scheduleType: string;
-    centerId: number | null;
+    centerId?: number | null;
     couponValue: number;
     isCoupon: boolean;
   };
@@ -312,6 +303,8 @@ export const submitOrderToBackend = async (
   }
 
   try {
+    console.log('Submitting order payload:', payload);
+    
     const response = await axios.post('/cart/create-order', payload, {
       headers: {
         'Content-Type': 'application/json',
@@ -319,11 +312,15 @@ export const submitOrderToBackend = async (
       },
     });
 
+    console.log('Order submission response:', response.data);
     return response.data;
   } catch (error) {
     if (error instanceof AxiosError) {
       console.error('Order service error:', error.response?.data || error.message);
-      throw new Error(`Order submission failed: ${error.response?.data?.error || error.message}`);
+      const errorMessage = error.response?.data?.error || 
+                          error.response?.data?.message || 
+                          error.message;
+      throw new Error(`Order submission failed: ${errorMessage}`);
     }
     console.error('Order service error:', error);
     throw error;
@@ -338,32 +335,9 @@ export const validateOrderData = (payload: OrderPayload): { isValid: boolean; er
     errors.push('Invalid payment method');
   }
 
-  // Validate items
-  if (!payload.items || !Array.isArray(payload.items) || payload.items.length === 0) {
-    errors.push('Items must be a non-empty array');
-  } else {
-    payload.items.forEach((item, index) => {
-      if (!item.productId) {
-        errors.push(`Item at index ${index}: Product ID is required`);
-      }
-      if (!item.unit) {
-        errors.push(`Item at index ${index}: Unit is required`);
-      }
-      if (!item.qty || item.qty <= 0) {
-        errors.push(`Item at index ${index}: Valid quantity is required`);
-      }
-      if (item.totalPrice == null || item.totalPrice < 0) {
-        errors.push(`Item at index ${index}: Valid total price is required`);
-      }
-      if (item.itemType === 'package' && !item.packageId) {
-        errors.push(`Item at index ${index}: Package ID is required for package items`);
-      }
-    });
-  }
-
-  // Validate cartId
-  if (!payload.cartId) {
-    errors.push('Cart ID is required');
+  // Validate cartId (backend will get items from this)
+  if (!payload.cartId || payload.cartId <= 0) {
+    errors.push('Valid cart ID is required');
   }
 
   // Validate checkout details
@@ -385,73 +359,97 @@ export const validateOrderData = (payload: OrderPayload): { isValid: boolean; er
     street,
   } = payload.checkoutDetails;
 
-  if (!deliveryMethod || !['home', 'pickup'].includes(deliveryMethod)) {
-    errors.push('Valid delivery method is required');
+  if (!deliveryMethod) {
+    errors.push('Delivery method is required');
   }
 
-  if (!title) {
+  if (!title || title.trim().length === 0) {
     errors.push('Title is required');
   }
 
   if (!fullName || fullName.trim().length < 2) {
-    errors.push('Valid full name is required');
+    errors.push('Valid full name is required (minimum 2 characters)');
   }
 
-  if (!phoneCode1) {
+  if (!phoneCode1 || phoneCode1.trim().length === 0) {
     errors.push('Phone code 1 is required');
   }
 
   if (!phone1 || phone1.trim().length < 9) {
-    errors.push('Valid phone number 1 is required');
+    errors.push('Valid phone number 1 is required (minimum 9 digits)');
   }
 
-  if (!deliveryDate) {
+  if (!deliveryDate || deliveryDate.trim().length === 0) {
     errors.push('Delivery date is required');
   }
 
-  if (!timeSlot) {
+  if (!timeSlot || timeSlot.trim().length === 0) {
     errors.push('Time slot is required');
   }
 
+  // Validate delivery method specific requirements
   if (deliveryMethod === 'home') {
     if (!cityName || cityName.trim().length < 2) {
-      errors.push('City name is required');
+      errors.push('City name is required for home delivery');
     }
 
     if (!buildingType || !['apartment', 'house'].includes(buildingType.toLowerCase())) {
       errors.push('Valid building type is required (apartment or house)');
     }
 
-    if (buildingType.toLowerCase() === 'apartment') {
-      if (!buildingNo) {
+    if (buildingType && buildingType.toLowerCase() === 'apartment') {
+      if (!buildingNo || buildingNo.trim().length === 0) {
         errors.push('Building number is required for apartment delivery');
       }
-      if (!buildingName) {
+      if (!buildingName || buildingName.trim().length === 0) {
         errors.push('Building name is required for apartment delivery');
       }
-      if (!flatNumber) {
+      if (!flatNumber || flatNumber.trim().length === 0) {
         errors.push('Flat number is required for apartment delivery');
       }
-      if (!floorNumber) {
+      if (!floorNumber || floorNumber.trim().length === 0) {
         errors.push('Floor number is required for apartment delivery');
       }
-    } else if (buildingType.toLowerCase() === 'house') {
-      if (!houseNo) {
+    } else if (buildingType && buildingType.toLowerCase() === 'house') {
+      if (!houseNo || houseNo.trim().length === 0) {
         errors.push('House number is required for house delivery');
       }
-      if (!street) {
+      if (!street || street.trim().length === 0) {
         errors.push('Street name is required for house delivery');
       }
+    }
+  } else if (deliveryMethod === 'pickup') {
+    if (!payload.checkoutDetails.centerId) {
+      errors.push('Center ID is required for pickup delivery');
     }
   }
 
   // Validate financial details
   if (!payload.grandTotal || payload.grandTotal <= 0) {
-    errors.push('Valid grand total is required');
+    errors.push('Valid grand total is required (must be greater than 0)');
   }
 
   if (payload.discountAmount == null || payload.discountAmount < 0) {
-    errors.push('Valid discount amount is required');
+    errors.push('Valid discount amount is required (must be 0 or greater)');
+  }
+
+  // Validate coupon details consistency
+  if (payload.checkoutDetails.isCoupon && payload.checkoutDetails.couponValue <= 0) {
+    errors.push('Coupon value must be greater than 0 when coupon is applied');
+  }
+
+  if (!payload.checkoutDetails.isCoupon && payload.checkoutDetails.couponValue > 0) {
+    errors.push('Coupon value should be 0 when no coupon is applied');
+  }
+
+  // Validate order app
+  if (!payload.orderApp || payload.orderApp.trim().length === 0) {
+    errors.push('Order app is required');
+  }
+
+  // Validate schedule type
+  if (!payload.checkoutDetails.scheduleType || payload.checkoutDetails.scheduleType.trim().length === 0) {
+    errors.push('Schedule type is required');
   }
 
   return {
@@ -459,3 +457,44 @@ export const validateOrderData = (payload: OrderPayload): { isValid: boolean; er
     errors,
   };
 };
+
+// Helper function to format validation errors for display
+export const formatValidationErrors = (errors: string[]): string => {
+  if (errors.length === 0) return '';
+  
+  if (errors.length === 1) {
+    return errors[0];
+  }
+  
+  return errors.map((error, index) => `${index + 1}. ${error}`).join('\n');
+};
+
+// Helper function to validate cart exists (can be used before order submission)
+export const validateCartExists = async (cartId: number, token: string): Promise<boolean> => {
+  try {
+    const response = await axios.get(`/cart/${cartId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data && response.data.cartId === cartId;
+  } catch (error) {
+    console.error('Cart validation error:', error);
+    return false;
+  }
+};
+
+// // Helper function to get cart summary for validation
+// export const getCartSummary = async (cartId: number, token: string): Promise<any> => {
+//   try {
+//     const response = await axios.get(`/cart/${cartId}/summary`, {
+//       headers: {
+//         Authorization: `Bearer ${token}`,
+//       },
+//     });
+//     return response.data;
+//   } catch (error) {
+//     console.error('Cart summary error:', error);
+//     throw new Error('Failed to get cart summary');
+//   }
+// };
