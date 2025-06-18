@@ -197,6 +197,36 @@ export const productAddToCart = async (productData: ProductCartData, token: stri
 };
 
 
+export const getRetaildBanners = async (): Promise<any> => {
+  try {
+    const response = await axios.get('/product/slides', {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (response.status >= 200 && response.status < 300) {
+      return response.data;
+    } else {
+      throw new Error(response.data?.message || 'Failed to fetch category counts');
+    }
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(
+        error.response.data?.message ||
+        error.response.data?.error ||
+        `Failed with status ${error.response.status}`
+      );
+    } else if (error.request) {
+      throw new Error('No response received from server');
+    } else {
+      throw new Error(error.message || 'An error occurred while fetching category counts');
+    }
+  }
+};
+
+
+
 interface Package {
   product(product: any): unknown;
   id: number

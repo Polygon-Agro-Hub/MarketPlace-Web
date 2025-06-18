@@ -191,7 +191,7 @@ export default function OrderHistoryPage() {
     setFilter(event.target.value);
   };
 
-  const fetchDetailedOrder = async (orderId: string): Promise<void> => {
+  const fetchDetailedOrder = async (orderId: string)=> {
     if (!token) return;
     try {
       setSelectedOrder(null);

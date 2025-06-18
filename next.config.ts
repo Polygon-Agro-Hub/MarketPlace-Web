@@ -1,5 +1,5 @@
 import type { NextConfig } from "next";
-
+console.log(  `process.env.NODE_ENV == "development" ? '' : process.env.NEXT_PUBLIC_BASE_PATH || '/market'`, process.env.NODE_ENV == "development" ? '' : process.env.NEXT_PUBLIC_BASE_PATH || '/market')
 const nextConfig: NextConfig = {
   async redirects() {
     return [
@@ -16,6 +16,11 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  basePath: process.env.NODE_ENV == "development" ? '' : process.env.NEXT_PUBLIC_BASE_PATH ?? '/market',
+  assetPrefix: process.env.NODE_ENV == "development" ? '' : process.env.NEXT_PUBLIC_BASE_PATH ??  '/market/',
+  trailingSlash: true,
+
+
   /* other config options here */
 };
 

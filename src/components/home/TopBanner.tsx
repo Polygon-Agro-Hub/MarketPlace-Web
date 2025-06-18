@@ -1,3 +1,4 @@
+import { getRetaildBanners } from "@/services/product-service";
 import React, { useEffect, useState } from "react";
 
 interface Slide {
@@ -16,33 +17,29 @@ const TopBanner: React.FC = () => {
   useEffect(() => {
     // Remove default body margin to prevent white gap
     document.body.style.margin = "0";
-
-    const apiUrl = "http://localhost:3200/api/product/slides";
-
-    fetch(apiUrl)
-      .then(async (response) => {
-        if (!response.ok) {
-          throw new Error(`Error fetching slides: ${response.statusText}`);
-        }
-        const data = await response.json();
-        const formattedSlides = data.slides.map((slide: any) => ({
-          id: slide.id,
-          imageUrl: slide.image,
-          details: slide.details,
-          type: slide.type,
-        }));
-        setSlides(formattedSlides);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message || "Failed to fetch slides");
-        setLoading(false);
-      });
+    getBannerDetails()
 
     return () => {
       document.body.style.margin = "";
     };
   }, []);
+
+  async function getBannerDetails() {
+    const data = await getRetaildBanners()
+    console.log(data, "banner data");
+
+    const formattedSlides = data.slides.map((slide: any) => ({
+      id: slide.id,
+      imageUrl: slide.image,
+      details: slide.details,
+      type: slide.type,
+    }));
+    setSlides(formattedSlides);
+    setLoading(false);
+
+  }
+
+
 
   // Auto-play slides every 4 seconds
   useEffect(() => {
