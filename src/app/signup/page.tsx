@@ -674,17 +674,24 @@ export default function SignupForm() {
 
     if (!formData.title) newErrors.title = "Title is required";
 
-    if (!formData.firstName) {
-      newErrors.firstName = "First name is required";
-    } else if (!/^[A-Za-z]+$/.test(formData.firstName)) {
-      newErrors.firstName = "First name can only contain letters";
-    }
+    
 
-    if (!formData.lastName) {
-      newErrors.lastName = "Last name is required";
-    } else if (!/^[A-Za-z]+$/.test(formData.lastName)) {
-      newErrors.lastName = "Last name can only contain letters";
-    }
+    if (!formData.firstName) {
+  newErrors.firstName = "First name is required";
+} else if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(formData.firstName.trim())) {
+  newErrors.firstName = "First name can only contain letters and must not start or end with a space";
+} else if (formData.firstName !== formData.firstName.trim()) {
+  newErrors.firstName = "First name cannot begin or end with a space";
+}
+
+if (!formData.lastName) {
+  newErrors.lastName = "Last name is required";
+} else if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(formData.lastName.trim())) {
+  newErrors.lastName = "Last name can only contain letters and must not start or end with a space";
+} else if (formData.lastName !== formData.lastName.trim()) {
+  newErrors.lastName = "Last name cannot begin or end with a space";
+}
+
 
     if (!formData.phoneNumber) {
       newErrors.phoneNumber = "Phone number is required";
@@ -1044,7 +1051,7 @@ export default function SignupForm() {
 
                 <div className="w-full md:w-1/2">
                   <input
-                    type="email"
+                    type="text"
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
@@ -1197,7 +1204,8 @@ export default function SignupForm() {
           </div>
         </div>
 
-        <div className="hidden md:block md:w-6/11 md:min-h-screen bg-purple-900"></div>
+        <div className="hidden md:block md:w-6/11 md:min-h-screen bg-purple-900">
+        </div>
       </div>
     </div>
   );
