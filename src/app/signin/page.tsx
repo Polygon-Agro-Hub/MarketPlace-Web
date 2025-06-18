@@ -13,6 +13,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import SuccessPopup from '@/components/toast-messages/success-message';
 import ErrorPopup from '@/components/toast-messages/error-message';
 import { Lock, Mail } from 'lucide-react';
+import Link from 'next/link';
 
 
 const page = () => {
@@ -159,7 +160,7 @@ const page = () => {
             />
             <span className="absolute left-3 top-2.5 text-gray-400">
               {/* <img src="/icons/mail.png" className="w-5 h-5" alt="Google" /> */}
-               <Mail className='w-5 h-5'/>
+              <Mail className='w-5 h-5' />
             </span>
           </div>
           <div className="relative">
@@ -189,7 +190,9 @@ const page = () => {
               <input type="checkbox" className="accent-[#229e11]" />
               <span>Remember me</span>
             </label>
-            <a href="#" className="text-[#094EE8] hover:underline">Forgot Password?</a>
+            <Link href="/forget-password" className="text-[#094EE8] hover:underline">
+              Forgot Password?
+            </Link>
           </div>
 
           <button
