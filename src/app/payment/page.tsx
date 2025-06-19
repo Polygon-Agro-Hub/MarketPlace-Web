@@ -3,14 +3,14 @@ import React, { useEffect, useState, MouseEvent } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import TopNavigation from '@/components/top-navigation/TopNavigation';
-import OrderSummary from '@/components/cart-right-cart/right-cart';
+// import OrderSummary from '@/components/cart-right-cart/right-cart';
 import SuccessPopup from '@/components/toast-messages/success-message-with-button';
 import ErrorPopup from '@/components/toast-messages/error-message';
 import Visa from '../../../public/images/Visa.png';
 import MasterCard from '../../../public/images/Mastercard.png';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
-import { submitOrderToBackend, validateOrderData, OrderPayload } from '@/services/cart-service';
+import { submitOrderToBackend, validateOrderData, OrderPayload, formatValidationErrors } from '@/services/cart-service';
 
 const Page: React.FC = () => {
   const router = useRouter();
@@ -20,7 +20,7 @@ const Page: React.FC = () => {
     { name: 'Payment', path: '/payment', status: true },
   ];
 
-  // Redux state selectors - using only cartItems slice
+  // Redux state selectors
   const cartItems = useSelector((state: RootState) => state.cartItems);
   const checkoutDetails = useSelector((state: RootState) => state.checkout);
   const token = useSelector((state: RootState) => state.auth?.token) || null;
@@ -42,6 +42,7 @@ const Page: React.FC = () => {
   useEffect(() => {
     console.log('Cart Items:', cartItems);
     console.log('Checkout Details:', checkoutDetails);
+    console.log('Calculated Summary:', cartItems.calculatedSummary);
   }, [cartItems, checkoutDetails]);
 
   const handleCardInputChange = (field: string, value: string) => {
@@ -52,27 +53,16 @@ const Page: React.FC = () => {
   };
 
   const prepareOrderPayload = (): OrderPayload => {
-    const items = [
-      // Map items from cartItems.items array
-      ...(cartItems.items || []).map((item) => ({
-        productId: Number(item.productId || item.id) || 0,
-        unit: String(item.unit || 'unit'),
-        qty: Number(item.quantity) || 1,
-        totalDiscount: Number(item.totalDiscount) || 0,
-        totalPrice: Number(item.totalPrice || item.unitPrice * item.quantity) || 0,
-        itemType: item.itemType === 'package' ? 'package' as const : 'product' as const,
-        packageId: item.packageId || null,
-        id: item.itemType === 'package' ? (item.packageId || null) : null,
-      })),
-    ];
-
-    // Calculate totals from cartItems.summary or fallback to items calculation
+    // Use calculatedSummary instead of summary
+    const calculatedSummary = cartItems.calculatedSummary;
     const summary = cartItems.summary;
-    const grandTotal = summary?.grandTotal || summary?.finalTotal || 0;
-    const discountAmount = summary?.couponDiscount || 0;
+    
+    // Get totals from calculated summary
+    const grandTotal = calculatedSummary?.finalTotal || 0;
+    const discountAmount = calculatedSummary?.totalDiscount || 0;
+    const couponDiscount = summary?.couponDiscount || 0;
 
     return {
-      items,
       cartId: cartItems.cartId || 0,
       checkoutDetails: {
         deliveryMethod: checkoutDetails.deliveryMethod || 'home',
@@ -82,7 +72,6 @@ const Page: React.FC = () => {
         phone1: checkoutDetails.phone1 || '',
         phoneCode2: checkoutDetails.phoneCode2 || '',
         phone2: checkoutDetails.phone2 || '',
-        // Convert buildingType to lowercase to match backend validation
         buildingType: (checkoutDetails.buildingType || 'apartment').toLowerCase(),
         deliveryDate: checkoutDetails.deliveryDate || '',
         timeSlot: checkoutDetails.timeSlot || '',
@@ -95,8 +84,8 @@ const Page: React.FC = () => {
         cityName: checkoutDetails.cityName || '',
         scheduleType: checkoutDetails.scheduleType || 'One Time',
         centerId: checkoutDetails.deliveryMethod === 'pickup' ? (checkoutDetails.centerId || null) : null,
-        couponValue: Number(summary?.couponDiscount) || 0,
-        isCoupon: (summary?.couponDiscount || 0) > 0,
+        couponValue: Number(couponDiscount) || 0,
+        isCoupon: (couponDiscount || 0) > 0,
       },
       paymentMethod,
       discountAmount: Number(discountAmount) || 0,
@@ -105,24 +94,86 @@ const Page: React.FC = () => {
     };
   };
 
-  console.log('cartId',cartItems.cartId)
+  const validateCartData = (): { isValid: boolean; error?: string } => {
+    // Check if cart exists and has valid ID
+    if (!cartItems.cartId || cartItems.cartId === 0) {
+      return { isValid: false, error: 'Cart ID is missing. Please refresh and try again.' };
+    }
+
+    // Check if cart has items (packages or additional items)
+    const hasPackages = cartItems.packages && cartItems.packages.length > 0;
+    const hasAdditionalItems = cartItems.additionalItems && 
+      cartItems.additionalItems.length > 0 && 
+      cartItems.additionalItems.some(group => group.Items && group.Items.length > 0);
+
+    if (!hasPackages && !hasAdditionalItems) {
+      return { isValid: false, error: 'No items in cart. Please add items before placing order.' };
+    }
+
+    // Check if calculated summary exists
+    if (!cartItems.calculatedSummary) {
+      return { isValid: false, error: 'Cart summary is missing. Please refresh and try again.' };
+    }
+
+    // Check if checkout details are complete
+    if (!checkoutDetails) {
+      return { isValid: false, error: 'Checkout details are missing. Please complete the checkout process.' };
+    }
+
+    // Validate required checkout fields
+    const requiredFields = ['deliveryMethod', 'title', 'fullName', 'phone1'];
+    for (const field of requiredFields) {
+      if (!checkoutDetails[field as keyof typeof checkoutDetails]) {
+        return { isValid: false, error: `Missing required field: ${field}` };
+      }
+    }
+
+    // Validate building type specific fields
+    if (checkoutDetails.buildingType === 'apartment') {
+      const apartmentFields = ['buildingNo', 'buildingName', 'flatNumber', 'floorNumber'];
+      for (const field of apartmentFields) {
+        if (!checkoutDetails[field as keyof typeof checkoutDetails]) {
+          return { isValid: false, error: `Missing required apartment field: ${field}` };
+        }
+      }
+    } else if (checkoutDetails.buildingType === 'house') {
+      const houseFields = ['houseNo', 'street'];
+      for (const field of houseFields) {
+        if (!checkoutDetails[field as keyof typeof checkoutDetails]) {
+          return { isValid: false, error: `Missing required house field: ${field}` };
+        }
+      }
+    }
+
+    return { isValid: true };
+  };
+
+  console.log('cartId', cartItems.cartId);
+  console.log('Total items:', cartItems.calculatedSummary?.totalItems);
+  console.log('Grand total:', cartItems.calculatedSummary?.finalTotal);
 
   const handleSubmitOrder = async (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
 
     try {
-      // Validate required data is available
-      if (!cartItems || !checkoutDetails) {
-        throw new Error('Missing required order data. Please go back and complete all steps.');
-      }
-
-      if (!cartItems.items || cartItems.items.length === 0) {
-        throw new Error('No items in cart. Please add items before placing order.');
-      }
-
+      // Validate authentication
       if (!token) {
         throw new Error('Authentication required. Please log in again.');
+      }
+
+      // Validate cart data
+      const cartValidation = validateCartData();
+      if (!cartValidation.isValid) {
+        throw new Error(cartValidation.error);
+      }
+
+      // Additional validation for card payment
+      if (paymentMethod === 'card') {
+        const { cardNumber, nameOnCard, expirationDate, cvv } = cardDetails;
+        if (!cardNumber || !nameOnCard || !expirationDate || !cvv) {
+          throw new Error('Please fill in all card details.');
+        }
       }
 
       const payload = prepareOrderPayload();
@@ -131,7 +182,7 @@ const Page: React.FC = () => {
       const validation = validateOrderData(payload);
       if (!validation.isValid) {
         console.error('Validation errors:', validation.errors);
-        setErrorMessage(validation.errors.join('\n'));
+        setErrorMessage(formatValidationErrors(validation.errors));
         setShowErrorPopup(true);
         return;
       }
@@ -150,13 +201,29 @@ const Page: React.FC = () => {
         throw new Error('Invalid response from server');
       }
     } catch (error: any) {
-      console.error('Error submitting order:', error.message);
-      setErrorMessage(error.message || 'Order submission failed. Please try again.');
+      console.error('Error submitting order:', error);
+      const errorMsg = error.message || 'Order submission failed. Please try again.';
+      setErrorMessage(errorMsg);
       setShowErrorPopup(true);
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  // Calculate display values for OrderSummary
+  const getDisplayValues = () => {
+    const calculatedSummary = cartItems.calculatedSummary;
+    const summary = cartItems.summary;
+    
+    return {
+      totalItems: calculatedSummary?.totalItems || 0,
+      totalPrice: calculatedSummary?.grandTotal || 0,
+      discountAmount: calculatedSummary?.totalDiscount || 0,
+      grandTotal: calculatedSummary?.finalTotal || 0,
+    };
+  };
+
+  const displayValues = getDisplayValues();
 
   return (
     <div className="px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5">
@@ -288,14 +355,14 @@ const Page: React.FC = () => {
           </div>
         </div>
         <div className="w-full lg:w-1/3 mt-6 lg:mt-0 pt-14">
-          <OrderSummary
-            totalItems={cartItems.summary?.totalItems || 0}
-            totalPrice={(cartItems.summary?.packageTotal || 0) + (cartItems.summary?.productTotal || 0)}
-            discountAmount={cartItems.summary?.couponDiscount || 0}
-            grandTotal={cartItems.summary?.grandTotal || cartItems.summary?.finalTotal || 0}
+          {/* <OrderSummary
+            totalItems={displayValues.totalItems}
+            totalPrice={displayValues.totalPrice}
+            discountAmount={displayValues.discountAmount}
+            grandTotal={displayValues.grandTotal}
             fromPayment={true}
             paymentMethod={paymentMethod}
-          />
+          /> */}
         </div>
       </div>
     </div>
