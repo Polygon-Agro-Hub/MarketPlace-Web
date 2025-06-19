@@ -25,7 +25,7 @@ interface FormState {
 
 
 const initialState: FormState = {
-  deliveryMethod: 'home',
+  deliveryMethod: 'Delivery',
   title: '',
   fullName: '',
   phone1: '',
