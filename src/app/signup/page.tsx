@@ -589,7 +589,6 @@ import React, { useState, FormEvent } from "react";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { sendOTPInSignup, signup } from "@/services/auth-service";
 import { useRouter } from "next/navigation";
-import CustomDropdown from "../../components/home/CustomDropdown";
 import SuccessPopup from "@/components/toast-messages/success-message";
 import ErrorPopup from "@/components/toast-messages/error-message";
 import OTPComponent from "@/components/otp-registration/OTPComponent";
@@ -604,6 +603,45 @@ type FormErrors = {
   confirmPassword?: string;
   agreeToTerms?: string;
   general?: string;
+};
+
+interface CustomDropdownProps {
+  options: { value: string; label: string }[];
+  selectedValue: string;
+  onSelect: (value: string) => void;
+  placeholder: string;
+  className?: string;
+}
+
+const CustomDropdown: React.FC<CustomDropdownProps> = ({
+  options,
+  selectedValue,
+  onSelect,
+  placeholder,
+  className = "",
+}) => {
+  return (
+    <select
+      value={selectedValue}
+      onChange={(e) => onSelect(e.target.value)}
+      className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 cursor-pointer border-gray-300 focus:ring-purple-500 focus:border-purple-500 ${className} ${
+        selectedValue ? "text-black" : "text-gray-500"
+      }`}
+    >
+      <option value="" disabled hidden>
+        {placeholder}
+      </option>
+      {options.map((option) => (
+        <option
+          key={option.value}
+          value={option.value}
+          className="cursor-pointer"
+        >
+          {option.label}
+        </option>
+      ))}
+    </select>
+  );
 };
 
 export default function SignupForm() {
@@ -622,7 +660,6 @@ export default function SignupForm() {
   const [otpReferenceId, setOtpReferenceId] = useState("");
   const [fullPhoneNumber, setFullPhoneNumber] = useState("");
 
-  // Form data state
   const [formData, setFormData] = useState({
     title: "",
     firstName: "",
@@ -636,7 +673,6 @@ export default function SignupForm() {
     agreeToMarketing: false,
   });
 
-  // Handle input changes
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
@@ -649,7 +685,6 @@ export default function SignupForm() {
       [name]: type === "checkbox" ? checked : value,
     }));
 
-    // Clear error when user starts typing
     if (errors[name as keyof FormErrors]) {
       setErrors((prev) => {
         const newErrors = { ...prev };
@@ -668,30 +703,28 @@ export default function SignupForm() {
     setIsPasswordValid(passwordRegex.test(password));
   };
 
-  // Validate form fields
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
 
     if (!formData.title) newErrors.title = "Title is required";
 
-    
-
     if (!formData.firstName) {
-  newErrors.firstName = "First name is required";
-} else if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(formData.firstName.trim())) {
-  newErrors.firstName = "First name can only contain letters and must not start or end with a space";
-} else if (formData.firstName !== formData.firstName.trim()) {
-  newErrors.firstName = "First name cannot begin or end with a space";
-}
+      newErrors.firstName = "First name is required";
+    } else if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(formData.firstName.trim())) {
+      newErrors.firstName =
+        "First name can only contain letters and must not start or end with a space";
+    } else if (formData.firstName !== formData.firstName.trim()) {
+      newErrors.firstName = "First name cannot begin or end with a space";
+    }
 
-if (!formData.lastName) {
-  newErrors.lastName = "Last name is required";
-} else if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(formData.lastName.trim())) {
-  newErrors.lastName = "Last name can only contain letters and must not start or end with a space";
-} else if (formData.lastName !== formData.lastName.trim()) {
-  newErrors.lastName = "Last name cannot begin or end with a space";
-}
-
+    if (!formData.lastName) {
+      newErrors.lastName = "Last name is required";
+    } else if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(formData.lastName.trim())) {
+      newErrors.lastName =
+        "Last name can only contain letters and must not start or end with a space";
+    } else if (formData.lastName !== formData.lastName.trim()) {
+      newErrors.lastName = "Last name cannot begin or end with a space";
+    }
 
     if (!formData.phoneNumber) {
       newErrors.phoneNumber = "Phone number is required";
@@ -959,9 +992,12 @@ if (!formData.lastName) {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="flex flex-col md:flex-row md:space-x-4 space-y-2 md:space-y-0">
                 <div className="flex flex-row w-full md:w-1/2 space-x-2">
-                  <div className="w-1/4 md:w-2/9">
+                  <div className="w-23 md:w-26">
+
+
                     <CustomDropdown
                       options={[
+                        { value: "Rev", label: "Rev." },
                         { value: "Mr", label: "Mr." },
                         { value: "Mrs", label: "Mrs." },
                         { value: "Ms", label: "Ms." },
@@ -973,6 +1009,7 @@ if (!formData.lastName) {
                         } as React.ChangeEvent<HTMLSelectElement>)
                       }
                       placeholder="Title"
+                      className="cursor-pointer"
                     />
                     {errors.title && (
                       <p className="mt-1 text-sm text-red-600">{errors.title}</p>
@@ -986,7 +1023,9 @@ if (!formData.lastName) {
                       value={formData.firstName}
                       onChange={handleChange}
                       placeholder="First Name"
-                      className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass("firstName")}`}
+                      className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass(
+                        "firstName"
+                      )}`}
                     />
                     {errors.firstName && (
                       <p className="mt-1 text-sm text-red-600">
@@ -1003,7 +1042,9 @@ if (!formData.lastName) {
                     value={formData.lastName}
                     onChange={handleChange}
                     placeholder="Last Name"
-                    className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass("lastName")}`}
+                    className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass(
+                      "lastName"
+                    )}`}
                   />
                   {errors.lastName && (
                     <p className="mt-1 text-sm text-red-600">
@@ -1015,7 +1056,9 @@ if (!formData.lastName) {
 
               <div className="flex flex-col md:flex-row md:space-x-3 space-y-4 md:space-y-0">
                 <div className="flex flex-row w-full md:w-1/2 space-x-3">
-                  <div className="w-1/4 md:w-2/9">
+           
+              <div className="w-23 md:w-26">
+
                     <CustomDropdown
                       options={[
                         { value: "+94", label: "+94" },
@@ -1029,6 +1072,7 @@ if (!formData.lastName) {
                         } as React.ChangeEvent<HTMLSelectElement>)
                       }
                       placeholder="Select code"
+                      className="cursor-pointer"
                     />
                   </div>
 
@@ -1039,7 +1083,9 @@ if (!formData.lastName) {
                       value={formData.phoneNumber}
                       onChange={handleChange}
                       placeholder="7XXXXXXXX"
-                      className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass("phoneNumber")}`}
+                      className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass(
+                        "phoneNumber"
+                      )}`}
                     />
                     {errors.phoneNumber && (
                       <p className="mt-1 text-sm text-red-600">
@@ -1056,7 +1102,9 @@ if (!formData.lastName) {
                     value={formData.email}
                     onChange={handleChange}
                     placeholder="Email"
-                    className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass("email")}`}
+                    className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass(
+                      "email"
+                    )}`}
                   />
                   {errors.email && (
                     <p className="mt-1 text-sm text-red-600">{errors.email}</p>
@@ -1073,7 +1121,9 @@ if (!formData.lastName) {
                       value={formData.password}
                       onChange={handleChange}
                       placeholder="Password"
-                      className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass("password")}`}
+                      className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass(
+                        "password"
+                      )}`}
                     />
                     <button
                       type="button"
@@ -1102,7 +1152,9 @@ if (!formData.lastName) {
                       value={formData.confirmPassword}
                       onChange={handleChange}
                       placeholder="Confirm Password"
-                      className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass("confirmPassword")}`}
+                      className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass(
+                        "confirmPassword"
+                      )}`}
                     />
                     <button
                       type="button"
@@ -1144,8 +1196,9 @@ if (!formData.lastName) {
                     name="agreeToTerms"
                     checked={formData.agreeToTerms}
                     onChange={handleChange}
-                    className={`h-4 w-4 accent-[#318831] cursor-pointer focus:ring-purple-500 border-gray-300 rounded ${errors.agreeToTerms ? "border-red-500" : ""
-                      }`}
+                    className={`h-4 w-4 accent-[#318831] cursor-pointer focus:ring-purple-500 border-gray-300 rounded ${
+                      errors.agreeToTerms ? "border-red-500" : ""
+                    }`}
                   />
                   <label
                     htmlFor="terms"
@@ -1181,7 +1234,7 @@ if (!formData.lastName) {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex w-3/5 md:text-lg items-center justify-center bg-[#3E206D] text-[#FFFFFF] rounded-md py-2 hover:bg-purple-800 transition duration-200 mx-auto disabled:opacity-50"
+                className="flex w-3/5 md:text-lg items-center justify-center bg-[#3E206D] text-[#FFFFFF] rounded-md py-2 hover:bg-purple-800 transition duration-200 mx-auto disabled:opacity-50 cursor-pointer"
               >
                 {loading ? (
                   <>
@@ -1203,8 +1256,7 @@ if (!formData.lastName) {
           </div>
         </div>
 
-        <div className="hidden md:block md:w-6/11 md:min-h-screen bg-purple-900">
-        </div>
+        <div className="hidden md:block md:w-6/11 md:min-h-screen bg-purple-900"></div>
       </div>
     </div>
   );

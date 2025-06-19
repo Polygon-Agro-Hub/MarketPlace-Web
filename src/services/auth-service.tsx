@@ -4,6 +4,7 @@ import { environment } from '@/environment/environment';
 interface LoginPayload {
   email: string;
   password: string;
+  buyerType: string;
 }
 
 interface LoginResponse {

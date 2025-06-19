@@ -30,6 +30,7 @@ const LeftSidebar = ({
     setSubmenuOpen(nextState);
     if (nextState && !['reportComplaint', 'ComplaintHistory'].includes(selectedMenu)) {
       setSelectedMenu('complaints');
+      setSelectedMenu('reportComplaint'); 
     }
     onComplaintIconClick(nextState);
   };
@@ -94,6 +95,7 @@ const LeftSidebar = ({
                   onClick={handleComplaintClick}
                   className={`flex items-center gap-4 px-2 py-2 rounded-md ${
                     isActive('complaints') && !['reportComplaint', 'ComplaintHistory'].includes(selectedMenu)
+                    
                       ? 'bg-[#D2D2D2]'
                       : 'bg-transparent'
                   }`}
@@ -103,7 +105,9 @@ const LeftSidebar = ({
                       className={isComplaintSectionActive ? 'text-[#7C3AED]' : 'text-[#233242]'}
                     />
                   </div>
+                  
                   <span className="hidden md:inline font-[500] text-[16px]">Complaints</span>
+                  
                 </div>
 
                 {submenuOpen && (
