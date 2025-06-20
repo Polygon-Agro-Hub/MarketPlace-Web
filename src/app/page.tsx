@@ -51,6 +51,13 @@ export default function Home() {
     }
   }, [cartState.totalItems, cartState.grandTotal, cartItemsState.items.length]);
 
+  useEffect(()=>{
+    console.log("NEXT_PUBLIC_BASE_PATH:",process.env.NEXT_PUBLIC_BASE_PATH );
+    console.log("NODE_ENV:",process.env.NODE_ENV );
+    console.log("NEXT_PUBLIC_API_BASE_URL:",process.env.NEXT_PUBLIC_API_BASE_URL );
+    
+  })
+
   // You can also add a button to manually log the state
   const logReduxState = () => {
     console.log('📊 MANUAL REDUX STATE CHECK:');
