@@ -39,27 +39,6 @@ export default function Home() {
     console.log('==========================');
   }, [cartState, cartItemsState, authState]);
 
-  // Alternative: Log only when specific values change
-  useEffect(() => {
-    if (cartState.totalItems > 0) {
-      console.log('🛒 Cart has items:', {
-        totalItems: cartState.totalItems,
-        grandTotal: cartState.grandTotal,
-        finalTotal: cartState.finalTotal,
-        itemsCount: cartItemsState.items.length
-      });
-    }
-  }, [cartState.totalItems, cartState.grandTotal, cartItemsState.items.length]);
-
-  // You can also add a button to manually log the state
-  const logReduxState = () => {
-    console.log('📊 MANUAL REDUX STATE CHECK:');
-    console.log('Full Cart State:', cartState);
-    console.log('Full Cart Items State:', cartItemsState);
-    console.log('Individual Items:', cartItemsState.items);
-    console.log('Packages:', cartItemsState.packages);
-    console.log('Additional Items:', cartItemsState.additionalItems);
-  };
 
 
 
