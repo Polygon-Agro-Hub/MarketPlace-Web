@@ -621,6 +621,7 @@ export default function SignupForm() {
   const [showOTPVerification, setShowOTPVerification] = useState(false);
   const [otpReferenceId, setOtpReferenceId] = useState("");
   const [fullPhoneNumber, setFullPhoneNumber] = useState("");
+  const [currentReferenceId, setCurrentReferenceId] = useState('');
 
   // Form data state
   const [formData, setFormData] = useState({
@@ -773,16 +774,24 @@ export default function SignupForm() {
     }
   };
 
-  const handleOTPVerificationSuccess = () => {
-    setShowOTPVerification(false);
-    completeSignup();
-  };
+    const handleOTPVerificationSuccess = () => {
+      setShowOTPVerification(false);
+      // Clear any existing success messages before completing signup
+      setSuccess(null);
+      setShowSuccessPopup(false);
+      completeSignup();
+    };
 
   const handleOTPVerificationFailure = () => {
     setShowOTPVerification(false);
     setErrorMessage("OTP verification failed. Please try again.");
     setShowErrorPopup(true);
   };
+
+  const handleOTPExpired = () => {
+  setCurrentReferenceId(''); // Clear the reference ID
+  console.log('OTP expired, reference ID cleared');
+};
 
   const handleOTPResend = (newReferenceId: string) => {
     setOtpReferenceId(newReferenceId);
@@ -802,6 +811,7 @@ export default function SignupForm() {
         onVerificationSuccess={handleOTPVerificationSuccess}
         onVerificationFailure={handleOTPVerificationFailure}
         onResendOTP={handleOTPResend}
+        onOTPExpired={handleOTPExpired}
       />
     );
   }

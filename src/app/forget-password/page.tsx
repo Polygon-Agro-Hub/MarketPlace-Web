@@ -94,10 +94,15 @@ const handleReset = async () => {
       const cleanedPhone = phoneNumber.replace(/\s+/g, "");
       const fullPhoneNumber = countryCode + cleanedPhone;
 
-      localStorage.setItem('otpPhoneOnly', cleanedPhone); // Without country code ✅
+      console.log('country code -', countryCode);
+      console.log('cleaned phone -', cleanedPhone);
+
+      // Store phone number without country code and country code separately
+      localStorage.setItem('otpPhoneOnly', cleanedPhone); // e.g., "728196767"
+      localStorage.setItem('otpCountryCode', countryCode); // e.g., "+94"
 
       // Redirect only for phone reset
-      window.location.href = `/otp?phone=${encodeURIComponent(fullPhoneNumber)}`;
+      window.location.href = `/otp`;
     }
 
     setIsError(false);
