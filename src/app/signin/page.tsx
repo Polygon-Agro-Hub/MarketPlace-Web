@@ -85,6 +85,11 @@ const Page = () => {
           localStorage.removeItem('rememberedPassword');
         }
 
+        if( data.userData.buyerType === 'Retail') {
+        router.push('/'); // Redirect to home page
+        }else if (data.userData.buyerType === 'Wholesale') {
+          router.push('/wholesale/home'); // Redirect to wholesale page
+        }
       
       }
     } catch (err: any) {
