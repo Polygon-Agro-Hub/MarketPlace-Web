@@ -48,16 +48,6 @@ export default function Home() {
     
   })
 
-  // You can also add a button to manually log the state
-  const logReduxState = () => {
-    console.log('📊 MANUAL REDUX STATE CHECK:');
-    console.log('Full Cart State:', cartState);
-    console.log('Full Cart Items State:', cartItemsState);
-    console.log('Individual Items:', cartItemsState.items);
-    console.log('Packages:', cartItemsState.packages);
-    console.log('Additional Items:', cartItemsState.additionalItems);
-  };
-
 
 
   useEffect(() => {
