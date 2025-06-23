@@ -67,6 +67,7 @@ export default function AccountPage() {
         <div className="flex-1">
           {selectedMenu === 'personalDetails' && <PersonalDetailsForm />}
           {selectedMenu === 'billingAddress' && <BillingDetailsForm />}
+           {selectedMenu === 'Complaints' && <ReportComplaintForm />}
           {selectedMenu === 'reportComplaint' && <ReportComplaintForm />}
           {selectedMenu === 'ComplaintHistory' && <ComplaintsHistory />} {/* Add this line */}
         </div>

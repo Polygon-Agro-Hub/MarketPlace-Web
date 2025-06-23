@@ -163,7 +163,7 @@ const PackageCard: React.FC<PackageProps> = ({
 
             <div className="flex px-8 mt-4">
               <button
-                className="w-full bg-white text-[#000000] py-2 rounded-xl font-normal hover:bg-gray-100 transition-colors"
+                className="w-full bg-white text-[#000000] py-2 rounded-xl font-normal hover:bg-gray-100 transition-colors cursor-pointer"
                 onClick={handlePackageAddToCart}
               >
                 Add to Cart

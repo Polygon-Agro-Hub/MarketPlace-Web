@@ -40,16 +40,6 @@ export default function Home() {
   }, [cartState, cartItemsState, authState]);
 
   // Alternative: Log only when specific values change
-  useEffect(() => {
-    if (cartState.totalItems > 0) {
-      console.log('🛒 Cart has items:', {
-        totalItems: cartState.totalItems,
-        grandTotal: cartState.grandTotal,
-        finalTotal: cartState.finalTotal,
-        itemsCount: cartItemsState.items.length
-      });
-    }
-  }, [cartState.totalItems, cartState.grandTotal, cartItemsState.items.length]);
 
   useEffect(()=>{
     console.log("NEXT_PUBLIC_BASE_PATH:",process.env.NEXT_PUBLIC_BASE_PATH );
