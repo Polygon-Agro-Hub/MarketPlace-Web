@@ -54,6 +54,7 @@ interface Complaint {
 interface ApiComplaint {
   complainId: number;
   complaiCategoryId: number;
+  categoryName: string; // ✅ Add this line
   createdAt: string | number | Date;
   status: string;
   complain: string;
@@ -189,6 +190,12 @@ interface ComplaintResponse {
   message: string;
   complaintId?: number;
 }
+
+export interface Category {
+  id: number;
+  categoryEnglish: string;
+}
+
 
 export const login = async (payload: LoginPayload): Promise<LoginResponse> => {
   try {
@@ -672,7 +679,7 @@ export const fetchBillingDetails = async (payload: FetchBillingDetailsPayload): 
           lastName: apiData.lastName || '',
           phoneCode: apiData.phoneCode || '+94',
           phoneNumber: apiData.phoneNumber || '',
-          buildingType: apiData.buildingType?.toLowerCase() || 'house',
+          buildingType: apiData.buildingType?.toLowerCase() || '',
           address: {
             title: apiData.title || 'Mr.',
             firstName: apiData.firstName || '',
@@ -763,6 +770,8 @@ export const saveBillingDetails = async (payload: SaveBillingDetailsPayload): Pr
   }
 };
 
+
+
 export const fetchComplaints = async (payload: FetchComplaintsPayload): Promise<Complaint[]> => {
   try {
     if (!payload.userId || !payload.token) {
@@ -782,9 +791,9 @@ export const fetchComplaints = async (payload: FetchComplaintsPayload): Promise<
       if (resData.status && resData.data) {
         const mappedComplaints: Complaint[] = resData.data.map((item: ApiComplaint) => ({
           id: String(item.complainId),
-          category: categoryMap[item.complaiCategoryId] || 'Unknown Category',
+          category: item.categoryName || 'Unknown Category',
           date: formatDate(item.createdAt),
-          status: item.status || 'Opened',
+          status: item.status || 'null',
           description: item.complain,
           images: item.images || [],
           isNew: !item.status || item.status === 'Opened',
@@ -794,6 +803,8 @@ export const fetchComplaints = async (payload: FetchComplaintsPayload): Promise<
           customerName: item.customerName || 'Unknown Customer',
         }));
         return mappedComplaints;
+      } else if (!resData.status && resData.message === 'No complaints found for the given user ID.') {
+        return []; // Return empty array when no complaints are found
       } else {
         throw new Error(resData.message || 'Invalid response format');
       }
@@ -881,5 +892,28 @@ export const submitComplaint = async (payload: ComplaintPayload): Promise<Compla
     } else {
       throw new Error(error.message || 'An error occurred during complaint submission.');
     }
+  }
+};
+
+
+// Fetch complaint categories from backend
+export const fetchComplaintCategories = async (): Promise<Category[]> => {
+  try {
+    const response = await axios.get('/auth/categories', {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    const data = response.data;
+    if (data.status && Array.isArray(data.data)) {
+      return data.data.map((item: any) => ({
+        id: item.id,
+        categoryEnglish: item.categoryEnglish,
+      }));
+    }
+    throw new Error('Invalid response format');
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+    return [];
   }
 };

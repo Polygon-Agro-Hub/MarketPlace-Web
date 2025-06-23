@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { FaAngleLeft, FaUser, FaAddressCard, FaExclamationTriangle } from 'react-icons/fa';
+import { useRouter } from 'next/navigation';
 
 const LeftSidebar = ({
   selectedMenu,
@@ -15,6 +16,7 @@ const LeftSidebar = ({
 }) => {
   const [submenuOpen, setSubmenuOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
+const router = useRouter();
 
   useEffect(() => {
     const handleResize = () => {
@@ -57,10 +59,14 @@ const LeftSidebar = ({
   return (
     <div className="w-[70px] md:w-[336px] min-h-full bg-[#E9EBEE]">
       <div className="py-4">
-        <div className="items-center gap-4 mb-4 hidden md:flex">
-          <div className="w-[44px] h-[42px] border border-[#D4D8DC] rounded-[10px] flex items-center justify-center bg-white ml-4">
-            <FaAngleLeft />
-          </div>
+        <div className="items-center gap-4 mb-4 hidden md:flex ">
+          <div
+  className="w-[44px] h-[42px] border border-[#D4D8DC] cursor-pointer rounded-[10px] flex items-center justify-center bg-white ml-4"
+  onClick={() => router.push('/')}
+>
+  <FaAngleLeft />
+</div>
+
           <h2 className="font-semibold text-[#233242] text-[16px]">My Account</h2>
         </div>
 
@@ -71,7 +77,7 @@ const LeftSidebar = ({
           <li onClick={() => handleMenuClick('personalDetails')} className="cursor-pointer">
             <div className={`flex items-center gap-4 px-2 py-2 rounded-md ${isActive('personalDetails') ? 'bg-[#DDDDDD]' : ''}`}>
               <div className="w-[44px] h-[42px] border border-[#D4D8DC] rounded-[10px] flex items-center justify-center bg-white">
-                <FaUser className={isActive('personalDetails') ? 'text-[#7C3AED]' : 'text-[#233242]'} />
+                <FaUser className={isActive('personalDetails') ? 'text-[#3E206D]' : 'text-[#233242]'} />
               </div>
               <span className="hidden md:inline font-medium text-[16px]">Personal Details</span>
             </div>
@@ -81,7 +87,7 @@ const LeftSidebar = ({
           <li onClick={() => handleMenuClick('billingAddress')} className="cursor-pointer">
             <div className={`flex items-center gap-4 px-2 py-2 rounded-md ${isActive('billingAddress') ? 'bg-[#DDDDDD]' : ''}`}>
               <div className="w-[44px] h-[42px] border border-[#D4D8DC] rounded-[10px] flex items-center justify-center bg-white">
-                <FaAddressCard className={isActive('billingAddress') ? 'text-[#7C3AED]' : 'text-[#233242]'} />
+                <FaAddressCard className={isActive('billingAddress') ? 'text-[#3E206D]' : 'text-[#233242]'} />
               </div>
               <span className="hidden md:inline font-medium text-[16px]">Billing Address</span>
             </div>
@@ -90,7 +96,7 @@ const LeftSidebar = ({
           {/* Complaints Section */}
           <li className="relative">
             <div className={`w-full ${isComplaintSectionActive ? 'bg-[#DDDDDD]' : ''} rounded-md`}>
-              <div className="flex flex-col w-full">
+              <div className="flex flex-col w-full cursor-pointer">
                 <div
                   onClick={handleComplaintClick}
                   className={`flex items-center gap-4 px-2 py-2 rounded-md ${
@@ -100,13 +106,13 @@ const LeftSidebar = ({
                       : 'bg-transparent'
                   }`}
                 >
-                  <div className="w-[44px] h-[42px] border border-[#D4D8DC] rounded-[10px] flex items-center justify-center bg-white" style={{ boxShadow: '-4px 2px 8px rgba(0, 0, 0, 0.1)' }}>
+                  <div className="w-[44px] h-[42px] cursor-pointer border border-[#D4D8DC] rounded-[10px] flex items-center justify-center bg-white" style={{ boxShadow: '-4px 2px 8px rgba(0, 0, 0, 0.1)' }}>
                     <FaExclamationTriangle
-                      className={isComplaintSectionActive ? 'text-[#7C3AED]' : 'text-[#233242]'}
+                      className={isComplaintSectionActive ? 'text-[#3E206D]' : 'text-[#233242]'}
                     />
                   </div>
                   
-                  <span className="hidden md:inline font-[500] text-[16px]">Complaints</span>
+                  <span className="hidden md:inline  font-[500] text-[16px]">Complaints</span>
                   
                 </div>
 

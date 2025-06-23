@@ -1,12 +1,16 @@
+
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
-import { FaCloudUploadAlt, FaAngleDown, FaTimes } from 'react-icons/fa';
-import { RootState } from '@/store'; // Adjust path based on your project structure
-import ErrorPopup from '@/components/toast-messages/error-message'; // Adjust path
-import SuccessPopup from '@/components/toast-messages/success-message'; // Adjust path
-import { submitComplaint } from '@/services/auth-service'; // Adjust path
+import { FaCloudUploadAlt, FaTimes } from 'react-icons/fa';
+import { RootState } from '@/store';
+import ErrorPopup from '@/components/toast-messages/error-message';
+import SuccessPopup from '@/components/toast-messages/success-message';
+import Loader from '@/components/loader-spinner/Loader';
+import { submitComplaint } from '@/services/auth-service';
+import { fetchComplaintCategories, Category } from '@/services/auth-service';
 
 // Interface for Complaint data structure
 interface Complaint {
@@ -22,8 +26,8 @@ interface ReportComplaintFormProps {
 }
 
 const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) => {
-  // State variables for form fields and UI
-  const [category, setCategory] = useState('');
+  // State variables
+  const [categoryId, setCategoryId] = useState<string>('');
   const [complaintText, setComplaintText] = useState('');
   const [images, setImages] = useState<File[]>([]);
   const [existingImages, setExistingImages] = useState<{ id?: number; url: string }[]>([]);
@@ -32,42 +36,61 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
   const [errorMessage, setErrorMessage] = useState('');
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [showCancelSuccessPopup, setShowCancelSuccessPopup] = useState(false);
   const [imagesToDelete, setImagesToDelete] = useState<number[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
 
-  // Extract token and userId from Redux store's auth slice
+  // Redux auth state
   const { token, user } = useSelector((state: RootState) => state.auth);
   const userId = user?.id;
 
-  // Category mappings for complaint categories
-  const categoryMap: { [key: string]: number } = {
-    delivery: 1,
-    product: 2,
-    billing: 3,
-  };
-
-  const reverseCategoryMap: { [key: number]: string } = {
-    1: 'delivery',
-    2: 'product',
-    3: 'billing',
-  };
-
-  // Populate form with existing complaint data when editing
+  // Fetch categories from backend
   useEffect(() => {
-    if (complaint) {
-      setCategory(reverseCategoryMap[complaint.complaintCategoryId] || '');
+    const loadCategories = async () => {
+      setIsLoading(true);
+      const fetchedCategories = await fetchComplaintCategories();
+      setCategories(fetchedCategories);
+      if (fetchedCategories.length === 0) {
+        setErrorMessage('Failed to load complaint categories. Please try again later.');
+        setShowErrorPopup(true);
+      }
+      setIsLoading(false);
+    };
+    loadCategories();
+  }, []);
+
+  // Populate form with existing complaint data
+  useEffect(() => {
+    if (complaint && categories.length > 0) {
+      const selectedCategory = categories.find((cat) => cat.id === complaint.complaintCategoryId);
+      if (selectedCategory) {
+        setCategoryId(selectedCategory.id.toString());
+      } else {
+        setCategoryId('');
+        setErrorMessage('The selected complaint category is not available.');
+        setShowErrorPopup(true);
+      }
       setComplaintText(complaint.complaint || '');
       setExistingImages(complaint.images || []);
     }
-  }, [complaint]);
+  }, [complaint, categories]);
 
   // Handle file input for image uploads
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      const newImages = Array.from(e.target.files).filter((file) =>
-        ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'].includes(file.type)
-      );
+      const newImages = Array.from(e.target.files).filter((file) => {
+        const isValidType = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'].includes(file.type);
+        const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB limit
+        const isDuplicate = images.some((img) => img.name === file.name && img.size === file.size);
+        return isValidType && isValidSize && !isDuplicate;
+      });
 
-      // Check total images (existing + new) against the limit
+      if (newImages.length < e.target.files.length) {
+        setErrorMessage('Some files were invalid (unsupported type, too large, or duplicates). Max size: 5MB.');
+        setShowErrorPopup(true);
+      }
+
       const totalImages = existingImages.length + images.length + newImages.length;
       if (totalImages > 6) {
         setErrorMessage('You can upload a maximum of 6 images.');
@@ -79,7 +102,7 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
     }
   };
 
-  // Drag-and-drop event handlers
+  // Drag-and-drop handlers
   const handleDragOver = (e: React.DragEvent<HTMLLabelElement>) => {
     e.preventDefault();
     setIsDragging(true);
@@ -99,11 +122,18 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
     e.preventDefault();
     setIsDragging(false);
     if (e.dataTransfer.files) {
-      const files = Array.from(e.dataTransfer.files).filter((file) =>
-        ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'].includes(file.type)
-      );
+      const files = Array.from(e.dataTransfer.files).filter((file) => {
+        const isValidType = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'].includes(file.type);
+        const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB limit
+        const isDuplicate = images.some((img) => img.name === file.name && img.size === file.size);
+        return isValidType && isValidSize && !isDuplicate;
+      });
 
-      // Check total images (existing + new) against the limit
+      if (files.length < e.dataTransfer.files.length) {
+        setErrorMessage('Some files were invalid (unsupported type, too large, or duplicates). Max size: 5MB.');
+        setShowErrorPopup(true);
+      }
+
       const totalImages = existingImages.length + images.length + files.length;
       if (totalImages > 6) {
         setErrorMessage('You can upload a maximum of 6 images.');
@@ -115,44 +145,46 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
     }
   };
 
-  // Clear form fields and reset state
+  // Clear form
   const clearForm = () => {
-    setCategory('');
+    setCategoryId('');
     setComplaintText('');
     setImages([]);
     setExistingImages([]);
     setImagesToDelete([]);
     setErrorMessage('');
     setShowErrorPopup(false);
-    setSuccessMessage('');
     setShowSuccessPopup(false);
+    setShowCancelSuccessPopup(true);
+    setTimeout(() => setShowCancelSuccessPopup(false), 3000);
   };
 
-  // Submit or update complaint via service
+  // Submit or update complaint
   const sendForm = async () => {
+    setIsLoading(true);
     setErrorMessage('');
     setShowErrorPopup(false);
     setSuccessMessage('');
     setShowSuccessPopup(false);
 
-    // Debug: Check authentication state
-    console.log('Auth state:', { userId, token });
-
     if (!userId || !token) {
       setErrorMessage('You are not authenticated. Please log in first.');
       setShowErrorPopup(true);
+      setIsLoading(false);
       return;
     }
 
-    if (!category) {
+    if (!categoryId) {
       setErrorMessage('Please select a complaint category.');
       setShowErrorPopup(true);
+      setIsLoading(false);
       return;
     }
 
     if (!complaintText.trim()) {
       setErrorMessage('Please provide a complaint description.');
       setShowErrorPopup(true);
+      setIsLoading(false);
       return;
     }
 
@@ -160,38 +192,33 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
       const payload = {
         userId,
         token,
-        complaintCategoryId: categoryMap[category],
+        complaintCategoryId: parseInt(categoryId),
         complaint: complaintText,
         images,
         imagesToDelete,
         complaintId: complaint?.id,
       };
 
-      // Debug: Log payload before submission
-      console.log('Submitting payload:', payload);
-
       const response = await submitComplaint(payload);
-
-      // Debug: Log response
-      console.log('API response:', response);
 
       setSuccessMessage(
         `Complaint ${complaint?.id ? 'updated' : 'submitted'} successfully! Your feedback has been recorded. Thank you!`
       );
       setShowSuccessPopup(true);
 
-      // Delay clearForm to allow SuccessPopup to display for 3 seconds
       setTimeout(() => {
         clearForm();
+        setIsLoading(false);
       }, 3000);
     } catch (error: any) {
       console.error('Form submission error:', error);
       setErrorMessage(error.message || 'An error occurred while processing the complaint.');
       setShowErrorPopup(true);
+      setIsLoading(false);
     }
   };
 
-  // Remove an image from new or existing images
+  // Remove an image
   const removeImage = (index: number, isExisting: boolean, imageId?: number) => {
     if (isExisting && imageId) {
       setExistingImages((prev) => prev.filter((_, i) => i !== index));
@@ -201,9 +228,39 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
     }
   };
 
+  // Cancel Success Popup component
+  const CancelSuccessPopup = ({
+    isVisible,
+    onClose,
+    title,
+    duration,
+  }: {
+    isVisible: boolean;
+    onClose: () => void;
+    title: string;
+    duration?: number;
+  }) => {
+    useEffect(() => {
+      if (isVisible && duration) {
+        const timer = setTimeout(() => {
+          onClose();
+        }, duration);
+        return () => clearTimeout(timer);
+      }
+    }, [isVisible, duration, onClose]);
+
+    if (!isVisible) return null;
+
+    return (
+      <div className="fixed top-4 right-4 bg-green-500 text-white p-4 rounded-lg shadow-lg z-50" role="alert">
+        <p>{title}</p>
+      </div>
+    );
+  };
+
   return (
     <div className="relative z-40 px-6 md:px-8 bg-white">
-      {/* Popup Notifications */}
+      <Loader isVisible={isLoading} />
       <ErrorPopup
         isVisible={showErrorPopup}
         onClose={() => setShowErrorPopup(false)}
@@ -212,19 +269,16 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
       />
       <SuccessPopup
         isVisible={showSuccessPopup}
-        onClose={() => {
-          console.log('Closing success popup');
-          setShowSuccessPopup(false);
-        }}
+        onClose={() => setShowSuccessPopup(false)}
         title="Success"
         description={successMessage}
         duration={3000}
       />
-
-      <h2 className="font-medium text-base sm:text-lg md:text-xl mb-2 mt-2">
+     
+      <h2 className="font-medium text-base text-[14px] md:text-[18px] mb-2 mt-2">
         {complaint?.id ? 'Update Complaint' : 'Report a Complaint'}
       </h2>
-      <p className="text-[10.5px] md:text-sm text-[#626D76] mb-2">
+      <p className="text-[12px] md:text-[16px] text-[#626D76] mb-2">
         Have a concern or issue? This section is here to help.
       </p>
 
@@ -233,53 +287,76 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
       <div className="md:w-[95%]">
         {/* Complaint Category Dropdown */}
         <div className="mb-6">
-          <label className="block text-sm font-medium text-[#626D76] mb-1">
+          <label
+            htmlFor="complaint-category"
+            className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1"
+          >
             Related Complaint Category
           </label>
           <div className="relative w-full md:w-[47%]">
             <select
-              className="appearance-none border border-[#CECECE] rounded-lg p-2 pr-10 w-full h-[42px] text-sm focus:ring-0 focus:border-[#CECECE]"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
+              id="complaint-category"
+              value={categoryId}
+              onChange={(e) => setCategoryId(e.target.value)}
+              className={`text-[12px] md:text-[16px] text-[#787878] w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-0 focus:border-[#3E206D] ${
+                isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+              }`}
+              disabled={isLoading}
+              aria-describedby="category-help"
             >
-              <option value="" disabled style={{ color: '#787878' }}>
-                --Select Complaint Category
+              <option value="" disabled>
+                --Select Complaint Category--
               </option>
-              <option value="delivery">Delivery Issue</option>
-              <option value="product">Product Issue</option>
-              <option value="billing">Billing Issue</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.categoryEnglish}
+                </option>
+              ))}
             </select>
-            <FaAngleDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none" />
+            <p id="category-help" className="text-xs text-[#626D76] mt-1 sr-only">
+              Select the category that best describes your complaint.
+            </p>
           </div>
         </div>
 
         {/* Complaint Textarea */}
         <div className="mb-6">
-          <label className="block text-sm font-medium text-[#626D76] mb-1">
+          <label
+            htmlFor="complaint-text"
+            className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1"
+          >
             Please Explain the Complaint
           </label>
           <textarea
+            id="complaint-text"
             value={complaintText}
             onChange={(e) => setComplaintText(e.target.value)}
-            className="border border-[#CECECE] rounded-lg p-2 w-full h-52 text-sm resize-none focus:ring-0 focus:border-[#CECECE]"
+            className={`border border-[#CECECE] rounded-lg p-2 w-full h-52 text-[12px] md:text-[14px] font-medium resize-none focus:ring-0 focus:border-[#3E206D] ${
+              isLoading ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
             placeholder="Type here..."
+            disabled={isLoading}
+            aria-describedby="complaint-help"
           />
+          <p id="complaint-help" className="text-xs text-[#626D76] mt-1 sr-only">
+            Provide a detailed description of your complaint.
+          </p>
         </div>
 
         {/* Image Upload and Preview */}
         <div className="flex flex-col lg:flex-row gap-6 mb-6">
           <div className="flex-1">
             <label
-              className={`min-h-[250px] border border-dashed border-[#CECECE] rounded-lg flex flex-col items-center justify-center text-center cursor-pointer transition-colors ${
+              className={`min-h-[250px] border border-dashed border-[#CECECE] rounded-lg flex flex-col items-center justify-center text-center transition-colors ${
                 isDragging ? 'bg-gray-100' : ''
-              }`}
+              } ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
               onDragOver={handleDragOver}
               onDragEnter={handleDragEnter}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
             >
               <FaCloudUploadAlt className="text-4xl text-[#626D76] mb-4" />
-              <span className="text-sm text-[#626D76] px-4">
+              <span className="text-[12px] md:text-[14px] font-medium text-[#626D76] px-4">
                 <p>Click or drag files here to upload </p>(maximum 6 photos)
               </span>
               <input
@@ -288,15 +365,12 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
                 accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml"
                 className="hidden"
                 onChange={handleImageUpload}
+                disabled={isLoading}
               />
             </label>
-            {/* Image upload counter */}
-            {/* <span className="text-sm text-[#626D76] mt-2 block text-center">
-              {existingImages.length + images.length}/6 images uploaded
-            </span> */}
           </div>
 
-          <div className="flex-1 min-h-[250px] border border-[#CECECE] rounded-lg px-2 py-4 text-center text-sm text-[#848D95]">
+          <div className="flex-1 min-h-[250px] border border-[#CECECE] rounded-lg px-2 py-4 text-center text-[12px] md:text-[14px] font-medium text-[#848D95]">
             {images.length === 0 && existingImages.length === 0 ? (
               <div className="flex items-center justify-center h-full">
                 <span className="text-sm text-[#626D76] italic">
@@ -315,7 +389,10 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
                       />
                       <button
                         onClick={() => removeImage(i, true, img.id)}
-                        className="absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center bg-[#FA0000] rounded-full text-white hover:bg-[#D00000]"
+                        className={`absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center bg-[#FA0000] rounded-full text-white hover:bg-[#D00000] ${
+                          isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
+                        disabled={isLoading}
                       >
                         <FaTimes className="text-xs" />
                       </button>
@@ -335,7 +412,10 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
                       />
                       <button
                         onClick={() => removeImage(i, false)}
-                        className="absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center bg-[#FA0000] rounded-full text-white hover:bg-[#D00000]"
+                        className={`absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center bg-[#FA0000] rounded-full text-white hover:bg-[#D00000] ${
+                          isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
+                        disabled={isLoading}
                       >
                         <FaTimes className="text-xs" />
                       </button>
@@ -354,17 +434,23 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
         <div className="flex justify-end gap-4 mt-10">
           <button
             type="button"
-            className="w-[90px] h-[36px] sm:w-[110px] sm:h-[44px] text-sm rounded-lg text-[#757E87] bg-[#F3F4F7] hover:bg-[#e1e2e5]"
+            className={`w-[90px] h-[36px] sm:w-[110px] sm:h-[44px] text-[16px] md:text-[20px] font-medium rounded-lg text-[#757E87] bg-[#F3F4F7] hover:bg-[#e1e2e5] ${
+              isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+            }`}
             onClick={clearForm}
+            disabled={isLoading}
           >
-            Cancel
+            Clear
           </button>
           <button
             type="submit"
-            className="w-[90px] h-[36px] sm:w-[110px] sm:h-[44px] mb-4 text-sm rounded-lg text-white bg-[#3E206D] hover:bg-[#341a5a]"
+            className={`w-[90px] h-[36px] sm:w-[110px] sm:h-[44px] text-[16px] md:text-[20px] font-medium rounded-lg text-white bg-[#3E206D] hover:bg-[#341a5a] mb-4 ${
+              isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+            }`}
             onClick={sendForm}
+            disabled={isLoading}
           >
-            Save
+            Send
           </button>
         </div>
       </div>
