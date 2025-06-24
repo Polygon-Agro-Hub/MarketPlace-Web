@@ -2,6 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useRouter, useParams } from 'next/navigation';
 import { resetPassword, validateResetToken } from '@/services/auth-service';
+import wrongImg from '../../../../public/images/wrong.png'
+import resetImg from '../../../../public/images/reset.png'
+import CorrectImg from '../../../../public/images/correct.png'
 
 const Page = () => {
   const router = useRouter();
@@ -95,7 +98,7 @@ const Page = () => {
       <div className="min-h-screen flex items-center justify-center bg-black/40">
         <div className="bg-white p-8 rounded-xl text-center w-[90%] max-w-md shadow-xl">
           <img
-            src="/images/wrong.png"
+            src={wrongImg as any}
             alt="Error"
             className="w-20 h-20 mx-auto mb-4"
           />
@@ -118,7 +121,7 @@ const Page = () => {
         {/* Left Illustration */}
         <div className="md:w-1/2 flex items-center justify-center bg-white p-8">
           <img
-            src="/images/reset.png"
+            src={resetImg as any}
             alt="Forgot password illustration"
             className="w-[70%] h-auto object-cover"
           />
@@ -171,7 +174,7 @@ const Page = () => {
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
           <div className="bg-white p-8 rounded-xl text-center w-[90%] max-w-md shadow-xl">
             <img
-              src={isError ? '/images/wrong.png' : '/images/correct.png'}
+              src={isError ? wrongImg as any : CorrectImg as any}
               alt={isError ? 'Error' : 'Success'}
               className="w-20 h-20 mx-auto mb-4"
             />
