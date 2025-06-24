@@ -1,11 +1,12 @@
 import Image from 'next/image';
+import NotFound from '../../../../public/404.jpg'
 
 
 export default function Error404() {
   return (
     <div className="flex flex-col items-center justify-start min-h-screen pt-10 bg-white px-4 text-center">
       <Image
-        src="/404.jpg"
+        src={NotFound}
         alt="Page Not Found"
         width={400}
         height={400}
