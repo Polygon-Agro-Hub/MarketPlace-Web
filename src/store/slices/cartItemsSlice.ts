@@ -10,6 +10,8 @@ interface CartItem {
   price: number; // Per kg price
   normalPrice: number;
   discountedPrice: number | null;
+  startValue: number; // Added from API response
+  changeby: number;   // Added from API response
   image: string;
   varietyNameEnglish: string;
   category: string;
@@ -208,6 +210,42 @@ const cartItemsSlice = createSlice({
       };
     },
 
+    // New reducer to handle unit change with quantity conversion
+    updateProductUnit: (
+      state,
+      action: PayloadAction<{
+        productId: number;
+        newUnit: 'kg' | 'g';
+        newQuantity: number;
+      }>
+    ) => {
+      const { productId, newUnit, newQuantity } = action.payload;
+      
+      // Update both unit and quantity in additionalItems array
+      state.additionalItems = state.additionalItems.map(group => ({
+        ...group,
+        Items: group.Items.map(item =>
+          item.id === productId 
+            ? { ...item, unit: newUnit, quantity: newQuantity } 
+            : item
+        ),
+      }));
+
+      // Recalculate summary
+      const calculated = calculateSummary(
+        state.packages, 
+        state.additionalItems, 
+        state.summary?.couponDiscount || 0
+      );
+      
+      state.calculatedSummary = {
+        grandTotal: calculated.grandTotal,
+        totalDiscount: calculated.totalDiscount,
+        finalTotal: calculated.finalTotal,
+        totalItems: calculated.totalItems,
+      };
+    },
+
     removeProduct: (state, action: PayloadAction<number>) => {
       const productId = action.payload;
       
@@ -302,6 +340,7 @@ const cartItemsSlice = createSlice({
 export const { 
   setCartData,
   updateProductQuantity,
+  updateProductUnit, // New export
   removeProduct,
   removePackage,
   applyCoupon,
