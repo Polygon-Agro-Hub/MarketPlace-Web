@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation';
 import SuccessPopup from '@/components/toast-messages/success-message-with-button';
 import ErrorPopup from '@/components/toast-messages/error-message';
 import { getForm } from '@/services/retail-service';
+import { selectCartForOrder } from '../../store/slices/cartItemsSlice';
 
 interface FormData {
   centerId: any, // Added centerId
@@ -114,6 +115,7 @@ const Page: React.FC = () => {
 
   const token = useSelector((state: RootState) => state.auth.token) as string | null;
   const [usePreviousAddress, setUsePreviousAddress] = useState(false);
+  const cartData = useSelector(selectCartForOrder);
 
   const [isLoading, setIsLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
@@ -399,7 +401,7 @@ const Page: React.FC = () => {
                       { value: 'home', label: 'Home Delivery' },
                       { value: 'pickup', label: 'Pickup' },
                     ]}
-                    selectedValue={cartPrices.paymentMethod}
+                    selectedValue={formData.deliveryMethod}
                     onSelect={(value) => handleFieldChange('deliveryMethod', value)}
                   />
                 </div>
@@ -698,58 +700,44 @@ const Page: React.FC = () => {
               </div>
             </div>
             {/* Right Section - Order Summary */}
-            <div className='w-full lg:w-1/3 mt-6 lg:mt-0'>
-              <div className='border border-gray-300 rounded-lg shadow-md p-4 sm:p-5 md:p-6'>
-                <h2 className='font-semibold text-lg mb-4'>Your Order </h2>
+<div className='w-full lg:w-1/3 mt-6 lg:mt-0'>
+  <div className='border border-gray-300 rounded-lg shadow-md p-4 sm:p-5 md:p-6'>
+    <h2 className='font-semibold text-lg mb-4'>Your Order </h2>
 
-                <div className='flex justify-between items-center mb-4'>
-                  <p className="text-gray-600">{cartPrices.totalItems} {cartPrices.paymentMethod}</p>
-                  <p className='font-semibold'>Rs.{cartPrices.grandTotal}</p>
-                </div>
+    <div className='flex justify-between items-center mb-4'>
+      <p className="text-gray-600">{cartData?.totalItems || 0} items</p>
+      <p className='font-semibold'>Rs.{cartData?.grandTotal || 0}</p>
+    </div>
 
-                <div className='border-t border-gray-300 my-4' />
+    <div className='border-t border-gray-300 my-4' />
 
-                <p className='font-semibold text-sm mb-2'>Coupon Code</p>
-                <div className='flex flex-row gap-3 w-full mt-2'>
-                  <input
-                    type="text"
-                    className='border border-gray-300 rounded-lg px-3 py-2 text-sm w-3/4'
-                    placeholder='Add coupon code'
-                  />
-                  <button className='bg-purple-800 text-white font-semibold rounded-lg px-3 py-2 text-sm w-1/4'>
-                    Apply
-                  </button>
-                </div>
+    <div className='flex justify-between text-sm mb-2'>
+      <p className='text-gray-600'>Total</p>
+      <p className='font-semibold'>Rs.{cartData?.grandTotal || 0}</p>
+    </div>
 
-                <div className='border-t border-gray-300 my-4' />
+    <div className='flex justify-between text-sm mb-2'>
+      <p className='text-gray-600'>Discount</p>
+      <p className='text-gray-600'>Rs.{cartData?.discountAmount || 0}</p>
+    </div>
 
-                <div className='flex justify-between text-sm mb-2'>
-                  <p className='text-gray-600'>Total</p>
-                  <p className='font-semibold'>{cartPrices.totalPrice}</p>
-                </div>
+    <div className='flex justify-between text-sm mb-2'>
+      <p className='text-gray-600'>Delivery Charges</p>
+      <p className='text-gray-600'>Rs.185.00</p>
+    </div>
 
-                <div className='flex justify-between text-sm mb-2'>
-                  <p className='text-gray-600'>Discount</p>
-                  <p className='text-gray-600'>Rs.{cartPrices.discountAmount}</p>
-                </div>
+    <div className='border-t border-gray-300 my-4' />
 
-                <div className='flex justify-between text-sm mb-2'>
-                  <p className='text-gray-600'>Delivery Charges</p>
-                  <p className='text-gray-600'>Rs.185.00</p>
-                </div>
+    <div className='flex justify-between mb-4 text-[20px] text-[#414347]'>
+      <p className='font-semibold'>Grand Total</p>
+      <p className='font-semibold'>Rs.{(cartData?.finalTotal || 0) + 185}</p>
+    </div>
 
-                <div className='border-t border-gray-300 my-4' />
-
-                <div className='flex justify-between mb-4'>
-                  <p className='font-semibold'>Grand Total</p>
-                  <p className='font-semibold'>Rs.{cartPrices.grandTotal}</p>
-                </div>
-
-                <button type="submit" className='w-full bg-purple-800 text-white font-semibold rounded-lg px-4 py-3 hover:bg-purple-900 transition-colors'>
-                  Continue to Payment
-                </button>
-              </div>
-            </div>
+    <button type="submit" className='w-full bg-purple-800 text-white font-semibold rounded-lg px-4 py-3 hover:bg-purple-900 transition-colors'>
+      Continue to Payment
+    </button>
+  </div>
+</div>
           </div>
         </div>
       </form>

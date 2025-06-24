@@ -1,6 +1,7 @@
 import axios from '@/lib/axios';
 import { AxiosError } from 'axios';
 
+
 interface CartItem {
   id: number;
   cartItemId: number;
@@ -11,6 +12,8 @@ interface CartItem {
   price: number;
   normalPrice: number;
   discountedPrice: number | null;
+  startValue: number; // Added from API response
+  changeby: number;   // Added from API response
   image: string;
   varietyNameEnglish: string;
   category: string;
@@ -148,6 +151,73 @@ export const updateCartProductQuantity = async (
     }
   }
 };
+
+export const bulkRemoveCartProducts = async (
+  productIds: number[], 
+  token: string | null
+): Promise<void> => {
+  if (!token) {
+    throw new Error('Authentication required');
+  }
+
+  // Validate input
+  if (!Array.isArray(productIds) || productIds.length === 0) {
+    throw new Error('Invalid product IDs provided');
+  }
+
+  // Ensure all IDs are numbers and convert to integers
+  const validIds = productIds
+    .map(id => parseInt(String(id), 10))
+    .filter(id => !isNaN(id) && id > 0);
+  
+  if (validIds.length === 0) {
+    throw new Error('No valid product IDs provided');
+  }
+
+  console.log('=== API CALL DEBUG ===');
+  console.log('Original productIds:', productIds);
+  console.log('Valid productIds to send:', validIds);
+  console.log('Token present:', !!token);
+
+  try {
+    const response = await axios.post(
+      '/product/bulk-remove-products',
+      { productIds: validIds }, // This is the request body
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    console.log('API Response:', response.data);
+
+    if (response.status >= 200 && response.status < 300) {
+      return;
+    }
+
+    throw new Error(response.data?.message || 'Failed to remove products from cart');
+  } catch (error: any) {
+    console.error('=== API ERROR DEBUG ===');
+    console.error('Error object:', error);
+    console.error('Error response:', error.response?.data);
+    console.error('Error status:', error.response?.status);
+    
+    if (error.response) {
+      throw new Error(
+        error.response.data?.message ||
+        error.response.data?.error ||
+        `Server error: ${error.response.status}`
+      );
+    } else if (error.request) {
+      throw new Error('No response from server. Please check your connection.');
+    } else {
+      throw new Error(error.message || 'Failed to remove products from cart');
+    }
+  }
+};
+
 
 // Update package quantity in cart
 export const updateCartPackageQuantity = async (
