@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { verifyOTP, sendOTP } from '@/services/auth-service';
+import CorrectImg from '../../../public/images/correct.png'
+import WrongImg from '../../../public/images/wrong.png'
 
 export default function Page() {
   const [otp, setOtp] = useState(['', '', '', '', '']);
@@ -355,7 +357,7 @@ export default function Page() {
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
           <div className="bg-white p-8 rounded-xl text-center w-[90%] max-w-md shadow-xl">
             <img
-              src={isError ? '/images/wrong.png' : '/images/correct.png'}
+              src={isError ? WrongImg as any : CorrectImg}
               alt={isError ? 'Error' : 'Success'}
               className="w-20 h-20 mx-auto mb-4"
             />
