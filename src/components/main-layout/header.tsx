@@ -16,6 +16,8 @@ const Header = () => {
   const categoryRef = useRef<HTMLDivElement | null>(null);
   const user = useSelector((state: RootState) => state.auth.user);
   const [isClient, setIsClient] = useState(false); // Add this state
+  const cartState = useSelector((state: RootState) => state.auth.cart); // If you want to see auth state too
+
 
 
   useEffect(() => {
@@ -154,10 +156,10 @@ const Header = () => {
               <div className='relative'>
                 <FontAwesomeIcon className='text-2xl' icon={faBagShopping} />
                 <span className="absolute top-3 -right-2 bg-[#FF8F66] text-white rounded-full w-4 h-4 flex items-center justify-center text-xs">
-                  0
+                  {cartState.count}
                 </span>
               </div>
-              <div className="text-sm">Rs. 0.00</div>
+              <div className="text-sm">Rs. {cartState.price.toFixed(2)}</div>
 
             </div>
           </Link>

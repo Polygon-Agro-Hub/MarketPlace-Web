@@ -1,53 +1,38 @@
+
+
 "use client";
 
 import Head from 'next/head';
 import { useSelector } from 'react-redux';
 import { useState } from 'react';
 import { RootState } from '@/store';
+import { unsubscribeUser } from '@/services/auth-service';
 
 export default function Unsubscribe() {
-  const [clickedButton, setClickedButton] = useState(null);
+  const [clickedButton, setClickedButton] = useState<"unsubscribe" | "stay" | null>(null);
   const [showModal, setShowModal] = useState(false);
 
-  const token
-    = useSelector((state: RootState) => state.auth.token
-    ) || null;
+  const token = useSelector((state: RootState) => state.auth.token) || null;
+
   const handleUnsubscribeClick = async () => {
-    try {
-      const response = await fetch('http://localhost:3200/api/auth/unsubscribe', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          email: 'user@example.com',
-          action: 'unsubscribe'
-        }),
-      });
+  if (!token) {
+    console.error("User is not authenticated. Token is missing.");
+    return;
+  }
 
-      const text = await response.text();
+  const result = await unsubscribeUser(token, 'user@example.com');
 
-      try {
-        const data = JSON.parse(text);
+  if (result.status) {
+    setClickedButton('unsubscribe');
+    setShowModal(true);
+  } else {
+    console.error("Unsubscribe failed:", result.message);
+  }
+};
 
-        if (data.status) {
-          setClickedButton('unsubscribe'as any );
-          setShowModal(true);
-        } else {
-          console.error("Unsubscribe failed:", data.message);
-        }
-      } catch (jsonErr) {
-        console.error("Unsubscribe JSON parse error:", jsonErr, "\nRaw response:", text);
-      }
-
-    } catch (error) {
-      console.error('Unsubscribe error:', error);
-    }
-  };
 
   const handleStayClick = () => {
-    setClickedButton('stay' as any);
+    setClickedButton('stay');
     setShowModal(true);
   };
 
@@ -58,7 +43,6 @@ export default function Unsubscribe() {
       </Head>
 
       <div className="relative min-h-screen bg-white px-4">
-        {/* Wrap page content here */}
         <div className={`transition-filter duration-300 ${showModal ? 'blur-sm' : ''}`}>
           <div className="flex justify-center">
             <div className="bg-white text-center w-full max-w-xl sm:max-w-lg md:max-w-2xl lg:max-w-3xl">
@@ -74,8 +58,8 @@ export default function Unsubscribe() {
                 <button
                   onClick={handleStayClick}
                   className={`w-full sm:w-48 px-4 py-2 rounded-md border ${clickedButton === 'stay'
-                      ? 'bg-[#3E206D] text-white border-[#3E206D]'
-                      : 'bg-white text-[#3E206D] border-[#3E206D] hover:bg-gray-50'
+                    ? 'bg-[#3E206D] text-white border-[#3E206D]'
+                    : 'bg-white text-[#3E206D] border-[#3E206D] hover:bg-gray-50'
                     }`}
                 >
                   I’d rather stay
@@ -83,8 +67,8 @@ export default function Unsubscribe() {
                 <button
                   onClick={handleUnsubscribeClick}
                   className={`w-full sm:w-48 px-4 py-2 rounded-md border ${clickedButton === 'unsubscribe'
-                      ? 'bg-[#3E206D] text-white border-[#3E206D]'
-                      : 'bg-white text-[#3E206D] border-[#3E206D] hover:bg-gray-50'
+                    ? 'bg-[#3E206D] text-white border-[#3E206D]'
+                    : 'bg-white text-[#3E206D] border-[#3E206D] hover:bg-gray-50'
                     }`}
                 >
                   Unsubscribe
