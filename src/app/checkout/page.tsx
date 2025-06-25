@@ -12,6 +12,7 @@ import SuccessPopup from '@/components/toast-messages/success-message-with-butto
 import ErrorPopup from '@/components/toast-messages/error-message';
 import { getForm } from '@/services/retail-service';
 import { selectCartForOrder } from '../../store/slices/cartItemsSlice';
+import { useSearchParams } from 'next/navigation';
 
 interface FormData {
   centerId: any, // Added centerId
@@ -58,8 +59,8 @@ interface FormErrors {
 }
 
 const initialFormState: FormData = {
-  centerId: null, // Added centerId
-  deliveryMethod: 'home',
+  centerId: null,
+  deliveryMethod: 'home', // This will be overridden by query params if present
   title: '',
   fullName: '',
   phone1: '',
@@ -79,6 +80,7 @@ const initialFormState: FormData = {
   scheduleType: 'One Time',
 };
 
+
 const Page: React.FC = () => {
   const NavArray = [
     { name: 'Cart', path: '/cart', status: true },
@@ -89,7 +91,19 @@ const Page: React.FC = () => {
   // const storedFormData = useSelector((state: RootState) => state.checkout);
 
 
-  const [formData, setFormDataLocal] = useState<FormData>(initialFormState);
+      const [formData, setFormDataLocal] = useState<FormData>(() => {
+      // This will run only once when component mounts
+      const deliveryMethodFromQuery = typeof window !== 'undefined' 
+        ? new URLSearchParams(window.location.search).get('deliveryMethod') 
+        : null;
+        
+      return {
+        ...initialFormState,
+        deliveryMethod: (deliveryMethodFromQuery === 'home' || deliveryMethodFromQuery === 'pickup') 
+          ? deliveryMethodFromQuery 
+          : 'home'
+      };
+    });
 
   const [errors, setErrors] = useState<FormErrors>({
     centerId: null,
@@ -126,6 +140,21 @@ const Page: React.FC = () => {
   const router = useRouter();
   const [showErrorPopup, setShowErrorPopup] = useState(false);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const searchParams = useSearchParams();
+
+      useEffect(() => {
+      // Get delivery method from query parameters
+      const deliveryMethodFromQuery = searchParams.get('deliveryMethod');
+      
+      if (deliveryMethodFromQuery && (deliveryMethodFromQuery === 'home' || deliveryMethodFromQuery === 'pickup')) {
+        setFormDataLocal(prev => ({
+          ...prev,
+          deliveryMethod: deliveryMethodFromQuery
+        }));
+        
+        console.log('Delivery method set from query params:', deliveryMethodFromQuery);
+      }
+    }, [searchParams]);
 
 
   const handleAddressOptionChange = async (value: string) => {

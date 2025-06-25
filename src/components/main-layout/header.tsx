@@ -16,6 +16,7 @@ const Header = () => {
   const categoryRef = useRef<HTMLDivElement | null>(null);
   const user = useSelector((state: RootState) => state.auth.user);
   const [isClient, setIsClient] = useState(false); // Add this state
+  const token = useSelector((state: RootState) => state.auth.token) as string | null;
 
 
   useEffect(() => {
@@ -161,14 +162,16 @@ const Header = () => {
 
             </div>
           </Link>
-          {!isMobile && (
+          {!isMobile && token && (
             <Link href="/history/order">
               <FontAwesomeIcon className='text-4xl' icon={faClockRotateLeft} />
             </Link>
           )}
-          <Link className='border-2 w-9 h-9 flex justify-center items-center rounded-full' href="/account">
-            <FontAwesomeIcon className='text-1xl' icon={faUser} />
-          </Link>
+          {token && (
+            <Link className='border-2 w-9 h-9 flex justify-center items-center rounded-full' href="/account">
+              <FontAwesomeIcon className='text-1xl' icon={faUser} />
+            </Link>
+          )}
           {isMobile && (
             <button onClick={toggleMenu} className='md:hidden'>
               <FontAwesomeIcon className='text-2xl' icon={faBars} />
@@ -394,9 +397,11 @@ const Header = () => {
                 <Link href="/promotions" className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800">
                   Promotions
                 </Link>
-                <Link href="/history/order" className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800">
-                  Order History
-                </Link>
+                {token && (
+                  <Link href="/history/order" className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800">
+                    Order History
+                  </Link>
+                )}
               </nav>
             </div>
           </div>
