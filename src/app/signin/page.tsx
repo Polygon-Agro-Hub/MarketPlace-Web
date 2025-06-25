@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { GoogleLoginButton, FacebookLoginButton } from 'react-social-login-buttons';
-import { login } from '@/services/auth-service';
+import { getCartInfo, login } from '@/services/auth-service';
 import { useRouter } from 'next/navigation';
 import Swal from 'sweetalert2';
 import { useDispatch } from 'react-redux';
@@ -68,14 +68,14 @@ const Page = () => {
 
     try {
       setIsLoading(true);
-     const data = await login({ email, password, buyerType: userType });
+      const data = await login({ email, password, buyerType: userType });
 
       setShowSuccessPopup(true);
-      console.log('token details', data.userData, data.token);
-
+      console.log('token details', data.userData, data.token, data.cart);
+      
       // Store token and credentials
       if (data.token) {
-        dispatch(setCredentials({ token: data.token, user: data.userData }));
+        dispatch(setCredentials({ token: data.token, user: data.userData, cart: data.userData.cart }));
 
         // Save credentials to localStorage if "Remember me" is checked
         if (rememberMe) {
@@ -86,35 +86,36 @@ const Page = () => {
           localStorage.removeItem('rememberedPassword');
         }
 
-        if( data.userData.buyerType === 'Retail') {
-        router.push('/'); // Redirect to home page
-        }else if (data.userData.buyerType === 'Wholesale') {
+        if (data.userData.buyerType === 'Retail') {
+          router.push('/'); // Redirect to home page
+        } else if (data.userData.buyerType === 'Wholesale') {
           router.push('/wholesale/home'); // Redirect to wholesale page
         }
-      
+
       }
     } catch (err: any) {
-  setShowErrorPopup(true);
+      setShowErrorPopup(true);
 
-  const message = err.message;
+      const message = err.message;
 
-  if (message === 'Wrong password.') {
-    setPasswordError('Incorrect password. Please try again!');
-    setEmailError('');
-  } else if (message === 'User not found.' || message === 'Invalid buyer type.') {
-    // Treat invalid buyer type as "User not found"
-    setPasswordError('');
-    setEmailError('');
-  } else {
-    // Generic error
-    setEmailError('');
-    setPasswordError('');
-  }
+      if (message === 'Wrong password.') {
+        setPasswordError('Incorrect password. Please try again!');
+        setEmailError('');
+      } else if (message === 'User not found.' || message === 'Invalid buyer type.') {
+        // Treat invalid buyer type as "User not found"
+        setPasswordError('');
+        setEmailError('');
+      } else {
+        // Generic error
+        setEmailError('');
+        setPasswordError('');
+      }
 
     } finally {
       setIsLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
@@ -125,17 +126,17 @@ const Page = () => {
         description="Let's find something amazing today"
       />
       <ErrorPopup
-  isVisible={showErrorPopup}
-  onClose={() => setShowErrorPopup(false)}
-  title="Oops!"
-  description={
-    passwordError
-      ? 'Incorrect password. Please try again!'
-      : emailError
-      ? 'Incorrect email. Please try again!'
-      : 'User not found. Please check your credentials!'
-  }
-/>
+        isVisible={showErrorPopup}
+        onClose={() => setShowErrorPopup(false)}
+        title="Oops!"
+        description={
+          passwordError
+            ? 'Incorrect password. Please try again!'
+            : emailError
+              ? 'Incorrect email. Please try again!'
+              : 'User not found. Please check your credentials!'
+        }
+      />
 
       {/* Left Panel (Login Form) */}
       <div className="w-full md:w-1/2 flex flex-col justify-center p-6 md:p-16">
@@ -144,41 +145,37 @@ const Page = () => {
 
         {/* Buyer Type Toggle */}
         <div className="flex mb-6 space-x-2">
-  <button
-  onClick={() => setUserType('Retail')}
-  className={`flex-1 px-4 py-2 border rounded-md flex items-center justify-start space-x-2 text-sm sm:text-base cursor-pointer ${
-    userType === 'Retail'
-      ? 'bg-purple-100 text-purple-800 border-purple-500'
-      : 'bg-white text-gray-800 border-gray-300'
-  }`}
->
-  <span
-    className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-      userType === 'Retail' ? 'border-purple-800' : 'border-gray-400'
-    }`}
-  >
-    {userType === 'Retail' && <span className="w-2 h-2 bg-purple-800 rounded-full" />}
-  </span>
-  <span>I’m Buying for Home</span>
-</button>
+          <button
+            onClick={() => setUserType('Retail')}
+            className={`flex-1 px-4 py-2 border rounded-md flex items-center justify-start space-x-2 text-sm sm:text-base cursor-pointer ${userType === 'Retail'
+              ? 'bg-purple-100 text-purple-800 border-purple-500'
+              : 'bg-white text-gray-800 border-gray-300'
+              }`}
+          >
+            <span
+              className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${userType === 'Retail' ? 'border-purple-800' : 'border-gray-400'
+                }`}
+            >
+              {userType === 'Retail' && <span className="w-2 h-2 bg-purple-800 rounded-full" />}
+            </span>
+            <span>I’m Buying for Home</span>
+          </button>
 
-<button
-  onClick={() => setUserType('Wholesale')}
-  className={`flex-1 px-4 py-2 border rounded-md flex items-center justify-start space-x-2 text-sm sm:text-base cursor-pointer ${
-    userType === 'Wholesale'
-      ? 'bg-purple-100 text-purple-800 border-purple-500'
-      : 'bg-white text-gray-800 border-gray-300'
-  }`}
->
-  <span
-    className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-      userType === 'Wholesale' ? 'border-purple-800' : 'border-gray-400'
-    }`}
-  >
-    {userType === 'Wholesale' && <span className="w-2 h-2 bg-purple-800 rounded-full" />}
-  </span>
-  <span>I’m Buying for Business</span>
-</button>
+          <button
+            onClick={() => setUserType('Wholesale')}
+            className={`flex-1 px-4 py-2 border rounded-md flex items-center justify-start space-x-2 text-sm sm:text-base cursor-pointer ${userType === 'Wholesale'
+              ? 'bg-purple-100 text-purple-800 border-purple-500'
+              : 'bg-white text-gray-800 border-gray-300'
+              }`}
+          >
+            <span
+              className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${userType === 'Wholesale' ? 'border-purple-800' : 'border-gray-400'
+                }`}
+            >
+              {userType === 'Wholesale' && <span className="w-2 h-2 bg-purple-800 rounded-full" />}
+            </span>
+            <span>I’m Buying for Business</span>
+          </button>
 
         </div>
 
@@ -246,9 +243,8 @@ const Page = () => {
               type="text"
               name="email"
               placeholder="Email"
-              className={`w-full px-10 py-2 border rounded-md ${
-                emailError ? 'border-red-500' : 'border-gray-300'
-              }`}
+              className={`w-full px-10 py-2 border rounded-md ${emailError ? 'border-red-500' : 'border-gray-300'
+                }`}
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value);
@@ -265,9 +261,8 @@ const Page = () => {
               type={showPassword ? 'text' : 'password'}
               name="password"
               placeholder="Password"
-              className={`w-full px-10 py-2 border rounded-md ${
-                passwordError ? 'border-red-500' : 'border-gray-300'
-              }`}
+              className={`w-full px-10 py-2 border rounded-md ${passwordError ? 'border-red-500' : 'border-gray-300'
+                }`}
               value={password}
               onChange={(e) => {
                 setPassword(e.target.value);

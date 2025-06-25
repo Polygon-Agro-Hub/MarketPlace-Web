@@ -31,18 +31,20 @@ export default function Home() {
   const authState = useSelector((state: RootState) => state.auth); // If you want to see auth state too
 
   // Console log Redux data whenever it changes
-  useEffect(() => {
-    console.log('=== REDUX STATE UPDATE ===');
-    console.log('Cart State:', cartState);
-    console.log('Cart Items State:', cartItemsState);
-    console.log('Auth State:', authState);
-    console.log('==========================');
-  }, [cartState, cartItemsState, authState]);
+  // useEffect(() => {
+  //   console.log('=== REDUX STATE UPDATE ===');
+  //   // console.log('Cart State:', cartState);
+  //   // console.log('Cart Items State:', cartItemsState);
+  //   console.log('Auth State:', authState);
+  //   console.log('==========================');
+  // }, [cartState, cartItemsState, authState]);
 
   useEffect(() => {
     console.log("NEXT_PUBLIC_BASE_PATH:", process.env.NEXT_PUBLIC_BASE_PATH);
     console.log("NODE_ENV:", process.env.NODE_ENV);
     console.log("NEXT_PUBLIC_API_BASE_URL:", process.env.NEXT_PUBLIC_API_BASE_URL);
+    console.log('Auth State:', authState.cart);
+
 
   })
 

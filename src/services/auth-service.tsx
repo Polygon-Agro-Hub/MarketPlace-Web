@@ -13,6 +13,7 @@ interface LoginResponse {
   firstName?: string;
   user?: any;
   message?: string;
+  cart:any
 }
 
 // Signup interface
@@ -947,3 +948,39 @@ export const unsubscribeUser = async (token: string, email: string): Promise<any
   }
 };
 
+export const getCartInfo = async ( token: string | null): Promise<any> => {
+  if (!token) {
+    throw new Error('Authentication required');
+  }
+  try {
+    const response = await axios.get(
+      '/auth/cart-info',
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+      console.log("cart responce",response);
+
+    if (response.status >= 200 && response.status < 300) {
+      console.log("cart responce",response);
+      
+      return response.data; 
+    }
+    throw new Error(response.data?.message || 'Failed to update package quantity');
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(
+        error.response.data?.message ||
+        error.response.data?.error ||
+        'Failed to update package quantity'
+      );
+    } else if (error.request) {
+      throw new Error('No response from server. Please try again.');
+    } else {
+      throw new Error(error.message || 'Failed to update package quantity');
+    }
+  }
+};
