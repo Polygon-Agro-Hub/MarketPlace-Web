@@ -15,6 +15,7 @@ import SuccessPopup from '@/components/toast-messages/success-message';
 import ErrorPopup from '@/components/toast-messages/error-message';
 import { Lock, Mail } from 'lucide-react';
 import Link from 'next/link';
+import LoginImg from '../../../public/images/login.png'
 
 const Page = () => {
   const router = useRouter();
@@ -85,6 +86,11 @@ const Page = () => {
           localStorage.removeItem('rememberedPassword');
         }
 
+        if( data.userData.buyerType === 'Retail') {
+        router.push('/'); // Redirect to home page
+        }else if (data.userData.buyerType === 'Wholesale') {
+          router.push('/wholesale/home'); // Redirect to wholesale page
+        }
       
       }
     } catch (err: any) {
@@ -342,7 +348,7 @@ const Page = () => {
       {/* Right Panel (Image) - Hidden on small screens */}
       <div className="hidden md:flex md:w-1/2 items-center justify-center bg-[#3E206D] relative">
         <img
-          src="/images/login.png"
+          src={LoginImg as any}
           alt="Farmer"
           className="w-full h-full absolute inset object-cover"
         />
