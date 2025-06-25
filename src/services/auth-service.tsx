@@ -917,3 +917,33 @@ export const fetchComplaintCategories = async (): Promise<Category[]> => {
     return [];
   }
 };
+
+// services/unsubscribeService.ts
+
+
+export const unsubscribeUser = async (token: string, email: string): Promise<any> => {
+  try {
+    const response = await axios.post(
+      '/auth/unsubscribe',
+      {
+        email,
+        action: 'unsubscribe',
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      }
+    );
+    const data = response.data;
+    if (data.status !== undefined) {
+      return data;
+    }
+    throw new Error('Invalid response format');
+  } catch (error) {
+    console.error('Unsubscribe request error:', error);
+    return { status: false, message: 'Network error' };
+  }
+};
+
