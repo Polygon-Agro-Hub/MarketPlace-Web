@@ -7,6 +7,7 @@ import { RootState } from '@/store';
 import { useDispatch } from 'react-redux';
 import { logout } from '../../store/slices/authSlice';
 import { clearCart } from '@/store/slices/cartSlice';
+import ExitImg from '../../../public/icons/Exit.png'
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -16,6 +17,9 @@ const Header = () => {
   const categoryRef = useRef<HTMLDivElement | null>(null);
   const user = useSelector((state: RootState) => state.auth.user);
   const [isClient, setIsClient] = useState(false); // Add this state
+  const cartState = useSelector((state: RootState) => state.auth.cart); // If you want to see auth state too
+
+  const token = useSelector((state: RootState) => state.auth.token) as string | null;
 
 
   useEffect(() => {
@@ -83,7 +87,7 @@ const Header = () => {
                   }}
                 >
                   <img
-                    src="/icons/Exit.png"
+                    src={ExitImg as any}
                     alt="Logout"
                     className="w-4 h-4"
                   />
@@ -109,7 +113,8 @@ const Header = () => {
           <Link href="/" className='text-2xl font-bold'>My Farm</Link>
           {!isMobile && (
             <nav className='hidden md:flex space-x-6'>
-              <Link href='/' className='hover:text-purple-200'>Home</Link>
+              <Link  href={user?.buyerType === 'Wholesale' ? '/wholesale/home' : '/'}  className='hover:text-purple-200'>Home</Link>
+              {!token &&(
               <div className='relative' ref={categoryRef}>
                 <button
                   className='flex items-center hover:text-purple-200'
@@ -128,6 +133,7 @@ const Header = () => {
                   </div>
                 )}
               </div>
+              )}
               <Link href="/promotions" className="hover:text-purple-200">
                 Promotions
               </Link>
@@ -154,21 +160,23 @@ const Header = () => {
               <div className='relative'>
                 <FontAwesomeIcon className='text-2xl' icon={faBagShopping} />
                 <span className="absolute top-3 -right-2 bg-[#FF8F66] text-white rounded-full w-4 h-4 flex items-center justify-center text-xs">
-                  0
+                  {cartState.count}
                 </span>
               </div>
-              <div className="text-sm">Rs. 0.00</div>
+              <div className="text-sm">Rs. {cartState.price.toFixed(2)}</div>
 
             </div>
           </Link>
-          {!isMobile && (
+          {!isMobile && token && (
             <Link href="/history/order">
               <FontAwesomeIcon className='text-4xl' icon={faClockRotateLeft} />
             </Link>
           )}
-          <Link className='border-2 w-9 h-9 flex justify-center items-center rounded-full' href="/account">
-            <FontAwesomeIcon className='text-1xl' icon={faUser} />
-          </Link>
+          {token && (
+            <Link className='border-2 w-9 h-9 flex justify-center items-center rounded-full' href="/account">
+              <FontAwesomeIcon className='text-1xl' icon={faUser} />
+            </Link>
+          )}
           {isMobile && (
             <button onClick={toggleMenu} className='md:hidden'>
               <FontAwesomeIcon className='text-2xl' icon={faBars} />
@@ -394,9 +402,11 @@ const Header = () => {
                 <Link href="/promotions" className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800">
                   Promotions
                 </Link>
-                <Link href="/history/order" className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800">
-                  Order History
-                </Link>
+                {token && (
+                  <Link href="/history/order" className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800">
+                    Order History
+                  </Link>
+                )}
               </nav>
             </div>
           </div>

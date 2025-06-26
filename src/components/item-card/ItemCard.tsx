@@ -31,8 +31,21 @@ const ItemCard = ({
     const [addedToCart, setAddedToCart] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [isHovering, setIsHovering] = useState(false);
 
     const isImageUrl = typeof image === 'string';
+
+    // Helper function to format price with commas
+        const formatPrice = (price: number): string => {
+        // Convert to fixed decimal first, then add commas
+        const fixedPrice = Number(price).toFixed(2);
+        const [integerPart, decimalPart] = fixedPrice.split('.');
+        
+        // Add commas to integer part
+        const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        
+        return `${formattedInteger}.${decimalPart}`;
+        };
 
     const incrementQuantity = () => setQuantity(prev => prev + 1);
     const decrementQuantity = () => quantity > 1 && setQuantity(prev => prev - 1);
@@ -140,14 +153,15 @@ const ItemCard = ({
                 {/* Product name */}
                 <h3 className="text-xs md:text-sm lg:text-base font-medium text-gray-800 text-center mb-0.5">{name}</h3>
 
-                {/* Price section */}
+                {/* Price section - Updated with comma formatting */}
                 <div className="flex flex-col items-center space-y-0.5 mb-1 md:mb-2">
                     {originalPrice && originalPrice > currentPrice ? (
                         <>
-                            <span className="text-purple-900 text-xs md:text-sm font-semibold">Rs.{currentPrice}</span>
+                            <span className="text-purple-900 text-xs md:text-sm font-semibold">Rs.{formatPrice(currentPrice)}</span>
+                            <span className="text-gray-500 text-xs line-through">Rs.{formatPrice(originalPrice)}</span>
                         </>
                     ) : (
-                        <span className="text-purple-900 text-xs md:text-sm font-semibold">Rs.{currentPrice}</span>
+                        <span className="text-purple-900 text-xs md:text-sm font-semibold">Rs.{formatPrice(currentPrice)}</span>
                     )}
                 </div>
 
@@ -211,6 +225,8 @@ const ItemCard = ({
                     ) : (
                         <button
                             onClick={handleAddToCartClick}
+                            onMouseEnter={() => setIsHovering(true)}
+                            onMouseLeave={() => setIsHovering(false)}
                             disabled={isLoading}
                             className={`w-full py-1 px-1.5 rounded flex items-center justify-center gap-1 text-xs md:text-sm transition-colors cursor-pointer ${token && user && showQuantitySelector
                                 ? "bg-purple-900 text-white hover:bg-purple-800"
@@ -222,10 +238,13 @@ const ItemCard = ({
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                                 </svg>
                             )}
-                            {token && user && showQuantitySelector ? "Add to Cart" : "Add to Cart"}
+                            {token && user && showQuantitySelector 
+                                ? "Add to Cart" 
+                                : (isHovering ? "I want this !" : "Add to Cart")
+                            }
                         </button>
                     )}
-                </div>
+                                    </div>
             </div>
         </div>
     );

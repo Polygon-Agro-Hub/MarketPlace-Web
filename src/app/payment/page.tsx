@@ -52,101 +52,136 @@ const Page: React.FC = () => {
     }));
   };
 
-  const prepareOrderPayload = (): OrderPayload => {
-    // Use calculatedSummary instead of summary
-    const calculatedSummary = cartItems.calculatedSummary;
-    const summary = cartItems.summary;
-    
-    // Get totals from calculated summary
-    const grandTotal = calculatedSummary?.finalTotal || 0;
-    const discountAmount = calculatedSummary?.totalDiscount || 0;
-    const couponDiscount = summary?.couponDiscount || 0;
+const prepareOrderPayload = (): OrderPayload => {
+  // Use calculatedSummary instead of summary
+  const calculatedSummary = cartItems.calculatedSummary;
+  const summary = cartItems.summary;
+  
+  // Get totals from calculated summary
+  const grandTotal = calculatedSummary?.finalTotal || 0;
+  const discountAmount = calculatedSummary?.totalDiscount || 0;
+  const couponDiscount = summary?.couponDiscount || 0;
 
-    return {
-      cartId: cartItems.cartId || 0,
-      checkoutDetails: {
-        deliveryMethod: checkoutDetails.deliveryMethod || 'home',
-        title: checkoutDetails.title || '',
-        fullName: checkoutDetails.fullName || '',
-        phoneCode1: checkoutDetails.phoneCode1 || '+94',
-        phone1: checkoutDetails.phone1 || '',
-        phoneCode2: checkoutDetails.phoneCode2 || '',
-        phone2: checkoutDetails.phone2 || '',
-        buildingType: (checkoutDetails.buildingType || 'apartment').toLowerCase(),
-        deliveryDate: checkoutDetails.deliveryDate || '',
-        timeSlot: checkoutDetails.timeSlot || '',
-        buildingNo: checkoutDetails.buildingNo || '',
-        buildingName: checkoutDetails.buildingName || '',
-        flatNumber: checkoutDetails.flatNumber || '',
-        floorNumber: checkoutDetails.floorNumber || '',
-        houseNo: checkoutDetails.houseNo || '',
-        street: checkoutDetails.street || '',
-        cityName: checkoutDetails.cityName || '',
-        scheduleType: checkoutDetails.scheduleType || 'One Time',
-        centerId: checkoutDetails.deliveryMethod === 'pickup' ? (checkoutDetails.centerId || null) : null,
-        couponValue: Number(couponDiscount) || 0,
-        isCoupon: (couponDiscount || 0) > 0,
-      },
-      paymentMethod,
-      discountAmount: Number(discountAmount) || 0,
-      grandTotal: Number(grandTotal) || 0,
-      orderApp: 'marketplace',
-    };
+  // Initialize all required fields first
+  let finalCheckoutDetails = {
+    deliveryMethod: checkoutDetails.deliveryMethod || 'home',
+    title: checkoutDetails.title || '',
+    fullName: checkoutDetails.fullName || '',
+    phoneCode1: checkoutDetails.phoneCode1 || '+94',
+    phone1: checkoutDetails.phone1 || '',
+    phoneCode2: checkoutDetails.phoneCode2 || '',
+    phone2: checkoutDetails.phone2 || '',
+    buildingType: '',
+    deliveryDate: checkoutDetails.deliveryDate || '',
+    timeSlot: checkoutDetails.timeSlot || '',
+    buildingNo: '',
+    buildingName: '',
+    flatNumber: '',
+    floorNumber: '',
+    houseNo: '',
+    street: '',
+    cityName: '',
+    scheduleType: checkoutDetails.scheduleType || 'One Time',
+    centerId: null as number | null,
+    couponValue: Number(couponDiscount) || 0,
+    isCoupon: (couponDiscount || 0) > 0,
   };
 
-  const validateCartData = (): { isValid: boolean; error?: string } => {
-    // Check if cart exists and has valid ID
-    if (!cartItems.cartId || cartItems.cartId === 0) {
-      return { isValid: false, error: 'Cart ID is missing. Please refresh and try again.' };
+  // Set values based on delivery method and building type
+  if (checkoutDetails.deliveryMethod === 'home') {
+    // Add address fields for home delivery
+    finalCheckoutDetails.buildingType = (checkoutDetails.buildingType || 'apartment').toLowerCase();
+    finalCheckoutDetails.houseNo = checkoutDetails.houseNo || '';
+    finalCheckoutDetails.street = checkoutDetails.street || '';
+    finalCheckoutDetails.cityName = checkoutDetails.cityName || '';
+    finalCheckoutDetails.centerId = null;
+
+    // Add apartment-specific fields only if building type is apartment
+    if (checkoutDetails.buildingType?.toLowerCase() === 'apartment') {
+      finalCheckoutDetails.buildingNo = checkoutDetails.buildingNo || '';
+      finalCheckoutDetails.buildingName = checkoutDetails.buildingName || '';
+      finalCheckoutDetails.flatNumber = checkoutDetails.flatNumber || '';
+      finalCheckoutDetails.floorNumber = checkoutDetails.floorNumber || '';
     }
+  } else if (checkoutDetails.deliveryMethod === 'pickup') {
+    // For pickup delivery, keep address fields empty and set centerId
+    finalCheckoutDetails.centerId = checkoutDetails.centerId || null;
+  }
 
-    // Check if cart has items (packages or additional items)
-    const hasPackages = cartItems.packages && cartItems.packages.length > 0;
-    const hasAdditionalItems = cartItems.additionalItems && 
-      cartItems.additionalItems.length > 0 && 
-      cartItems.additionalItems.some(group => group.Items && group.Items.length > 0);
+  return {
+    cartId: cartItems.cartId || 0,
+    checkoutDetails: finalCheckoutDetails,
+    paymentMethod,
+    discountAmount: Number(discountAmount) || 0,
+    grandTotal: Number(grandTotal) || 0,
+    orderApp: 'marketplace',
+  };
+};
 
-    if (!hasPackages && !hasAdditionalItems) {
-      return { isValid: false, error: 'No items in cart. Please add items before placing order.' };
+
+
+ const validateCartData = (): { isValid: boolean; error?: string } => {
+  // Check if cart exists and has valid ID
+  if (!cartItems.cartId || cartItems.cartId === 0) {
+    return { isValid: false, error: 'Cart ID is missing. Please refresh and try again.' };
+  }
+
+  // Check if cart has items (packages or additional items)
+  const hasPackages = cartItems.packages && cartItems.packages.length > 0;
+  const hasAdditionalItems = cartItems.additionalItems && 
+    cartItems.additionalItems.length > 0 && 
+    cartItems.additionalItems.some(group => group.Items && group.Items.length > 0);
+
+  if (!hasPackages && !hasAdditionalItems) {
+    return { isValid: false, error: 'No items in cart. Please add items before placing order.' };
+  }
+
+  // Check if calculated summary exists
+  if (!cartItems.calculatedSummary) {
+    return { isValid: false, error: 'Cart summary is missing. Please refresh and try again.' };
+  }
+
+  // Check if checkout details are complete
+  if (!checkoutDetails) {
+    return { isValid: false, error: 'Checkout details are missing. Please complete the checkout process.' };
+  }
+
+  // Validate required checkout fields
+  const requiredFields = ['deliveryMethod', 'title', 'fullName', 'phone1'];
+  for (const field of requiredFields) {
+    if (!checkoutDetails[field as keyof typeof checkoutDetails]) {
+      return { isValid: false, error: `Missing required field: ${field}` };
     }
+  }
 
-    // Check if calculated summary exists
-    if (!cartItems.calculatedSummary) {
-      return { isValid: false, error: 'Cart summary is missing. Please refresh and try again.' };
-    }
-
-    // Check if checkout details are complete
-    if (!checkoutDetails) {
-      return { isValid: false, error: 'Checkout details are missing. Please complete the checkout process.' };
-    }
-
-    // Validate required checkout fields
-    const requiredFields = ['deliveryMethod', 'title', 'fullName', 'phone1'];
-    for (const field of requiredFields) {
-      if (!checkoutDetails[field as keyof typeof checkoutDetails]) {
-        return { isValid: false, error: `Missing required field: ${field}` };
-      }
-    }
-
-    // Validate building type specific fields
-    if (checkoutDetails.buildingType === 'apartment') {
+  // Validate delivery method specific fields
+  if (checkoutDetails.deliveryMethod === 'home') {
+    // Validate building type specific fields for home delivery
+    if (checkoutDetails.buildingType?.toLowerCase() === 'apartment') {
       const apartmentFields = ['buildingNo', 'buildingName', 'flatNumber', 'floorNumber'];
       for (const field of apartmentFields) {
         if (!checkoutDetails[field as keyof typeof checkoutDetails]) {
           return { isValid: false, error: `Missing required apartment field: ${field}` };
         }
       }
-    } else if (checkoutDetails.buildingType === 'house') {
-      const houseFields = ['houseNo', 'street'];
-      for (const field of houseFields) {
-        if (!checkoutDetails[field as keyof typeof checkoutDetails]) {
-          return { isValid: false, error: `Missing required house field: ${field}` };
-        }
+    }
+    
+    // Common home delivery fields (required for both house and apartment)
+    const homeDeliveryFields = ['houseNo', 'street', 'cityName'];
+    for (const field of homeDeliveryFields) {
+      if (!checkoutDetails[field as keyof typeof checkoutDetails]) {
+        return { isValid: false, error: `Missing required home delivery field: ${field}` };
       }
     }
+  } else if (checkoutDetails.deliveryMethod === 'pickup') {
+    // Validate pickup center selection
+    if (!checkoutDetails.centerId) {
+      return { isValid: false, error: 'Please select a pickup center.' };
+    }
+  }
 
-    return { isValid: true };
-  };
+  return { isValid: true };
+};
 
   console.log('cartId', cartItems.cartId);
   console.log('Total items:', cartItems.calculatedSummary?.totalItems);

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useViewport } from './hooks/useViewport';
 import Image from 'next/image';
 import { packageAddToCart } from '@/services/product-service';
@@ -30,6 +30,7 @@ interface PackageProps {
   onAddToCartError?: (message: string) => void;
   isLoadingDetails: boolean;
   errorDetails?: string | null;
+  onShowConfirmModal: (packageData: any) => void;
 }
 
 const PackageCard: React.FC<PackageProps> = ({
@@ -41,12 +42,14 @@ const PackageCard: React.FC<PackageProps> = ({
   onAddToCartSuccess,
   onAddToCartError,
   isLoadingDetails,
-  errorDetails
+  errorDetails,
+  onShowConfirmModal
 }) => {
   const { isMobile } = useViewport();
   const token = useSelector((state: RootState) => state.auth.token) as string | null;
   const router = useRouter();
-
+  // Remove the local showConfirmModal state
+  // const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
 
   const handlePackageAddToCart = async () => {
     if (!packageDetails || packageDetails.length === 0) {
@@ -58,9 +61,7 @@ const PackageCard: React.FC<PackageProps> = ({
 
     if (!token) {
       if (onAddToCartError) {
-        // onAddToCartError('Please login to add items to cart');
         router.push('/signin');
-
       }
       return;
     }
@@ -86,7 +87,27 @@ const PackageCard: React.FC<PackageProps> = ({
         onAddToCartError('Failed to add package to cart. Please try again.');
       }
     }
-  }
+  };
+
+  const handleAddToCartClick = () => {
+    // Instead of setting local state, call the parent function with package data
+    onShowConfirmModal({
+      packageItem,
+      packageDetails,
+      handlePackageAddToCart
+    });
+  };
+
+  const formatPrice = (price: number): string => {
+    // Convert to fixed decimal first, then add commas
+    const fixedPrice = Number(price).toFixed(2);
+    const [integerPart, decimalPart] = fixedPrice.split('.');
+    
+    // Add commas to integer part
+    const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    
+    return `${formattedInteger}.${decimalPart}`;
+  };
 
   return (
     <div className="w-full h-full">
@@ -107,7 +128,7 @@ const PackageCard: React.FC<PackageProps> = ({
               {packageItem.displayName}
             </p>
             <p className="text-[#3E206D] font-medium text-sm sm:text-base mt-2">
-              Rs.{packageItem.subTotal}
+              Rs.{formatPrice(packageItem.subTotal)}
             </p>
           </div>
         </div>
@@ -132,7 +153,7 @@ const PackageCard: React.FC<PackageProps> = ({
 
               <div className="flex items-end justify-end mr-4">
                 <h3 className="text-white font-bold text-xl text-center">
-                  Rs.{packageItem.subTotal}{' '}
+                  Rs.{formatPrice(packageItem.subTotal)}{' '}
                   <span className="text-sm font-normal">/ pack</span>
                 </h3>
               </div>
@@ -164,7 +185,7 @@ const PackageCard: React.FC<PackageProps> = ({
             <div className="flex px-8 mt-4">
               <button
                 className="w-full bg-white text-[#000000] py-2 rounded-xl font-normal hover:bg-gray-100 transition-colors cursor-pointer"
-                onClick={handlePackageAddToCart}
+                onClick={handleAddToCartClick}
               >
                 Add to Cart
               </button>
