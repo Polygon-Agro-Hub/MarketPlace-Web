@@ -7,6 +7,7 @@ import { RootState } from '@/store';
 import { useDispatch } from 'react-redux';
 import { logout } from '../../store/slices/authSlice';
 import { clearCart } from '@/store/slices/cartSlice';
+import ExitImg from '../../../public/icons/Exit.png'
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -86,7 +87,7 @@ const Header = () => {
                   }}
                 >
                   <img
-                    src="/icons/Exit.png"
+                    src={ExitImg as any}
                     alt="Logout"
                     className="w-4 h-4"
                   />
