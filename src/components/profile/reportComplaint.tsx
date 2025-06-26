@@ -1,16 +1,15 @@
 
-
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
-import { FaCloudUploadAlt, FaTimes } from 'react-icons/fa';
+import { FaCloudUploadAlt, FaTimes, FaAngleDown } from 'react-icons/fa';
 import { RootState } from '@/store';
 import ErrorPopup from '@/components/toast-messages/error-message';
 import SuccessPopup from '@/components/toast-messages/success-message';
 import Loader from '@/components/loader-spinner/Loader';
-import { submitComplaint } from '@/services/auth-service';
-import { fetchComplaintCategories, Category } from '@/services/auth-service';
+import { submitComplaint, fetchComplaintCategories, Category } from '@/services/auth-service';
+import { UseFormRegister } from 'react-hook-form';
 
 // Interface for Complaint data structure
 interface Complaint {
@@ -24,6 +23,103 @@ interface Complaint {
 interface ReportComplaintFormProps {
   complaint?: Complaint;
 }
+
+// Form data type for CustomDropdown
+type FormData = {
+  categoryId: string;
+};
+
+// Custom Dropdown Component
+interface CustomDropdownProps {
+  register?: UseFormRegister<FormData>;
+  name: keyof FormData;
+  value: string;
+  onChange: (value: string) => void;
+  options: { value: string; label: string }[];
+  disabled?: boolean;
+}
+
+const CustomDropdown = ({ register, name, value, onChange, options, disabled }: CustomDropdownProps) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Handle clicking outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Handle option selection
+  const handleSelect = (selectedValue: string) => {
+    onChange(selectedValue);
+    setIsOpen(false);
+  };
+
+  return (
+    <div className="relative cursor-pointer" ref={dropdownRef}>
+      {/* Hidden input for React Hook Form if register is provided */}
+      {register && <input type="hidden" {...register(name)} value={value} />}
+
+      {/* Dropdown Trigger */}
+      <div
+        className={`appearance-none border border-[#CECECE] cursor-pointer rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px] pr-8 flex items-center justify-between ${
+          disabled ? 'opacity-50 cursor-not-allowed' : ''
+        }`}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+      >
+        <span>{options.find((opt) => opt.value === value)?.label || '--Select Complaint Category--'}</span>
+        <FaAngleDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none" />
+      </div>
+
+      {/* Dropdown Options */}
+      {isOpen && (
+        <ul className="absolute z-10 w-full bg-white border border-[#CECECE] rounded-lg mt-1">
+          {options.map((option) => (
+            <li
+              key={option.value}
+              className="p-2 text-[12px] md:text-[14px] cursor-pointer hover:bg-gray-100"
+              onClick={() => handleSelect(option.value)}
+            >
+              {option.label}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+};
+
+// Cancel Success Popup component
+interface CancelSuccessPopupProps {
+  isVisible: boolean;
+  onClose: () => void;
+  title: string;
+  duration?: number;
+}
+
+const CancelSuccessPopup = ({ isVisible, onClose, title, duration }: CancelSuccessPopupProps) => {
+  useEffect(() => {
+    if (isVisible && duration) {
+      const timer = setTimeout(() => {
+        onClose();
+      }, duration);
+      return () => clearTimeout(timer);
+    }
+  }, [isVisible, duration, onClose]);
+
+  if (!isVisible) return null;
+
+  return (
+    <div className="fixed top-4 right-4 bg-green-500 text-white p-4 rounded-lg shadow-lg z-50" role="alert">
+      <p>{title}</p>
+    </div>
+  );
+};
 
 const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) => {
   // State variables
@@ -45,17 +141,29 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
   const { token, user } = useSelector((state: RootState) => state.auth);
   const userId = user?.id;
 
+  // Category options
+  const categoryOptions = [
+    { value: '', label: '--Select Complaint Category--' },
+    ...categories.map((cat) => ({ value: cat.id.toString(), label: cat.categoryEnglish })),
+  ];
+
   // Fetch categories from backend
   useEffect(() => {
     const loadCategories = async () => {
       setIsLoading(true);
-      const fetchedCategories = await fetchComplaintCategories();
-      setCategories(fetchedCategories);
-      if (fetchedCategories.length === 0) {
-        setErrorMessage('Failed to load complaint categories. Please try again later.');
+      try {
+        const fetchedCategories = await fetchComplaintCategories();
+        setCategories(fetchedCategories);
+        if (fetchedCategories.length === 0) {
+          setErrorMessage('Failed to load complaint categories. Please try again later.');
+          setShowErrorPopup(true);
+        }
+      } catch (error: any) {
+        setErrorMessage(error.message || 'Failed to load complaint categories.');
         setShowErrorPopup(true);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
     loadCategories();
   }, []);
@@ -228,36 +336,6 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
     }
   };
 
-  // Cancel Success Popup component
-  const CancelSuccessPopup = ({
-    isVisible,
-    onClose,
-    title,
-    duration,
-  }: {
-    isVisible: boolean;
-    onClose: () => void;
-    title: string;
-    duration?: number;
-  }) => {
-    useEffect(() => {
-      if (isVisible && duration) {
-        const timer = setTimeout(() => {
-          onClose();
-        }, duration);
-        return () => clearTimeout(timer);
-      }
-    }, [isVisible, duration, onClose]);
-
-    if (!isVisible) return null;
-
-    return (
-      <div className="fixed top-4 right-4 bg-green-500 text-white p-4 rounded-lg shadow-lg z-50" role="alert">
-        <p>{title}</p>
-      </div>
-    );
-  };
-
   return (
     <div className="relative z-40 px-6 md:px-8 bg-white">
       <Loader isVisible={isLoading} />
@@ -274,7 +352,13 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
         description={successMessage}
         duration={3000}
       />
-     
+      <CancelSuccessPopup
+        isVisible={showCancelSuccessPopup}
+        onClose={() => setShowCancelSuccessPopup(false)}
+        title="Form cleared successfully!"
+        duration={3000}
+      />
+
       <h2 className="font-medium text-base text-[14px] md:text-[18px] mb-2 mt-2">
         {complaint?.id ? 'Update Complaint' : 'Report a Complaint'}
       </h2>
@@ -294,25 +378,13 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
             Related Complaint Category
           </label>
           <div className="relative w-full md:w-[47%]">
-            <select
-              id="complaint-category"
+            <CustomDropdown
+              name="categoryId"
               value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
-              className={`text-[12px] md:text-[16px] text-[#787878] w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-0 focus:border-[#3E206D] ${
-                isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-              }`}
+              onChange={setCategoryId}
+              options={categoryOptions}
               disabled={isLoading}
-              aria-describedby="category-help"
-            >
-              <option value="" disabled>
-                --Select Complaint Category--
-              </option>
-              {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.categoryEnglish}
-                </option>
-              ))}
-            </select>
+            />
             <p id="category-help" className="text-xs text-[#626D76] mt-1 sr-only">
               Select the category that best describes your complaint.
             </p>
@@ -389,7 +461,7 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
                       />
                       <button
                         onClick={() => removeImage(i, true, img.id)}
-                        className={`absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center bg-[#FA0000] rounded-full text-white hover:bg-[#D00000] ${
+                        className={`absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center cursor-pointer bg-[#FA0000] rounded-full text-white hover:bg-[#D00000] ${
                           isLoading ? 'opacity-50 cursor-not-allowed' : ''
                         }`}
                         disabled={isLoading}
@@ -412,7 +484,7 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
                       />
                       <button
                         onClick={() => removeImage(i, false)}
-                        className={`absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center bg-[#FA0000] rounded-full text-white hover:bg-[#D00000] ${
+                        className={`absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center cursor-pointer bg-[#FA0000] rounded-full text-white hover:bg-[#D00000] ${
                           isLoading ? 'opacity-50 cursor-not-allowed' : ''
                         }`}
                         disabled={isLoading}
