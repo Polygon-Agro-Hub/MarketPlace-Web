@@ -113,26 +113,26 @@ const Header = () => {
           <Link href="/" className='text-2xl font-bold'>My Farm</Link>
           {!isMobile && (
             <nav className='hidden md:flex space-x-6'>
-              <Link href='/' className='hover:text-purple-200'>Home</Link>
-              {!token && (
-                <div className='relative' ref={categoryRef}>
-                  <button
-                    className='flex items-center hover:text-purple-200'
-                    onClick={toggleDesktopCategory}
-                  >
-                    Category <span className='ml-1'><FontAwesomeIcon icon={faAngleDown} /></span>
-                  </button>
-                  {isDesktopCategoryOpen && (
-                    <div className='absolute bg-[#3E206D] text-white w-48 shadow-lg mt-7 z-10'>
-                      <Link href="/" className="border-b-1 block px-4 py-2 hover:bg-[#6c5394]">
-                        Retail
-                      </Link>
-                      <Link href="/wholesale/home" className="block px-4 py-2 hover:bg-[#6c5394]">
-                        Wholesale
-                      </Link>
-                    </div>
-                  )}
-                </div>
+              <Link  href={user?.buyerType === 'Wholesale' ? '/wholesale/home' : '/'}  className='hover:text-purple-200'>Home</Link>
+              {!token &&(
+              <div className='relative' ref={categoryRef}>
+                <button
+                  className='flex items-center hover:text-purple-200'
+                  onClick={toggleDesktopCategory}
+                >
+                  Category <span className='ml-1'><FontAwesomeIcon icon={faAngleDown} /></span>
+                </button>
+                {isDesktopCategoryOpen && (
+                  <div className='absolute bg-[#3E206D] text-white w-48 shadow-lg mt-7 z-10'>
+                    <Link href="/" className="border-b-1 block px-4 py-2 hover:bg-[#6c5394]">
+                      Retail
+                    </Link>
+                    <Link href="/wholesale/home" className="block px-4 py-2 hover:bg-[#6c5394]">
+                      Wholesale
+                    </Link>
+                  </div>
+                )}
+              </div>
               )}
               <Link href="/promotions" className="hover:text-purple-200">
                 Promotions
