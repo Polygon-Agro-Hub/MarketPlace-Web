@@ -114,6 +114,7 @@ const Header = () => {
           {!isMobile && (
             <nav className='hidden md:flex space-x-6'>
               <Link href='/' className='hover:text-purple-200'>Home</Link>
+              {!token &&(
               <div className='relative' ref={categoryRef}>
                 <button
                   className='flex items-center hover:text-purple-200'
@@ -132,6 +133,7 @@ const Header = () => {
                   </div>
                 )}
               </div>
+              )}
               <Link href="/promotions" className="hover:text-purple-200">
                 Promotions
               </Link>
