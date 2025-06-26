@@ -13,9 +13,11 @@ import ErrorPopup from '@/components/toast-messages/error-message';
 import { getForm } from '@/services/retail-service';
 import { selectCartForOrder } from '../../store/slices/cartItemsSlice';
 import { useSearchParams } from 'next/navigation';
+import OpenStreetMap from '@/components/open-map/OpenStreetMap';
+import {getPickupCenters, PickupCenter} from '@/services/cart-service'
 
 interface FormData {
-  centerId: any, // Added centerId
+  centerId: number|null, // Added centerId
   deliveryMethod: any;
   title: string;
   fullName: string;
@@ -37,7 +39,7 @@ interface FormData {
 }
 
 interface FormErrors {
-  centerId: any; // Added centerId
+  centerId: string; // Added centerId
   deliveryMethod: string;
   title: string;
   fullName: string;
@@ -106,7 +108,7 @@ const Page: React.FC = () => {
     });
 
   const [errors, setErrors] = useState<FormErrors>({
-    centerId: null,
+    centerId: '',
     deliveryMethod: '',
     title: '',
     fullName: '',
@@ -141,6 +143,11 @@ const Page: React.FC = () => {
   const [showErrorPopup, setShowErrorPopup] = useState(false);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const searchParams = useSearchParams();
+ const [selectedPickupCenter, setSelectedPickupCenter] = useState<{id: number, name: string} | null>(null);
+  const [pickupCenters, setPickupCenters] = useState<PickupCenter[]>([]);
+  const [loadingCenters, setLoadingCenters] = useState(false);
+  const [mapCenter, setMapCenter] = useState<[number, number]>([6.9271, 79.8612]); // Default to Colombo
+  const [mapZoom, setMapZoom] = useState(12);
 
       useEffect(() => {
       // Get delivery method from query parameters
@@ -155,6 +162,29 @@ const Page: React.FC = () => {
         console.log('Delivery method set from query params:', deliveryMethodFromQuery);
       }
     }, [searchParams]);
+
+    useEffect(() => {
+  const fetchPickupCenters = async () => {
+    if (formData.deliveryMethod === 'pickup') {
+      setLoadingCenters(true);
+      try {
+        const response = await getPickupCenters();
+        if (response.success) {
+          setPickupCenters(response.data);
+          console.log('Pickup centers loaded:', response.data);
+        }
+      } catch (error: any) {
+        console.error('Failed to fetch pickup centers:', error);
+        setErrorMsg(error.message || 'Failed to load pickup centers.');
+        setShowErrorPopup(true);
+      } finally {
+        setLoadingCenters(false);
+      }
+    }
+  };
+
+  fetchPickupCenters();
+}, [formData.deliveryMethod, token]);
 
 
   const handleAddressOptionChange = async (value: string) => {
@@ -203,199 +233,219 @@ const Page: React.FC = () => {
     }
   };
 
+     const handleCenterSelect = (centerId: string, centerName: string) => {
+      const selectedCenter = pickupCenters.find(center => center.value === centerId);
+      
+      if (selectedCenter) {
+        const centerIdAsNumber = parseInt(centerId, 10); // Convert string to number
+        setSelectedPickupCenter({ id: centerIdAsNumber, name: centerName });
+        setFormDataLocal(prev => ({ ...prev, centerId: centerIdAsNumber }));
+        
+        // Update map center and zoom to selected pickup center
+        setMapCenter([selectedCenter.latitude, selectedCenter.longitude]);
+        setMapZoom(15);
+        
+        console.log('Selected pickup center:', {
+          id: selectedCenter.id,
+          name: selectedCenter.name,
+          latitude: selectedCenter.latitude,
+          longitude: selectedCenter.longitude,
+        });
+      }
+    };
+
+          const pickupCenterOptions = pickupCenters.map(center => ({
+      value: center.value,
+      label: center.label
+    }));
 
 
-  const handleFieldChange = (field: keyof FormData, value: string) => {
-    // Update the form state
-    setFormDataLocal(prev => ({ ...prev, [field]: value }));
 
-    // Validate the field with access to current form data
-    const error = validateField(field, value, formData);
-    setErrors(prev => ({ ...prev, [field]: error }));
+const handleFieldChange = (field: keyof FormData, value: string | number) => {
+  // Update the form state
+  setFormDataLocal(prev => ({ ...prev, [field]: value }));
 
-    // Special case: if deliveryMethod changes, revalidate all address fields
-    if (field === 'deliveryMethod') {
-      const addressFields = [
-        'buildingType', 'buildingName', 'buildingNo',
-        'street', 'cityName', 'houseNo',
-        'floorNumber', 'flatNumber'
-      ];
+  // Validate the field with access to current form data
+  const error = validateField(field, value, formData);
+  setErrors(prev => ({ ...prev, [field]: error }));
 
-      addressFields.forEach(addressField => {
-        const addressError = validateField(
-          addressField as keyof FormData,
-          formData[addressField as keyof FormData],
-          { ...formData, deliveryMethod: value } // Updated deliveryMethod
-        );
-        setErrors(prev => ({ ...prev, [addressField]: addressError }));
-      });
-    }
-  };
-
-  const validateField = (field: keyof FormData, value: string, formData: FormData): string => {
-    const trimmed = typeof value === 'string' ? value.trim() : '';
-    const isHomeDelivery = formData.deliveryMethod === 'House';
-    const isApartment = formData.buildingType === 'Apartment';
-
-    // Define which fields are conditionally required
-    const apartmentFields = [
-      'buildingType',
-      'buildingName',
-      'buildingNo',
-      'street',
-      'cityName',
-      'houseNo',
-      'floorNumber',
-      'flatNumber'
+  // Special case: if deliveryMethod changes, revalidate all address fields and centerId
+  if (field === 'deliveryMethod') {
+    const addressFields = [
+      'buildingType', 'buildingName', 'buildingNo',
+      'street', 'cityName', 'houseNo',
+      'floorNumber', 'flatNumber', 'centerId'
     ];
 
-    const houseFields = [
-      'street',
-      'cityName',
-      'houseNo'
-    ];
-
-    switch (field) {
-      case 'fullName':
-        if (!trimmed) return 'Full Name is required.';
-        if (!/^[A-Za-z\s]+$/.test(trimmed)) return 'Full Name must only contain letters and spaces.';
-        return '';
-
-      case 'title':
-        return !trimmed ? 'Title is required.' : '';
-
-      case 'phone1':
-        if (!value) return 'Phone number 1 is required.';
-        if (!/^\d{9}$/.test(value)) return 'Please enter a valid phone number';
-        return '';
-
-      case 'phone2':
-        return value && !/^\d{9}$/.test(value) ? 'Please enter a valid phone number' : '';
-
-      case 'timeSlot':
-        return !trimmed ? 'Time slot is required.' : '';
-
-      case 'deliveryDate':
-        return !value ? 'Delivery Date is required.' : '';
-
-      // Address fields - conditionally required
-      case 'buildingType':
-        return isHomeDelivery && !trimmed ? 'Building type is required.' : '';
-
-      case 'buildingName':
-      case 'buildingNo':
-      case 'floorNumber':
-      case 'flatNumber':
-        // Only required for apartment and home delivery
-        return isHomeDelivery && isApartment && !trimmed ?
-          `${field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} is required.` :
-          '';
-
-      case 'street':
-      case 'cityName':
-      case 'houseNo':
-        // Required for both house and apartment when home delivery
-        return isHomeDelivery && !trimmed ?
-          `${field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} is required.` :
-          '';
-
-      default:
-        return '';
-    }
-  };
-
-  const validateForm = (): boolean => {
-    const newErrors: FormErrors = {} as FormErrors;
-    let valid = true;
-
-    (Object.keys(formData) as Array<keyof FormData>).forEach(field => {
-      const value = formData[field] != null ? String(formData[field]) : ''; // Convert to string with null check
-      const error = validateField(field, value, formData);
-      newErrors[field] = error;
-      if (error) valid = false;
+    addressFields.forEach(addressField => {
+      const fieldValue = addressField === 'centerId' 
+        ? formData[addressField as keyof FormData] 
+        : formData[addressField as keyof FormData];
+      
+      const addressError = validateField(
+        addressField as keyof FormData,
+        fieldValue,
+        { ...formData, deliveryMethod: value as string } // Updated deliveryMethod
+      );
+      setErrors(prev => ({ ...prev, [addressField]: addressError }));
     });
+  }
+};
 
-    setErrors(newErrors);
-    return valid;
-  };
+const validateField = (field: keyof FormData, value: string | number | null, formData: FormData): string => {
+  const trimmed = typeof value === 'string' ? value.trim() : '';
+  const isHomeDelivery = formData.deliveryMethod === 'home';
+  const isPickup = formData.deliveryMethod === 'pickup';
+  const isApartment = formData.buildingType === 'Apartment';
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSuccessMsg('');
-    setErrorMsg('');
+  switch (field) {
+    case 'centerId':
+    return isPickup && (value === null || value === undefined) ? 'Please select a pickup center.' : '';
 
-    if (!validateForm()) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Invalid Form',
-        text: 'Please correctly fill all the required fields.',
-      });
-      return;
-    }
+    case 'fullName':
+      if (!trimmed) return 'Full Name is required.';
+      if (!/^[A-Za-z\s]+$/.test(trimmed)) return 'Full Name must only contain letters and spaces.';
+      return '';
 
-    try {
-      setIsLoading(true);
+    case 'title':
+      return !trimmed ? 'Title is required.' : '';
 
-      let dataToSubmit: FormData = initialFormState;
+    case 'phone1':
+      if (!value) return 'Phone number 1 is required.';
+      if (!/^\d{9}$/.test(value.toString())) return 'Please enter a valid phone number';
+      return '';
 
+    case 'phone2':
+      return value && !/^\d{9}$/.test(value.toString()) ? 'Please enter a valid phone number' : '';
+
+    case 'timeSlot':
+      return !trimmed ? 'Time slot is required.' : '';
+
+    case 'deliveryDate':
+      return !value ? 'Delivery Date is required.' : '';
+
+    // Address fields - conditionally required
+    case 'buildingType':
+      return isHomeDelivery && !trimmed ? 'Building type is required.' : '';
+
+    case 'buildingName':
+    case 'buildingNo':
+    case 'floorNumber':
+    case 'flatNumber':
+      // Only required for apartment and home delivery
+      return isHomeDelivery && isApartment && !trimmed ?
+        `${field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} is required.` :
+        '';
+
+    case 'street':
+    case 'cityName':
+    case 'houseNo':
+      // Required for both house and apartment when home delivery
+      return isHomeDelivery && !trimmed ?
+        `${field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} is required.` :
+        '';
+
+    default:
+      return '';
+  }
+};
+
+const validateForm = (): boolean => {
+  const newErrors: FormErrors = {} as FormErrors;
+  let valid = true;
+
+  (Object.keys(formData) as Array<keyof FormData>).forEach(field => {
+    const value = formData[field];
+    const error = validateField(field, value, formData);
+    newErrors[field] = error;
+    if (error) valid = false;
+  });
+
+  setErrors(newErrors);
+  return valid;
+};
+
+ const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setSuccessMsg('');
+  setErrorMsg('');
+
+  if (!validateForm()) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Invalid Form',
+      text: 'Please correctly fill all the required fields.',
+    });
+    return;
+  }
+
+  try {
+    setIsLoading(true);
+
+    let dataToSubmit: FormData = {
+      ...initialFormState,
       // Always include shared fields
+      deliveryMethod: formData.deliveryMethod,
+      title: formData.title,
+      fullName: formData.fullName,
+      phone1: formData.phone1,
+      phone2: formData.phone2,
+      phoneCode1: formData.phoneCode1,
+      phoneCode2: formData.phoneCode2,
+      deliveryDate: formData.deliveryDate,
+      timeSlot: formData.timeSlot,
+      scheduleType: formData.scheduleType,
+    };
+
+    if (formData.deliveryMethod === 'home') {
+      if (formData.buildingType === 'Apartment') {
+        dataToSubmit = {
+          ...dataToSubmit,
+          buildingType: formData.buildingType,
+          buildingNo: formData.buildingNo,
+          buildingName: formData.buildingName,
+          flatNumber: formData.flatNumber,
+          floorNumber: formData.floorNumber,
+          houseNo: formData.houseNo,
+          street: formData.street,
+          cityName: formData.cityName,
+        };
+      } else if (formData.buildingType === 'House') {
+        dataToSubmit = {
+          ...dataToSubmit,
+          buildingType: formData.buildingType,
+          houseNo: formData.houseNo,
+          street: formData.street,
+          cityName: formData.cityName,
+        };
+      }
+    } else if (formData.deliveryMethod === 'pickup') {
+      // Include centerId for pickup delivery
       dataToSubmit = {
         ...dataToSubmit,
-        deliveryMethod: formData.deliveryMethod,
-        title: formData.title,
-        fullName: formData.fullName,
-        phone1: formData.phone1,
-        phone2: formData.phone2,
-        phoneCode1: formData.phoneCode1,
-        phoneCode2: formData.phoneCode2,
-        deliveryDate: formData.deliveryDate,
-        timeSlot: formData.timeSlot,
-        scheduleType: formData.scheduleType,
+        centerId: formData.centerId,
       };
-
-      if (formData.deliveryMethod === 'home') {
-        if (formData.buildingType === 'Apartment') {
-          dataToSubmit = {
-            ...dataToSubmit,
-            buildingType: formData.buildingType,
-            buildingNo: formData.buildingNo,
-            buildingName: formData.buildingName,
-            flatNumber: formData.flatNumber,
-            floorNumber: formData.floorNumber,
-            houseNo: formData.houseNo,
-            street: formData.street,
-            cityName: formData.cityName,
-          };
-        } else if (formData.buildingType === 'House') {
-          dataToSubmit = {
-            ...dataToSubmit,
-            buildingType: formData.buildingType,
-            houseNo: formData.houseNo,
-            street: formData.street,
-            cityName: formData.cityName,
-          };
-        }
-      }
-      dispatch(resetFormData());
-
-      dispatch(setFormData(dataToSubmit));
-      console.log('submitting', dataToSubmit)
-
-      setSuccessMsg('Check out successfull!');
-      setShowSuccessPopup(true);
-
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Check out failed!');
-      await Swal.fire({
-        title: 'Check out failed',
-        icon: 'error',
-        confirmButtonText: 'Try Again',
-        confirmButtonColor: '#3E206D',
-      });
-    } finally {
-      setIsLoading(false);
     }
-  };
+
+    dispatch(resetFormData());
+    dispatch(setFormData(dataToSubmit));
+    console.log('submitting', dataToSubmit);
+
+    setSuccessMsg('Check out successfull!');
+    setShowSuccessPopup(true);
+
+  } catch (err: any) {
+    setErrorMsg(err.message || 'Check out failed!');
+    await Swal.fire({
+      title: 'Check out failed',
+      icon: 'error',
+      confirmButtonText: 'Try Again',
+      confirmButtonColor: '#3E206D',
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
 
 
   return (
@@ -470,11 +520,45 @@ const Page: React.FC = () => {
               <div className='border-t border-gray-300 my-6'></div>
 
               {formData.deliveryMethod === 'pickup' && (
-                <div className="w-full">
+                <div className="w-full mb-6">
                   <h2 className='text-xl font-bold mb-6 mt-8 text-[#252525]'>
                     Find your nearest center
                   </h2>
-                  <h1>Agroword center</h1>
+                  
+                  {/* Center Selection Dropdown - ABOVE the map */}
+                  <div className="mb-4 relative z-50">
+                    <label className="block font-semibold mb-2 text-[#2E2E2E]">Select Pickup Center</label>
+                    {loadingCenters ? (
+                      <div className="w-full h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] rounded-lg flex items-center justify-center">
+                        <span className="text-sm text-gray-500">Loading centers...</span>
+                      </div>
+                    ) : (
+                      <CustomDropdown
+                        options={pickupCenterOptions}
+                        selectedValue={selectedPickupCenter?.id?.toString() || ''}
+                        onSelect={(value) => {
+                          const selectedCenter = pickupCenters.find(center => center.value === value);
+                          if (selectedCenter) {
+                            handleCenterSelect(value, selectedCenter.label);
+                          }
+                        }}
+                        placeholder="Select from here"
+                      />
+                    )}
+                    {errors.centerId && <p className="text-red-600 text-sm mt-1">{errors.centerId}</p>}
+                  </div>
+
+                  {/* Map Component - BELOW the dropdown */}
+                  <div className="mb-6 relative z-10">
+                    <OpenStreetMap
+                      center={mapCenter}
+                      zoom={mapZoom}
+                      height="300px"
+                      onCenterSelect={handleCenterSelect}
+                      pickupCenters={pickupCenters} // Pass centers to map component
+                      selectedCenterId={selectedPickupCenter?.id?.toString()}
+                    />
+                  </div>
                 </div>
               )}
 

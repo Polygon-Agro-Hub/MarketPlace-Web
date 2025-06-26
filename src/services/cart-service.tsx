@@ -463,11 +463,12 @@ export const validateOrderData = (payload: OrderPayload): { isValid: boolean; er
       errors.push('City name is required for home delivery');
     }
 
-    if (!buildingType || !['apartment', 'house'].includes(buildingType.toLowerCase())) {
+    if (!buildingType || !['apartment', 'house', 'Apartment', 'House'].includes(buildingType)) {
       errors.push('Valid building type is required (apartment or house)');
     }
 
-    if (buildingType && buildingType.toLowerCase() === 'apartment') {
+    // Check for apartment (case insensitive)
+    if (buildingType && (buildingType.toLowerCase() === 'apartment' || buildingType === 'Apartment')) {
       if (!buildingNo || buildingNo.trim().length === 0) {
         errors.push('Building number is required for apartment delivery');
       }
@@ -480,14 +481,16 @@ export const validateOrderData = (payload: OrderPayload): { isValid: boolean; er
       if (!floorNumber || floorNumber.trim().length === 0) {
         errors.push('Floor number is required for apartment delivery');
       }
-    } else if (buildingType && buildingType.toLowerCase() === 'house') {
-      if (!houseNo || houseNo.trim().length === 0) {
-        errors.push('House number is required for house delivery');
-      }
-      if (!street || street.trim().length === 0) {
-        errors.push('Street name is required for house delivery');
-      }
     }
+
+    // Always require house number and street for home delivery (both house and apartment)
+    if (!houseNo || houseNo.trim().length === 0) {
+      errors.push('House number is required for home delivery');
+    }
+    if (!street || street.trim().length === 0) {
+      errors.push('Street name is required for home delivery');
+    }
+
   } else if (deliveryMethod === 'pickup') {
     if (!payload.checkoutDetails.centerId) {
       errors.push('Center ID is required for pickup delivery');
@@ -568,3 +571,34 @@ export const validateCartExists = async (cartId: number, token: string): Promise
 //     throw new Error('Failed to get cart summary');
 //   }
 // };
+
+
+export interface PickupCenter {
+  id: number;
+  name: string;
+  longitude: number;
+  latitude: number;
+  city: string;
+  district: string;
+  label: string;
+  value: string;
+}
+
+export interface PickupCentersResponse {
+  success: boolean;
+  message: string;
+  data: PickupCenter[];
+  count: number;
+}
+
+
+export const getPickupCenters = async (): Promise<PickupCentersResponse> => {
+  try {
+    const response = await axios.get<PickupCentersResponse>('/cart/get-centers');
+
+    return response.data;
+  } catch (error: any) {
+    console.error('Error fetching pickup centers:', error);
+    throw new Error(error.response?.data?.message || 'Failed to fetch pickup centers');
+  }
+};
