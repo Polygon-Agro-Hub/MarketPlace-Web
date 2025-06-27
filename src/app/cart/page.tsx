@@ -23,6 +23,10 @@ import {
   selectCartForOrder
 } from '@/store/slices/cartItemsSlice';
 import { useRouter } from 'next/navigation';
+import empty from '../../../public/empty.jpg'
+import pickup from '../../../public/pickup.png'
+import delivery from '../../../public/deliver.png'
+import Image from 'next/image'
 
 interface PackageItem {
   name: string;
@@ -107,6 +111,8 @@ const Page: React.FC = () => {
   const [selectedProducts, setSelectedProducts] = useState<Set<number>>(new Set());
   const [selectAll, setSelectAll] = useState(false);
   const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
+  const [showDeliveryModal, setShowDeliveryModal] = useState(false);
+  const [selectedDeliveryMethod, setSelectedDeliveryMethod] = useState<'pickup' | 'delivery' | null>(null);
   
   
   const dispatch = useDispatch();
@@ -486,53 +492,60 @@ const handleProductQuantityChange = (productId: number, delta: number) => {
 };
 
 
-  const handleCheckout = async () => {
-    if (isCartEmpty() || !calculatedSummary || calculatedSummary.totalItems === 0) {
-      alert('Your cart is empty');
-      return;
+const handleCheckout = async () => {
+  if (isCartEmpty() || !calculatedSummary || calculatedSummary.totalItems === 0) {
+    alert('Your cart is empty');
+    return;
+  }
+
+  try {
+    setCheckoutLoading(true);
+    
+    // Process all pending quantity updates only
+    for (const update of pendingUpdates) {
+      await updateCartProductQuantity(update.productId, update.newQuantity, token);
     }
 
-    try {
-      setCheckoutLoading(true);
+    // Clear pending updates
+    setPendingUpdates([]);
+
+    // Fetch updated cart data to ensure consistency
+    const updatedCartData = await getUserCart(token);
+    dispatch(setCartData({
+      cart: updatedCartData.cart,
+      packages: updatedCartData.packages,
+      additionalItems: updatedCartData.additionalItems,
+      summary: updatedCartData.summary,
+    }));
+
+    // Show delivery method selection popup
+    setShowDeliveryModal(true);
+    
+  } catch (error) {
+    console.error('Error during checkout:', error);
+    alert('Something went wrong. Please try again.');
+  } finally {
+    setCheckoutLoading(false);
+  }
+};
+
+      const handleContinueShopping = () => {
+        router.push('/'); // Adjust the path as needed
+      };
+
+    const handleDeliveryMethodSelect = (method:any) => {
+      console.log('Selected delivery method:', method);
+      setSelectedDeliveryMethod(method);
+      setShowDeliveryModal(false);
       
-      // Process all pending quantity updates only
-      for (const update of pendingUpdates) {
-        await updateCartProductQuantity(update.productId, update.newQuantity, token);
-      }
+      // Navigate to checkout with delivery method as query parameter
+      router.push(`/checkout?deliveryMethod=${method}`);
+    };
 
-      // Clear pending updates
-      setPendingUpdates([]);
-
-      // Fetch updated cart data to ensure consistency
-      const updatedCartData = await getUserCart(token);
-      dispatch(setCartData({
-        cart: updatedCartData.cart,
-        packages: updatedCartData.packages,
-        additionalItems: updatedCartData.additionalItems,
-        summary: updatedCartData.summary,
-      }));
-
-      // Safe access to orderData with detailed logging
-      console.log('Cart data before checkout:', {
-        hasCart: !!cartData.cart,
-        cartId: cartData.cart?.cartId, // Fixed: use cartId instead of id
-        hasOrderData: !!orderData,
-        orderData: orderData
-      });
-
-      // Navigate to checkout
-      router.push('/checkout');
-    } catch (error: any) {
-      console.error('Error during checkout:', error);
-      alert('Something went wrong. Please try again.');
-    } finally {
-      setCheckoutLoading(false);
-    }
-  };
-
-  const handleContinueShopping = () => {
-    router.push('/'); // Adjust the path as needed
-  };
+    // Add debug logging to the state
+    useEffect(() => {
+      console.log('showDeliveryModal state:', showDeliveryModal);
+    }, [showDeliveryModal]);
 
     // Add this helper function to calculate products total for a specific item group
   const calculateItemGroupTotal = (itemGroup: AdditionalItems): number => {
@@ -542,6 +555,12 @@ const handleProductQuantityChange = (productId: number, delta: number) => {
       return total + itemTotal;
     }, 0);
   };
+  
+  useEffect(() => {
+  console.log('showDeliveryModal changed:', showDeliveryModal);
+}, [showDeliveryModal]);
+
+
 
   
 
@@ -570,15 +589,13 @@ if (isCartEmpty()) {
         <div className="flex flex-col items-center justify-center py-16 px-4">
           {/* Empty Cart Image/Icon */}
           <div className="mb-8">
-            <img 
-              src="/images/empty.jpg" // Replace with your actual image path
+            <Image 
+              src={empty}
               alt="Empty Cart"
+              width={384}
+              height={384}
               className="w-48 h-48 sm:w-64 sm:h-64 md:w-80 md:h-80 lg:w-96 lg:h-96 object-contain"
-              onError={(e) => {
-                // Fallback to icon if image doesn't load
-                e.currentTarget.style.display = 'none';
-                e.currentTarget.nextElementSibling?.classList.remove('hidden');
-              }}
+              priority
             />
             <ShoppingCart 
               size={80} 
@@ -645,6 +662,61 @@ if (isCartEmpty()) {
                 {showConfirmModal.type === 'bulk' && bulkDeleteLoading ? 'Removing...' : 'Remove'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+    {showDeliveryModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
+          <div className="bg-[#3E206D] p-8 rounded-2xl shadow-2xl w-full max-w-md relative">
+            <h2 className="text-white text-2xl font-semibold text-center mb-8">
+              Select a method
+            </h2>
+            
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              {/* In-store Pickup Option */}
+              <button
+                onClick={() => handleDeliveryMethodSelect('pickup')}
+                className="bg-white rounded-2xl p-6 flex flex-col items-center justify-center hover:shadow-lg transition-all duration-200 hover:scale-105"
+              >
+                <div className="mb-4">
+                  <Image
+                    src={pickup}
+                    alt="Store Pickup"
+                    className="w-24 h-24 object-contain"
+                  />
+                </div>
+                <div className="text-center">
+                  <p className="font-semibold text-gray-800 text-lg">INSTORE</p>
+                  <p className="font-semibold text-gray-800 text-lg">PICKUP</p>
+                </div>
+              </button>
+
+              {/* Home Delivery Option */}
+              <button
+                onClick={() => handleDeliveryMethodSelect('delivery')}
+                className="bg-white rounded-2xl p-6 flex flex-col items-center justify-center hover:shadow-lg transition-all duration-200 hover:scale-105"
+              >
+                <div className="mb-4">
+                  <Image
+                    src={delivery}
+                    alt="Home Delivery"
+                    className="w-24 h-24 object-contain"
+                  />
+                </div>
+                <div className="text-center">
+                  <p className="font-semibold text-gray-800 text-lg">HOME</p>
+                  <p className="font-semibold text-gray-800 text-lg">DELIVERY</p>
+                </div>
+              </button>
+            </div>
+            
+            {/* Close button */}
+            <button
+              onClick={() => setShowDeliveryModal(false)}
+              className="w-full text-white/80 hover:text-white text-center py-2 text-sm"
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}

@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useForm, SubmitHandler } from 'react-hook-form';
+import React, { useState, useEffect, useRef } from 'react';
+import { useForm, SubmitHandler, UseFormRegister, FieldErrors } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { FaUserCircle, FaAngleDown } from 'react-icons/fa';
@@ -10,10 +10,10 @@ import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
 import SuccessPopup from '@/components/toast-messages/success-message';
 import ErrorPopup from '@/components/toast-messages/error-message';
-import Loader from '@/components/loader-spinner/Loader'; // Import Loader component
+import Loader from '@/components/loader-spinner/Loader';
 import { fetchProfile, updateProfile, updatePassword } from '@/services/auth-service';
 
-// Yup schema (unchanged)
+// Yup schema
 const schema = yup.object().shape({
   title: yup.string().required('Title is required'),
   firstName: yup
@@ -54,8 +54,86 @@ const schema = yup.object().shape({
 
 type FormData = yup.InferType<typeof schema>;
 
-// Cancel Success Popup component
-const CancelSuccessPopup = ({ isVisible, onClose, title, duration }: { isVisible: boolean; onClose: () => void; title: string; duration?: number }) => {
+// Custom Dropdown Component
+interface CustomDropdownProps {
+  register: UseFormRegister<FormData>;
+  name: keyof FormData;
+  value: string; // Current form value
+  errors?: FieldErrors<FormData>;
+  options: { value: string; label: string }[];
+  placeholder: string;
+  onChange: (value: string) => void; // Callback to update form value
+}
+
+const CustomDropdown = ({ register, name, value, errors, options, placeholder, onChange }: CustomDropdownProps) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Handle clicking outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Handle option selection
+  const handleSelect = (optionValue: string) => {
+    onChange(optionValue); // Update form value
+    setIsOpen(false);
+  };
+
+  return (
+    <div className="relative cursor-pointer" ref={dropdownRef}>
+      {/* Hidden input for React Hook Form */}
+      <input type="hidden" {...register(name)} value={value} />
+
+      {/* Dropdown Trigger */}
+      <div
+        className="appearance-none border border-[#CECECE] cursor-pointer rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm pr-8 flex items-center justify-between"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <span>{value ? options.find((opt) => opt.value === value)?.label || placeholder : placeholder}</span>
+        <FaAngleDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none" />
+      </div>
+
+      {/* Dropdown Options */}
+      {isOpen && (
+        <ul className="absolute z-10 w-full bg-white border border-[#CECECE] rounded-lg mt-1">
+          <li
+            className="p-2 text-xs sm:text-sm cursor-pointer hover:bg-gray-100"
+            onClick={() => handleSelect('')}
+          >
+            {placeholder}
+          </li>
+          {options.map((option) => (
+            <li
+              key={option.value}
+              className="p-2 text-xs sm:text-sm cursor-pointer hover:bg-gray-100"
+              onClick={() => handleSelect(option.value)}
+            >
+              {option.label}
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="text-red-500 text-xs">{errors?.[name]?.message}</p>
+    </div>
+  );
+};
+
+// Cancel Success Popup Component
+interface CancelSuccessPopupProps {
+  isVisible: boolean;
+  onClose: () => void;
+  title: string;
+  duration?: number;
+}
+
+const CancelSuccessPopup = ({ isVisible, onClose, title, duration }: CancelSuccessPopupProps) => {
   useEffect(() => {
     if (isVisible && duration) {
       const timer = setTimeout(() => {
@@ -83,40 +161,56 @@ const PersonalDetailsForm = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [showErrorPopup, setShowErrorPopup] = useState(false);
-  const [showCancelSuccessPopup, setShowCancelSuccessPopup] = useState(false); // New state for cancel feedback
+  const [showCancelSuccessPopup, setShowCancelSuccessPopup] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false); // New loading state
+  const [isLoading, setIsLoading] = useState(false);
 
   const {
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<FormData>({
     resolver: yupResolver(schema) as any,
     defaultValues: {
-      title: 'Mr.',
-      countryCode: '+94',
+      title: '',
+      countryCode: '',
+      firstName: '',
+      lastName: '',
+      email: '',
+      phoneNumber: '',
       currentPassword: undefined,
       newPassword: undefined,
       confirmPassword: undefined,
     },
   });
 
+  // Watch form values for title and countryCode
+  const titleValue = watch('title');
+  const countryCodeValue = watch('countryCode');
+
   useEffect(() => {
     const loadProfile = async () => {
-      if (!token) return;
+      if (!token) {
+        // For new users: do not fetch data, keep form with empty values
+        return;
+      }
 
-      setIsLoading(true); // Show loader while fetching
+      // For existing users: fetch profile data
+      setIsLoading(true);
       try {
         const data = await fetchProfile({ token });
+        console.log('API Response:', data);
+
         reset({
-          title: data.title || 'Mr.',
+          title: data.title || '',
           firstName: data.firstName || '',
           lastName: data.lastName || '',
           email: data.email || '',
-          countryCode: data.phoneCode || '+94',
+          countryCode: data.phoneCode || '',
           phoneNumber: data.phoneNumber || '',
           currentPassword: undefined,
           newPassword: undefined,
@@ -128,7 +222,7 @@ const PersonalDetailsForm = () => {
         setShowErrorPopup(true);
         setShowSuccessPopup(false);
       } finally {
-        setIsLoading(false); // Hide loader
+        setIsLoading(false);
       }
     };
 
@@ -155,105 +249,127 @@ const PersonalDetailsForm = () => {
   };
 
   const onSubmit: SubmitHandler<FormData> = async (data) => {
-  setIsLoading(true); // Show loader immediately
-  if (!token) {
-    setErrorMessage('You are not authenticated. Please login first.');
-    setShowErrorPopup(true);
-    setShowSuccessPopup(false);
-    setIsLoading(false);
-    return;
-  }
-
-  try {
-    setShowSuccessPopup(false);
-    setShowErrorPopup(false);
-    setErrorMessage('');
-    setSuccessMessage('');
-
-    // Update profile
-    await updateProfile({
-      token,
-      data: {
-        title: data.title,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        email: data.email,
-        phoneCode: data.countryCode,
-        phoneNumber: data.phoneNumber,
-      },
-      profilePic,
-    });
-
-    let successMessages: string[] = ['Profile updated successfully!'];
-
-    // Update password if provided
-    if (data.newPassword && data.currentPassword && data.confirmPassword) {
-      try {
-        const passwordResponse = await updatePassword({
-          token,
-          currentPassword: data.currentPassword,
-          newPassword: data.newPassword,
-          confirmPassword: data.confirmPassword,
-        });
-        successMessages.push(passwordResponse.message || 'Password updated successfully!');
-      } catch (passwordErr: any) {
-        throw new Error(passwordErr.message || 'Failed to update password.');
-      }
+    setIsLoading(true);
+    if (!token) {
+      setErrorMessage('You are not authenticated. Please login first.');
+      setShowErrorPopup(true);
+      setShowSuccessPopup(false);
+      setIsLoading(false);
+      return;
     }
 
-    // Re-fetch updated profile
-    const updatedData = await fetchProfile({ token });
+    try {
+      setShowSuccessPopup(false);
+      setShowErrorPopup(false);
+      setErrorMessage('');
+      setSuccessMessage('');
+
+      await updateProfile({
+        token,
+        data: {
+          title: data.title,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email,
+          phoneCode: data.countryCode,
+          phoneNumber: data.phoneNumber,
+        },
+        profilePic,
+      });
+
+      let successMessages: string[] = ['Profile updated successfully!'];
+
+      if (data.newPassword && data.currentPassword && data.confirmPassword) {
+        try {
+          const passwordResponse = await updatePassword({
+            token,
+            currentPassword: data.currentPassword,
+            newPassword: data.newPassword,
+            confirmPassword: data.confirmPassword,
+          });
+          successMessages.push(passwordResponse.message || 'Password updated successfully!');
+        } catch (passwordErr: any) {
+          throw new Error(passwordErr.message || 'Failed to update password.');
+        }
+      }
+
+      const updatedData = await fetchProfile({ token });
+      reset({
+        title: updatedData.title || '',
+        firstName: updatedData.firstName || '',
+        lastName: updatedData.lastName || '',
+        email: updatedData.email || '',
+        countryCode: updatedData.phoneCode || '',
+        phoneNumber: updatedData.phoneNumber || '',
+        currentPassword: undefined,
+        newPassword: undefined,
+        confirmPassword: undefined,
+      });
+
+      if (updatedData.profileImageURL || updatedData.image) {
+        setPreviewURL(updatedData.profileImageURL || updatedData.image || null);
+      }
+
+      setSuccessMessage(successMessages.join(' '));
+      setShowSuccessPopup(true);
+      setTimeout(() => setShowSuccessPopup(false), 5000);
+    } catch (error: any) {
+      if (error.message === 'Email already exists') {
+        setErrorMessage('This email is already in use. Please use a different email.');
+      } else if (error.message === 'Phone number already exists') {
+        setErrorMessage('This phone number is already in use. Please use a different phone number.');
+      } else {
+        setErrorMessage(error.message || 'Something went wrong');
+      }
+      setShowErrorPopup(true);
+      setShowSuccessPopup(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setIsLoading(true);
     reset({
-      title: updatedData.title || 'Mr.',
-      firstName: updatedData.firstName || '',
-      lastName: updatedData.lastName || '',
-      email: updatedData.email || '',
-      countryCode: updatedData.phoneCode || '+94',
-      phoneNumber: updatedData.phoneNumber || '',
+      title: '',
+      countryCode: '',
+      firstName: '',
+      lastName: '',
+      email: '',
+      phoneNumber: '',
       currentPassword: undefined,
       newPassword: undefined,
       confirmPassword: undefined,
     });
-
-    if (updatedData.profileImageURL || updatedData.image) {
-      setPreviewURL(updatedData.profileImageURL || updatedData.image || null);
-    }
-
-    setSuccessMessage(successMessages.join(' '));
-    setShowSuccessPopup(true);
-    setTimeout(() => setShowSuccessPopup(false), 5000);
-  } catch (error: any) {
-    // Handle specific duplicate errors
-    if (error.message === 'Email already exists') {
-      setErrorMessage('This email is already in use. Please use a different email.');
-    } else if (error.message === 'Phone number already exists') {
-      setErrorMessage('This phone number is already in use. Please use a different phone number.');
-    } else {
-      setErrorMessage(error.message || 'Something went wrong');
-    }
-    setShowErrorPopup(true);
-    setShowSuccessPopup(false);
-  } finally {
-    setIsLoading(false); // Hide loader
-  }
-};
-
-  const handleCancel = () => {
-    setIsLoading(true); // Show loader immediately
-    reset(); // Reset form to default values
-    setProfilePic(null); // Clear profile picture
-    setPreviewURL(null); // Clear preview
+    setProfilePic(null);
+    setPreviewURL(null);
     setTimeout(() => {
-      setIsLoading(false); // Hide loader
-      setShowCancelSuccessPopup(true); // Show cancel feedback
+      setIsLoading(false);
+      setShowCancelSuccessPopup(true);
       setTimeout(() => setShowCancelSuccessPopup(false), 3000);
-    }, 500); // Simulate async reset
+    }, 500);
   };
+
+  // Phone code options
+  const phoneCodeOptions = [
+    { value: '+94', label: '+94' },
+    { value: '+91', label: '+91' },
+    { value: '+1', label: '+1' },
+    { value: '+44', label: '+44' },
+  ];
+
+  // Title options
+  const titleOptions = [
+    { value: 'Rev', label: 'Rev' },
+    { value: 'Mr', label: 'Mr' },
+    { value: 'Ms', label: 'Ms' },
+    { value: 'Mrs', label: 'Mrs' },
+  ];
 
   return (
     <>
       <div className="relative z-50">
-        <Loader isVisible={isLoading} /> {/* Add Loader */}
+        <Loader isVisible={isLoading} />
         <SuccessPopup
           isVisible={showSuccessPopup}
           onClose={() => setShowSuccessPopup(false)}
@@ -261,17 +377,17 @@ const PersonalDetailsForm = () => {
           description={successMessage}
           duration={3000}
         />
-        <CancelSuccessPopup
-          isVisible={showCancelSuccessPopup}
-          onClose={() => setShowCancelSuccessPopup(false)}
-          title="Form reset successfully!"
-          duration={3000}
-        />
         <ErrorPopup
           isVisible={showErrorPopup}
           onClose={() => setShowErrorPopup(false)}
           title="Error!"
           description={errorMessage}
+        />
+        <CancelSuccessPopup
+          isVisible={showCancelSuccessPopup}
+          onClose={() => setShowCancelSuccessPopup(false)}
+          title="Form reset successfully!"
+          duration={3000}
         />
       </div>
 
@@ -322,20 +438,15 @@ const PersonalDetailsForm = () => {
             <div className="flex gap-4 md:gap-8">
               <div className="relative w-[30%] md:w-[15%]">
                 <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">Title</label>
-                <div className="relative">
-                  <select
-                    {...register('title')}
-                    className="appearance-none border border-[#CECECE] cursor-pointer rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm pr-8"
-                    defaultValue="Mr."
-                  >
-                    <option value="Rev.">Rev.</option>
-                    <option value="Mr.">Mr.</option>
-                    <option value="Ms.">Ms.</option>
-                    <option value="Mrs.">Mrs.</option>
-                  </select>
-                  <FaAngleDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none" />
-                </div>
-                <p className="text-red-500 text-xs">{errors.title?.message}</p>
+                <CustomDropdown
+                  register={register}
+                  name="title"
+                  value={titleValue}
+                  errors={errors}
+                  options={titleOptions}
+                  placeholder="Select Title"
+                  onChange={(value) => setValue('title', value, { shouldValidate: true })}
+                />
               </div>
               <div className="w-[75%]">
                 <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">First Name</label>
@@ -367,7 +478,7 @@ const PersonalDetailsForm = () => {
           <div className="md:w-[63%]">
             <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">Email</label>
             <input
-              type="email"
+              type="text"
               {...register('email')}
               className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm"
             />
@@ -377,16 +488,15 @@ const PersonalDetailsForm = () => {
             <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">Phone Number</label>
             <div className="flex gap-4">
               <div className="relative w-[30%] md:w-[15%]">
-                <select
-                  {...register('countryCode')}
-                  className="appearance-none border border-[#CECECE] cursor-pointer rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm pr-8"
-                >
-                  <option value="+94">+94</option>
-                  <option value="+91">+91</option>
-                  <option value="+1">+1</option>
-                  <option value="+44">+44</option>
-                </select>
-                <FaAngleDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none" />
+                <CustomDropdown
+                  register={register}
+                  name="countryCode"
+                  value={countryCodeValue}
+                  errors={errors}
+                  options={phoneCodeOptions}
+                  placeholder="Select Code"
+                  onChange={(value) => setValue('countryCode', value, { shouldValidate: true })}
+                />
               </div>
               <div className="w-[80%]">
                 <input

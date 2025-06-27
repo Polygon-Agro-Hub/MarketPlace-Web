@@ -212,7 +212,7 @@ const ComplaintsHistory = () => {
                           <div className="flex items-center">
                             <button
                               onClick={() => handleViewReply(complaint)}
-                              className="w-20 sm:w-28 h-8 sm:h-9 text-[12px] md:text-[16px] rounded-lg text-white bg-[#3E206D] hover:bg-[#341a5a] -mt-1 mr-12"
+                              className="w-20 sm:w-28 h-8 sm:h-9 text-[12px] md:text-[16px] rounded-lg text-white cursor-pointer bg-[#3E206D] hover:bg-[#341a5a] -mt-1 mr-12"
                             >
                               View Reply
                             </button>

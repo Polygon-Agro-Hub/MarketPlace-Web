@@ -1,16 +1,18 @@
+
+
 'use client';
 
+import React, { useState, useEffect, useRef } from 'react';
+import { useForm, SubmitHandler, UseFormRegister, FieldErrors, UseFormSetValue, UseFormGetValues } from 'react-hook-form';
 import { useSelector } from 'react-redux';
-import { useForm } from 'react-hook-form';
 import { RootState } from '@/store';
-import { useEffect, useState } from 'react';
 import { FaAngleDown } from 'react-icons/fa';
 import { fetchBillingDetails, saveBillingDetails, BillingDetails, BillingAddress } from '@/services/auth-service';
 import SuccessPopup from '@/components/toast-messages/success-message';
 import ErrorPopup from '@/components/toast-messages/error-message';
-import Loader from '@/components/loader-spinner/Loader'; // Import the new Loader component
+import Loader from '@/components/loader-spinner/Loader';
 
-
+// Define form data type
 type BillingFormData = {
   billingTitle: string;
   billingName: string;
@@ -18,6 +20,7 @@ type BillingFormData = {
   firstName: string;
   lastName: string;
   houseNo: string;
+  buildingNo: string;
   buildingType: string;
   apartmentName?: string;
   flatNumber?: string;
@@ -31,6 +34,101 @@ type BillingFormData = {
   phone1: string;
   phonecode2?: string;
   phone2?: string;
+};
+
+// Custom Dropdown Component
+interface CustomDropdownProps {
+  register: UseFormRegister<BillingFormData>;
+  setValue: UseFormSetValue<BillingFormData>;
+  name: keyof BillingFormData;
+  value: string | undefined;
+  errors?: FieldErrors<BillingFormData>;
+  options: { value: string; label: string }[];
+  placeholder: string;
+}
+
+const CustomDropdown = ({ register, setValue, name, value, errors, options, placeholder }: CustomDropdownProps) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSelect = (optionValue: string) => {
+    setValue(name, optionValue, { shouldValidate: true });
+    console.log(`Set ${name} to:`, optionValue);
+    setIsOpen(false);
+  };
+
+  console.log(`${name} value:`, value);
+  console.log(`${name} options:`, options);
+
+  return (
+    <div className="relative cursor-pointer" ref={dropdownRef}>
+      <input type="hidden" {...register(name)} />
+      <div
+        className="appearance-none border border-[#CECECE] cursor-pointer rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px] pr-8 flex items-center justify-between"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <span>{value && options.find((opt) => opt.value === value)?.label || placeholder}</span>
+        <FaAngleDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none" />
+      </div>
+      {isOpen && (
+        <ul className="absolute z-10 w-full bg-white border border-[#CECECE] rounded-lg mt-1">
+          <li
+            className="p-2 text-[12px] md:text-[14px] cursor-pointer hover:bg-gray-100"
+            onClick={() => handleSelect('')}
+          >
+            {placeholder}
+          </li>
+          {options.map((option) => (
+            <li
+              key={option.value}
+              className="p-2 text-[12px] md:text-[14px] cursor-pointer hover:bg-gray-100"
+              onClick={() => handleSelect(option.value)}
+            >
+              {option.label}
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="text-red-500 text-xs">{errors?.[name]?.message}</p>
+    </div>
+  );
+};
+
+// Cancel Success Popup Component
+interface CancelSuccessPopupProps {
+  isVisible: boolean;
+  onClose: () => void;
+  title: string;
+  duration?: number;
+}
+
+const CancelSuccessPopup = ({ isVisible, onClose, title, duration }: CancelSuccessPopupProps) => {
+  useEffect(() => {
+    if (isVisible && duration) {
+      const timer = setTimeout(() => {
+        onClose();
+      }, duration);
+      return () => clearTimeout(timer);
+    }
+  }, [isVisible, duration, onClose]);
+
+  if (!isVisible) return null;
+
+  return (
+    <div className="fixed top-4 right-4 bg-green-500 text-white p-4 rounded-lg shadow-lg z-50">
+      <p>{title}</p>
+    </div>
+  );
 };
 
 const BillingDetailsForm = () => {
@@ -48,22 +146,48 @@ const BillingDetailsForm = () => {
   // Static list of cities for dropdown
   const cities = ['Colombo', 'Kandy', 'Galle', 'Jaffna', 'Negombo', 'Anuradhapura'];
 
+  // Options for dropdowns
+  const billingTitleOptions = [
+    { value: 'Rev.', label: 'Rev.' },
+    { value: 'Mr.', label: 'Mr.' },
+    { value: 'Ms.', label: 'Ms.' },
+    { value: 'Mrs.', label: 'Mrs.' },
+  ];
+
+  const buildingTypeOptions = [
+    { value: 'house', label: 'House' },
+    { value: 'apartment', label: 'Apartment' },
+  ];
+
+  const cityOptions = [
+    ...cities.map((city) => ({ value: city.toLowerCase(), label: city })), // Normalize to lowercase
+  ];
+
+  const phoneCodeOptions = [
+    { value: '+94', label: '+94' },
+    { value: '+91', label: '+91' },
+    { value: '+1', label: '+1' },
+    { value: '+44', label: '+44' },
+  ];
+
   const {
     register,
     handleSubmit,
     reset,
     watch,
     setValue,
+    getValues,
     trigger,
     formState: { errors, isValid },
   } = useForm<BillingFormData>({
     defaultValues: {
-      billingTitle: 'Mr.',
+      billingTitle: '',
       billingName: '',
       title: 'Mr.',
       firstName: '',
       lastName: '',
       houseNo: '',
+      buildingNo: '',
       buildingType: '',
       apartmentName: '',
       flatNumber: '',
@@ -81,15 +205,22 @@ const BillingDetailsForm = () => {
     mode: 'onChange',
   });
 
+  // Watch form values for dropdowns
   const buildingType = watch('buildingType');
-  const phone1 = watch('phone1');
-  const phonecode1 = watch('phonecode1');
-  const phone2 = watch('phone2');
-  const phonecode2 = watch('phonecode2');
+  const billingTitleValue = watch('billingTitle');
+  const houseCityValue = watch('houseCity');
+  const apartmentCityValue = watch('apartmentCity');
+  const phonecode1Value = watch('phonecode1');
+  const phonecode2Value = watch('phonecode2');
+
+  // Log buildingType for debugging
+  useEffect(() => {
+    console.log('buildingType changed:', buildingType);
+  }, [buildingType]);
 
   // Clear fields based on buildingType
   useEffect(() => {
-    if (buildingType.toLowerCase() !== 'apartment') {
+    if (buildingType !== 'apartment') {
       setValue('apartmentName', '');
       setValue('flatNumber', '');
       setValue('apartmentFloor', '');
@@ -97,12 +228,14 @@ const BillingDetailsForm = () => {
       setValue('apartmentStreet', '');
       setValue('apartmentCity', '');
     }
-    if (buildingType.toLowerCase() !== 'house') {
+    if (buildingType !== 'house') {
+      setValue('houseNo', '');
       setValue('houseStreet', '');
       setValue('houseCity', '');
     }
     if (!buildingType) {
       setValue('houseNo', '');
+      setValue('buildingNo', '');
     }
   }, [buildingType, setValue]);
 
@@ -114,30 +247,35 @@ const BillingDetailsForm = () => {
       setIsLoading(true);
       try {
         const data = await fetchBillingDetails({ token });
+        console.log('API Response:', data);
         const formData: BillingFormData = {
-          billingTitle: data.billingTitle || 'Mr.',
+          billingTitle: data.billingTitle || '',
           billingName: data.billingName || '',
           title: data.title || 'Mr.',
           firstName: data.firstName || '',
           lastName: data.lastName || '',
           buildingType: data.buildingType ? data.buildingType.toLowerCase() : '',
-          houseNo: data.address?.houseNo || data.address?.buildingNo || '',
-          apartmentName: data.address?.buildingName || '',
-          flatNumber: data.address?.unitNo || '',
-          apartmentFloor: data.address?.floorNo || '',
-          apartmentHouseNo: data.address?.houseNo || '',
+          houseNo: data.buildingType?.toLowerCase() === 'house' ? data.address?.houseNo || '' : '',
+          buildingNo: data.buildingType?.toLowerCase() === 'apartment' ? data.address?.buildingNo || '' : '',
+          apartmentName: data.buildingType?.toLowerCase() === 'apartment' ? data.address?.buildingName || '' : '',
+          flatNumber: data.buildingType?.toLowerCase() === 'apartment' ? data.address?.unitNo || '' : '',
+          apartmentFloor: data.buildingType?.toLowerCase() === 'apartment' ? data.address?.floorNo || '' : '',
+          apartmentHouseNo: data.buildingType?.toLowerCase() === 'apartment' ? data.address?.houseNo || '' : '',
           houseStreet: data.buildingType?.toLowerCase() === 'house' ? data.address?.streetName || '' : '',
-          houseCity: data.buildingType?.toLowerCase() === 'house' ? data.address?.city || '' : '',
+          houseCity: data.buildingType?.toLowerCase() === 'house' ? data.address?.city?.toLowerCase() || '' : '',
           apartmentStreet: data.buildingType?.toLowerCase() === 'apartment' ? data.address?.streetName || '' : '',
-          apartmentCity: data.buildingType?.toLowerCase() === 'apartment' ? data.address?.city || '' : '',
+          apartmentCity: data.buildingType?.toLowerCase() === 'apartment' ? data.address?.city?.toLowerCase() || '' : '',
           phonecode1: data.phoneCode || '+94',
           phone1: data.phoneNumber || '',
-          phonecode2: '+94',
-          phone2: '',
+          phonecode2: data.phoneCode2 || '+94',
+          phone2: data.phoneNumber2 || '',
         };
         setInitialFormData(formData);
         reset(formData);
+        console.log('Form state after reset:', getValues());
+        setValue('buildingType', formData.buildingType); // Ensure buildingType is set
       } catch (error: any) {
+        console.error('Fetch error:', error);
         setErrorMessage(error.message || 'Failed to fetch billing details');
         setShowErrorPopup(true);
       } finally {
@@ -146,12 +284,11 @@ const BillingDetailsForm = () => {
     };
 
     loadBillingDetails();
-  }, [token, reset]);
+  }, [token, reset, setValue, getValues]);
 
-  const onSubmit = async (data: BillingFormData) => {
-    setIsLoading(true); // Show loader immediately
+  const onSubmit: SubmitHandler<BillingFormData> = async (data) => {
+    setIsLoading(true);
 
-    // Trigger validation for all fields
     await trigger();
 
     if (!isValid) {
@@ -179,23 +316,15 @@ const BillingDetailsForm = () => {
       lastName: data.lastName || '',
       phoneCode: data.phonecode1 || '+94',
       phoneNumber: data.phone1 || '',
-      houseNo: data.buildingType.toLowerCase() === 'house' ? data.houseNo || undefined : data.buildingType.toLowerCase() === 'apartment' ? data.apartmentHouseNo || undefined : undefined,
-      buildingNo: data.buildingType.toLowerCase() === 'apartment' ? data.houseNo || undefined : undefined,
-      buildingName: data.buildingType.toLowerCase() === 'apartment' ? data.apartmentName || undefined : undefined,
-      unitNo: data.buildingType.toLowerCase() === 'apartment' ? data.flatNumber || undefined : undefined,
-      floorNo: data.buildingType.toLowerCase() === 'apartment' ? data.apartmentFloor || undefined : undefined,
-      streetName:
-        data.buildingType.toLowerCase() === 'house'
-          ? data.houseStreet || undefined
-          : data.buildingType.toLowerCase() === 'apartment'
-          ? data.apartmentStreet || undefined
-          : undefined,
-      city:
-        data.buildingType.toLowerCase() === 'house'
-          ? data.houseCity || undefined
-          : data.buildingType.toLowerCase() === 'apartment'
-          ? data.apartmentCity || undefined
-          : undefined,
+      phoneCode2: data.phonecode2 || '+94',
+      phoneNumber2: data.phone2 || '',
+      houseNo: data.buildingType === 'house' ? data.houseNo || undefined : data.buildingType === 'apartment' ? data.apartmentHouseNo || undefined : undefined,
+      buildingNo: data.buildingType === 'apartment' ? data.buildingNo || undefined : undefined,
+      buildingName: data.buildingType === 'apartment' ? data.apartmentName || undefined : undefined,
+      unitNo: data.buildingType === 'apartment' ? data.flatNumber || undefined : undefined,
+      floorNo: data.buildingType === 'apartment' ? data.apartmentFloor || undefined : undefined,
+      streetName: data.buildingType === 'house' ? data.houseStreet || undefined : data.buildingType === 'apartment' ? data.apartmentStreet || undefined : undefined,
+      city: data.buildingType === 'house' ? data.houseCity || undefined : data.buildingType === 'apartment' ? data.apartmentCity || undefined : undefined,
     };
 
     const billingDetails: BillingDetails = {
@@ -206,7 +335,9 @@ const BillingDetailsForm = () => {
       lastName: data.lastName || '',
       phoneCode: data.phonecode1 || '+94',
       phoneNumber: data.phone1 || '',
-      buildingType: data.buildingType?.toLowerCase() || '',
+      phoneCode2: data.phonecode2 || '+94',
+      phoneNumber2: data.phone2 || '',
+      buildingType: data.buildingType || '',
       address,
     };
 
@@ -221,7 +352,7 @@ const BillingDetailsForm = () => {
       setErrorMessage(error.message || 'Failed to save billing details');
       setShowErrorPopup(true);
     } finally {
-      setIsLoading(false); // Hide loader
+      setIsLoading(false);
     }
   };
 
@@ -245,17 +376,18 @@ const BillingDetailsForm = () => {
   };
 
   const handleCancel = () => {
-    setIsLoading(true); // Show loader immediately
+    setIsLoading(true);
     if (initialFormData) {
       reset(initialFormData);
+      setValue('buildingType', initialFormData.buildingType); // Ensure buildingType is reset
     }
     setTimeout(() => {
-      setIsLoading(false); // Hide loader
-      setShowCancelSuccessPopup(true); // Show cancel feedback
+      setIsLoading(false);
+      setShowCancelSuccessPopup(true);
       setTimeout(() => {
         setShowCancelSuccessPopup(false);
       }, 3000);
-    }, 500); // Simulate async reset
+    }, 500);
   };
 
   return (
@@ -267,12 +399,17 @@ const BillingDetailsForm = () => {
         title="Billing details saved successfully!"
         duration={3000}
       />
-     
       <ErrorPopup
         isVisible={showErrorPopup}
         onClose={() => setShowErrorPopup(false)}
         title="Error!"
         description={errorMessage}
+      />
+      <CancelSuccessPopup
+        isVisible={showCancelSuccessPopup}
+        onClose={() => setShowCancelSuccessPopup(false)}
+        title="Form reset successfully!"
+        duration={3000}
       />
 
       <form onSubmit={handleSubmit(onSubmit)} className="px-2 md:px-10 bg-white">
@@ -290,20 +427,15 @@ const BillingDetailsForm = () => {
               <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
                 Billing Title
               </label>
-              <div className="relative">
-                <select
-                  {...register('billingTitle', { required: 'Billing Title is required' })}
-                  className="appearance-none cursor-pointer block w-full border rounded-lg border-[#CECECE] py-2 px-4 pr-8 text-[12px] md:text-[14px] h-[42px]"
-                  defaultValue="Mr."
-                >
-                  <option value="Rev.">Rev.</option>
-                  <option value="Mr.">Mr.</option>
-                  <option value="Ms.">Ms.</option>
-                  <option value="Mrs.">Mrs.</option>
-                </select>
-                <FaAngleDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none" />
-              </div>
-              <p className="text-red-500 text-xs">{errors.billingTitle?.message}</p>
+              <CustomDropdown
+                register={register}
+                setValue={setValue}
+                name="billingTitle"
+                value={billingTitleValue}
+                errors={errors}
+                options={billingTitleOptions}
+                placeholder="Title"
+              />
             </div>
 
             <div className="w-[90%]">
@@ -328,165 +460,162 @@ const BillingDetailsForm = () => {
         </div>
 
         <div className="border-t border-[#BDBDBD] my-6" />
-        <h2 className="font-medium text-[14px] md:text-[18px] mb-1">Currently Saved Address</h2>
+        <h2 className="font-medium text-[14px] md:text-[18px] mb-4">Currently Saved Address</h2>
 
-       <div className="flex flex-col lg:flex-row gap-4 lg:gap-[100px] mb-6 mt-4 md:w-[89%]">
-  <div className="w-full lg:w-1/2">
-    <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
-      Building Type
-    </label>
-    <div className="relative">
-      <select
-        {...register('buildingType')}
-        className="border border-[#CECECE] rounded px-4 pr-10 w-full text-[12px] md:text-[14px] h-[42px] cursor-pointer appearance-none truncate"
-        style={{ maxWidth: '100%' }}
-      >
-        <option value="">Select Building Type</option>
-        <option value="house">House</option>
-        <option value="apartment">Apartment</option>
-      </select>
-      <FaAngleDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none" />
-    </div>
-    <p className="text-red-500 text-xs">{errors.buildingType?.message}</p>
-  </div>
-
-  {/* Second field is always rendered but invisible if no buildingType */}
-  <div className={`w-full lg:w-1/2 ${!buildingType ? 'invisible' : 'visible'}`}>
-    <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
-      {buildingType?.toLowerCase() === 'house' ? 'House No' : 'Building No'}
-    </label>
-    <input
-      {...register('houseNo')}
-      className="border border-[#CECECE] rounded p-2 w-full text-[12px] md:text-[14px]"
-    />
-    <p className="text-red-500 text-xs">{errors.houseNo?.message}</p>
-  </div>
-</div>
-
-
-        {buildingType.toLowerCase() === 'apartment' && (
-          <div className="flex flex-col lg:flex-row gap-4 lg:gap-[100px] mb-6 md:w-[89%]">
+        <div className="md:w-[89%]">
+          <div className="flex flex-col lg:flex-row gap-4 lg:gap-[100px] mb-6">
             <div className="w-full lg:w-1/2">
               <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
-                Apartment or Building Name
+                Building Type
               </label>
-              <input
-                {...register('apartmentName')}
-                className="border border-[#CECECE] rounded p-2 w-full text-[12px] md:text-[14px]"
+              <CustomDropdown
+                register={register}
+                setValue={setValue}
+                name="buildingType"
+                value={buildingType}
+                errors={errors}
+                options={buildingTypeOptions}
+                placeholder="Select Building Type"
               />
-              <p className="text-red-500 text-xs">{errors.apartmentName?.message}</p>
             </div>
 
-            <div className="w-full lg:w-1/2">
-              <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
-                Flat/Unit Number
-              </label>
-              <input
-                {...register('flatNumber')}
-                className="border border-[#CECECE] rounded p-2 w-full text-[12px] md:text-[14px]"
-              />
-              <p className="text-red-500 text-xs">{errors.flatNumber?.message}</p>
-            </div>
-          </div>
-        )}
-
-        {buildingType.toLowerCase() === 'apartment' && (
-          <div className="flex flex-col lg:flex-row gap-4 lg:gap-[100px] mb-6 md:w-[89%]">
-            <div className="w-full lg:w-1/2">
-              <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
-                Floor Number
-              </label>
-              <input
-                {...register('apartmentFloor')}
-                className="border border-[#CECECE] rounded p-2 w-full text-[12px] md:text-[14px]"
-              />
-              <p className="text-red-500 text-xs">{errors.apartmentFloor?.message}</p>
-            </div>
-
-            <div className="w-full lg:w-1/2">
-              <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
-                House Number
-              </label>
-              <input
-                {...register('apartmentHouseNo')}
-                className="border border-[#CECECE] rounded p-2 w-full text-[12px] md:text-[14px]"
-              />
-              <p className="text-red-500 text-xs">{errors.apartmentHouseNo?.message}</p>
-            </div>
-          </div>
-        )}
-
-        {buildingType.toLowerCase() === 'house' && (
-          <div className="flex flex-col lg:flex-row gap-4 lg:gap-[100px] mb-6 md:w-[89%]">
-            <div className="w-full lg:w-1/2">
-              <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
-                Street Name
-              </label>
-              <input
-                {...register('houseStreet')}
-                className="border border-[#CECECE] rounded p-2 w-full text-[12px] md:text-[14px]"
-              />
-              <p className="text-red-500 text-xs">{errors.houseStreet?.message}</p>
-            </div>
-
-            <div className="w-full lg:w-1/2">
-              <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
-                Nearest City
-              </label>
-              <div className="relative">
-                <select
-                  {...register('houseCity')}
-                  className="appearance-none cursor-pointer block w-full border rounded-lg border-[#CECECE] py-2 px-4 pr-8 text-[12px] md:text-[14px] h-[42px]"
-                >
-                  <option value="">Select City</option>
-                  {cities.map((city) => (
-                    <option key={city} value={city}>
-                      {city}
-                    </option>
-                  ))}
-                </select>
-                <FaAngleDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none" />
+            {buildingType === 'house' && (
+              <div className="w-full lg:w-1/2">
+                <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
+                  House No
+                </label>
+                <input
+                  {...register('houseNo')}
+                  className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
+                />
+                <p className="text-red-500 text-xs">{errors.houseNo?.message}</p>
               </div>
-              <p className="text-red-500 text-xs">{errors.houseCity?.message}</p>
-            </div>
-          </div>
-        )}
+            )}
 
-        {buildingType.toLowerCase() === 'apartment' && (
-          <div className="flex flex-col lg:flex-row gap-4 lg:gap-[100px] mb-6 md:w-[89%]">
-            <div className="w-full lg:w-1/2">
-              <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
-                Street Name
-              </label>
-              <input
-                {...register('apartmentStreet')}
-                className="border border-[#CECECE] rounded p-2 w-full text-[12px] md:text-[14px]"
-              />
-              <p className="text-red-500 text-xs">{errors.apartmentStreet?.message}</p>
-            </div>
-
-            <div className="w-full lg:w-1/2">
-              <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
-                Nearest City
-              </label>
-              <div className="relative">
-                <select
-                  {...register('apartmentCity')}
-                  className="appearance-none cursor-pointer block w-full border rounded-lg border-[#CECECE] py-2 px-4 pr-8 text-[12px] md:text-[14px] h-[42px]"
-                >
-                  <option value="">Select City</option>
-                  {cities.map((city) => (
-                    <option key={city} value={city}>
-                      {city}
-                    </option>
-                  ))}
-                </select>
-                <FaAngleDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none" />
+            {buildingType === 'apartment' && (
+              <div className="w-full lg:w-1/2">
+                <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
+                  Building No
+                </label>
+                <input
+                  {...register('buildingNo')}
+                  className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
+                />
+                <p className="text-red-500 text-xs">{errors.buildingNo?.message}</p>
               </div>
-              <p className="text-red-500 text-xs">{errors.apartmentCity?.message}</p>
-            </div>
+            )}
           </div>
-        )}
+
+          {buildingType === 'house' && (
+            <div className="flex flex-col lg:flex-row gap-4 lg:gap-[100px] mb-6">
+              <div className="w-full lg:w-1/2">
+                <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
+                  Street Name
+                </label>
+                <input
+                  {...register('houseStreet')}
+                  className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
+                />
+                <p className="text-red-500 text-xs">{errors.houseStreet?.message}</p>
+              </div>
+
+              <div className="w-full lg:w-1/2">
+                <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
+                  Nearest City
+                </label>
+                <CustomDropdown
+                  register={register}
+                  setValue={setValue}
+                  name="houseCity"
+                  value={houseCityValue}
+                  errors={errors}
+                  options={cityOptions}
+                  placeholder="Select City"
+                />
+              </div>
+            </div>
+          )}
+
+          {buildingType === 'apartment' && (
+            <>
+              <div className="flex flex-col lg:flex-row gap-4 lg:gap-[100px] mb-6">
+                <div className="w-full lg:w-1/2">
+                  <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
+                    Apartment or Building Name
+                  </label>
+                  <input
+                    {...register('apartmentName')}
+                    className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
+                  />
+                  <p className="text-red-500 text-xs">{errors.apartmentName?.message}</p>
+                </div>
+
+                <div className="w-full lg:w-1/2">
+                  <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
+                    Flat/Unit Number
+                  </label>
+                  <input
+                    {...register('flatNumber')}
+                    className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
+                  />
+                  <p className="text-red-500 text-xs">{errors.flatNumber?.message}</p>
+                </div>
+              </div>
+
+              <div className="flex flex-col lg:flex-row gap-4 lg:gap-[100px] mb-6">
+                <div className="w-full lg:w-1/2">
+                  <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
+                    Floor Number
+                  </label>
+                  <input
+                    {...register('apartmentFloor')}
+                    className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
+                  />
+                  <p className="text-red-500 text-xs">{errors.apartmentFloor?.message}</p>
+                </div>
+
+                <div className="w-full lg:w-1/2">
+                  <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
+                    House Number
+                  </label>
+                  <input
+                    {...register('apartmentHouseNo')}
+                    className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
+                  />
+                  <p className="text-red-500 text-xs">{errors.apartmentHouseNo?.message}</p>
+                </div>
+              </div>
+
+              <div className="flex flex-col lg:flex-row gap-4 lg:gap-[100px] mb-6">
+                <div className="w-full lg:w-1/2">
+                  <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
+                    Street Name
+                  </label>
+                  <input
+                    {...register('apartmentStreet')}
+                    className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
+                  />
+                  <p className="text-red-500 text-xs">{errors.apartmentStreet?.message}</p>
+                </div>
+
+                <div className="w-full lg:w-1/2">
+                  <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
+                    Nearest City
+                  </label>
+                  <CustomDropdown
+                    register={register}
+                    setValue={setValue}
+                    name="apartmentCity"
+                    value={apartmentCityValue}
+                    errors={errors}
+                    options={cityOptions}
+                    placeholder="Select City"
+                  />
+                </div>
+              </div>
+            </>
+          )}
+        </div>
 
         <div className="border-t border-[#BDBDBD] my-8" />
         <h2 className="font-medium text-[14px] md:text-[18px] mb-1">Contact</h2>
@@ -500,18 +629,15 @@ const BillingDetailsForm = () => {
               </label>
               <div className="flex gap-4">
                 <div className="relative w-[25%] md:w-[14%] min-w-[70px]">
-                  <select
-                    {...register(`phonecode${num}` as 'phonecode1' | 'phonecode2', {
-                      required: num === 1 ? 'Phone code is required' : false,
-                    })}
-                    className="appearance-none border border-[#CECECE] cursor-pointer rounded-lg p-2 w-full h-[42px] pr-8 text-[12px] md:text-[14px]"
-                  >
-                    <option value="+94">+94</option>
-                    <option value="+91">+91</option>
-                    <option value="+1">+1</option>
-                    <option value="+44">+44</option>
-                  </select>
-                  <FaAngleDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none" />
+                  <CustomDropdown
+                    register={register}
+                    setValue={setValue}
+                    name={`phonecode${num}` as 'phonecode1' | 'phonecode2'}
+                    value={num === 1 ? phonecode1Value : phonecode2Value}
+                    errors={errors}
+                    options={phoneCodeOptions}
+                    placeholder="Select Code"
+                  />
                 </div>
 
                 <div className="w-[70%] lg:w-[65%]">
@@ -523,10 +649,16 @@ const BillingDetailsForm = () => {
                         value: /^[0-9]{9}$/,
                         message: 'Enter a valid number (9 digits)',
                       },
-                      validate: num === 2 ? {
-                        notDuplicate: (value) =>
-                          !value || !phone1 || phonecode1 !== phonecode2 || value !== phone1 || 'Phone numbers cannot be the same',
-                      } : undefined,
+                      validate: num === 2
+                        ? {
+                            notDuplicate: (value) =>
+                              !value ||
+                              !watch('phone1') ||
+                              watch('phonecode1') !== watch('phonecode2') ||
+                              value !== watch('phone1') ||
+                              'Phone numbers cannot be the same',
+                          }
+                        : undefined,
                     })}
                     className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
                     placeholder="7XXXXXXXX"
@@ -543,7 +675,7 @@ const BillingDetailsForm = () => {
           ))}
         </div>
 
-      <div className="flex justify-end gap-4 mt-10">
+        <div className="flex justify-end gap-4 mt-10">
           <button
             type="button"
             className={`w-[90px] h-[36px] sm:w-[110px] sm:h-[44px] cursor-pointer text-[16px] md:text-[20px] font-medium rounded-lg text-[#757E87] bg-[#F3F4F7] hover:bg-[#e1e2e5] ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -554,7 +686,7 @@ const BillingDetailsForm = () => {
           </button>
           <button
             type="submit"
-            className={`w-[90px] h-[36px] sm:w-[110px] sm:h-[44px]  cursor-pointer mb-4 text-[16px] md:text-[20px] font-medium rounded-lg text-white bg-[#3E206D] hover:bg-[#341a5a] ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`w-[90px] h-[36px] sm:w-[110px] sm:h-[44px] cursor-pointer mb-4 text-[16px] md:text-[20px] font-medium rounded-lg text-white bg-[#3E206D] hover:bg-[#341a5a] ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
             disabled={isLoading}
           >
             Save

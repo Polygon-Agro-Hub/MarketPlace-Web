@@ -93,6 +93,8 @@ export interface BillingAddress {
   lastName: string;
   phoneCode: string;
   phoneNumber: string;
+  phoneCode2?: string; // Add optional field
+  phoneNumber2?: string; // Add optional field
   houseNo?: string;
   buildingNo?: string;
   buildingName?: string;
@@ -112,21 +114,8 @@ export interface BillingDetails {
   phoneNumber: string;
   buildingType: string;
   address: BillingAddress;
-}
-
-export interface BillingAddress {
-  title: string;
-  firstName: string;
-  lastName: string;
-  phoneCode: string;
-  phoneNumber: string;
-  houseNo?: string;
-  buildingNo?: string;
-  buildingName?: string;
-  unitNo?: string;
-  floorNo?: string | null;
-  streetName?: string;
-  city?: string;
+  phoneCode2?: string | null; // Added to match JSON
+  phoneNumber2?: string | null; // Added to match JSON
 }
 
 interface FetchComplaintsPayload {
@@ -539,7 +528,7 @@ export const fetchProfile = async (payload: FetchProfilePayload): Promise<Profil
 
       if (resData.status && resData.data) {
         return {
-          title: resData.data.title || 'Mr.',
+        
           firstName: resData.data.firstName || '',
           lastName: resData.data.lastName || '',
           email: resData.data.email || '',
@@ -547,6 +536,7 @@ export const fetchProfile = async (payload: FetchProfilePayload): Promise<Profil
           phoneNumber: resData.data.phoneNumber || '',
           image: resData.data.image,
           profileImageURL: resData.data.profileImageURL,
+          title: resData.data.title || '',
         };
       } else {
         throw new Error(resData.message || 'Invalid response format');
@@ -670,16 +660,18 @@ export const fetchBillingDetails = async (payload: FetchBillingDetailsPayload): 
       if (resData.status && resData.data) {
         const apiData = resData.data;
 
-        const derivedBillingName = `${apiData.firstName || ''} ${apiData.lastName || ''}`.trim() || undefined;
+       
 
         return {
-          billingName: apiData.billingName || derivedBillingName,
-          billingTitle: apiData.billingTitle || apiData.title || 'Mr.',
-          title: apiData.title || 'Mr.',
+         billingName: apiData.billingName || undefined,  // removed fallback to firstName + lastName
+          billingTitle: apiData.billingTitle || undefined, // removed fallback to title
+          title: apiData.title || '',
           firstName: apiData.firstName || '',
           lastName: apiData.lastName || '',
           phoneCode: apiData.phoneCode || '+94',
           phoneNumber: apiData.phoneNumber || '',
+          phoneCode2: apiData.phoneCode2 || '+94',
+          phoneNumber2: apiData.phoneNumber2 || '',
           buildingType: apiData.buildingType?.toLowerCase() || '',
           address: {
             title: apiData.title || 'Mr.',
@@ -732,6 +724,9 @@ export const saveBillingDetails = async (payload: SaveBillingDetailsPayload): Pr
       lastName: payload.data.lastName || '',
       phoneCode: payload.data.phoneCode,
       phoneNumber: payload.data.phoneNumber,
+        phoneCode2: payload.data.phoneCode2,
+      phoneNumber2: payload.data.phoneNumber2,
+      
       buildingType: payload.data.buildingType.toLowerCase(),
       address: {
         houseNo: payload.data.address.houseNo || null,
@@ -742,8 +737,8 @@ export const saveBillingDetails = async (payload: SaveBillingDetailsPayload): Pr
         streetName: payload.data.address.streetName || null,
         city: payload.data.address.city || null,
       },
-      phonecode2: payload.data.address.phoneCode || null,
-      phone2: payload.data.address.phoneNumber || null,
+      // phonecode2: payload.data.address.phoneCode2 || null,
+      // phone2: payload.data.address.phoneNumber2 || null,
     };
 
     const response = await axios.post('/auth/billing-details', apiPayload, {

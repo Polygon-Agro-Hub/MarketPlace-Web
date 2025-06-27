@@ -23,12 +23,16 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState('fruits');
+  
+  // Modal state lifted to main component
+  const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
+  const [selectedPackageForCart, setSelectedPackageForCart] = useState<any>(null);
 
   const cart = useSelector((state: RootState) => state.checkout) || null;
 
   const cartState = useSelector((state: RootState) => state.cart);
   const cartItemsState = useSelector((state: RootState) => state.cartItems);
-  const authState = useSelector((state: RootState) => state.auth); // If you want to see auth state too
+  const authState = useSelector((state: RootState) => state.auth);
 
   // Console log Redux data whenever it changes
   // useEffect(() => {
@@ -78,9 +82,16 @@ export default function Home() {
     }
   }
 
-  // const handleCategorySelect = (categoryId) => {
-  //   setSelectedCategory(categoryId);
-  // };
+  // Modal handlers
+  const handleShowConfirmModal = (packageData: any) => {
+    setSelectedPackageForCart(packageData);
+    setShowConfirmModal(true);
+  };
+
+  const handleCloseConfirmModal = () => {
+    setShowConfirmModal(false);
+    setSelectedPackageForCart(null);
+  };
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-between">
@@ -92,12 +103,49 @@ export default function Home() {
       ) : error ? (
         <div className="text-red-500">{error}</div>
       ) : (
-        <PackageSlider productData={productData} />
+        <PackageSlider 
+          productData={productData} 
+          onShowConfirmModal={handleShowConfirmModal}
+        />
       )}
 
       <div className="w-full mb-8">
         <CategoryFilter />
       </div>
+
+      {/* Global confirmation modal */}
+      {showConfirmModal && selectedPackageForCart && (
+        <div className="fixed inset-0 bg-black/50 bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">
+              Confirm Add to Cart
+            </h3>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to add "{selectedPackageForCart.packageItem.displayName}" to your cart?
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={handleCloseConfirmModal}
+                className="px-6 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  // Call the add to cart function from the package data
+                  if (selectedPackageForCart.handlePackageAddToCart) {
+                    selectedPackageForCart.handlePackageAddToCart();
+                  }
+                  handleCloseConfirmModal();
+                }}
+                className="px-6 py-2 bg-[#3E206D] text-white rounded hover:bg-[#2D1850] transition-colors"
+              >
+                Add to Cart
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

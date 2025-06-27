@@ -8,6 +8,7 @@ import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
 import { getOrderHistory, getOrderDetails } from '@/services/retail-order-service';
 import { useRouter } from 'next/navigation';
+import Select, { ActionMeta, SingleValue } from 'react-select'; // Import react-select
 
 // Define interfaces based on the API responses
 interface DetailedItem {
@@ -52,6 +53,7 @@ interface DeliveryInfo {
 }
 
 interface OrderSummary {
+  invoiceNo: string;
   orderId: string;
   scheduleDate: string;
   scheduleTime: string;
@@ -63,6 +65,7 @@ interface OrderSummary {
 
 interface DetailedOrder {
   orderId: string;
+  invoiceNo:string;
   scheduleDate: string;
   scheduleTime: string;
   deliveryType: string;
@@ -105,28 +108,40 @@ function formatDateTime(dateTimeStr: string, type: 'date' | 'time' = 'date'): st
 const getStatusClass = (status: string): string => {
   switch (status.toLowerCase()) {
     case 'ordered':
-      return 'bg-[rgb(255,233,226)] text-[rgb(255,90,0)]';
+      return 'bg-[#FFE9E2] text-[#FF5A00]';
     case 'processing':
-      return 'bg-[rgb(207,225,255)] text-[rgb(59,130,246)]';
-    case 'ready to go':
-      return 'bg-[rgb(242,221,255)] text-[rgb(62,32,109)]';
+      return 'bg-[#CFE1FF] text-[#3B82F6]';
+    case 'on the way':
+      return 'bg-[#F2DDFF] text-[#3E206D]';
     case 'delivered':
-      return 'bg-[rgb(220,252,231)] text-[rgb(22,163,74)]';
+      return 'bg-[#DCFCE7] text-[#16A34A]';
     case 'cancelled':
-      return 'bg-[rgb(254,226,226)] text-[rgb(220,38,38)]';
+      return 'bg-[#FEE2E2] text-[#DC2626]';
     case 'one time':
-      return 'bg-[rgb(219,234,254)] text-[rgb(37,99,235)]';
+      return 'bg-[#DBEAFE] text-[#2563EB]';
     default:
-      return 'bg-[rgb(243,244,246)] text-[rgb(75,85,99)]';
+      return 'bg-[#F3F4F6] text-[#4B5563]';
   }
 };
+
+
+
+// Define filter options for react-select
+const filterOptions = [
+  { value: 'this-week', label: 'This Week' },
+  { value: 'last-week', label: 'Last Week' },
+  { value: 'last-2-weeks', label: 'Last 2 Weeks' },
+  { value: 'this-month', label: 'Last Month' },
+  { value: 'last-3-months', label: 'Last 3 Months' },
+  { value: 'all', label: 'All' },
+];
 
 export default function OrderHistoryPage() {
   const router = useRouter();
   const token = useSelector((state: RootState) => state.auth.token);
   const [orders, setOrders] = useState<OrderSummary[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all');
+  const [filter, setFilter] = useState('this-week');
   const [selectedOrder, setSelectedOrder] = useState<DetailedOrder | null>(null);
   const modalContentRef = useRef<HTMLDivElement>(null);
   const mainRef = useRef<HTMLElement>(null);
@@ -156,10 +171,11 @@ export default function OrderHistoryPage() {
 
         const normalizedOrders: OrderSummary[] = orderHistory.map((order: any) => ({
           orderId: order.orderId ? String(order.orderId) : 'N/A',
+           invoiceNo: order. invoiceNo ? String(order. invoiceNo) : 'N/A',
           scheduleDate: order.scheduleDate ? formatDateTime(order.scheduleDate, 'date') : 'N/A',
           scheduleTime: order.scheduleTime || 'N/A',
           deliveryType: order.delivaryMethod || 'N/A',
-          total: order.fullTotal ? `Rs. ${parseFloat(order.fullTotal || '0').toFixed(2)}` : 'Rs. 0.00',
+          total: order.fullTotal || 'N/A',
           orderPlaced: order.createdAt ? formatDateTime(order.createdAt, 'date') : 'N/A',
           status: order.processStatus || 'Pending',
         }));
@@ -187,11 +203,7 @@ export default function OrderHistoryPage() {
     }
   }, [selectedOrder]);
 
-  const handleFilterChange = (event: React.ChangeEvent<HTMLSelectElement>): void => {
-    setFilter(event.target.value);
-  };
-
-  const fetchDetailedOrder = async (orderId: string)=> {
+  const fetchDetailedOrder = async (orderId: string) => {
     if (!token) return;
     try {
       setSelectedOrder(null);
@@ -207,6 +219,7 @@ export default function OrderHistoryPage() {
 
         const detailedOrder: DetailedOrder = {
           orderId: String(apiOrder.id) || 'N/A',
+          invoiceNo: String(apiOrder.invoiceNo) || 'N/A',
           scheduleDate: apiOrder.sheduleDate ? formatDateTime(apiOrder.sheduleDate, 'date') : 'N/A',
           scheduleTime: apiOrder.sheduleTime || 'N/A',
           deliveryType: apiOrder.delivaryMethod || 'N/A',
@@ -214,10 +227,10 @@ export default function OrderHistoryPage() {
           orderPlaced: apiOrder.createdAt ? formatDateTime(apiOrder.createdAt, 'date') : 'N/A',
           status: apiOrder.processStatus || 'Pending',
           fullName: apiOrder.fullName || 'N/A',
-          phonecode1: apiOrder.phonecode1 || 'N/A',
-          phone1: apiOrder.phone1 || 'N/A',
-          phonecode2: apiOrder.phonecode2 || 'N/A',
-          phone2: apiOrder.phone2 || 'N/A',
+          phonecode1: apiOrder.phonecode1 || '',
+          phone1: apiOrder.phone1 || '',
+          phonecode2: apiOrder.phonecode2 || '',
+          phone2: apiOrder.phone2 || '',
           pickupInfo:
             apiOrder.delivaryMethod?.toLowerCase() === 'pickup' && apiOrder.pickupInfo
               ? {
@@ -286,50 +299,119 @@ export default function OrderHistoryPage() {
 
   if (loading) return <div className="p-10 text-center">Loading...</div>;
 
-  const filteredOrders = filter === 'all' ? orders : orders.filter((order) => {
-    const orderDate = new Date(order.orderPlaced !== 'N/A' ? order.orderPlaced : order.scheduleDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const oneWeekAgo = new Date(today);
-    oneWeekAgo.setDate(today.getDate() - 7);
-    const oneMonthAgo = new Date(today);
-    oneMonthAgo.setMonth(today.getMonth() - 1);
+ const filteredOrders = filter === 'all' ? orders : orders.filter((order) => {
+  const orderDate = new Date(order.orderPlaced !== 'N/A' ? order.orderPlaced : order.scheduleDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-    switch (filter) {
-      case 'this-week':
-        return orderDate >= oneWeekAgo && orderDate <= today;
-      case 'last-week':
-        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-        const lastWeekEnd = new Date(oneWeekAgo);
-        lastWeekEnd.setDate(oneWeekAgo.getDate() + 6);
-        return orderDate >= oneWeekAgo && orderDate <= lastWeekEnd;
-      case 'this-month':
-        return orderDate >= oneMonthAgo && orderDate <= today;
-      default:
-        return true;
+  const startOfThisWeek = new Date(today);
+  startOfThisWeek.setDate(today.getDate() - today.getDay()); // Sunday
+
+  const startOfLastWeek = new Date(startOfThisWeek);
+  startOfLastWeek.setDate(startOfThisWeek.getDate() - 7);
+
+  const startOfLast2Weeks = new Date(startOfThisWeek);
+  startOfLast2Weeks.setDate(startOfThisWeek.getDate() - 14);
+
+  const oneMonthAgo = new Date(today);
+  oneMonthAgo.setMonth(today.getMonth() - 1);
+
+  const threeMonthsAgo = new Date(today);
+  threeMonthsAgo.setMonth(today.getMonth() - 3);
+
+  switch (filter) {
+    case 'this-week':
+      return orderDate >= startOfThisWeek && orderDate <= today;
+    case 'last-week':
+      return orderDate >= startOfLastWeek && orderDate < startOfThisWeek;
+    case 'last-2-weeks':
+      return orderDate >= startOfLast2Weeks && orderDate < startOfThisWeek;
+    case 'this-month':
+      return orderDate >= oneMonthAgo && orderDate <= today;
+    case 'last-3-months':
+      return orderDate >= threeMonthsAgo && orderDate <= today;
+    default:
+      return true;
+  }
+});
+
+    const handleFilterChange = (
+    newValue: SingleValue<{ value: string; label: string }>,
+    actionMeta: ActionMeta<{ value: string; label: string }>
+  ): void => {
+    if (newValue) {
+      console.log('Filter changed to:', newValue.value, 'at 06:25 PM +0530, June 27, 2025');
+      setFilter(newValue.value);
     }
-  });
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-[rgb(255,255,255)] relative">
       <main ref={mainRef} className="flex-1 p-6 z-10 min-h-screen">
         <div className="flex flex-row justify-between items-center mb-6 space-x-2 lg:mx-[72px]">
           <h1 className="text-sm lg:text-xl font-bold">
-            Your Orders ({filteredOrders.length})
+            Your Orders ({filteredOrders.length.toString().padStart(2, '0')})
           </h1>
           <div className="relative w-[140px] sm:w-[180px]">
-            <select
-              value={filter}
+           <Select
+              options={filterOptions}
+              value={filterOptions.find((option) => option.value === filter)}
               onChange={handleFilterChange}
-              className="border border-[rgb(206,206,206)] rounded p-1 pr-6 w-full text-xs lg:text-sm h-[36px] appearance-none bg-[rgb(248,248,248)] cursor-pointer text-center focus:outline-none"
-            >
-              <option value="all">All</option>
-              <option value="this-week">This Week</option>
-              <option value="last-week">Last Week</option>
-              <option value="this-month">This Month</option>
-            </select>
-            <FaAngleDown className="absolute right-2 top-1/2 -translate-y-1/2 text-[rgb(107,114,128)] text-xs lg:text-sm pointer-events-none" />
+              className="text-xs lg:text-sm"
+              styles={{
+                control: (base) => ({
+                  ...base,
+                  border: '1px solid rgb(206,206,206)',
+                  borderRadius: '0.25rem',
+                  height: '36px',
+                  backgroundColor: 'rgb(248,248,248)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  textAlign: 'center',
+                  paddingRight: '1.5rem',
+                  boxShadow: 'none',
+                  ':hover': {
+                    borderColor: 'rgb(62,32,109)',
+                    backgroundColor: 'rgb(243,244,246)',
+                  },
+                }),
+                option: (base, { isFocused }) => ({
+                  ...base,
+                  cursor: 'pointer',
+                  backgroundColor: isFocused ? 'rgb(243,244,246)' : 'white',
+                  color: 'rgb(31,41,55)',
+                  textAlign: 'center',
+                  padding: '8px 12px',
+                }),
+                menu: (base) => ({
+                  ...base,
+                  marginTop: '0',
+                  borderRadius: '0.25rem',
+                  textAlign: 'center',
+                  width: '100%',
+                }),
+                singleValue: (base) => ({
+                  ...base,
+                  textAlign: 'center',
+                  width: '100%',
+                  color: 'rgb(31,41,55)',
+                }),
+                dropdownIndicator: (base) => ({
+                  ...base,
+                  color: 'rgb(107,114,128)',
+                  paddingRight: '8px',
+                }),
+              }}
+              components={{
+                DropdownIndicator: () => (
+                  <FaAngleDown className="text-[rgb(107,114,128)] text-xs lg:text-sm" />
+                ),
+                IndicatorSeparator: () => null,
+              }}
+            />
           </div>
+              
         </div>
 
         {filteredOrders.length > 0 ? (
@@ -351,19 +433,19 @@ export default function OrderHistoryPage() {
                   </div>
                   <div>
                     <span className="text-[rgb(107,114,128)]">Order ID:</span>
-                    <p className="font-medium">#{order.orderId}</p>
+                    <p className="font-medium">#{order.invoiceNo}</p>
                   </div>
                   <div />
                   <div className="flex gap-2 justify-end">
                     <button
                       onClick={() => fetchDetailedOrder(order.orderId)}
-                      className="bg-[rgb(255,255,255)] border text-xs lg:text-sm border-[rgb(209,213,219)] rounded-lg px-4 py-1.5 hover:bg-[rgb(62,32,109)] hover:text-[rgb(255,255,255)]"
+                      className="bg-[rgb(255,255,255)] border text-xs lg:text-sm cursor-pointer border-[rgb(209,213,219)] rounded-lg px-4 py-1.5 hover:bg-[rgb(62,32,109)] hover:text-[rgb(255,255,255)]"
                     >
                       View Order
                     </button>
                     <button
                       onClick={() => router.push(`/history/invoice?orderId=${order.orderId}`)}
-                      className="bg-[rgb(255,255,255)] border text-xs lg:text-sm border-[rgb(209,213,219)] rounded-lg px-4 py-1.5 hover:bg-[rgb(62,32,109)] hover:text-[rgb(255,255,255)]"
+                      className="bg-[rgb(255,255,255)] border text-xs lg:text-sm cursor-pointer border-[rgb(209,213,219)] rounded-lg px-4 py-1.5 hover:bg-[rgb(62,32,109)] hover:text-[rgb(255,255,255)]"
                     >
                       View Invoice
                     </button>
@@ -472,6 +554,7 @@ export default function OrderHistoryPage() {
   );
 }
 
+// PickupOrderView and DeliveryOrderView remain unchanged
 function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: () => void }) {
   const familyPackTotal = order.familyPackItems?.reduce(
     (sum, pack) => sum + parseFloat(pack.totalPrice.replace('Rs. ', '') || '0'),
@@ -488,7 +571,7 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold text-[rgb(31,41,55)] flex items-center gap-5 cursor-pointer" onClick={onClose}>
           <span className="text-[rgb(107,114,128)]">⟶</span>
-          <span>Order ID: #{order.orderId}</span>
+          <span>Order ID: #{order.invoiceNo}</span>
         </h2>
         <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusClass(order.status)}`}>
           {order.status}
@@ -534,7 +617,18 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
           <div>
             <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Pickup Person Information:</h4>
             <p className="font-semibold">{order.fullName || 'N/A'}</p>
-            <p>{order.phone1 ? `+${order.phonecode1 || ''} ${order.phone1}` : 'N/A'},{order.phone2 ? `+${order.phonecode2 || ''} ${order.phone2}` : 'N/A'}</p>
+           <div>
+  
+  <p>
+    {order.phone1
+      ? `${order.phonecode1 || ''} ${order.phone1}`
+      : ''}
+    {order.phone2
+      ? `, ${order.phonecode2 || ''} ${order.phone2}`
+      : ''}
+  </p>
+</div>
+
           </div>
         </div>
       </div>
@@ -558,7 +652,7 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
                       <td colSpan={3} className="font-medium py-2 p-4">
                         {pack.name} ({pack.items?.length || 0} items)
                       </td>
-                    <td className="text-right font-semibold py-2 p-4" style={{ color: 'rgb(62,32,109)' }}>
+                      <td className="text-right font-semibold py-2 p-4" style={{ color: 'rgb(62,32,109)' }}>
                         Rs. {parseFloat(pack.totalPrice.replace('Rs. ', '') || '0').toFixed(2)}
                       </td>
                     </tr>
@@ -652,7 +746,7 @@ function DeliveryOrderView({ order, onClose }: { order: DetailedOrder, onClose: 
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold text-[rgb(31,41,55)] flex items-center gap-5 cursor-pointer" onClick={onClose}>
           <span className="text-[rgb(107,114,128)]">⟶</span>
-          <span>Order ID: #{order.orderId}</span>
+          <span>Order ID: #{order.invoiceNo}</span>
         </h2>
         <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusClass(order.status)}`}>
           {order.status}
@@ -718,10 +812,18 @@ function DeliveryOrderView({ order, onClose }: { order: DetailedOrder, onClose: 
             </div>
           </div>
           <div>
-            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Receiving Person Information:</h4>
-            <p className="font-semibold">{order.fullName || 'N/A'}</p>
-            <p>{order.phone1 ? `+${order.phonecode1 || ''} ${order.phone1}` : 'N/A'},{order.phone2 ? `+${order.phonecode2 || ''} ${order.phone2}` : 'N/A'}</p>
-          </div>
+  <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Receiving Person Information:</h4>
+  <p className="font-semibold">{order.fullName || 'N/A'}</p>
+  <p>
+    {order.phone1
+      ? `${order.phonecode1 || ''} ${order.phone1}`
+      : ''}
+    {order.phone2
+      ? `, ${order.phonecode2 || ''} ${order.phone2}`
+      : ''}
+  </p>
+</div>
+
         </div>
       </div>
       <div className="border-[rgb(229,231,235)] mb-8"></div>
@@ -821,3 +923,4 @@ function DeliveryOrderView({ order, onClose }: { order: DetailedOrder, onClose: 
     </div>
   );
 }
+
