@@ -7,18 +7,17 @@ import Swal from 'sweetalert2';
 import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch, RootState } from '../../store';
 import { setFormData, resetFormData } from '../../store/slices/checkoutSlice';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import SuccessPopup from '@/components/toast-messages/success-message-with-button';
 import ErrorPopup from '@/components/toast-messages/error-message';
 import { getForm } from '@/services/retail-service';
 import { selectCartForOrder } from '../../store/slices/cartItemsSlice';
-import { useSearchParams } from 'next/navigation';
 import OpenStreetMap from '@/components/open-map/OpenStreetMap';
-import {getPickupCenters, PickupCenter} from '@/services/cart-service'
+import { getPickupCenters, PickupCenter } from '@/services/cart-service';
 
 interface FormData {
-  centerId: number|null, // Added centerId
-  deliveryMethod: any;
+  centerId: number | null;
+  deliveryMethod: 'home' | 'pickup';
   title: string;
   fullName: string;
   phone1: string;
@@ -39,7 +38,7 @@ interface FormData {
 }
 
 interface FormErrors {
-  centerId: string; // Added centerId
+  centerId: string;
   deliveryMethod: string;
   title: string;
   fullName: string;
@@ -62,7 +61,7 @@ interface FormErrors {
 
 const initialFormState: FormData = {
   centerId: null,
-  deliveryMethod: 'home', // This will be overridden by query params if present
+  deliveryMethod: 'home',
   title: '',
   fullName: '',
   phone1: '',
@@ -82,125 +81,84 @@ const initialFormState: FormData = {
   scheduleType: 'One Time',
 };
 
-
 const Page: React.FC = () => {
   const NavArray = [
     { name: 'Cart', path: '/cart', status: true },
     { name: 'Checkout', path: '/checkout', status: true },
     { name: 'Payment', path: '/payment', status: false },
   ];
+  
   const dispatch = useDispatch<AppDispatch>();
-  // const storedFormData = useSelector((state: RootState) => state.checkout);
-
-
-      const [formData, setFormDataLocal] = useState<FormData>(() => {
-      // This will run only once when component mounts
-      const deliveryMethodFromQuery = typeof window !== 'undefined' 
-        ? new URLSearchParams(window.location.search).get('deliveryMethod') 
-        : null;
-        
-      return {
-        ...initialFormState,
-        deliveryMethod: (deliveryMethodFromQuery === 'home' || deliveryMethodFromQuery === 'pickup') 
-          ? deliveryMethodFromQuery 
-          : 'home'
-      };
-    });
-
-  const [errors, setErrors] = useState<FormErrors>({
-    centerId: '',
-    deliveryMethod: '',
-    title: '',
-    fullName: '',
-    phone1: '',
-    phone2: '',
-    buildingType: '',
-    deliveryDate: '',
-    timeSlot: '',
-    phoneCode1: '',
-    phoneCode2: '',
-    buildingNo: '',
-    buildingName: '',
-    flatNumber: '',
-    floorNumber: '',
-    houseNo: '',
-    street: '',
-    cityName: '',
-    scheduleType: '',
-  });
-
-  const token = useSelector((state: RootState) => state.auth.token) as string | null;
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  
+  // Initialize form state safely
+  const [formData, setFormDataLocal] = useState<FormData>(initialFormState);
+  const [errors, setErrors] = useState<FormErrors>({} as FormErrors);
   const [usePreviousAddress, setUsePreviousAddress] = useState(false);
-  const cartData = useSelector(selectCartForOrder);
-
   const [isLoading, setIsLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
-  const cartPrices = useSelector((state: RootState) => state.cart) || null;
-  const { cartId } = useSelector((state: RootState) => state.cartItems);
-  const router = useRouter();
   const [showErrorPopup, setShowErrorPopup] = useState(false);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
-  const searchParams = useSearchParams();
- const [selectedPickupCenter, setSelectedPickupCenter] = useState<{id: number, name: string} | null>(null);
+  const [selectedPickupCenter, setSelectedPickupCenter] = useState<{ id: number, name: string } | null>(null);
   const [pickupCenters, setPickupCenters] = useState<PickupCenter[]>([]);
   const [loadingCenters, setLoadingCenters] = useState(false);
-  const [mapCenter, setMapCenter] = useState<[number, number]>([6.9271, 79.8612]); // Default to Colombo
+  const [mapCenter, setMapCenter] = useState<[number, number]>([6.9271, 79.8612]);
   const [mapZoom, setMapZoom] = useState(12);
 
-      useEffect(() => {
-      // Get delivery method from query parameters
-      const deliveryMethodFromQuery = searchParams.get('deliveryMethod');
-      
-      if (deliveryMethodFromQuery && (deliveryMethodFromQuery === 'home' || deliveryMethodFromQuery === 'pickup')) {
-        setFormDataLocal(prev => ({
-          ...prev,
-          deliveryMethod: deliveryMethodFromQuery
-        }));
-        
-        console.log('Delivery method set from query params:', deliveryMethodFromQuery);
-      }
-    }, [searchParams]);
+  // Redux state
+  const token = useSelector((state: RootState) => state.auth.token) as string | null;
+  const cartData = useSelector(selectCartForOrder);
+  const cartPrices = useSelector((state: RootState) => state.cart) || null;
+  const { cartId } = useSelector((state: RootState) => state.cartItems);
 
-    useEffect(() => {
-  const fetchPickupCenters = async () => {
-    if (formData.deliveryMethod === 'pickup') {
-      setLoadingCenters(true);
-      try {
-        const response = await getPickupCenters();
-        if (response.success) {
-          setPickupCenters(response.data);
-          console.log('Pickup centers loaded:', response.data);
-        }
-      } catch (error: any) {
-        console.error('Failed to fetch pickup centers:', error);
-        setErrorMsg(error.message || 'Failed to load pickup centers.');
-        setShowErrorPopup(true);
-      } finally {
-        setLoadingCenters(false);
-      }
+  // Set initial delivery method from query params
+  useEffect(() => {
+    if (!searchParams) return;
+    
+    const deliveryMethodFromQuery = searchParams.get('deliveryMethod');
+    
+    if (deliveryMethodFromQuery && (deliveryMethodFromQuery === 'home' || deliveryMethodFromQuery === 'pickup')) {
+      setFormDataLocal(prev => ({
+        ...prev,
+        deliveryMethod: deliveryMethodFromQuery as 'home' | 'pickup'
+      }));
     }
-  };
+  }, [searchParams]);
 
-  fetchPickupCenters();
-}, [formData.deliveryMethod, token]);
+  // Load pickup centers when delivery method changes to pickup
+  useEffect(() => {
+    const fetchPickupCenters = async () => {
+      if (formData.deliveryMethod === 'pickup') {
+        setLoadingCenters(true);
+        try {
+          const response = await getPickupCenters();
+          if (response.success) {
+            setPickupCenters(response.data);
+          }
+        } catch (error: any) {
+          console.error('Failed to fetch pickup centers:', error);
+          setErrorMsg(error.message || 'Failed to load pickup centers.');
+          setShowErrorPopup(true);
+        } finally {
+          setLoadingCenters(false);
+        }
+      }
+    };
 
+    fetchPickupCenters();
+  }, [formData.deliveryMethod, token]);
 
   const handleAddressOptionChange = async (value: string) => {
     if (value === 'previous') {
-      console.log('fetching')
       setUsePreviousAddress(true);
       setFetching(true);
 
       try {
         const response = await getForm(token);
-
-
         if (response) {
-          // const data = response;
-          console.log('fetch data', response);
-
           setFormDataLocal(prev => ({
             ...prev,
             buildingNo: response.result.buildingNo || '',
@@ -217,7 +175,7 @@ const Page: React.FC = () => {
             flatNumber: response.result.unitNo || '',
             floorNumber: response.result.floorNo || '',
             fullName: response.result.fullName || '',
-            scheduleType: 'One Time', // default
+            scheduleType: 'One Time',
           }));
         }
       } catch (error: any) {
@@ -233,227 +191,202 @@ const Page: React.FC = () => {
     }
   };
 
-     const handleCenterSelect = (centerId: string, centerName: string) => {
-      const selectedCenter = pickupCenters.find(center => center.value === centerId);
-      
-      if (selectedCenter) {
-        const centerIdAsNumber = parseInt(centerId, 10); // Convert string to number
-        setSelectedPickupCenter({ id: centerIdAsNumber, name: centerName });
-        setFormDataLocal(prev => ({ ...prev, centerId: centerIdAsNumber }));
-        
-        // Update map center and zoom to selected pickup center
-        setMapCenter([selectedCenter.latitude, selectedCenter.longitude]);
-        setMapZoom(15);
-        
-        console.log('Selected pickup center:', {
-          id: selectedCenter.id,
-          name: selectedCenter.name,
-          latitude: selectedCenter.latitude,
-          longitude: selectedCenter.longitude,
-        });
-      }
-    };
+  const handleCenterSelect = (centerId: string, centerName: string) => {
+    const selectedCenter = pickupCenters.find(center => center.value === centerId);
 
-          const pickupCenterOptions = pickupCenters.map(center => ({
-      value: center.value,
-      label: center.label
-    }));
+    if (selectedCenter) {
+      const centerIdAsNumber = parseInt(centerId, 10);
+      setSelectedPickupCenter({ id: centerIdAsNumber, name: centerName });
+      setFormDataLocal(prev => ({ ...prev, centerId: centerIdAsNumber }));
+      setMapCenter([selectedCenter.latitude, selectedCenter.longitude]);
+      setMapZoom(15);
+    }
+  };
 
+  const pickupCenterOptions = pickupCenters.map(center => ({
+    value: center.value,
+    label: center.label
+  }));
 
-
-const handleFieldChange = (field: keyof FormData, value: string | number) => {
-  // Update the form state
-  setFormDataLocal(prev => ({ ...prev, [field]: value }));
-
-  // Validate the field with access to current form data
-  const error = validateField(field, value, formData);
-  setErrors(prev => ({ ...prev, [field]: error }));
-
-  // Special case: if deliveryMethod changes, revalidate all address fields and centerId
-  if (field === 'deliveryMethod') {
-    const addressFields = [
-      'buildingType', 'buildingName', 'buildingNo',
-      'street', 'cityName', 'houseNo',
-      'floorNumber', 'flatNumber', 'centerId'
-    ];
-
-    addressFields.forEach(addressField => {
-      const fieldValue = addressField === 'centerId' 
-        ? formData[addressField as keyof FormData] 
-        : formData[addressField as keyof FormData];
-      
-      const addressError = validateField(
-        addressField as keyof FormData,
-        fieldValue,
-        { ...formData, deliveryMethod: value as string } // Updated deliveryMethod
-      );
-      setErrors(prev => ({ ...prev, [addressField]: addressError }));
-    });
-  }
-};
-
-const validateField = (field: keyof FormData, value: string | number | null, formData: FormData): string => {
-  const trimmed = typeof value === 'string' ? value.trim() : '';
-  const isHomeDelivery = formData.deliveryMethod === 'home';
-  const isPickup = formData.deliveryMethod === 'pickup';
-  const isApartment = formData.buildingType === 'Apartment';
-
-  switch (field) {
-    case 'centerId':
-    return isPickup && (value === null || value === undefined) ? 'Please select a pickup center.' : '';
-
-    case 'fullName':
-      if (!trimmed) return 'Full Name is required.';
-      if (!/^[A-Za-z\s]+$/.test(trimmed)) return 'Full Name must only contain letters and spaces.';
-      return '';
-
-    case 'title':
-      return !trimmed ? 'Title is required.' : '';
-
-    case 'phone1':
-      if (!value) return 'Phone number 1 is required.';
-      if (!/^\d{9}$/.test(value.toString())) return 'Please enter a valid phone number';
-      return '';
-
-    case 'phone2':
-      return value && !/^\d{9}$/.test(value.toString()) ? 'Please enter a valid phone number' : '';
-
-    case 'timeSlot':
-      return !trimmed ? 'Time slot is required.' : '';
-
-    case 'deliveryDate':
-      return !value ? 'Delivery Date is required.' : '';
-
-    // Address fields - conditionally required
-    case 'buildingType':
-      return isHomeDelivery && !trimmed ? 'Building type is required.' : '';
-
-    case 'buildingName':
-    case 'buildingNo':
-    case 'floorNumber':
-    case 'flatNumber':
-      // Only required for apartment and home delivery
-      return isHomeDelivery && isApartment && !trimmed ?
-        `${field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} is required.` :
-        '';
-
-    case 'street':
-    case 'cityName':
-    case 'houseNo':
-      // Required for both house and apartment when home delivery
-      return isHomeDelivery && !trimmed ?
-        `${field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} is required.` :
-        '';
-
-    default:
-      return '';
-  }
-};
-
-const validateForm = (): boolean => {
-  const newErrors: FormErrors = {} as FormErrors;
-  let valid = true;
-
-  (Object.keys(formData) as Array<keyof FormData>).forEach(field => {
-    const value = formData[field];
+  const handleFieldChange = (field: keyof FormData, value: string | number) => {
+    setFormDataLocal(prev => ({ ...prev, [field]: value }));
     const error = validateField(field, value, formData);
-    newErrors[field] = error;
-    if (error) valid = false;
-  });
+    setErrors(prev => ({ ...prev, [field]: error }));
 
-  setErrors(newErrors);
-  return valid;
-};
+    if (field === 'deliveryMethod') {
+      const addressFields = [
+        'buildingType', 'buildingName', 'buildingNo',
+        'street', 'cityName', 'houseNo',
+        'floorNumber', 'flatNumber', 'centerId'
+      ];
 
- const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setSuccessMsg('');
-  setErrorMsg('');
+      addressFields.forEach(addressField => {
+        const fieldValue = formData[addressField as keyof FormData];
+        const addressError = validateField(
+          addressField as keyof FormData,
+          fieldValue,
+          { ...formData, deliveryMethod: value as any }
+        );
+        setErrors(prev => ({ ...prev, [addressField]: addressError }));
+      });
+    }
+  };
 
-  if (!validateForm()) {
-    Swal.fire({
-      icon: 'error',
-      title: 'Invalid Form',
-      text: 'Please correctly fill all the required fields.',
+  const validateField = (field: keyof FormData, value: string | number | null, formData: FormData): string => {
+    const trimmed = typeof value === 'string' ? value.trim() : '';
+    const isHomeDelivery = formData.deliveryMethod === 'home';
+    const isPickup = formData.deliveryMethod === 'pickup';
+    const isApartment = formData.buildingType === 'Apartment';
+
+    switch (field) {
+      case 'centerId':
+        return isPickup && (value === null || value === undefined) ? 'Please select a pickup center.' : '';
+
+      case 'fullName':
+        if (!trimmed) return 'Full Name is required.';
+        if (!/^[A-Za-z\s]+$/.test(trimmed)) return 'Full Name must only contain letters and spaces.';
+        return '';
+
+      case 'title':
+        return !trimmed ? 'Title is required.' : '';
+
+      case 'phone1':
+        if (!value) return 'Phone number 1 is required.';
+        if (!/^\d{9}$/.test(value.toString())) return 'Please enter a valid phone number';
+        return '';
+
+      case 'phone2':
+        return value && !/^\d{9}$/.test(value.toString()) ? 'Please enter a valid phone number' : '';
+
+      case 'timeSlot':
+        return !trimmed ? 'Time slot is required.' : '';
+
+      case 'deliveryDate':
+        return !value ? 'Delivery Date is required.' : '';
+
+      case 'buildingType':
+        return isHomeDelivery && !trimmed ? 'Building type is required.' : '';
+
+      case 'buildingName':
+      case 'buildingNo':
+      case 'floorNumber':
+      case 'flatNumber':
+        return isHomeDelivery && isApartment && !trimmed ?
+          `${field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} is required.` :
+          '';
+
+      case 'street':
+      case 'cityName':
+      case 'houseNo':
+        return isHomeDelivery && !trimmed ?
+          `${field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} is required.` :
+          '';
+
+      default:
+        return '';
+    }
+  };
+
+  const validateForm = (): boolean => {
+    const newErrors: FormErrors = {} as FormErrors;
+    let valid = true;
+
+    (Object.keys(formData) as Array<keyof FormData>).forEach(field => {
+      const value = formData[field];
+      const error = validateField(field, value, formData);
+      newErrors[field] = error;
+      if (error) valid = false;
     });
-    return;
-  }
 
-  try {
-    setIsLoading(true);
+    setErrors(newErrors);
+    return valid;
+  };
 
-    let dataToSubmit: FormData = {
-      ...initialFormState,
-      // Always include shared fields
-      deliveryMethod: formData.deliveryMethod,
-      title: formData.title,
-      fullName: formData.fullName,
-      phone1: formData.phone1,
-      phone2: formData.phone2,
-      phoneCode1: formData.phoneCode1,
-      phoneCode2: formData.phoneCode2,
-      deliveryDate: formData.deliveryDate,
-      timeSlot: formData.timeSlot,
-      scheduleType: formData.scheduleType,
-    };
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSuccessMsg('');
+    setErrorMsg('');
 
-    if (formData.deliveryMethod === 'home') {
-      if (formData.buildingType === 'Apartment') {
-        dataToSubmit = {
-          ...dataToSubmit,
-          buildingType: formData.buildingType,
-          buildingNo: formData.buildingNo,
-          buildingName: formData.buildingName,
-          flatNumber: formData.flatNumber,
-          floorNumber: formData.floorNumber,
-          houseNo: formData.houseNo,
-          street: formData.street,
-          cityName: formData.cityName,
-        };
-      } else if (formData.buildingType === 'House') {
-        dataToSubmit = {
-          ...dataToSubmit,
-          buildingType: formData.buildingType,
-          houseNo: formData.houseNo,
-          street: formData.street,
-          cityName: formData.cityName,
-        };
-      }
-    } else if (formData.deliveryMethod === 'pickup') {
-      // Include centerId for pickup delivery
-      dataToSubmit = {
-        ...dataToSubmit,
-        centerId: formData.centerId,
-      };
+    if (!validateForm()) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Invalid Form',
+        text: 'Please correctly fill all the required fields.',
+      });
+      return;
     }
 
-    dispatch(resetFormData());
-    dispatch(setFormData(dataToSubmit));
-    console.log('submitting', dataToSubmit);
+    try {
+      setIsLoading(true);
 
-    setSuccessMsg('Check out successfull!');
-    setShowSuccessPopup(true);
+      let dataToSubmit: FormData = {
+        ...initialFormState,
+        deliveryMethod: formData.deliveryMethod,
+        title: formData.title,
+        fullName: formData.fullName,
+        phone1: formData.phone1,
+        phone2: formData.phone2,
+        phoneCode1: formData.phoneCode1,
+        phoneCode2: formData.phoneCode2,
+        deliveryDate: formData.deliveryDate,
+        timeSlot: formData.timeSlot,
+        scheduleType: formData.scheduleType,
+      };
 
-  } catch (err: any) {
-    setErrorMsg(err.message || 'Check out failed!');
-    await Swal.fire({
-      title: 'Check out failed',
-      icon: 'error',
-      confirmButtonText: 'Try Again',
-      confirmButtonColor: '#3E206D',
-    });
-  } finally {
-    setIsLoading(false);
-  }
-};
+      if (formData.deliveryMethod === 'home') {
+        if (formData.buildingType === 'Apartment') {
+          dataToSubmit = {
+            ...dataToSubmit,
+            buildingType: formData.buildingType,
+            buildingNo: formData.buildingNo,
+            buildingName: formData.buildingName,
+            flatNumber: formData.flatNumber,
+            floorNumber: formData.floorNumber,
+            houseNo: formData.houseNo,
+            street: formData.street,
+            cityName: formData.cityName,
+          };
+        } else if (formData.buildingType === 'House') {
+          dataToSubmit = {
+            ...dataToSubmit,
+            buildingType: formData.buildingType,
+            houseNo: formData.houseNo,
+            street: formData.street,
+            cityName: formData.cityName,
+          };
+        }
+      } else if (formData.deliveryMethod === 'pickup') {
+        dataToSubmit = {
+          ...dataToSubmit,
+          centerId: formData.centerId,
+        };
+      }
 
+      dispatch(resetFormData());
+      dispatch(setFormData(dataToSubmit));
+
+      setSuccessMsg('Check out successful!');
+      setShowSuccessPopup(true);
+
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Check out failed!');
+      await Swal.fire({
+        title: 'Check out failed',
+        icon: 'error',
+        confirmButtonText: 'Try Again',
+        confirmButtonColor: '#3E206D',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div>
       <SuccessPopup
         isVisible={showSuccessPopup}
         onClose={() => setShowSuccessPopup(false)}
-        title="Check out successfull!"
+        title="Check out successful!"
         description="Let's move to next step."
         path='/payment'
       />
@@ -461,7 +394,7 @@ const validateForm = (): boolean => {
         isVisible={showErrorPopup}
         onClose={() => setShowErrorPopup(false)}
         title="Oops!"
-        description="Something happen, Please try again!"
+        description="Something happened, Please try again!"
       />
       <form onSubmit={handleSubmit}>
         <div className='px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5 '>
@@ -524,7 +457,7 @@ const validateForm = (): boolean => {
                   <h2 className='text-xl font-bold mb-6 mt-8 text-[#252525]'>
                     Find your nearest center
                   </h2>
-                  
+
                   {/* Center Selection Dropdown - ABOVE the map */}
                   <div className="mb-4 relative z-50">
                     <label className="block font-semibold mb-2 text-[#2E2E2E]">Select Pickup Center</label>
@@ -813,44 +746,44 @@ const validateForm = (): boolean => {
               </div>
             </div>
             {/* Right Section - Order Summary */}
-<div className='w-full lg:w-1/3 mt-6 lg:mt-0'>
-  <div className='border border-gray-300 rounded-lg shadow-md p-4 sm:p-5 md:p-6'>
-    <h2 className='font-semibold text-lg mb-4'>Your Order </h2>
+            <div className='w-full lg:w-1/3 mt-6 lg:mt-0'>
+              <div className='border border-gray-300 rounded-lg shadow-md p-4 sm:p-5 md:p-6'>
+                <h2 className='font-semibold text-lg mb-4'>Your Order </h2>
 
-    <div className='flex justify-between items-center mb-4'>
-      <p className="text-gray-600">{cartData?.totalItems || 0} items</p>
-      <p className='font-semibold'>Rs.{cartData?.grandTotal || 0}</p>
-    </div>
+                <div className='flex justify-between items-center mb-4'>
+                  <p className="text-gray-600">{cartData?.totalItems || 0} items</p>
+                  <p className='font-semibold'>Rs.{cartData?.grandTotal || 0}</p>
+                </div>
 
-    <div className='border-t border-gray-300 my-4' />
+                <div className='border-t border-gray-300 my-4' />
 
-    <div className='flex justify-between text-sm mb-2'>
-      <p className='text-gray-600'>Total</p>
-      <p className='font-semibold'>Rs.{cartData?.grandTotal || 0}</p>
-    </div>
+                <div className='flex justify-between text-sm mb-2'>
+                  <p className='text-gray-600'>Total</p>
+                  <p className='font-semibold'>Rs.{cartData?.grandTotal || 0}</p>
+                </div>
 
-    <div className='flex justify-between text-sm mb-2'>
-      <p className='text-gray-600'>Discount</p>
-      <p className='text-gray-600'>Rs.{cartData?.discountAmount || 0}</p>
-    </div>
+                <div className='flex justify-between text-sm mb-2'>
+                  <p className='text-gray-600'>Discount</p>
+                  <p className='text-gray-600'>Rs.{cartData?.discountAmount || 0}</p>
+                </div>
 
-    <div className='flex justify-between text-sm mb-2'>
-      <p className='text-gray-600'>Delivery Charges</p>
-      <p className='text-gray-600'>Rs.185.00</p>
-    </div>
+                <div className='flex justify-between text-sm mb-2'>
+                  <p className='text-gray-600'>Delivery Charges</p>
+                  <p className='text-gray-600'>Rs.185.00</p>
+                </div>
 
-    <div className='border-t border-gray-300 my-4' />
+                <div className='border-t border-gray-300 my-4' />
 
-    <div className='flex justify-between mb-4 text-[20px] text-[#414347]'>
-      <p className='font-semibold'>Grand Total</p>
-      <p className='font-semibold'>Rs.{(cartData?.finalTotal || 0) + 185}</p>
-    </div>
+                <div className='flex justify-between mb-4 text-[20px] text-[#414347]'>
+                  <p className='font-semibold'>Grand Total</p>
+                  <p className='font-semibold'>Rs.{(cartData?.finalTotal || 0) + 185}</p>
+                </div>
 
-    <button type="submit" className='w-full bg-purple-800 text-white font-semibold rounded-lg px-4 py-3 hover:bg-purple-900 transition-colors'>
-      Continue to Payment
-    </button>
-  </div>
-</div>
+                <button type="submit" className='w-full bg-purple-800 text-white font-semibold rounded-lg px-4 py-3 hover:bg-purple-900 transition-colors'>
+                  Continue to Payment
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </form>
