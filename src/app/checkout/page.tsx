@@ -12,9 +12,9 @@ import SuccessPopup from '@/components/toast-messages/success-message-with-butto
 import ErrorPopup from '@/components/toast-messages/error-message';
 import { getForm } from '@/services/retail-service';
 import { selectCartForOrder } from '../../store/slices/cartItemsSlice';
-import OpenStreetMap from '@/components/open-map/OpenStreetMap';
 import { getPickupCenters, PickupCenter } from '@/services/cart-service';
 import dynamic from 'next/dynamic';
+import OpenStreetMap from '@/components/open-map/OpenStreetMap';
 
 interface FormData {
   centerId: number | null;
@@ -82,7 +82,6 @@ const initialFormState: FormData = {
   scheduleType: 'One Time',
 };
 
-// Dynamically import components that might use window object
 const DynamicOpenStreetMap = dynamic(
   () => import('@/components/open-map/OpenStreetMap'),
   {
@@ -102,7 +101,7 @@ const Page: React.FC = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  // Initialize form state safely
+  // State initialization
   const [formData, setFormDataLocal] = useState<FormData>(initialFormState);
   const [errors, setErrors] = useState<FormErrors>({} as FormErrors);
   const [usePreviousAddress, setUsePreviousAddress] = useState(false);
@@ -117,7 +116,6 @@ const Page: React.FC = () => {
   const [loadingCenters, setLoadingCenters] = useState(false);
   const [mapCenter, setMapCenter] = useState<[number, number]>([6.9271, 79.8612]);
   const [mapZoom, setMapZoom] = useState(12);
-  const [isMounted, setIsMounted] = useState(false);
 
   // Redux state
   const token = useSelector((state: RootState) => state.auth.token) as string | null;
@@ -125,29 +123,22 @@ const Page: React.FC = () => {
   const cartPrices = useSelector((state: RootState) => state.cart) || null;
   const { cartId } = useSelector((state: RootState) => state.cartItems);
 
-  // Ensure component is mounted before accessing browser-specific APIs
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
   // Set initial delivery method from query params
   useEffect(() => {
-    if (!searchParams || !isMounted) return;
-
+    if (!searchParams) return;
+    
     const deliveryMethodFromQuery = searchParams.get('deliveryMethod');
-
+    
     if (deliveryMethodFromQuery && (deliveryMethodFromQuery === 'home' || deliveryMethodFromQuery === 'pickup')) {
       setFormDataLocal(prev => ({
         ...prev,
         deliveryMethod: deliveryMethodFromQuery as 'home' | 'pickup'
       }));
     }
-  }, [searchParams, isMounted]);
+  }, [searchParams]);
 
   // Load pickup centers when delivery method changes to pickup
   useEffect(() => {
-    if (!isMounted) return;
-
     const fetchPickupCenters = async () => {
       if (formData.deliveryMethod === 'pickup') {
         setLoadingCenters(true);
@@ -167,7 +158,7 @@ const Page: React.FC = () => {
     };
 
     fetchPickupCenters();
-  }, [formData.deliveryMethod, token, isMounted]);
+  }, [formData.deliveryMethod, token]);
 
   const handleAddressOptionChange = async (value: string) => {
     if (value === 'previous') {
@@ -326,13 +317,11 @@ const Page: React.FC = () => {
     setErrorMsg('');
 
     if (!validateForm()) {
-      if (isMounted && typeof window !== 'undefined') {
-        Swal.fire({
-          icon: 'error',
-          title: 'Invalid Form',
-          text: 'Please correctly fill all the required fields.',
-        });
-      }
+      Swal.fire({
+        icon: 'error',
+        title: 'Invalid Form',
+        text: 'Please correctly fill all the required fields.',
+      });
       return;
     }
 
@@ -390,30 +379,16 @@ const Page: React.FC = () => {
 
     } catch (err: any) {
       setErrorMsg(err.message || 'Check out failed!');
-      if (isMounted && typeof window !== 'undefined') {
-        await Swal.fire({
-          title: 'Check out failed',
-          icon: 'error',
-          confirmButtonText: 'Try Again',
-          confirmButtonColor: '#3E206D',
-        });
-      }
+      await Swal.fire({
+        title: 'Check out failed',
+        icon: 'error',
+        confirmButtonText: 'Try Again',
+        confirmButtonColor: '#3E206D',
+      });
     } finally {
       setIsLoading(false);
     }
   };
-
-  // Don't render until mounted to avoid hydration issues
-  if (!isMounted) {
-    return (
-      <div className="px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded mb-4"></div>
-          <div className="h-96 bg-gray-200 rounded"></div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div>
