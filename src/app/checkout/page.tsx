@@ -7,18 +7,18 @@ import Swal from 'sweetalert2';
 import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch, RootState } from '../../store';
 import { setFormData, resetFormData } from '../../store/slices/checkoutSlice';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import SuccessPopup from '@/components/toast-messages/success-message-with-button';
 import ErrorPopup from '@/components/toast-messages/error-message';
 import { getForm } from '@/services/retail-service';
 import { selectCartForOrder } from '../../store/slices/cartItemsSlice';
-import { getPickupCenters, PickupCenter } from '@/services/cart-service';
-import dynamic from 'next/dynamic';
+import { useSearchParams } from 'next/navigation';
 import OpenStreetMap from '@/components/open-map/OpenStreetMap';
+import { getPickupCenters, PickupCenter } from '@/services/cart-service'
 
 interface FormData {
-  centerId: number | null;
-  deliveryMethod: 'home' | 'pickup';
+  centerId: number | null, // Added centerId
+  deliveryMethod: any;
   title: string;
   fullName: string;
   phone1: string;
@@ -39,7 +39,7 @@ interface FormData {
 }
 
 interface FormErrors {
-  centerId: string;
+  centerId: string; // Added centerId
   deliveryMethod: string;
   title: string;
   fullName: string;
@@ -62,7 +62,7 @@ interface FormErrors {
 
 const initialFormState: FormData = {
   centerId: null,
-  deliveryMethod: 'home',
+  deliveryMethod: 'home', // This will be overridden by query params if present
   title: '',
   fullName: '',
   phone1: '',
@@ -82,13 +82,6 @@ const initialFormState: FormData = {
   scheduleType: 'One Time',
 };
 
-const DynamicOpenStreetMap = dynamic(
-  () => import('@/components/open-map/OpenStreetMap'),
-  {
-    ssr: false,
-    loading: () => <div className="w-full h-[300px] bg-gray-200 rounded-lg flex items-center justify-center">Loading map...</div>
-  }
-);
 
 const Page: React.FC = () => {
   const NavArray = [
@@ -96,48 +89,80 @@ const Page: React.FC = () => {
     { name: 'Checkout', path: '/checkout', status: true },
     { name: 'Payment', path: '/payment', status: false },
   ];
-
   const dispatch = useDispatch<AppDispatch>();
-  const searchParams = useSearchParams();
-  const router = useRouter();
+  // const storedFormData = useSelector((state: RootState) => state.checkout);
 
-  // State initialization
-  const [formData, setFormDataLocal] = useState<FormData>(initialFormState);
-  const [errors, setErrors] = useState<FormErrors>({} as FormErrors);
+
+  const [formData, setFormDataLocal] = useState<FormData>(() => {
+    // This will run only once when component mounts
+    const deliveryMethodFromQuery = typeof window !== 'undefined'
+      ? new URLSearchParams(window.location.search).get('deliveryMethod')
+      : null;
+
+    return {
+      ...initialFormState,
+      deliveryMethod: (deliveryMethodFromQuery === 'home' || deliveryMethodFromQuery === 'pickup')
+        ? deliveryMethodFromQuery
+        : 'home'
+    };
+  });
+
+  const [errors, setErrors] = useState<FormErrors>({
+    centerId: '',
+    deliveryMethod: '',
+    title: '',
+    fullName: '',
+    phone1: '',
+    phone2: '',
+    buildingType: '',
+    deliveryDate: '',
+    timeSlot: '',
+    phoneCode1: '',
+    phoneCode2: '',
+    buildingNo: '',
+    buildingName: '',
+    flatNumber: '',
+    floorNumber: '',
+    houseNo: '',
+    street: '',
+    cityName: '',
+    scheduleType: '',
+  });
+
+  const token = useSelector((state: RootState) => state.auth.token) as string | null;
   const [usePreviousAddress, setUsePreviousAddress] = useState(false);
+  const cartData = useSelector(selectCartForOrder);
+
   const [isLoading, setIsLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const cartPrices = useSelector((state: RootState) => state.cart) || null;
+  const { cartId } = useSelector((state: RootState) => state.cartItems);
+  const router = useRouter();
   const [showErrorPopup, setShowErrorPopup] = useState(false);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const searchParams = useSearchParams();
   const [selectedPickupCenter, setSelectedPickupCenter] = useState<{ id: number, name: string } | null>(null);
   const [pickupCenters, setPickupCenters] = useState<PickupCenter[]>([]);
   const [loadingCenters, setLoadingCenters] = useState(false);
-  const [mapCenter, setMapCenter] = useState<[number, number]>([6.9271, 79.8612]);
+  const [mapCenter, setMapCenter] = useState<[number, number]>([6.9271, 79.8612]); // Default to Colombo
   const [mapZoom, setMapZoom] = useState(12);
 
-  // Redux state
-  const token = useSelector((state: RootState) => state.auth.token) as string | null;
-  const cartData = useSelector(selectCartForOrder);
-  const cartPrices = useSelector((state: RootState) => state.cart) || null;
-  const { cartId } = useSelector((state: RootState) => state.cartItems);
-
-  // Set initial delivery method from query params
   useEffect(() => {
-    if (!searchParams) return;
-    
+    // Get delivery method from query parameters
     const deliveryMethodFromQuery = searchParams.get('deliveryMethod');
-    
+
     if (deliveryMethodFromQuery && (deliveryMethodFromQuery === 'home' || deliveryMethodFromQuery === 'pickup')) {
       setFormDataLocal(prev => ({
         ...prev,
-        deliveryMethod: deliveryMethodFromQuery as 'home' | 'pickup'
+        deliveryMethod: deliveryMethodFromQuery
       }));
+
+      console.log('Delivery method set from query params:', deliveryMethodFromQuery);
     }
   }, [searchParams]);
 
-  // Load pickup centers when delivery method changes to pickup
   useEffect(() => {
     const fetchPickupCenters = async () => {
       if (formData.deliveryMethod === 'pickup') {
@@ -146,6 +171,7 @@ const Page: React.FC = () => {
           const response = await getPickupCenters();
           if (response.success) {
             setPickupCenters(response.data);
+            console.log('Pickup centers loaded:', response.data);
           }
         } catch (error: any) {
           console.error('Failed to fetch pickup centers:', error);
@@ -160,14 +186,21 @@ const Page: React.FC = () => {
     fetchPickupCenters();
   }, [formData.deliveryMethod, token]);
 
+
   const handleAddressOptionChange = async (value: string) => {
     if (value === 'previous') {
+      console.log('fetching')
       setUsePreviousAddress(true);
       setFetching(true);
 
       try {
         const response = await getForm(token);
+
+
         if (response) {
+          // const data = response;
+          console.log('fetch data', response);
+
           setFormDataLocal(prev => ({
             ...prev,
             buildingNo: response.result.buildingNo || '',
@@ -184,7 +217,7 @@ const Page: React.FC = () => {
             flatNumber: response.result.unitNo || '',
             floorNumber: response.result.floorNo || '',
             fullName: response.result.fullName || '',
-            scheduleType: 'One Time',
+            scheduleType: 'One Time', // default
           }));
         }
       } catch (error: any) {
@@ -204,11 +237,20 @@ const Page: React.FC = () => {
     const selectedCenter = pickupCenters.find(center => center.value === centerId);
 
     if (selectedCenter) {
-      const centerIdAsNumber = parseInt(centerId, 10);
+      const centerIdAsNumber = parseInt(centerId, 10); // Convert string to number
       setSelectedPickupCenter({ id: centerIdAsNumber, name: centerName });
       setFormDataLocal(prev => ({ ...prev, centerId: centerIdAsNumber }));
+
+      // Update map center and zoom to selected pickup center
       setMapCenter([selectedCenter.latitude, selectedCenter.longitude]);
       setMapZoom(15);
+
+      console.log('Selected pickup center:', {
+        id: selectedCenter.id,
+        name: selectedCenter.name,
+        latitude: selectedCenter.latitude,
+        longitude: selectedCenter.longitude,
+      });
     }
   };
 
@@ -217,11 +259,17 @@ const Page: React.FC = () => {
     label: center.label
   }));
 
+
+
   const handleFieldChange = (field: keyof FormData, value: string | number) => {
+    // Update the form state
     setFormDataLocal(prev => ({ ...prev, [field]: value }));
+
+    // Validate the field with access to current form data
     const error = validateField(field, value, formData);
     setErrors(prev => ({ ...prev, [field]: error }));
 
+    // Special case: if deliveryMethod changes, revalidate all address fields and centerId
     if (field === 'deliveryMethod') {
       const addressFields = [
         'buildingType', 'buildingName', 'buildingNo',
@@ -230,11 +278,14 @@ const Page: React.FC = () => {
       ];
 
       addressFields.forEach(addressField => {
-        const fieldValue = formData[addressField as keyof FormData];
+        const fieldValue = addressField === 'centerId'
+          ? formData[addressField as keyof FormData]
+          : formData[addressField as keyof FormData];
+
         const addressError = validateField(
           addressField as keyof FormData,
           fieldValue,
-          { ...formData, deliveryMethod: value as any }
+          { ...formData, deliveryMethod: value as string } // Updated deliveryMethod
         );
         setErrors(prev => ({ ...prev, [addressField]: addressError }));
       });
@@ -273,6 +324,7 @@ const Page: React.FC = () => {
       case 'deliveryDate':
         return !value ? 'Delivery Date is required.' : '';
 
+      // Address fields - conditionally required
       case 'buildingType':
         return isHomeDelivery && !trimmed ? 'Building type is required.' : '';
 
@@ -280,6 +332,7 @@ const Page: React.FC = () => {
       case 'buildingNo':
       case 'floorNumber':
       case 'flatNumber':
+        // Only required for apartment and home delivery
         return isHomeDelivery && isApartment && !trimmed ?
           `${field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} is required.` :
           '';
@@ -287,6 +340,7 @@ const Page: React.FC = () => {
       case 'street':
       case 'cityName':
       case 'houseNo':
+        // Required for both house and apartment when home delivery
         return isHomeDelivery && !trimmed ?
           `${field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} is required.` :
           '';
@@ -330,6 +384,7 @@ const Page: React.FC = () => {
 
       let dataToSubmit: FormData = {
         ...initialFormState,
+        // Always include shared fields
         deliveryMethod: formData.deliveryMethod,
         title: formData.title,
         fullName: formData.fullName,
@@ -365,6 +420,7 @@ const Page: React.FC = () => {
           };
         }
       } else if (formData.deliveryMethod === 'pickup') {
+        // Include centerId for pickup delivery
         dataToSubmit = {
           ...dataToSubmit,
           centerId: formData.centerId,
@@ -373,8 +429,9 @@ const Page: React.FC = () => {
 
       dispatch(resetFormData());
       dispatch(setFormData(dataToSubmit));
+      console.log('submitting', dataToSubmit);
 
-      setSuccessMsg('Check out successful!');
+      setSuccessMsg('Check out successfull!');
       setShowSuccessPopup(true);
 
     } catch (err: any) {
@@ -390,12 +447,13 @@ const Page: React.FC = () => {
     }
   };
 
+
   return (
     <div>
       <SuccessPopup
         isVisible={showSuccessPopup}
         onClose={() => setShowSuccessPopup(false)}
-        title="Check out successful!"
+        title="Check out successfull!"
         description="Let's move to next step."
         path='/payment'
       />
@@ -403,7 +461,7 @@ const Page: React.FC = () => {
         isVisible={showErrorPopup}
         onClose={() => setShowErrorPopup(false)}
         title="Oops!"
-        description="Something happened, Please try again!"
+        description="Something happen, Please try again!"
       />
       <form onSubmit={handleSubmit}>
         <div className='px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5 '>
