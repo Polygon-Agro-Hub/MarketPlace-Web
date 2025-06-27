@@ -14,6 +14,7 @@ import { getForm } from '@/services/retail-service';
 import { selectCartForOrder } from '../../store/slices/cartItemsSlice';
 import OpenStreetMap from '@/components/open-map/OpenStreetMap';
 import { getPickupCenters, PickupCenter } from '@/services/cart-service';
+import dynamic from 'next/dynamic';
 
 interface FormData {
   centerId: number | null;
@@ -81,17 +82,26 @@ const initialFormState: FormData = {
   scheduleType: 'One Time',
 };
 
+// Dynamically import components that might use window object
+const DynamicOpenStreetMap = dynamic(
+  () => import('@/components/open-map/OpenStreetMap'),
+  {
+    ssr: false,
+    loading: () => <div className="w-full h-[300px] bg-gray-200 rounded-lg flex items-center justify-center">Loading map...</div>
+  }
+);
+
 const Page: React.FC = () => {
   const NavArray = [
     { name: 'Cart', path: '/cart', status: true },
     { name: 'Checkout', path: '/checkout', status: true },
     { name: 'Payment', path: '/payment', status: false },
   ];
-  
+
   const dispatch = useDispatch<AppDispatch>();
   const searchParams = useSearchParams();
   const router = useRouter();
-  
+
   // Initialize form state safely
   //window remove
   const [formData, setFormDataLocal] = useState<FormData>(initialFormState);
@@ -108,6 +118,7 @@ const Page: React.FC = () => {
   const [loadingCenters, setLoadingCenters] = useState(false);
   const [mapCenter, setMapCenter] = useState<[number, number]>([6.9271, 79.8612]);
   const [mapZoom, setMapZoom] = useState(12);
+  const [isMounted, setIsMounted] = useState(false);
 
   // Redux state
   const token = useSelector((state: RootState) => state.auth.token) as string | null;
@@ -115,22 +126,29 @@ const Page: React.FC = () => {
   const cartPrices = useSelector((state: RootState) => state.cart) || null;
   const { cartId } = useSelector((state: RootState) => state.cartItems);
 
+  // Ensure component is mounted before accessing browser-specific APIs
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   // Set initial delivery method from query params
   useEffect(() => {
-    if (!searchParams) return;
-    
+    if (!searchParams || !isMounted) return;
+
     const deliveryMethodFromQuery = searchParams.get('deliveryMethod');
-    
+
     if (deliveryMethodFromQuery && (deliveryMethodFromQuery === 'home' || deliveryMethodFromQuery === 'pickup')) {
       setFormDataLocal(prev => ({
         ...prev,
         deliveryMethod: deliveryMethodFromQuery as 'home' | 'pickup'
       }));
     }
-  }, [searchParams]);
+  }, [searchParams, isMounted]);
 
   // Load pickup centers when delivery method changes to pickup
   useEffect(() => {
+    if (!isMounted) return;
+
     const fetchPickupCenters = async () => {
       if (formData.deliveryMethod === 'pickup') {
         setLoadingCenters(true);
@@ -150,7 +168,7 @@ const Page: React.FC = () => {
     };
 
     fetchPickupCenters();
-  }, [formData.deliveryMethod, token]);
+  }, [formData.deliveryMethod, token, isMounted]);
 
   const handleAddressOptionChange = async (value: string) => {
     if (value === 'previous') {
@@ -309,11 +327,13 @@ const Page: React.FC = () => {
     setErrorMsg('');
 
     if (!validateForm()) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Invalid Form',
-        text: 'Please correctly fill all the required fields.',
-      });
+      if (isMounted && typeof window !== 'undefined') {
+        Swal.fire({
+          icon: 'error',
+          title: 'Invalid Form',
+          text: 'Please correctly fill all the required fields.',
+        });
+      }
       return;
     }
 
@@ -371,16 +391,30 @@ const Page: React.FC = () => {
 
     } catch (err: any) {
       setErrorMsg(err.message || 'Check out failed!');
-      await Swal.fire({
-        title: 'Check out failed',
-        icon: 'error',
-        confirmButtonText: 'Try Again',
-        confirmButtonColor: '#3E206D',
-      });
+      if (isMounted && typeof window !== 'undefined') {
+        await Swal.fire({
+          title: 'Check out failed',
+          icon: 'error',
+          confirmButtonText: 'Try Again',
+          confirmButtonColor: '#3E206D',
+        });
+      }
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Don't render until mounted to avoid hydration issues
+  if (!isMounted) {
+    return (
+      <div className="px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded mb-4"></div>
+          <div className="h-96 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
