@@ -93,6 +93,7 @@ const Page: React.FC = () => {
   const router = useRouter();
   
   // Initialize form state safely
+  //window remove
   const [formData, setFormDataLocal] = useState<FormData>(initialFormState);
   const [errors, setErrors] = useState<FormErrors>({} as FormErrors);
   const [usePreviousAddress, setUsePreviousAddress] = useState(false);
