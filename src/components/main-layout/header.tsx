@@ -14,16 +14,16 @@ const Header = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [isCategoryExpanded, setIsCategoryExpanded] = useState(false);
   const [isDesktopCategoryOpen, setIsDesktopCategoryOpen] = useState(false);
+  const [isClient, setIsClient] = useState(false); // Client-side hydration check
   const categoryRef = useRef<HTMLDivElement | null>(null);
+  
   const user = useSelector((state: RootState) => state.auth.user);
-  const [isClient, setIsClient] = useState(false); // Add this state
-  const cartState = useSelector((state: RootState) => state.auth.cart); // If you want to see auth state too
-
   const token = useSelector((state: RootState) => state.auth.token) as string | null;
-
+  const cartState = useSelector((state: RootState) => state.auth.cart);
+  const dispatch = useDispatch();
 
   useEffect(() => {
-
+    // Set client-side flag after hydration
     setIsClient(true);
 
     const handleResize = () => {
@@ -57,12 +57,26 @@ const Header = () => {
     setIsDesktopCategoryOpen(!isDesktopCategoryOpen);
   }
 
-  const dispatch = useDispatch();
-
   const handleLogout = (e: React.MouseEvent) => {
     e.preventDefault();
     dispatch(logout());
   }
+
+  // Helper function to get the correct home URL
+  const getHomeUrl = () => {
+    if (!isClient) return '/'; // Default during SSR
+    return user?.buyerType === 'Wholesale' ? '/wholesale/home' : '/';
+  };
+
+  // Helper function to check if user is authenticated
+  const isAuthenticated = () => {
+    return isClient && token;
+  };
+
+  // Helper function to get user info safely
+  const getUserInfo = () => {
+    return isClient ? user : null;
+  };
 
   return (
     <>
@@ -74,9 +88,9 @@ const Header = () => {
             </span>
             <div className="flex gap-2">
               {!isClient ? (
-                // Show loading or placeholder during SSR/hydration
+                // Show loading placeholder during SSR/hydration
                 <div className="w-32 h-8 bg-gray-700 rounded-full animate-pulse"></div>
-              ) : user ? (
+              ) : getUserInfo() ? (
                 <Link
                   href="/"
                   className="text-sm flex items-center gap-2"
@@ -113,26 +127,28 @@ const Header = () => {
           <Link href="/" className='text-2xl font-bold'>My Farm</Link>
           {!isMobile && (
             <nav className='hidden md:flex space-x-6'>
-              <Link  href={user?.buyerType === 'Wholesale' ? '/wholesale/home' : '/'}  className='hover:text-purple-200'>Home</Link>
-              {!token &&(
-              <div className='relative' ref={categoryRef}>
-                <button
-                  className='flex items-center hover:text-purple-200'
-                  onClick={toggleDesktopCategory}
-                >
-                  Category <span className='ml-1'><FontAwesomeIcon icon={faAngleDown} /></span>
-                </button>
-                {isDesktopCategoryOpen && (
-                  <div className='absolute bg-[#3E206D] text-white w-48 shadow-lg mt-7 z-10'>
-                    <Link href="/" className="border-b-1 block px-4 py-2 hover:bg-[#6c5394]">
-                      Retail
-                    </Link>
-                    <Link href="/wholesale/home" className="block px-4 py-2 hover:bg-[#6c5394]">
-                      Wholesale
-                    </Link>
-                  </div>
-                )}
-              </div>
+              <Link href={getHomeUrl()} className='hover:text-purple-200'>
+                Home
+              </Link>
+              {!isAuthenticated() && (
+                <div className='relative' ref={categoryRef}>
+                  <button
+                    className='flex items-center hover:text-purple-200'
+                    onClick={toggleDesktopCategory}
+                  >
+                    Category <span className='ml-1'><FontAwesomeIcon icon={faAngleDown} /></span>
+                  </button>
+                  {isDesktopCategoryOpen && (
+                    <div className='absolute bg-[#3E206D] text-white w-48 shadow-lg mt-7 z-10'>
+                      <Link href="/" className="border-b-1 block px-4 py-2 hover:bg-[#6c5394]">
+                        Retail
+                      </Link>
+                      <Link href="/wholesale/home" className="block px-4 py-2 hover:bg-[#6c5394]">
+                        Wholesale
+                      </Link>
+                    </div>
+                  )}
+                </div>
               )}
               <Link href="/promotions" className="hover:text-purple-200">
                 Promotions
@@ -160,23 +176,25 @@ const Header = () => {
               <div className='relative'>
                 <FontAwesomeIcon className='text-2xl' icon={faBagShopping} />
                 <span className="absolute top-3 -right-2 bg-[#FF8F66] text-white rounded-full w-4 h-4 flex items-center justify-center text-xs">
-                  {cartState.count}
+                  {isClient ? cartState.count : 0}
                 </span>
               </div>
-              <div className="text-sm">Rs. {cartState.price.toFixed(2)}</div>
-
+              <div className="text-sm">Rs. {isClient ? cartState.price.toFixed(2) : '0.00'}</div>
             </div>
           </Link>
-          {!isMobile && token && (
+          
+          {!isMobile && isAuthenticated() && (
             <Link href="/history/order">
               <FontAwesomeIcon className='text-4xl' icon={faClockRotateLeft} />
             </Link>
           )}
-          {token && (
+          
+          {isAuthenticated() && (
             <Link className='border-2 w-9 h-9 flex justify-center items-center rounded-full' href="/account">
               <FontAwesomeIcon className='text-1xl' icon={faUser} />
             </Link>
           )}
+          
           {isMobile && (
             <button onClick={toggleMenu} className='md:hidden'>
               <FontAwesomeIcon className='text-2xl' icon={faBars} />
@@ -353,7 +371,7 @@ const Header = () => {
                   <div className="py-4 px-6 border-b border-purple-800">
                     <div className="w-20 h-4 bg-purple-700 rounded animate-pulse"></div>
                   </div>
-                ) : user ? (
+                ) : getUserInfo() ? (
                   <Link
                     href="/logout"
                     className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800 flex items-center gap-2"
@@ -377,32 +395,34 @@ const Header = () => {
                     </Link>
                   </>
                 )}
-                <Link href="/" className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800">
+                <Link href={getHomeUrl()} className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800">
                   Home
                 </Link>
-                <div className="border-b border-purple-800">
-                  <button
-                    className="py-4 px-6 w-full flex justify-between items-center hover:bg-purple-800 text-left"
-                    onClick={() => setIsCategoryExpanded(!isCategoryExpanded)}
-                  >
-                    Category
-                    <span className="text-xs">{isCategoryExpanded ? '▲' : '▼'}</span>
-                  </button>
-                  {isCategoryExpanded && (
-                    <div className="bg-purple-950">
-                      <Link href="/category/retail" className="block py-3 px-8 hover:bg-purple-800">
-                        • Retail
-                      </Link>
-                      <Link href="/category/wholesale" className="block py-3 px-8 hover:bg-purple-800">
-                        • Wholesale
-                      </Link>
-                    </div>
-                  )}
-                </div>
+                {!isAuthenticated() && (
+                  <div className="border-b border-purple-800">
+                    <button
+                      className="py-4 px-6 w-full flex justify-between items-center hover:bg-purple-800 text-left"
+                      onClick={() => setIsCategoryExpanded(!isCategoryExpanded)}
+                    >
+                      Category
+                      <span className="text-xs">{isCategoryExpanded ? '▲' : '▼'}</span>
+                    </button>
+                    {isCategoryExpanded && (
+                      <div className="bg-purple-950">
+                        <Link href="/category/retail" className="block py-3 px-8 hover:bg-purple-800">
+                          • Retail
+                        </Link>
+                        <Link href="/category/wholesale" className="block py-3 px-8 hover:bg-purple-800">
+                          • Wholesale
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                )}
                 <Link href="/promotions" className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800">
                   Promotions
                 </Link>
-                {token && (
+                {isAuthenticated() && (
                   <Link href="/history/order" className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800">
                     Order History
                   </Link>
