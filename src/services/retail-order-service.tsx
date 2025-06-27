@@ -92,7 +92,7 @@ export const getOrderDetails = async (token: string | null, orderId: string): Pr
         }
 
         // Fetch package details
-        const packagesResponse = await axios.get(`/retail-order/order/${orderId}/packages`, {
+        const packagesResponse = await axios.get(`/retail-order/order/packages/${orderId}`, {
             headers: {
                 Authorization: `Bearer ${token}`,
                 'Content-Type': 'application/json',

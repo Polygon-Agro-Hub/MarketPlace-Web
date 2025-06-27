@@ -115,6 +115,12 @@ function InvoiceView({
   return (
     <div className="w-[794px] mx-auto p-8 bg-white" ref={invoiceRef}>
       <h1 className="text-2xl font-bold text-center" style={{ color: 'rgb(62,32,109)' }}>
+       <div className="flex justify-start">
+ <button onClick={onClose} className="text-[rgb(107,114,128)] cursor-pointer hover:text-[rgb(62,32,109)]">
+            <span className="text-2xl">⟶</span>
+          </button>
+</div>
+
         INVOICE
       </h1>
 
