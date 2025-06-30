@@ -449,6 +449,17 @@ const Page: React.FC = () => {
     }
   };
 
+    const formatPrice = (price: number): string => {
+      // Convert to fixed decimal first, then add commas
+      const fixedPrice = Number(price).toFixed(2);
+      const [integerPart, decimalPart] = fixedPrice.split('.');
+      
+      // Add commas to integer part
+      const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      
+      return `${formattedInteger}.${decimalPart}`;
+    };
+
 
   return (
     <div>
@@ -821,19 +832,19 @@ const Page: React.FC = () => {
 
                 <div className='flex justify-between items-center mb-4'>
                   <p className="text-gray-600">{cartData?.totalItems || 0} items</p>
-                  <p className='font-semibold'>Rs.{cartData?.grandTotal || 0}</p>
+                  <p className='font-semibold'>Rs.{formatPrice(cartData?.grandTotal || 0)}</p>
                 </div>
 
                 <div className='border-t border-gray-300 my-4' />
 
                 <div className='flex justify-between text-sm mb-2'>
                   <p className='text-gray-600'>Total</p>
-                  <p className='font-semibold'>Rs.{cartData?.grandTotal || 0}</p>
+                  <p className='font-semibold'>Rs.{formatPrice(cartData?.grandTotal || 0)}</p>
                 </div>
 
                 <div className='flex justify-between text-sm mb-2'>
                   <p className='text-gray-600'>Discount</p>
-                  <p className='text-gray-600'>Rs.{cartData?.discountAmount || 0}</p>
+                  <p className='text-gray-600'>Rs.{formatPrice(cartData?.discountAmount || 0)}</p>
                 </div>
 
                 <div className='flex justify-between text-sm mb-2'>
@@ -845,7 +856,7 @@ const Page: React.FC = () => {
 
                 <div className='flex justify-between mb-4 text-[20px] text-[#414347]'>
                   <p className='font-semibold'>Grand Total</p>
-                  <p className='font-semibold'>Rs.{(cartData?.finalTotal || 0) + 185}</p>
+                  <p className='font-semibold'>Rs.{formatPrice(cartData?.finalTotal || 0 + 185)}</p>
                 </div>
 
                 <button type="submit" className='w-full bg-purple-800 text-white font-semibold rounded-lg px-4 py-3 hover:bg-purple-900 transition-colors'>

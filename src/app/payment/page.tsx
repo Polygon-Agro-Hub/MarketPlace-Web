@@ -118,6 +118,17 @@ const prepareOrderPayload = (): OrderPayload => {
   };
 };
 
+const formatPrice = (price: number): string => {
+  // Convert to fixed decimal first, then add commas
+  const fixedPrice = Number(price).toFixed(2);
+  const [integerPart, decimalPart] = fixedPrice.split('.');
+  
+  // Add commas to integer part
+  const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  
+  return `${formattedInteger}.${decimalPart}`;
+};
+
 
 
  const validateCartData = (): { isValid: boolean; error?: string } => {
@@ -374,31 +385,55 @@ const prepareOrderPayload = (): OrderPayload => {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+          <div className="w-full lg:w-1/3 mt-6 lg:mt-0 pt-14">
+            <div className='border border-gray-300 rounded-lg shadow-md p-4 sm:p-5 md:p-6'>
+              <h2 className='font-semibold text-lg mb-4'>Your Order</h2>
 
-            {/* Submit Order Button */}
-            <div className="mt-8">
+              <div className='flex justify-between items-center mb-4'>
+                <p className="text-gray-600">{displayValues.totalItems || 0} items</p>
+                <p className='font-semibold'>Rs.{formatPrice(displayValues.totalPrice || 0)}</p>
+              </div>
+
+              <div className='border-t border-gray-300 my-4' />
+
+              <div className='flex justify-between text-sm mb-2'>
+                <p className='text-gray-600'>Total</p>
+                <p className='font-semibold'>Rs.{formatPrice(displayValues.totalPrice || 0)}</p>
+              </div>
+
+              <div className='flex justify-between text-sm mb-2'>
+                <p className='text-gray-600'>Discount</p>
+                <p className='text-gray-600'>Rs.{formatPrice(displayValues.discountAmount || 0)}</p>
+              </div>
+
+              <div className='flex justify-between text-sm mb-2'>
+                <p className='text-gray-600'>Delivery Charges</p>
+                <p className='text-gray-600'>Rs.185.00</p>
+              </div>
+
+              <div className='border-t border-gray-300 my-4' />
+
+              <div className='flex justify-between mb-4 text-[20px] text-[#414347]'>
+                <p className='font-semibold'>Grand Total</p>
+                <p className='font-semibold'>Rs.{formatPrice(displayValues.grandTotal || 0 + 185)}</p>
+              </div>
+               <div className="mt-8">
               <button
                 onClick={handleSubmitOrder}
                 disabled={isSubmitting}
                 className={`w-full py-4 px-6 rounded-lg text-white font-semibold ${
-                  isSubmitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-indigo-800 hover:bg-indigo-900'
+                  isSubmitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#3E206D] hover:bg-[#3E206D]'
                 } transition-colors`}
               >
-                {isSubmitting ? 'Processing Order...' : 'Place Order'}
+                {isSubmitting ? 'Processing Order...' : 'Confirm Order'}
               </button>
             </div>
+
+    
+            </div>
           </div>
-        </div>
-        <div className="w-full lg:w-1/3 mt-6 lg:mt-0 pt-14">
-          {/* <OrderSummary
-            totalItems={displayValues.totalItems}
-            totalPrice={displayValues.totalPrice}
-            discountAmount={displayValues.discountAmount}
-            grandTotal={displayValues.grandTotal}
-            fromPayment={true}
-            paymentMethod={paymentMethod}
-          /> */}
-        </div>
       </div>
     </div>
   );
