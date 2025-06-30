@@ -93,19 +93,7 @@ const Page: React.FC = () => {
   // const storedFormData = useSelector((state: RootState) => state.checkout);
 
 
-  const [formData, setFormDataLocal] = useState<FormData>(() => {
-    // This will run only once when component mounts
-    const deliveryMethodFromQuery = typeof window !== 'undefined'
-      ? new URLSearchParams(window.location.search).get('deliveryMethod')
-      : null;
-
-    return {
-      ...initialFormState,
-      deliveryMethod: (deliveryMethodFromQuery === 'home' || deliveryMethodFromQuery === 'pickup')
-        ? deliveryMethodFromQuery
-        : 'home'
-    };
-  });
+ const [formData, setFormDataLocal] = useState<FormData>(initialFormState);
 
   const [errors, setErrors] = useState<FormErrors>({
     centerId: '',
@@ -149,8 +137,8 @@ const Page: React.FC = () => {
   const [mapCenter, setMapCenter] = useState<[number, number]>([6.9271, 79.8612]); // Default to Colombo
   const [mapZoom, setMapZoom] = useState(12);
 
+// Single useEffect to handle delivery method from query params
   useEffect(() => {
-    // Get delivery method from query parameters
     const deliveryMethodFromQuery = searchParams.get('deliveryMethod');
 
     if (deliveryMethodFromQuery && (deliveryMethodFromQuery === 'home' || deliveryMethodFromQuery === 'pickup')) {
@@ -605,8 +593,8 @@ const Page: React.FC = () => {
                     <div className='w-24'>
                       <CustomDropdown
                         options={[
-                          { value: '94', label: '+94' },
-                          { value: '91', label: '+91' },
+                          { value: '+94', label: '+94' },
+                          { value: '+91', label: '+91' },
                           { value: '1', label: '+1' }
                         ]}
                         selectedValue={formData.phoneCode1}
