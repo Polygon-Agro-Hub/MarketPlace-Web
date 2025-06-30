@@ -13,8 +13,13 @@ import ErrorPopup from '@/components/toast-messages/error-message';
 import { getForm } from '@/services/retail-service';
 import { selectCartForOrder } from '../../store/slices/cartItemsSlice';
 import { useSearchParams } from 'next/navigation';
-import OpenStreetMap from '@/components/open-map/OpenStreetMap';
 import { getPickupCenters, PickupCenter } from '@/services/cart-service'
+import dynamic from 'next/dynamic';
+
+const OpenStreetMap = dynamic(() => import('@/components/open-map/OpenStreetMap'), {
+  ssr: false,
+  loading: () => <div className="w-full h-[300px] bg-gray-200 rounded-lg flex items-center justify-center">Loading map...</div>
+});
 
 interface FormData {
   centerId: number | null, // Added centerId
@@ -137,43 +142,48 @@ const Page: React.FC = () => {
   const [mapCenter, setMapCenter] = useState<[number, number]>([6.9271, 79.8612]); // Default to Colombo
   const [mapZoom, setMapZoom] = useState(12);
 
-// Single useEffect to handle delivery method from query params
-  useEffect(() => {
-    const deliveryMethodFromQuery = searchParams.get('deliveryMethod');
+    // Single useEffect to handle delivery method from query params
+    useEffect(() => {
+      // Only run on client side
+      if (typeof window === 'undefined') return;
+      
+      const deliveryMethodFromQuery = searchParams.get('deliveryMethod');
 
-    if (deliveryMethodFromQuery && (deliveryMethodFromQuery === 'home' || deliveryMethodFromQuery === 'pickup')) {
-      setFormDataLocal(prev => ({
-        ...prev,
-        deliveryMethod: deliveryMethodFromQuery
-      }));
+      if (deliveryMethodFromQuery && (deliveryMethodFromQuery === 'home' || deliveryMethodFromQuery === 'pickup')) {
+        setFormDataLocal(prev => ({
+          ...prev,
+          deliveryMethod: deliveryMethodFromQuery
+        }));
 
-      console.log('Delivery method set from query params:', deliveryMethodFromQuery);
-    }
-  }, [searchParams]);
-
-  useEffect(() => {
-    const fetchPickupCenters = async () => {
-      if (formData.deliveryMethod === 'pickup') {
-        setLoadingCenters(true);
-        try {
-          const response = await getPickupCenters();
-          if (response.success) {
-            setPickupCenters(response.data);
-            console.log('Pickup centers loaded:', response.data);
-          }
-        } catch (error: any) {
-          console.error('Failed to fetch pickup centers:', error);
-          setErrorMsg(error.message || 'Failed to load pickup centers.');
-          setShowErrorPopup(true);
-        } finally {
-          setLoadingCenters(false);
-        }
+        console.log('Delivery method set from query params:', deliveryMethodFromQuery);
       }
-    };
+    }, [searchParams]);
 
-    fetchPickupCenters();
-  }, [formData.deliveryMethod, token]);
+    useEffect(() => {
+      // Only run on client side
+      if (typeof window === 'undefined') return;
+      
+      const fetchPickupCenters = async () => {
+        if (formData.deliveryMethod === 'pickup') {
+          setLoadingCenters(true);
+          try {
+            const response = await getPickupCenters();
+            if (response.success) {
+              setPickupCenters(response.data);
+              console.log('Pickup centers loaded:', response.data);
+            }
+          } catch (error: any) {
+            console.error('Failed to fetch pickup centers:', error);
+            setErrorMsg(error.message || 'Failed to load pickup centers.');
+            setShowErrorPopup(true);
+          } finally {
+            setLoadingCenters(false);
+          }
+        }
+      };
 
+      fetchPickupCenters();
+    }, [formData.deliveryMethod, token]);
 
   const handleAddressOptionChange = async (value: string) => {
     if (value === 'previous') {
