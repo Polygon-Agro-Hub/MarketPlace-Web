@@ -65,7 +65,7 @@ interface OrderSummary {
 
 interface DetailedOrder {
   orderId: string;
-  invoiceNo:string;
+  invoiceNo: string;
   scheduleDate: string;
   scheduleTime: string;
   deliveryType: string;
@@ -171,7 +171,7 @@ export default function OrderHistoryPage() {
 
         const normalizedOrders: OrderSummary[] = orderHistory.map((order: any) => ({
           orderId: order.orderId ? String(order.orderId) : 'N/A',
-           invoiceNo: order. invoiceNo ? String(order. invoiceNo) : 'N/A',
+          invoiceNo: order.invoiceNo ? String(order.invoiceNo) : 'N/A',
           scheduleDate: order.scheduleDate ? formatDateTime(order.scheduleDate, 'date') : 'N/A',
           scheduleTime: order.scheduleTime || 'N/A',
           deliveryType: order.delivaryMethod || 'N/A',
@@ -234,58 +234,58 @@ export default function OrderHistoryPage() {
           pickupInfo:
             apiOrder.delivaryMethod?.toLowerCase() === 'pickup' && apiOrder.pickupInfo
               ? {
-                  centerName: apiOrder.pickupInfo.centerName || 'N/A',
-                  contact01: apiOrder.pickupInfo.contact01 || 'N/A',
-                  fullName: apiOrder.pickupInfo.fullName || 'N/A',
-                  buildingNumber: apiOrder.pickupInfo.address?.street || 'N/A',
-                  street: apiOrder.pickupInfo.address?.street || 'N/A',
-                  city: apiOrder.pickupInfo.address?.city || 'N/A',
-                  district: apiOrder.pickupInfo.address?.district || 'N/A',
-                  province: apiOrder.pickupInfo.address?.province || 'N/A',
-                  country: apiOrder.pickupInfo.address?.country || 'N/A',
-                  zipCode: apiOrder.pickupInfo.address?.zipCode || 'N/A',
-                }
+                centerName: apiOrder.pickupInfo.centerName || 'N/A',
+                contact01: apiOrder.pickupInfo.contact01 || 'N/A',
+                fullName: apiOrder.pickupInfo.fullName || 'N/A',
+                buildingNumber: apiOrder.pickupInfo.address?.street || 'N/A',
+                street: apiOrder.pickupInfo.address?.street || 'N/A',
+                city: apiOrder.pickupInfo.address?.city || 'N/A',
+                district: apiOrder.pickupInfo.address?.district || 'N/A',
+                province: apiOrder.pickupInfo.address?.province || 'N/A',
+                country: apiOrder.pickupInfo.address?.country || 'N/A',
+                zipCode: apiOrder.pickupInfo.address?.zipCode || 'N/A',
+              }
               : undefined,
           deliveryInfo:
             apiOrder.delivaryMethod?.toLowerCase() === 'delivery' && apiOrder.deliveryInfo
               ? {
-                  buildingType: apiOrder.deliveryInfo.buildingType || 'N/A',
-                  houseNo: apiOrder.deliveryInfo.houseNo || 'N/A',
-                  street: apiOrder.deliveryInfo.streetName || 'N/A',
-                  city: apiOrder.deliveryInfo.city || 'N/A',
-                  buildingNo: apiOrder.deliveryInfo.buildingNo || 'N/A',
-                  buildingName: apiOrder.deliveryInfo.buildingName || 'N/A',
-                  flatNo: apiOrder.deliveryInfo.unitNo || 'N/A',
-                  floorNo: apiOrder.deliveryInfo.floorNo || 'N/A',
-                }
+                buildingType: apiOrder.deliveryInfo.buildingType || 'N/A',
+                houseNo: apiOrder.deliveryInfo.houseNo || 'N/A',
+                street: apiOrder.deliveryInfo.streetName || 'N/A',
+                city: apiOrder.deliveryInfo.city || 'N/A',
+                buildingNo: apiOrder.deliveryInfo.buildingNo || 'N/A',
+                buildingName: apiOrder.deliveryInfo.buildingName || 'N/A',
+                flatNo: apiOrder.deliveryInfo.unitNo || 'N/A',
+                floorNo: apiOrder.deliveryInfo.floorNo || 'N/A',
+              }
               : undefined,
           familyPackItems: packagesData.status && packagesData.data
             ? packagesData.data.map((pack: any, index: number) => ({
-                packageId: `${pack.packageId}_${index}`,
-                name: pack.displayName || 'Family Pack',
-                items: pack.products?.map((item: any) => ({
-                  id: item.id || 0,
-                  name: item.typeName || 'Unknown',
-                  weight: item.weight || '1 kg',
-                  price: item.price ? `Rs. ${parseFloat(item.price || '0').toFixed(2)}` : 'Rs. 0.00',
-                  quantity: item.qty ? String(item.qty).padStart(2, '0') : '01',
-                })) || [],
-                totalPrice: pack.productPrice || 'Rs. 0.00',
-              }))
+              packageId: `${pack.packageId}_${index}`,
+              name: pack.displayName || 'Family Pack',
+              items: pack.products?.map((item: any) => ({
+                id: item.id || 0,
+                name: item.typeName || 'Unknown',
+                weight: item.weight || '1 kg',
+                price: item.price ? `Rs. ${parseFloat(item.price || '0').toFixed(2)}` : 'Rs. 0.00',
+                quantity: item.qty ? String(item.qty).padStart(2, '0') : '01',
+              })) || [],
+              totalPrice: pack.productPrice || 'Rs. 0.00',
+            }))
             : [],
           additionalItems: additionalItemsData.status && additionalItemsData.data
             ? additionalItemsData.data.map((item: any) => ({
-                id: item.id || 0,
-                name: item.displayName || 'Unknown',
-                quantity: String(item.qty || 1).padStart(2, '0'),
-                unit: item.unit || 'kg',
-                weight: `${item.qty || '1'} ${item.unit || 'kg'}`,
-                price: item.price ? `Rs. ${parseFloat(item.price || '0').toFixed(2)}` : 'Rs. 0.00',
-                image: item.image || undefined,
-                amount: item.price && item.qty
-                  ? `Rs. ${(parseFloat(item.price) * parseFloat(item.qty)).toFixed(2)}`
-                  : 'Rs. 0.00',
-              }))
+              id: item.id || 0,
+              name: item.displayName || 'Unknown',
+              quantity: String(item.qty || 1).padStart(2, '0'),
+              unit: item.unit || 'kg',
+              weight: `${item.qty || '1'} ${item.unit || 'kg'}`,
+              price: item.price ? `Rs. ${parseFloat(item.price || '0').toFixed(2)}` : 'Rs. 0.00',
+              image: item.image || undefined,
+              amount: item.price && item.qty
+                ? `Rs. ${(parseFloat(item.price) * parseFloat(item.qty)).toFixed(2)}`
+                : 'Rs. 0.00',
+            }))
             : [],
           discount: totalDiscount > 0 ? `Rs. ${totalDiscount.toFixed(2)}` : 'Rs. 0.00',
         };
@@ -299,43 +299,43 @@ export default function OrderHistoryPage() {
 
   if (loading) return <div className="p-10 text-center">Loading...</div>;
 
- const filteredOrders = filter === 'all' ? orders : orders.filter((order) => {
-  const orderDate = new Date(order.orderPlaced !== 'N/A' ? order.orderPlaced : order.scheduleDate);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const filteredOrders = filter === 'all' ? orders : orders.filter((order) => {
+    const orderDate = new Date(order.orderPlaced !== 'N/A' ? order.orderPlaced : order.scheduleDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-  const startOfThisWeek = new Date(today);
-  startOfThisWeek.setDate(today.getDate() - today.getDay()); // Sunday
+    const startOfThisWeek = new Date(today);
+    startOfThisWeek.setDate(today.getDate() - today.getDay()); // Sunday
 
-  const startOfLastWeek = new Date(startOfThisWeek);
-  startOfLastWeek.setDate(startOfThisWeek.getDate() - 7);
+    const startOfLastWeek = new Date(startOfThisWeek);
+    startOfLastWeek.setDate(startOfThisWeek.getDate() - 7);
 
-  const startOfLast2Weeks = new Date(startOfThisWeek);
-  startOfLast2Weeks.setDate(startOfThisWeek.getDate() - 14);
+    const startOfLast2Weeks = new Date(startOfThisWeek);
+    startOfLast2Weeks.setDate(startOfThisWeek.getDate() - 14);
 
-  const oneMonthAgo = new Date(today);
-  oneMonthAgo.setMonth(today.getMonth() - 1);
+    const oneMonthAgo = new Date(today);
+    oneMonthAgo.setMonth(today.getMonth() - 1);
 
-  const threeMonthsAgo = new Date(today);
-  threeMonthsAgo.setMonth(today.getMonth() - 3);
+    const threeMonthsAgo = new Date(today);
+    threeMonthsAgo.setMonth(today.getMonth() - 3);
 
-  switch (filter) {
-    case 'this-week':
-      return orderDate >= startOfThisWeek && orderDate <= today;
-    case 'last-week':
-      return orderDate >= startOfLastWeek && orderDate < startOfThisWeek;
-    case 'last-2-weeks':
-      return orderDate >= startOfLast2Weeks && orderDate < startOfThisWeek;
-    case 'this-month':
-      return orderDate >= oneMonthAgo && orderDate <= today;
-    case 'last-3-months':
-      return orderDate >= threeMonthsAgo && orderDate <= today;
-    default:
-      return true;
-  }
-});
+    switch (filter) {
+      case 'this-week':
+        return orderDate >= startOfThisWeek && orderDate <= today;
+      case 'last-week':
+        return orderDate >= startOfLastWeek && orderDate < startOfThisWeek;
+      case 'last-2-weeks':
+        return orderDate >= startOfLast2Weeks && orderDate < startOfThisWeek;
+      case 'this-month':
+        return orderDate >= oneMonthAgo && orderDate <= today;
+      case 'last-3-months':
+        return orderDate >= threeMonthsAgo && orderDate <= today;
+      default:
+        return true;
+    }
+  });
 
-    const handleFilterChange = (
+  const handleFilterChange = (
     newValue: SingleValue<{ value: string; label: string }>,
     actionMeta: ActionMeta<{ value: string; label: string }>
   ): void => {
@@ -353,7 +353,7 @@ export default function OrderHistoryPage() {
             Your Orders ({filteredOrders.length.toString().padStart(2, '0')})
           </h1>
           <div className="relative w-[140px] sm:w-[180px]">
-           <Select
+            <Select
               options={filterOptions}
               value={filterOptions.find((option) => option.value === filter)}
               onChange={handleFilterChange}
@@ -411,7 +411,7 @@ export default function OrderHistoryPage() {
               }}
             />
           </div>
-              
+
         </div>
 
         {filteredOrders.length > 0 ? (
@@ -617,17 +617,17 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
           <div>
             <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Pickup Person Information:</h4>
             <p className="font-semibold">{order.fullName || 'N/A'}</p>
-           <div>
-  
-  <p>
-    {order.phone1
-      ? `${order.phonecode1 || ''} ${order.phone1}`
-      : ''}
-    {order.phone2
-      ? `, ${order.phonecode2 || ''} ${order.phone2}`
-      : ''}
-  </p>
-</div>
+            <div>
+
+              <p>
+                {order.phone1
+                  ? `${order.phonecode1 || ''} ${order.phone1}`
+                  : ''}
+                {order.phone2
+                  ? `, ${order.phonecode2 || ''} ${order.phone2}`
+                  : ''}
+              </p>
+            </div>
 
           </div>
         </div>
@@ -812,17 +812,17 @@ function DeliveryOrderView({ order, onClose }: { order: DetailedOrder, onClose: 
             </div>
           </div>
           <div>
-  <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Receiving Person Information:</h4>
-  <p className="font-semibold">{order.fullName || 'N/A'}</p>
-  <p>
-    {order.phone1
-      ? `${order.phonecode1 || ''} ${order.phone1}`
-      : ''}
-    {order.phone2
-      ? `, ${order.phonecode2 || ''} ${order.phone2}`
-      : ''}
-  </p>
-</div>
+            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Receiving Person Information:</h4>
+            <p className="font-semibold">{order.fullName || 'N/A'}</p>
+            <p>
+              {order.phone1
+                ? `${order.phonecode1 || ''} ${order.phone1}`
+                : ''}
+              {order.phone2
+                ? `, ${order.phonecode2 || ''} ${order.phone2}`
+                : ''}
+            </p>
+          </div>
 
         </div>
       </div>
