@@ -1,10 +1,32 @@
+
 'use client';
 import React, { useState, useEffect } from 'react';
-import { Plus, Minus, Trash2 } from 'lucide-react';
+import { Plus, Minus, Trash, ShoppingCart } from 'lucide-react';
 import TopNavigation from '@/components/top-navigation/TopNavigation';
-import { getCartData, updateCartItemQuantity, removeCartItem } from '@/services/cart-service';
+import { 
+  getUserCart, 
+  updateCartProductQuantity,
+  removeCartProduct,
+  removeCartPackage,
+  bulkRemoveCartProducts
+} from '@/services/cart-service';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
+import { useDispatch } from 'react-redux';
+import { 
+  setCartData, 
+  updateProductQuantity, 
+  removeProduct, 
+  removePackage,
+  applyCoupon,
+  selectCartSummary,
+  selectCartForOrder
+} from '@/store/slices/cartItemsSlice';
+import { useRouter } from 'next/navigation';
+import empty from '../../../public/empty.jpg'
+import pickup from '../../../public/pickup.png'
+import delivery from '../../../public/deliver.png'
+import Image from 'next/image'
 
 interface PackageItem {
   name: string;
@@ -34,6 +56,8 @@ interface CartItem {
   price: number;
   normalPrice: number;
   discountedPrice: number | null;
+  startValue: number; // Added from API response
+  changeby: number;   // Added from API response
   image: string;
   varietyNameEnglish: string;
   category: string;
@@ -46,15 +70,11 @@ interface AdditionalItems {
   Items: CartItem[];
 }
 
-interface CartSummary {
-  totalPackages: number;
-  totalProducts: number;
-  packageTotal: number;
-  productTotal: number;
-  grandTotal: number;
-  totalItems: number;
-  couponDiscount: number;
-  finalTotal: number;
+// Update the showConfirmModal interface
+interface ConfirmModal {
+  type: 'product' | 'package' | 'bulk';
+  id: number;
+  selectedIds?: number[];
 }
 
 const Page: React.FC = () => {
@@ -65,30 +85,86 @@ const Page: React.FC = () => {
   ];
 
   const token = useSelector((state: RootState) => state.auth.token) as string | null;
+  const cartData = useSelector((state: RootState) => state.cartItems);
+  const calculatedSummary = useSelector(selectCartSummary);
+  
+  // Safe selector for order data with proper error handling
+  const orderData = useSelector((state: RootState) => {
+    try {
+      return selectCartForOrder(state);
+    } catch (error) {
+      console.warn('Error in selectCartForOrder selector:', error);
+      return null;
+    }
+  });
+  
   const [unitSelection, setUnitSelection] = useState<Record<number, 'kg' | 'g'>>({});
-  const [packages, setPackages] = useState<CartPackage[]>([]);
-  const [additionalItems, setAdditionalItems] = useState<AdditionalItems[]>([]);
-  const [summary, setSummary] = useState<CartSummary | null>(null);
+  const [pendingUpdates, setPendingUpdates] = useState<{ productId: number; newQuantity: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [couponCode, setCouponCode] = useState('');
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponMessage, setCouponMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [removingItems, setRemovingItems] = useState<Set<string>>(new Set()); // Track items being removed
+  const [showConfirmModal, setShowConfirmModal] = useState<ConfirmModal | null>(null);
+  const [selectedProducts, setSelectedProducts] = useState<Set<number>>(new Set());
+  const [selectAll, setSelectAll] = useState(false);
+  const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
+  const [showDeliveryModal, setShowDeliveryModal] = useState(false);
+  const [selectedDeliveryMethod, setSelectedDeliveryMethod] = useState<'pickup' | 'delivery' | null>(null);
+  
+  
+  const dispatch = useDispatch();
+  const router = useRouter();
+
+  // Helper functions for unit calculations
+  const calculateDiscount = (baseDiscount: number, unit: 'kg' | 'g', quantity: number): number => {
+    const quantityInKg = unit === 'g' ? quantity / 1000 : quantity;
+    return baseDiscount * quantityInKg;
+  };
+
+  const calculatePrice = (basePrice: number, unit: 'kg' | 'g', quantity: number): number => {
+    const quantityInKg = unit === 'g' ? quantity / 1000 : quantity;
+    return basePrice * quantityInKg;
+  };
+
+  const getDisplayDiscount = (item: CartItem): number => {
+    const selectedUnit = unitSelection[item.id] || item.unit;
+    return calculateDiscount(item.discount, selectedUnit, item.quantity);
+  };
+
+  const getDisplayPrice = (item: CartItem): number => {
+    const selectedUnit = unitSelection[item.id] || item.unit;
+    return calculatePrice(item.price, selectedUnit, item.quantity);
+  };
+
+  // Helper function to check if cart is empty
+  const isCartEmpty = (): boolean => {
+    // Check if no cart exists
+    if (!cartData.cart) return true;
+    
+    // Check if no items in both packages and additional items
+    const hasPackages = cartData.packages && cartData.packages.length > 0;
+    const hasAdditionalItems = cartData.additionalItems && 
+      cartData.additionalItems.length > 0 && 
+      cartData.additionalItems.some(group => group.Items && group.Items.length > 0);
+    
+    return !hasPackages && !hasAdditionalItems;
+  };
 
   useEffect(() => {
     const fetchCartData = async () => {
       try {
         setLoading(true);
-        const cartData = await getCartData(token);
-        setPackages(cartData.packages);
-        setAdditionalItems(cartData.additionalItems);
-        setSummary(cartData.summary);
+        const response = await getUserCart(token);
         
-        // Initialize unit selection for additional items
-        const initialUnits = cartData.additionalItems.reduce((acc, itemGroup) => {
-          itemGroup.Items.forEach(item => {
-            acc[item.id] = item.unit;
-          });
-          return acc;
-        }, {} as Record<number, 'kg' | 'g'>);
-        setUnitSelection(initialUnits);
+        dispatch(setCartData({
+          cart: response.cart,
+          packages: response.packages,
+          additionalItems: response.additionalItems,
+          summary: response.summary,
+        }));
         
         setError(null);
       } catch (err: any) {
@@ -98,72 +174,395 @@ const Page: React.FC = () => {
       }
     };
 
-    fetchCartData();
-  }, [token]);
+    if (token) {
+      fetchCartData();
+    }
+  }, [token, dispatch]);
 
-  const handleUnitChange = (itemId: number, unit: 'kg' | 'g') => {
-    setUnitSelection(prev => ({
-      ...prev,
-      [itemId]: unit,
-    }));
-  };
+const handleUnitChange = (itemId: number, newUnit: 'kg' | 'g') => {
+  // Find the current item to get current unit and quantity
+  let currentItem: CartItem | null = null;
+  for (const itemGroup of cartData.additionalItems) {
+    const item = itemGroup.Items.find(item => item.id === itemId);
+    if (item) {
+      currentItem = item;
+      break;
+    }
+  }
 
-  const handleQuantityChange = async (cartItemId: number, delta: number) => {
-    try {
-      // Find the item to get current quantity
-      let currentQuantity = 1;
-      for (const itemGroup of additionalItems) {
-        const item = itemGroup.Items.find(item => item.cartItemId === cartItemId);
-        if (item) {
-          currentQuantity = item.quantity;
-          break;
-        }
-      }
-      
-      const newQuantity = Math.max(1, currentQuantity + delta);
-      await updateCartItemQuantity(cartItemId, newQuantity, token);
-      
-      // Update local state
-      setAdditionalItems(prev => 
-        prev.map(itemGroup => ({
-          ...itemGroup,
-          Items: itemGroup.Items.map(item => 
-            item.cartItemId === cartItemId ? { ...item, quantity: newQuantity } : item
-          )
-        }))
+  if (!currentItem) return;
+
+  const currentUnit = unitSelection[itemId] || currentItem.unit;
+  let newQuantity = currentItem.quantity;
+
+  // Convert quantity based on unit change
+  if (currentUnit !== newUnit) {
+    if (currentUnit === 'kg' && newUnit === 'g') {
+      // Convert kg to g: multiply by 1000
+      newQuantity = currentItem.quantity * 1000;
+    } else if (currentUnit === 'g' && newUnit === 'kg') {
+      // Convert g to kg: divide by 1000
+      newQuantity = currentItem.quantity / 1000;
+    }
+  }
+
+  // Update unit selection
+  setUnitSelection(prev => ({
+    ...prev,
+    [itemId]: newUnit,
+  }));
+
+  // Update quantity in Redux store
+  dispatch(updateProductQuantity({ productId: itemId, newQuantity }));
+
+  // Store pending update for API call
+  setPendingUpdates(prev => {
+    const existing = prev.find(update => update.productId === itemId);
+    if (existing) {
+      return prev.map(update =>
+        update.productId === itemId ? { ...update, newQuantity } : update
       );
+    }
+    return [...prev, { productId: itemId, newQuantity }];
+  });
+};
+
+
+//price update with comma functions
+const formatPrice = (price: number): string => {
+  // Convert to fixed decimal first, then add commas
+  const fixedPrice = Number(price).toFixed(2);
+  const [integerPart, decimalPart] = fixedPrice.split('.');
+  
+  // Add commas to integer part
+  const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  
+  return `${formattedInteger}.${decimalPart}`;
+};
+
+
+const handleProductQuantityChange = (productId: number, delta: number) => {
+  let currentItem: CartItem | null = null;
+  
+  // Find the current item to get changeby value
+  for (const itemGroup of cartData.additionalItems) {
+    const item = itemGroup.Items.find(item => item.id === productId);
+    if (item) {
+      currentItem = item;
+      break;
+    }
+  }
+
+  if (!currentItem) return;
+
+  const currentQuantity = currentItem.quantity;
+  const changeBy = currentItem.changeby || 1; // Default to 1 if changeby is not available
+  const startValue = currentItem.startValue || 1; // Default to 1 if startValue is not available
+
+  // Calculate new quantity using changeby value
+  let newQuantity: number;
+  if (delta > 0) {
+    // Increment by changeby value
+    newQuantity = currentQuantity + (changeBy * delta);
+  } else {
+    // Decrement by changeby value, but don't go below startValue
+    newQuantity = Math.max(startValue, currentQuantity + (changeBy * delta));
+  }
+
+  // Update Redux store
+  dispatch(updateProductQuantity({ productId, newQuantity }));
+
+  // Store pending update for API call
+  setPendingUpdates(prev => {
+    const existing = prev.find(update => update.productId === productId);
+    if (existing) {
+      return prev.map(update =>
+        update.productId === productId ? { ...update, newQuantity } : update
+      );
+    }
+    return [...prev, { productId, newQuantity }];
+  });
+};
+
+  // Show confirmation modal for product removal
+  const handleRemoveProduct = (productId: number) => {
+    setShowConfirmModal({ type: 'product', id: productId });
+  };
+
+  // Show confirmation modal for package removal
+  const handleRemovePackage = (packageId: number) => {
+    setShowConfirmModal({ type: 'package', id: packageId });
+  };
+
+  // Actual product removal after confirmation
+  const confirmRemoveProduct = async (productId: number) => {
+    const itemKey = `product-${productId}`;
+    
+    // Prevent multiple simultaneous removals
+    if (removingItems.has(itemKey)) return;
+    
+    try {
+      // Add to removing set
+      setRemovingItems(prev => new Set(prev).add(itemKey));
       
-      // Refetch summary to get updated totals
-      const cartData = await getCartData(token);
-      setSummary(cartData.summary);
-    } catch (err: any) {
-      setError(err.message);
+      // Make direct API call
+      await removeCartProduct(productId, token);
+      
+      // Update Redux store after successful API call
+      dispatch(removeProduct(productId));
+      
+      // Optionally refresh cart data to ensure consistency
+      const updatedCartData = await getUserCart(token);
+      dispatch(setCartData({
+        cart: updatedCartData.cart,
+        packages: updatedCartData.packages,
+        additionalItems: updatedCartData.additionalItems,
+        summary: updatedCartData.summary,
+      }));
+      
+    } catch (error: any) {
+      console.error('Error removing product:', error);
+      // Show error message to user
+      alert('Failed to remove item. Please try again.');
+    } finally {
+      // Remove from removing set
+      setRemovingItems(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(itemKey);
+        return newSet;
+      });
     }
   };
 
-  const handleRemoveItem = async (cartItemId: number) => {
+  // Actual package removal after confirmation
+  const confirmRemovePackage = async (packageId: number) => {
+    const itemKey = `package-${packageId}`;
+    
+    // Prevent multiple simultaneous removals
+    if (removingItems.has(itemKey)) return;
+    
     try {
-      await removeCartItem(cartItemId, token);
+      // Add to removing set
+      setRemovingItems(prev => new Set(prev).add(itemKey));
       
-      // Update packages or additional items based on where the item was
-      if (packages.some(pkg => pkg.cartItemId === cartItemId)) {
-        setPackages(prev => prev.filter(pkg => pkg.cartItemId !== cartItemId));
-      } else {
-        setAdditionalItems(prev => 
-          prev.map(itemGroup => ({
-            ...itemGroup,
-            Items: itemGroup.Items.filter(item => item.cartItemId !== cartItemId)
-          })).filter(itemGroup => itemGroup.Items.length > 0)
-        );
-      }
+      // Make direct API call
+      await removeCartPackage(packageId, token);
       
-      // Refetch summary to get updated totals
-      const cartData = await getCartData(token);
-      setSummary(cartData.summary);
-    } catch (err: any) {
-      setError(err.message);
+      // Update Redux store after successful API call
+      dispatch(removePackage(packageId));
+      
+      // Optionally refresh cart data to ensure consistency
+      const updatedCartData = await getUserCart(token);
+      dispatch(setCartData({
+        cart: updatedCartData.cart,
+        packages: updatedCartData.packages,
+        additionalItems: updatedCartData.additionalItems,
+        summary: updatedCartData.summary,
+      }));
+      
+    } catch (error: any) {
+      console.error('Error removing package:', error);
+      // Show error message to user
+      alert('Failed to remove package. Please try again.');
+    } finally {
+      // Remove from removing set
+      setRemovingItems(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(itemKey);
+        return newSet;
+      });
     }
   };
+
+        // Add this helper function to get all product IDs
+      const getAllProductIds = (): number[] => {
+        const productIds: number[] = [];
+        cartData.additionalItems.forEach(itemGroup => {
+          itemGroup.Items.forEach(item => {
+            productIds.push(item.id);
+          });
+        });
+        return productIds;
+      };
+
+      // Add these handler functions
+      const handleSelectProduct = (productId: number) => {
+        setSelectedProducts(prev => {
+          const newSet = new Set(prev);
+          if (newSet.has(productId)) {
+            newSet.delete(productId);
+          } else {
+            newSet.add(productId);
+          }
+          
+          // Update select all state
+          const allProductIds = getAllProductIds();
+          setSelectAll(allProductIds.length > 0 && allProductIds.every(id => newSet.has(id)));
+          
+          return newSet;
+        });
+      };
+
+      const handleSelectAll = () => {
+        const allProductIds = getAllProductIds();
+        
+        if (selectAll) {
+          // Deselect all
+          setSelectedProducts(new Set());
+          setSelectAll(false);
+        } else {
+          // Select all
+          setSelectedProducts(new Set(allProductIds));
+          setSelectAll(true);
+        }
+      };
+
+      const handleBulkDelete = () => {
+        if (selectedProducts.size === 0) {
+          alert('Please select products to delete');
+          return;
+        }
+        
+        setShowConfirmModal({ 
+          type: 'bulk', 
+          id: 0, 
+          selectedIds: Array.from(selectedProducts) 
+        });
+      };
+
+  const confirmBulkDelete = async (productIds: any) => {
+  try {
+    setBulkDeleteLoading(true);
+    
+    // Debug logs
+    console.log('=== BULK DELETE DEBUG ===');
+    console.log('productIds received:', productIds);
+    console.log('productIds type:', typeof productIds);
+    console.log('productIds is array:', Array.isArray(productIds));
+    console.log('productIds length:', productIds?.length);
+    console.log('productIds content:', JSON.stringify(productIds));
+    
+    // Ensure productIds is an array of numbers
+    let validProductIds: number[] = [];
+    
+    if (Array.isArray(productIds)) {
+      validProductIds = productIds
+        .map(id => parseInt(String(id), 10))
+        .filter(id => !isNaN(id) && id > 0);
+    } else {
+      throw new Error('ProductIds must be an array');
+    }
+    
+    console.log('validProductIds after processing:', validProductIds);
+    
+    if (validProductIds.length === 0) {
+      throw new Error('No valid product IDs to delete');
+    }
+    
+    // Call bulk delete API with validated array
+    await bulkRemoveCartProducts(validProductIds, token);
+    
+    // Update Redux store
+    validProductIds.forEach(productId => {
+      dispatch(removeProduct(productId));
+    });
+    
+    // Refresh cart data to ensure consistency
+    const updatedCartData = await getUserCart(token);
+    dispatch(setCartData({
+      cart: updatedCartData.cart,
+      packages: updatedCartData.packages,
+      additionalItems: updatedCartData.additionalItems,
+      summary: updatedCartData.summary,
+    }));
+    
+    // Clear selections
+    setSelectedProducts(new Set());
+    setSelectAll(false);
+    
+    // // Show success message
+    // alert(`Successfully removed ${validProductIds.length} items from cart`);
+    
+  } catch (error: any) {
+    console.error('Error bulk deleting products:', error);
+    alert(error.message || 'Failed to remove selected items. Please try again.');
+  } finally {
+    setBulkDeleteLoading(false);
+  }
+};
+
+
+const handleCheckout = async () => {
+  if (isCartEmpty() || !calculatedSummary || calculatedSummary.totalItems === 0) {
+    alert('Your cart is empty');
+    return;
+  }
+
+  try {
+    setCheckoutLoading(true);
+    
+    // Process all pending quantity updates only
+    for (const update of pendingUpdates) {
+      await updateCartProductQuantity(update.productId, update.newQuantity, token);
+    }
+
+    // Clear pending updates
+    setPendingUpdates([]);
+
+    // Fetch updated cart data to ensure consistency
+    const updatedCartData = await getUserCart(token);
+    dispatch(setCartData({
+      cart: updatedCartData.cart,
+      packages: updatedCartData.packages,
+      additionalItems: updatedCartData.additionalItems,
+      summary: updatedCartData.summary,
+    }));
+
+    // Show delivery method selection popup
+    setShowDeliveryModal(true);
+    
+  } catch (error) {
+    console.error('Error during checkout:', error);
+    alert('Something went wrong. Please try again.');
+  } finally {
+    setCheckoutLoading(false);
+  }
+};
+
+      const handleContinueShopping = () => {
+        router.push('/'); // Adjust the path as needed
+      };
+
+    const handleDeliveryMethodSelect = (method:any) => {
+      console.log('Selected delivery method:', method);
+      setSelectedDeliveryMethod(method);
+      setShowDeliveryModal(false);
+      
+      // Navigate to checkout with delivery method as query parameter
+      router.push(`/checkout?deliveryMethod=${method}`);
+    };
+
+    // Add debug logging to the state
+    useEffect(() => {
+      console.log('showDeliveryModal state:', showDeliveryModal);
+    }, [showDeliveryModal]);
+
+    // Add this helper function to calculate products total for a specific item group
+  const calculateItemGroupTotal = (itemGroup: AdditionalItems): number => {
+    return itemGroup.Items.reduce((total, item) => {
+      const selectedUnit = unitSelection[item.id] || item.unit;
+      const itemTotal = calculatePrice(item.price, selectedUnit, item.quantity);
+      return total + itemTotal;
+    }, 0);
+  };
+  
+  useEffect(() => {
+  console.log('showDeliveryModal changed:', showDeliveryModal);
+}, [showDeliveryModal]);
+
+
+
+  
 
   if (loading) {
     return (
@@ -182,169 +581,373 @@ const Page: React.FC = () => {
     );
   }
 
-  if (!summary || (packages.length === 0 && additionalItems.length === 0)) {
+  // Empty cart state - improved logic
+if (isCartEmpty()) {
     return (
       <div className="px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5">
         <TopNavigation NavArray={NavArray} />
-        <div className="text-center py-10">Your cart is empty</div>
+        <div className="flex flex-col items-center justify-center py-16 px-4">
+          {/* Empty Cart Image/Icon */}
+          <div className="mb-8">
+            <Image 
+              src={empty}
+              alt="Empty Cart"
+              width={384}
+              height={384}
+              className="w-48 h-48 sm:w-64 sm:h-64 md:w-80 md:h-80 lg:w-96 lg:h-96 object-contain"
+              priority
+            />
+            <ShoppingCart 
+              size={80} 
+              className="text-gray-400 hidden" 
+            />
+          </div>
+          
+          {/* Empty Cart Text */}
+          <div className="text-center max-w-md">
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4">
+              Your Cart is Empty
+            </h2>
+            <p className="text-gray-600 text-lg mb-8">
+              Looks like you haven't added any items to your cart yet. 
+              Start shopping to fill it up!
+            </p>
+            
+            {/* Continue Shopping Button */}
+            <button
+              onClick={handleContinueShopping}
+              className="bg-[#3E206D] text-white font-semibold px-8 py-3 rounded-lg text-lg hover:bg-[#2F1A5B] transition-colors shadow-lg"
+            >
+              Continue Shopping
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
+    <>
+      {/* Confirmation Modal - Moved to top level */}
+     {showConfirmModal && (
+        <div className="fixed inset-0 bg-black/40 bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-96 text-center">
+            <p className="text-lg font-medium mb-6">
+              {showConfirmModal.type === 'bulk' 
+                ? `Are you sure you want to remove ${showConfirmModal.selectedIds?.length} selected products?`
+                : `Are you sure you want to remove this ${showConfirmModal.type === 'package' ? 'package' : 'product'}?`
+              }
+            </p>
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={() => setShowConfirmModal(null)}
+                className="px-6 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (showConfirmModal.type === 'bulk') {
+                    confirmBulkDelete(showConfirmModal.selectedIds || []);
+                  } else if (showConfirmModal.type === 'package') {
+                    confirmRemovePackage(showConfirmModal.id);
+                  } else {
+                    confirmRemoveProduct(showConfirmModal.id);
+                  }
+                  setShowConfirmModal(null);
+                }}
+                disabled={showConfirmModal.type === 'bulk' && bulkDeleteLoading}
+                className="px-6 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                {showConfirmModal.type === 'bulk' && bulkDeleteLoading ? 'Removing...' : 'Remove'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    {showDeliveryModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
+          <div className="bg-[#3E206D] p-8 rounded-2xl shadow-2xl w-full max-w-md relative">
+            <h2 className="text-white text-2xl font-semibold text-center mb-8">
+              Select a method
+            </h2>
+            
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              {/* In-store Pickup Option */}
+              <button
+                onClick={() => handleDeliveryMethodSelect('pickup')}
+                className="bg-white rounded-2xl p-6 flex flex-col items-center justify-center hover:shadow-lg transition-all duration-200 hover:scale-105"
+              >
+                <div className="mb-4">
+                  <Image
+                    src={pickup}
+                    alt="Store Pickup"
+                    className="w-24 h-24 object-contain"
+                  />
+                </div>
+                <div className="text-center">
+                  <p className="font-semibold text-gray-800 text-lg">INSTORE</p>
+                  <p className="font-semibold text-gray-800 text-lg">PICKUP</p>
+                </div>
+              </button>
+
+              {/* Home Delivery Option */}
+              <button
+                onClick={() => handleDeliveryMethodSelect('delivery')}
+                className="bg-white rounded-2xl p-6 flex flex-col items-center justify-center hover:shadow-lg transition-all duration-200 hover:scale-105"
+              >
+                <div className="mb-4">
+                  <Image
+                    src={delivery}
+                    alt="Home Delivery"
+                    className="w-24 h-24 object-contain"
+                  />
+                </div>
+                <div className="text-center">
+                  <p className="font-semibold text-gray-800 text-lg">HOME</p>
+                  <p className="font-semibold text-gray-800 text-lg">DELIVERY</p>
+                </div>
+              </button>
+            </div>
+            
+            {/* Close button */}
+            <button
+              onClick={() => setShowDeliveryModal(false)}
+              className="w-full text-white/80 hover:text-white text-center py-2 text-sm"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     <div className='px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5'>
       <TopNavigation NavArray={NavArray} />
 
       <div className='flex flex-col lg:flex-row lg:items-start gap-4 sm:gap-6 items-start'>
-        {/* Left Section */}
         <div className='w-full lg:w-2/3'>
-          {/* Additional Items Section */}
-          {additionalItems.map((itemGroup) => (
+          {cartData.additionalItems.map((itemGroup) => (
             <div key={itemGroup.id} className='my-4 sm:my-6 lg:my-8'>
-              <p className='text-sm sm:text-base font-semibold mb-2'>Your Selected Package: {itemGroup.packageName}</p>
-              <hr className='border-[#3E206D80] mb-2 sm:mb-3' />
-
-              <div className="overflow-x-auto w-full">
-                <div className="min-w-[700px]">
-                  <table className="w-full text-xs sm:text-sm text-left">
-                    <thead className="text-xs bg-gray-100">
-                      <tr>
-                        <th className="p-3 sm:p-4 w-8"></th>
-                        <th className="px-3 sm:px-4 py-3 sm:py-4 min-w-[180px]">ITEM</th>
-                        <th className="px-3 sm:px-4 py-3 sm:py-4 text-center min-w-[100px]">UNIT</th>
-                        <th className="px-3 sm:px-4 py-3 sm:py-4 text-center min-w-[120px]">QTY</th>
-                        <th className="px-3 sm:px-4 py-3 sm:py-4 text-center min-w-[100px]">DISCOUNT</th>
-                        <th className="px-3 sm:px-4 py-3 sm:py-4 text-center min-w-[100px]">PRICE</th>
-                        <th className="px-3 sm:px-4 py-3 sm:py-4 text-center w-10"></th>
-                      </tr>
-                    </thead>
-                   <tbody>
-  {itemGroup.Items.map((item) => {
-    const selectedUnit = unitSelection[item.id] || item.unit;
-
-    return (
-      <tr key={item.id} className="hover:bg-gray-50">
-        <td className="p-3 sm:p-4">
-          <input type="checkbox" className="w-4 h-4 sm:w-5 sm:h-5" />
-        </td>
-        <td className="px-3 sm:px-4 py-3 sm:py-4">
-          <div className="flex items-center gap-3 sm:gap-4">
-            {/* ✅ Updated Image Styles */}
-            <img
-              src={item.image}
-              alt={item.name}
-              className="w-10 sm:w-12 md:w-14 h-auto object-contain"
-            />
-            <p className="text-sm sm:text-base whitespace-nowrap">{item.name}</p>
-          </div>
-        </td>
-        <td className="px-3 sm:px-4 py-3 sm:py-4">
-          <div className="flex gap-2 justify-center">
-            {(['kg', 'g'] as const).map(unit => (
-              <button
-                key={unit}
-                onClick={() => handleUnitChange(item.id, unit)}
-                className={`text-sm px-3 py-1 rounded border ${selectedUnit === unit ? 'bg-[#EDE1FF] font-semibold' : 'text-gray-500'}`}
-              >
-                {unit}
-              </button>
-            ))}
-          </div>
-        </td>
-        <td className="px-3 sm:px-4 py-3 sm:py-4">
-          <div className='flex items-center gap-2 border rounded px-2 py-2 justify-between w-24 sm:w-28 md:w-32 mx-auto'>
-            <button 
-              onClick={() => handleQuantityChange(item.cartItemId, -1)} 
-              className="hover:bg-gray-100 p-1 rounded-full flex items-center justify-center"
-            >
-              <Minus size={14} />
-            </button>
-            <span className="text-sm sm:text-base">{item.quantity}</span>
-            <button 
-              onClick={() => handleQuantityChange(item.cartItemId, 1)} 
-              className="hover:bg-gray-100 p-1 rounded-full flex items-center justify-center"
-            >
-              <Plus size={14} />
-            </button>
-          </div>
-        </td>
-        <td className="px-3 sm:px-4 py-3 sm:py-4 text-center text-sm whitespace-nowrap">
-          Rs.{item.discount.toFixed(2)}
-        </td>
-        <td className="px-3 sm:px-4 py-3 sm:py-4 text-center text-sm whitespace-nowrap">
-          Rs.{item.price.toFixed(2)}
-        </td>
-        <td className="px-3 sm:px-4 py-3 sm:py-4 text-center">
-          <button 
-            onClick={() => handleRemoveItem(item.cartItemId)}
-            className="hover:text-red-500 transition-colors p-1 flex items-center justify-center mx-auto"
-          >
-            <Trash2 size={18} />
-          </button>
-        </td>
-      </tr>
-    );
-  })}
-</tbody>
-
-                  </table>
+              {/* Header section with package name on left, total on right */}
+              <div className='flex justify-between items-start mb-4'>
+                <div className='flex items-center gap-2'>
+                  <p className='text-[24px] font-normal text-gray-700'>
+                  Your {itemGroup.packageName}
+                  </p>
                 </div>
+                
+                {/* Total price in right corner */}
+                <span className='text-lg font-bold text-[#3E206D]'>
+                  Rs. {formatPrice(calculateItemGroupTotal(itemGroup))}
+                </span>
               </div>
-            </div>
-          ))}
 
-          {/* Package Cards Section */}
+              {/* Full width horizontal line */}
+              <div className='w-full h-0.5 bg-[#9E8FB5] mb-2'></div>
+
+              {/* Bulk Delete Button - Only show when items are selected */}
+              {selectedProducts.size > 0 && (
+              <div className='flex justify-end mb-4 '>
+                <button
+                  onClick={handleBulkDelete}
+                  disabled={bulkDeleteLoading}
+                  className='flex items-center gap-2 text-[#FF000D] px-4 py-2 rounded-lg transition-colors disabled:opacity-50'
+                >
+                  <Trash size={20} fill="red" strokeWidth={2} />
+                  <span className='text-sm  underline'>
+                    Delete Selected Items
+                  </span>
+                </button>
+              </div>
+              )}
+                
+
+                 {/* Updated table design to match UI */}
+    <div className="bg-white rounded-xl border border-[#CFCFCF] overflow-hidden">
+      <div className="overflow-x-auto">
+        <div className="min-w-[800px]">
+          <table className="w-full">
+            <thead className=" border-b border-gray-200 font-bold">
+              <tr>
+                <th className="p-4 text-left">
+                  <input 
+                    type="checkbox" 
+                    className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                    checked={selectAll}
+                    onChange={handleSelectAll}
+                  />
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  ITEM
+                </th>
+                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  UNIT
+                </th>
+                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  QUANTITY
+                </th>
+                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  DISCOUNT
+                </th>
+                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  PRICE
+                </th>
+                <th className="px-4 py-3 text-center w-12"></th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-100">
+              {itemGroup.Items.map((item) => {
+                const selectedUnit = unitSelection[item.id] || item.unit;
+                const isRemoving = removingItems.has(`product-${item.id}`);
+                const isSelected = selectedProducts.has(item.id);
+
+                return (
+                  <tr key={item.id} className={`hover:bg-gray-50 transition-colors ${isRemoving ? 'opacity-50' : ''} ${isSelected ? 'bg-blue-50' : ''}`}>
+                    <td className="p-4">
+                      <input 
+                        type="checkbox" 
+                        className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                        checked={isSelected}
+                        onChange={() => handleSelectProduct(item.id)}
+                        disabled={isRemoving}
+                      />
+                    </td>
+                    <td className="px-4 py-4">
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="w-12 h-12 rounded-lg object-cover "
+                        />
+                        <span className="text-sm font-medium text-gray-900">
+                          {item.name}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4">
+                      <div className="flex gap-1 justify-center">
+                        {(['kg', 'g'] as const).map(unit => (
+                          <button
+                            key={unit}
+                            onClick={() => handleUnitChange(item.id, unit)}
+                            disabled={isRemoving}
+                            className={`px-3 py-1 text-sm rounded-md border transition-colors ${
+                              selectedUnit === unit 
+                                ? 'bg-purple-100 text-purple-700 border-purple-300 font-medium' 
+                                : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                            } disabled:opacity-50`}
+                          >
+                            {unit}
+                          </button>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-4 py-4">
+                      <div className='flex items-center gap-2 border border-gray-300 rounded-lg px-3 py-2 w-32 mx-auto bg-white'>
+                        <button 
+                          onClick={() => handleProductQuantityChange(item.id, -1)} 
+                          disabled={isRemoving}
+                          className="hover:bg-gray-100 p-1 rounded-full flex items-center justify-center disabled:opacity-50 transition-colors"
+                        >
+                          <Minus size={14} />
+                        </button>
+                        <span className="text-sm font-medium flex-1 text-center">
+                          {item.quantity}
+                        </span>
+                        <button 
+                          onClick={() => handleProductQuantityChange(item.id, 1)} 
+                          disabled={isRemoving}
+                          className="hover:bg-gray-100 p-1 rounded-full flex items-center justify-center disabled:opacity-50 transition-colors"
+                        >
+                          <Plus size={14} />
+                        </button>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 text-center">
+                      <span className="text-sm font-medium text-[#3E206D]">
+                        Rs.{formatPrice(getDisplayDiscount(item))}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4 text-center">
+                      <span className="text-sm font-bold text-[#212121]">
+                        Rs.{formatPrice(getDisplayPrice(item))}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4 text-center">
+                      <button 
+                        onClick={() => handleRemoveProduct(item.id)}
+                        disabled={isRemoving}
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors disabled:opacity-50"
+                        title={isRemoving ? 'Removing...' : 'Remove item'}
+                      >
+                        <Trash size={20} fill="red" strokeWidth={2} />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+))}
+
+
           <div className='space-y-4 sm:space-y-6 mt-6 sm:mt-8'>
-            {packages.map((pkg) => (
-              <div key={pkg.id} className='w-full'>
-                {/* Header */}
-                <div className='flex flex-col sm:flex-row sm:justify-between sm:items-center mb-3 sm:mb-4 pb-2 border-b border-gray-300 gap-2 sm:gap-0'>
-                  <h3 className='text-sm sm:text-base font-normal text-gray-800 leading-relaxed'>
+            {cartData.packages.map((pkg) => {
+              const isRemoving = removingItems.has(`package-${pkg.id}`);
+              
+              return (
+               <div key={pkg.id} className={`w-full ${isRemoving ? 'opacity-50' : ''}`}>
+              <div className='flex flex-col sm:flex-row sm:justify-between sm:items-center mb-3 sm:mb-4 pb-2 border-b border-gray-300 gap-2 sm:gap-0'>
+                <div className='flex items-center gap-3'>
+                  <h3 className='text-[20px] font-normal text-[#252525] leading-relaxed'>
                     Your Selected Package : <span className='font-semibold'>{pkg.packageName}</span> ({pkg.totalItems} Items)
                   </h3>
-                  <div className='flex items-center justify-between sm:justify-end gap-3 sm:gap-4'>
-                    <button 
-                      onClick={() => handleRemoveItem(pkg.cartItemId)}
-                      className='text-red-500 hover:scale-105 transition-transform'
-                    >
-                      <Trash2 size={18} className='sm:w-5 sm:h-5' />
-                    </button>
-                    <span className='text-base sm:text-lg font-bold text-gray-900'>Rs. {pkg.price.toFixed(2)}</span>
-                  </div>
+                  <button 
+                    onClick={() => handleRemovePackage(pkg.id)}
+                    disabled={isRemoving}
+                    className='text-red-500 hover:scale-105 transition-transform disabled:opacity-50'
+                    title={isRemoving ? 'Removing...' : 'Remove package'}
+                  >
+                    <Trash size={20} fill="red" strokeWidth={2} />
+                  </button>
                 </div>
-
-                {/* Package Card */}
-                <div className='bg-white border border-gray-200 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-sm'>
-                  {/* Table Header */}
-                  <div className='grid grid-cols-2 pb-3 sm:pb-4 mb-3 sm:mb-4 border-b border-gray-200'>
-                    <span className='text-xs sm:text-sm font-medium text-gray-500 uppercase tracking-wide'>ITEMS</span>
-                    <span className='text-xs sm:text-sm font-medium text-gray-500 uppercase tracking-wide text-right'>QUANTITY</span>
-                  </div>
-
-                  {/* Items List */}
-                  <div className='space-y-3 sm:space-y-4'>
-                    {pkg.items.map((item, index) => (
-                      <div key={index} className='grid grid-cols-2 items-center gap-2'>
-                        <div className='flex items-center gap-2 sm:gap-3 min-w-0'>
-                          <span className='text-sm sm:text-base text-gray-900 font-medium truncate pr-1'>
-                            {item.name}
-                          </span>
-                        </div>
-                        <div className='text-right'>
-                          <span className='text-sm sm:text-base text-gray-900 font-medium'>
-                            {String(item.quantity).padStart(2, '0')}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                <div className='flex items-center justify-end'>
+                  <span className='text-base sm:text-lg font-bold text-[#3E206D]'>Rs. {formatPrice(pkg.price * pkg.quantity)}</span>
                 </div>
               </div>
-            ))}
+
+                  <div className='bg-white border border-gray-200 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-sm'>
+                    <div className='grid grid-cols-2 pb-3 sm:pb-4 mb-3 sm:mb-4 border-b border-gray-200'>
+                      <span className='text-xs sm:text-sm font-medium text-gray-500 uppercase tracking-wide'>ITEMS</span>
+                      <span className='text-xs sm:text-sm font-medium text-gray-500 uppercase tracking-wide text-right'>QUANTITY</span>
+                    </div>
+
+                    <div className='space-y-3 sm:space-y-4'>
+                      {pkg.items.map((item, index) => (
+                        <div key={index} className='grid grid-cols-2 items-center gap-2'>
+                          <div className='flex items-center gap-2 sm:gap-3 min-w-0'>
+                            <span className='text-sm sm:text-base text-gray-900 font-medium truncate pr-1'>
+                              {item.name}
+                            </span>
+                          </div>
+                          <div className='text-right'>
+                            <span className='text-sm sm:text-base text-gray-900 font-medium'>
+                              {String(item.quantity).padStart(2, '0')}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        {/* Right Section - Order Summary */}
         <div className='w-full lg:w-1/3 mt-6 lg:mt-0 pt-14'>
           <div className='border border-[#171717] rounded-lg shadow-md p-4 sm:p-5 md:p-6 md:mx-10 sm:mr-10'>
             <h2 className='font-semibold text-base sm:text-lg mb-3 sm:mb-4'>Your Order</h2>
@@ -356,515 +959,80 @@ const Page: React.FC = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
                   </svg>
                 </div>
-                <p className="text-sm sm:text-base">{summary.totalItems} items</p>
+                <p className="text-sm sm:text-base">{calculatedSummary?.totalItems || 0} items</p>
               </div>
-              <p className='font-semibold text-sm sm:text-base'>Rs.{summary.grandTotal.toFixed(2)}</p>
+              <p className='font-semibold text-sm sm:text-base'>Rs.{formatPrice(calculatedSummary?.grandTotal || 0)}</p>
             </div>
 
             <div className='border-t border-dotted border-gray-300 my-3' />
 
-            <p className='font-semibold text-sm sm:text-base mb-2'>Coupon Code</p>
+            {cartData.cart?.isCoupon === 1 ? (
+              <div className='bg-green-50 border border-green-200 rounded-lg p-3 mb-3'>
+                <div className='flex justify-between items-center'>
+                  <div>
+                    <p className='text-sm text-green-800 font-medium'>Coupon Applied</p>
+                    <p className='text-xs text-green-600'>You saved Rs.{calculatedSummary?.totalDiscount?.toFixed(2) || '0.00'}</p>
+                  </div>
+                  <button
+                    // onClick={handleRemoveCoupon}
+                    disabled={couponLoading}
+                    className='text-red-500 hover:text-red-700 text-sm font-medium'
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className='flex flex-row gap-3 w-full mt-2 sm:mt-3'>
+              </div>
+            )}
 
-            <div className='flex flex-row gap-3 w-full mt-2 sm:mt-3'>
-              <input
-                type="text"
-                className='border border-gray-300 rounded-lg px-3 py-2 text-sm sm:text-base w-3/4'
-                placeholder='Add coupon code'
-              />
-              <button className='bg-[#3E206D] text-white font-semibold rounded-lg px-3 sm:px-4 py-2 text-sm sm:text-base w-1/4'>
-                Apply
-              </button>
-            </div>
+            {couponMessage && (
+              <div className={`mt-2 text-sm p-2 rounded ${
+                couponMessage.type === 'success' 
+                  ? 'bg-green-100 text-green-800 border border-green-200' 
+                  : 'bg-red-100 text-red-800 border border-red-200'
+              }`}>
+                {couponMessage.text}
+              </div>
+            )}
 
             <div className='border-t border-dotted border-gray-300 my-3 sm:my-4' />
 
-            <div className='flex justify-between text-sm sm:text-base'>
-              <p className='text-gray-600'>Total</p>
-              <p className='font-semibold'>Rs.{summary.grandTotal.toFixed(2)}</p>
+            <div className='space-y-2 mb-4'>
+              <div className='flex justify-between text-sm sm:text-base'>
+                <p className='text-gray-600'>Subtotal</p>
+                  <p>Rs.{formatPrice(calculatedSummary?.grandTotal || 0)}</p>
+              </div>
+              
+              {(calculatedSummary?.totalDiscount || 0) > 0 && (
+                <div className='flex justify-between text-sm sm:text-base'>
+                  <p className='text-gray-600'>Discount</p>
+                  <p className='text-gray-600'>Rs.{formatPrice(calculatedSummary?.totalDiscount || 0)}</p>
+                </div>
+              )}
+              
+              <div className='border-t border-gray-200 pt-2'>
+                <div className='flex justify-between text-[20px] text-[#414347] font-semibold'>
+                  <p>Grand Total</p>
+                  <p>Rs.{formatPrice(calculatedSummary?.finalTotal || 0)}</p>
+                </div>
+              </div>
             </div>
 
-            <div className='flex justify-between text-sm sm:text-base mt-2'>
-              <p className='text-gray-600'>Discount</p>
-              <p className='text-gray-600'>Rs.{summary.couponDiscount.toFixed(2)}</p>
-            </div>
-
-            <div className='border-t border-dotted border-gray-300 my-3 sm:my-4' />
-
-            <div className='flex justify-between mb-4 sm:mb-5 text-sm sm:text-base'>
-              <p className='font-semibold'>Grand Total</p>
-              <p className='font-semibold'>Rs.{summary.finalTotal.toFixed(2)}</p>
-            </div>
-
-            <button className='w-full bg-[#3E206D] text-white font-semibold rounded-lg px-4 py-3 text-sm sm:text-base hover:bg-[#2d174f] transition-colors'>
-              Checkout now
+            <button
+              onClick={handleCheckout}
+              disabled={checkoutLoading || isCartEmpty() || (calculatedSummary?.totalItems || 0) === 0}
+              className='w-full bg-[#3E206D] text-white font-semibold rounded-lg py-3 text-sm sm:text-base hover:bg-[#2F1A5B] transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+            >
+              {checkoutLoading ? 'Processing...' : 'Proceed to Checkout'}
             </button>
           </div>
         </div>
       </div>
     </div>
+    </>
   );
 };
 
 export default Page;
-
-// 'use client';
-// import React, { useEffect, useState } from 'react';
-// import { Plus, Minus, Trash2 } from 'lucide-react';
-// import TopNavigation from '@/components/top-navigation/TopNavigation';
-// import { useSelector } from 'react-redux';
-// import { RootState } from '@/store';
-// import { useRouter } from 'next/navigation';
-
-// interface CartItem {
-//   id: number;
-//   cartId: number;
-//   productId: number;
-//   qty: string;
-//   unit: 'kg' | 'g';
-//   createdAt: string;
-//   displayName: string;
-//   totalDiscount: string;
-//   totalPrice: string;
-//   image: string;
-// }
-
-// interface PackageFinalItem {
-//   id: number;
-//   mpItemId: number;
-//   displayName: string;
-//   image: string;
-//   quantity: string;
-//   discount: string;
-//   price: string;
-//   discountedPrice: string;
-// }
-
-// interface Package {
-//   packageId: number;
-//   packageName?: string;
-//   finalItems: PackageFinalItem[];
-// }
-
-// interface CartData {
-//   cartId: number;
-//   additionalItems: CartItem[];
-//   packageItems: Package[];
-// }
-
-// interface OrderDetails {
-//   id: number;
-//   createdAt: string;
-//   sheduleDate?: string;
-//   sheduleTime?: string;
-//   deliveryType: string;
-//   pickupLocation?: {
-//     centerName: string;
-//     street: string;
-//     city: string;
-//     contact01: string;
-//   };
-//   sheduleType?: string;
-//   packages?: Package[];
-//   additionalItems?: CartItem[];
-// }
-
-// const NavArray = [
-//   { name: 'Cart', path: '/cart', status: true },
-//   { name: 'Checkout', path: '/checkout', status: false },
-//   { name: 'Payment', path: '/payment', status: false },
-// ];
-
-// const Page: React.FC = () => {
-//   const router = useRouter();
-//   const token = useSelector((state: RootState) => state.auth.token);
-//   const [unitSelection, setUnitSelection] = useState<Record<number, 'kg' | 'g'>>({});
-//   const [dataArray, setDataArray] = useState<Package[]>([]);
-//   const [orderDetails, setOrderDetails] = useState<OrderDetails | null>(null);
-//   const [loading, setLoading] = useState(true);
-//   const [error, setError] = useState<string | null>(null);
-//   const [cartData, setCartData] = useState<CartData>({
-//     cartId: 0,
-//     additionalItems: [],
-//     packageItems: []
-//   });
-
-//   // Fetch data from backend
-//   useEffect(() => {
-//     const fetchOrderHistory = async () => {
-//       try {
-//         setLoading(true);
-//         const token = localStorage.getItem('token');
-//         if (!token) {
-//           throw new Error('No authentication token found');
-//         }
-
-//         const response = await fetch('/api/order-history', {
-//           headers: { 'Authorization': `Bearer ${token}` },
-//         });
-
-//         if (!response.ok) {
-//           throw new Error(`Failed to fetch order history: ${response.status}`);
-//         }
-
-//         const result = await response.json();
-//         console.log('API Response:', result);
-
-//         if (result.status && Array.isArray(result.data)) {
-//           const orders = result.data as any[];
-//           const latestOrderWithItems = orders
-//             .filter(order =>
-//               (order.packages && order.packages.length > 0) ||
-//               (order.additionalItems && order.additionalItems.length > 0)
-//             )
-//             .sort((a, b) =>
-//               new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-//             )[0];
-
-//           if (!latestOrderWithItems) {
-//             console.log('No orders with items found');
-//             setDataArray([]);
-//             setOrderDetails(null);
-//             return;
-//           }
-
-//           setOrderDetails(latestOrderWithItems);
-
-//           // Initialize cartData with the fetched data
-//           const initialCartData: CartData = {
-//             cartId: latestOrderWithItems.id,
-//             additionalItems: latestOrderWithItems.additionalItems || [],
-//             packageItems: latestOrderWithItems.packages || []
-//           };
-//           setCartData(initialCartData);
-
-//           const mappedPackages: Package[] = [
-//             ...((latestOrderWithItems.packages || []).map((pkg: any) => ({
-//               packageId: pkg.packageId,
-//               packageName: pkg.packageName || 'Family Pack',
-//               finalItems: (pkg.items || []).map((item: any) => ({
-//                 id: item.id,
-//                 mpItemId: item.productId,
-//                 displayName: item.itemDetails?.displayName || `Item ${item.productId}`,
-//                 image: item.itemDetails?.image || 'https://example.com/default-image.png',
-//                 quantity: item.quantity || '1',
-//                 discount: item.discount || '2',
-//                 price: item.price || '10.99',
-//                 discountedPrice: item.discountedPrice || (parseFloat(item.price || '10.99') - parseFloat(item.discount || '2')).toString()
-//               }))
-//             })),
-//             latestOrderWithItems.additionalItems && latestOrderWithItems.additionalItems.length > 0
-//               ? [{
-//                 packageId: latestOrderWithItems.id + 1000,
-//                 packageName: 'Additional Items',
-//                 finalItems: latestOrderWithItems.additionalItems.map((item: any) => ({
-//                   id: item.id,
-//                   mpItemId: item.productId,
-//                   displayName: item.itemDetails?.displayName || `Item ${item.productId}`,
-//                   image: item.itemDetails?.image || 'https://example.com/default-image.png',
-//                   quantity: item.qty || '1',
-//                   discount: item.totalDiscount || '2',
-//                   price: item.totalPrice || '10.99',
-//                   discountedPrice: (parseFloat(item.totalPrice || '10.99') - parseFloat(item.totalDiscount || '2')).toString()
-//                 }))
-//               }]
-//               : [])
-//           ];
-
-//           setDataArray(mappedPackages);
-//         } else {
-//           setError('Invalid response format');
-//         }
-//       } catch (err) {
-//         console.error('Error fetching order history:', err);
-//         setError(err instanceof Error ? err.message : 'Failed to fetch order history');
-//       } finally {
-//         setLoading(false);
-//       }
-//     };
-
-//     fetchOrderHistory();
-//   }, []);
-
-//   const handleUnitChange = (itemId: number, unit: 'kg' | 'g') => {
-//     setUnitSelection(prev => ({
-//       ...prev,
-//       [itemId]: unit,
-//     }));
-//   };
-
-//   const handleQuantityChange = (itemId: number, delta: number, isAdditional: boolean) => {
-//     if (isAdditional) {
-//       setCartData(prev => ({
-//         ...prev,
-//         additionalItems: prev.additionalItems.map(item => {
-//           if (item.id === itemId) {
-//             const currentQty = parseFloat(item.qty);
-//             const newQty = Math.max(0.01, currentQty + delta).toFixed(2);
-//             const pricePerUnit = parseFloat(item.totalPrice) / currentQty;
-//             const discountPerUnit = parseFloat(item.totalDiscount) / currentQty;
-//             return {
-//               ...item,
-//               qty: newQty,
-//               totalPrice: (parseFloat(newQty) * pricePerUnit).toFixed(2),
-//               totalDiscount: (parseFloat(newQty) * discountPerUnit).toFixed(2)
-//             };
-//           }
-//           return item;
-//         })
-//       }));
-//     } else {
-//       setCartData(prev => ({
-//         ...prev,
-//         packageItems: prev.packageItems.map(pkg => ({
-//           ...pkg,
-//           finalItems: pkg.finalItems.map(item => {
-//             if (item.id === itemId) {
-//               const currentQty = parseFloat(item.quantity);
-//               const newQty = Math.max(0.01, currentQty + delta).toFixed(2);
-//               const pricePerUnit = parseFloat(item.price) / currentQty;
-//               const discountPerUnit = parseFloat(item.discount) / currentQty;
-//               const discountedPricePerUnit = parseFloat(item.discountedPrice) / currentQty;
-//               return {
-//                 ...item,
-//                 quantity: newQty,
-//                 price: (parseFloat(newQty) * pricePerUnit).toFixed(2),
-//                 discount: (parseFloat(newQty) * discountPerUnit).toFixed(2),
-//                 discountedPrice: (parseFloat(newQty) * discountedPricePerUnit).toFixed(2)
-//               };
-//             }
-//             return item;
-//           })
-//         }))
-//       }));
-//     }
-//   };
-
-//   // Calculate totals
-//   const totalAdditionalItems = cartData.additionalItems.length;
-//   const totalPackageItems = cartData.packageItems.reduce((sum, pkg) => sum + pkg.finalItems.length, 0);
-//   const totalItems = totalAdditionalItems + totalPackageItems;
-
-//   const totalPrice = [
-//     ...cartData.additionalItems.map(item => parseFloat(item.totalPrice)),
-//     ...cartData.packageItems.flatMap(pkg => pkg.finalItems.map(item => parseFloat(item.price)))
-//   ].reduce((sum, price) => sum + price, 0);
-
-//   const discountAmount = [
-//     ...cartData.additionalItems.map(item => parseFloat(item.totalDiscount)),
-//     ...cartData.packageItems.flatMap(pkg => pkg.finalItems.map(item => parseFloat(item.discount)))
-//   ].reduce((sum, discount) => sum + discount, 0);
-
-//   const grandTotal = totalPrice - discountAmount;
-
-//   if (loading) {
-//     return <div className='px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5'>Loading...</div>;
-//   }
-
-//   if (error) {
-//     return <div className='px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5'>Error: {error}</div>;
-//   }
-
-//   return (
-//     <div className='px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5'>
-//       <TopNavigation NavArray={NavArray} />
-
-//       <div className='flex flex-col lg:flex-row lg:items-start gap-4 sm:gap-6 items-start'>
-//         {/* Left Section */}
-//         <div className='w-full lg:w-2/3'>
-//           {orderDetails ? (
-//             <div className='mb-4 sm:mb-6 lg:mb-8'>
-//               <p className='text-sm sm:text-base font-semibold mb-2'>Order ID: #{orderDetails.id}</p>
-//               <p className='text-sm sm:text-base mb-2'>
-//                 Order Placed: {new Date(orderDetails.createdAt).toLocaleDateString()} |
-//                 Scheduled Date: {orderDetails.sheduleDate ? new Date(orderDetails.sheduleDate).toLocaleDateString() : 'N/A'} |
-//                 Scheduled Time: {orderDetails.sheduleTime || 'Between 8AM-12PM'} |
-//                 Delivery/Pickup: {orderDetails.deliveryType}
-//               </p>
-//               {orderDetails.deliveryType === 'PICKUP' && orderDetails.pickupLocation && (
-//                 <div className='text-sm sm:text-base mb-2'>
-//                   <p>Pickup Information</p>
-//                   <p>{orderDetails.pickupLocation.centerName}</p>
-//                   <p>{orderDetails.pickupLocation.street}, {orderDetails.pickupLocation.city}</p>
-//                   <p>Contact: {orderDetails.pickupLocation.contact01}</p>
-//                 </div>
-//               )}
-//               <p className='text-sm sm:text-base font-semibold'>Status: {orderDetails.sheduleType || 'Ordered'}</p>
-//             </div>
-//           ) : (
-//             <p className='text-sm sm:text-base'>No order details available.</p>
-//           )}
-
-//           {dataArray.length > 0 ? (
-//             dataArray.map((pkg) => (
-//               <div key={pkg.packageId} className='my-4 sm:my-6 lg:my-8'>
-//                 <p className='text-sm sm:text-base font-semibold mb-2'>
-//                   {pkg.packageName || 'Your Selected Package'}
-//                 </p>
-//                 <hr className='border-[#3E206D80] mb-2 sm:mb-3' />
-
-//                 <div className="overflow-x-auto w-full">
-//                   <div className="min-w-[700px]">
-//                     <table className="w-full text-xs sm:text-sm text-left">
-//                       <thead className="text-xs bg-gray-100">
-//                         <tr>
-//                           <th className="p-3 sm:p-4 w-8"></th>
-//                           <th className="px-3 sm:px-4 py-3 sm:py-4 min-w-[180px]">ITEM</th>
-//                           <th className="px-3 sm:px-4 py-3 sm:py-4 text-center min-w-[100px]">UNIT</th>
-//                           <th className="px-3 sm:px-4 py-3 sm:py-4 text-center min-w-[120px]">QTY</th>
-//                           <th className="px-3 sm:px-4 py-3 sm:py-4 text-center min-w-[100px]">DISCOUNT</th>
-//                           <th className="px-3 sm:px-4 py-3 sm:py-4 text-center min-w-[100px]">PRICE</th>
-//                           <th className="px-3 sm:px-4 py-3 sm:py-4 text-center w-10"></th>
-//                         </tr>
-//                       </thead>
-//                       <tbody>
-//                         {pkg.finalItems.map((item) => (
-//                           <tr key={item.id} className="hover:bg-gray-50">
-//                             <td className="p-3 sm:p-4">
-//                               <input type="checkbox" className="w-4 h-4 sm:w-5 sm:h-5" />
-//                             </td>
-//                             <td className="px-3 sm:px-4 py-3 sm:py-4">
-//                               <div className="flex items-center gap-3 sm:gap-4">
-//                                 <div className='w-10 sm:w-12 md:w-14 h-10 sm:h-12 md:h-14 bg-gray-200 rounded'>
-//                                   <img
-//                                     src={item.image}
-//                                     alt={item.displayName}
-//                                     className="w-10 sm:w-12 md:w-14 h-10 sm:h-12 md:h-14 rounded object-cover bg-gray-200"
-//                                     onError={(e) => {
-//                                       (e.target as HTMLImageElement).src = 'https://example.com/default-image.png';
-//                                     }}
-//                                   />
-//                                 </div>
-//                                 <p className="text-sm sm:text-base whitespace-nowrap">{item.displayName}</p>
-//                               </div>
-//                             </td>
-//                             <td className="px-3 sm:px-4 py-3 sm:py-4">
-//                               <div className='flex gap-2 justify-center'>
-//                                 {(['kg', 'g'] as const).map(unit => (
-//                                   <button
-//                                     key={unit}
-//                                     onClick={() => handleUnitChange(item.id, unit)}
-//                                     className={`text-sm px-3 py-1 rounded border ${unitSelection[item.id] === unit ? 'bg-[#EDE1FF] font-semibold' : 'text-gray-500'}`}
-//                                   >
-//                                     {unit}
-//                                   </button>
-//                                 ))}
-//                               </div>
-//                             </td>
-//                             <td className="px-3 sm:px-4 py-3 sm:py-4">
-//                               <div className='flex items-center gap-2 border rounded px-2 py-2 justify-between w-24 sm:w-28 md:w-32 mx-auto'>
-//                                 <button
-//                                   onClick={() => handleQuantityChange(item.id, -1, false)}
-//                                   className="hover:bg-gray-100 p-1 rounded-full flex items-center justify-center"
-//                                   aria-label="Decrease quantity"
-//                                 >
-//                                   <Minus size={14} />
-//                                 </button>
-//                                 <span className="text-sm sm:text-base">{item.quantity}</span>
-//                                 <button
-//                                   onClick={() => handleQuantityChange(item.id, 1, false)}
-//                                   className="hover:bg-gray-100 p-1 rounded-full flex items-center justify-center"
-//                                   aria-label="Increase quantity"
-//                                 >
-//                                   <Plus size={14} />
-//                                 </button>
-//                               </div>
-//                             </td>
-//                             <td className="px-3 sm:px-4 py-3 sm:py-4 text-center text-sm whitespace-nowrap">
-//                               Rs.{item.discount}
-//                             </td>
-//                             <td className="px-3 sm:px-4 py-3 sm:py-4 text-center text-sm whitespace-nowrap">
-//                               Rs.{item.price}
-//                             </td>
-//                             <td className="px-3 sm:px-4 py-3 sm:py-4 text-center">
-//                               <button
-//                                 className="hover:text-red-500 transition-colors p-1 flex items-center justify-center mx-auto"
-//                                 aria-label="Remove item"
-//                               >
-//                                 <Trash2 size={18} />
-//                               </button>
-//                             </td>
-//                           </tr>
-//                         ))}
-//                       </tbody>
-//                     </table>
-//                   </div>
-//                 </div>
-//               </div>
-//             ))
-//           ) : (
-//             <p className='text-sm sm:text-base'>No items in your order.</p>
-//           )}
-//         </div>
-
-//         {/* Right Section - Order Summary */}
-//         <div className='w-full lg:w-1/3 mt-6 lg:mt-0 pt-14'>
-//           <div className='border border-[#171717] rounded-lg shadow-md p-4 sm:p-5 md:p-6 md:mx-10 sm:mr-10'>
-//             <h2 className='font-semibold text-base sm:text-lg mb-3 sm:mb-4'>Your Order</h2>
-
-//             <div className='flex justify-between items-center mb-3 sm:mb-4'>
-//               <div className='flex items-center gap-2 sm:gap-3'>
-//                 <img
-//                   className='w-12 sm:w-14 md:w-16 h-auto'
-//                   src={'https://example.com/default-image.png'}
-//                   alt="Order"
-//                   onError={(e) => {
-//                     (e.target as HTMLImageElement).src = 'https://example.com/default-image.png';
-//                   }}
-//                 />
-//                 <p className="text-sm sm:text-base">{totalItems} items</p>
-//               </div>
-//               <p className='font-semibold text-sm sm:text-base'>Rs.{totalPrice.toFixed(2)}</p>
-//             </div>
-
-//             <div className='border-t border-dotted border-gray-300 my-3' />
-
-//             <p className='font-semibold text-sm sm:text-base mb-2'>Coupon Code</p>
-
-//             <div className='flex flex-row gap-3 w-full mt-2 sm:mt-3'>
-//               <input
-//                 type="text"
-//                 className='border border-gray-300 rounded-lg px-3 py-2 text-sm sm:text-base w-3/4'
-//                 placeholder='Add coupon code'
-//               />
-//               <button
-//                 className='bg-[#3E206D] text-white font-semibold rounded-lg px-3 sm:px-4 py-2 text-sm sm:text-base w-1/4'
-//                 aria-label="Apply coupon"
-//               >
-//                 Apply
-//               </button>
-//             </div>
-
-//             <div className='border-t border-dotted border-gray-300 my-3 sm:my-4' />
-
-//             <div className='flex justify-between text-sm sm:text-base'>
-//               <p className='text-gray-600'>Total</p>
-//               <p className='font-semibold'>Rs.{totalPrice.toFixed(2)}</p>
-//             </div>
-
-//             <div className='flex justify-between text-sm sm:text-base mt-2'>
-//               <p className='text-gray-600'>Discount</p>
-//               <p className='text-gray-600'>Rs.{discountAmount.toFixed(2)}</p>
-//             </div>
-
-//             <div className='border-t border-dotted border-gray-300 my-3 sm:my-4' />
-
-//             <div className='flex justify-between mb-4 sm:mb-5 text-sm sm:text-base'>
-//               <p className='font-semibold'>Grand Total</p>
-//               <p className='font-semibold'>Rs.{grandTotal.toFixed(2)}</p>
-//             </div>
-
-//             <button
-//               onClick={() => router.push('/checkout')}
-//               className='w-full bg-[#3E206D] text-white font-semibold rounded-lg px-4 py-3 text-sm sm:text-base hover:bg-[#2d174f] transition-colors'
-//               aria-label="Proceed to checkout"
-//             >
-//               Checkout now
-//             </button>
-//           </div>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default Page;

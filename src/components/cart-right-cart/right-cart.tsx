@@ -32,7 +32,7 @@ const OrderSummary = ({
     const dispatch = useDispatch();
     const router = useRouter();
     const [showPopup, setShowPopup] = useState(false);
-    const { items, cartId } = useSelector((state: RootState) => state.cartItems);
+    const {  cartId } = useSelector((state: RootState) => state.cartItems);
     const storedFormData = useSelector((state: RootState) => state.checkout);
     const [showErrorPopup, setShowErrorPopup] = useState(false);
     const [showSuccessPopup, setShowSuccessPopup] = useState(false);

@@ -31,8 +31,21 @@ const ItemCard = ({
     const [addedToCart, setAddedToCart] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [isHovering, setIsHovering] = useState(false);
 
     const isImageUrl = typeof image === 'string';
+
+    // Helper function to format price with commas
+        const formatPrice = (price: number): string => {
+        // Convert to fixed decimal first, then add commas
+        const fixedPrice = Number(price).toFixed(2);
+        const [integerPart, decimalPart] = fixedPrice.split('.');
+        
+        // Add commas to integer part
+        const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        
+        return `${formattedInteger}.${decimalPart}`;
+        };
 
     const incrementQuantity = () => setQuantity(prev => prev + 1);
     const decrementQuantity = () => quantity > 1 && setQuantity(prev => prev - 1);
@@ -79,7 +92,7 @@ const ItemCard = ({
     };
 
     return (
-        <div className="relative bg-white rounded-lg shadow-sm border border-gray-200 p-2 w-full h-[240px] flex flex-col items-center transition-all duration-300 hover:shadow-md">
+        <div className="relative bg-white rounded-lg shadow-sm border border-gray-200 p-2 w-full h-[240px] flex flex-col items-center transition-all duration-300 hover:shadow-md cursor-default">
             {/* Error message */}
             {error && (
                 <div className="absolute top-0 left-0 right-0 bg-red-100 text-red-700 text-xs p-1 text-center">
@@ -140,14 +153,15 @@ const ItemCard = ({
                 {/* Product name */}
                 <h3 className="text-xs md:text-sm lg:text-base font-medium text-gray-800 text-center mb-0.5">{name}</h3>
 
-                {/* Price section */}
+                {/* Price section - Updated with comma formatting */}
                 <div className="flex flex-col items-center space-y-0.5 mb-1 md:mb-2">
                     {originalPrice && originalPrice > currentPrice ? (
                         <>
-                            <span className="text-purple-900 text-xs md:text-sm font-semibold">Rs.{currentPrice}</span>
+                            <span className="text-purple-900 text-xs md:text-sm font-semibold">Rs.{formatPrice(currentPrice)}</span>
+                            <span className="text-gray-500 text-xs line-through">Rs.{formatPrice(originalPrice)}</span>
                         </>
                     ) : (
-                        <span className="text-purple-900 text-xs md:text-sm font-semibold">Rs.{currentPrice}</span>
+                        <span className="text-purple-900 text-xs md:text-sm font-semibold">Rs.{formatPrice(currentPrice)}</span>
                     )}
                 </div>
 
@@ -155,7 +169,7 @@ const ItemCard = ({
                 {token && user && showQuantitySelector && (
                     <div className="w-full space-y-2 mb-2 flex flex-col items-center justify-center">
                         <div className="flex justify-center">
-                            <div className="flex rounded overflow-hidden gap-2">
+                            <div className="flex rounded overflow-hidden gap-2 cursor-pointer">
                                 <button
                                     onClick={() => handleUnitChange('kg')}
                                     className={`w-8 text-xs py-1 border rounded-md ${unit === 'kg'
@@ -202,7 +216,7 @@ const ItemCard = ({
                 <div className="w-full mt-auto">
                     {/* Add to cart button */}
                     {addedToCart ? (
-                        <button className="w-full py-2 px-4 rounded-full flex items-center justify-center gap-2 text-sm md:text-base bg-purple-100 text-purple-900 transition-colors">
+                        <button className="w-full py-2 px-4 rounded-full flex items-center justify-center gap-2 text-sm md:text-base bg-purple-100 text-purple-900 transition-colors cursor-pointer">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                             </svg>
@@ -211,8 +225,10 @@ const ItemCard = ({
                     ) : (
                         <button
                             onClick={handleAddToCartClick}
+                            onMouseEnter={() => setIsHovering(true)}
+                            onMouseLeave={() => setIsHovering(false)}
                             disabled={isLoading}
-                            className={`w-full py-1 px-1.5 rounded flex items-center justify-center gap-1 text-xs md:text-sm transition-colors ${token && user && showQuantitySelector
+                            className={`w-full py-1 px-1.5 rounded flex items-center justify-center gap-1 text-xs md:text-sm transition-colors cursor-pointer ${token && user && showQuantitySelector
                                 ? "bg-purple-900 text-white hover:bg-purple-800"
                                 : "bg-gray-100 text-gray-400 hover:bg-[#3E206D] hover:text-white"
                                 } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -222,10 +238,13 @@ const ItemCard = ({
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                                 </svg>
                             )}
-                            {token && user && showQuantitySelector ? "Add to Cart" : "Add to Cart"}
+                            {token && user && showQuantitySelector 
+                                ? "Add to Cart" 
+                                : (isHovering ? "I want this !" : "Add to Cart")
+                            }
                         </button>
                     )}
-                </div>
+                                    </div>
             </div>
         </div>
     );
