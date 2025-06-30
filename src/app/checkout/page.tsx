@@ -135,19 +135,20 @@ const Page: React.FC = () => {
   const router = useRouter();
   const [showErrorPopup, setShowErrorPopup] = useState(false);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
-  const searchParams = useSearchParams();
+  const [searchParamsLoaded, setSearchParamsLoaded] = useState(false);
   const [selectedPickupCenter, setSelectedPickupCenter] = useState<{ id: number, name: string } | null>(null);
   const [pickupCenters, setPickupCenters] = useState<PickupCenter[]>([]);
   const [loadingCenters, setLoadingCenters] = useState(false);
   const [mapCenter, setMapCenter] = useState<[number, number]>([6.9271, 79.8612]); // Default to Colombo
   const [mapZoom, setMapZoom] = useState(12);
 
-    // Single useEffect to handle delivery method from query params
-    useEffect(() => {
+      useEffect(() => {
       // Only run on client side
       if (typeof window === 'undefined') return;
       
-      const deliveryMethodFromQuery = searchParams.get('deliveryMethod');
+      // Get search params from window.location
+      const urlParams = new URLSearchParams(window.location.search);
+      const deliveryMethodFromQuery = urlParams.get('deliveryMethod');
 
       if (deliveryMethodFromQuery && (deliveryMethodFromQuery === 'home' || deliveryMethodFromQuery === 'pickup')) {
         setFormDataLocal(prev => ({
@@ -157,7 +158,10 @@ const Page: React.FC = () => {
 
         console.log('Delivery method set from query params:', deliveryMethodFromQuery);
       }
-    }, [searchParams]);
+      
+      setSearchParamsLoaded(true);
+    }, []); 
+
 
     useEffect(() => {
       // Only run on client side
