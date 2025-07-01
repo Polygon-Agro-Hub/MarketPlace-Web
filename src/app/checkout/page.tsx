@@ -15,6 +15,8 @@ import { selectCartForOrder } from '../../store/slices/cartItemsSlice';
 import { useSearchParams } from 'next/navigation';
 import { getPickupCenters, PickupCenter } from '@/services/cart-service'
 import dynamic from 'next/dynamic';
+import Image from 'next/image';
+import summary from '../../../public/summary.png'
 
 const OpenStreetMap = dynamic(() => import('@/components/open-map/OpenStreetMap'), {
   ssr: false,
@@ -837,10 +839,21 @@ const Page: React.FC = () => {
             <div className='w-full lg:w-1/3 mt-6 lg:mt-0'>
               <div className='border border-gray-300 rounded-lg shadow-md p-4 sm:p-5 md:p-6'>
                 <h2 className='font-semibold text-lg mb-4'>Your Order </h2>
-
-                <div className='flex justify-between items-center mb-4'>
-                  <p className="text-gray-600">{cartData?.totalItems || 0} items</p>
-                  <p className='font-semibold'>Rs.{formatPrice(cartData?.grandTotal || 0)}</p>
+                
+                                <div className='flex justify-between items-center mb-3 sm:mb-4'>
+                  <div className='flex items-center gap-2 sm:gap-3'>
+                    <div className="w-12 sm:w-14 md:w-16 h-12 sm:h-14 md:h-16 border border-[gray] rounded-lg flex items-center justify-center">
+                      <Image 
+                        src={summary} 
+                        alt="Shopping bag" 
+                        width={40} 
+                        height={40}
+                        className="object-contain"
+                      />
+                    </div>
+                     <p className="text-gray-600">{cartData?.totalItems || 0} items</p>
+                  </div>
+                 <p className='font-semibold'>Rs.{formatPrice(cartData?.grandTotal || 0)}</p>
                 </div>
 
                 <div className='border-t border-gray-300 my-4' />
