@@ -10,7 +10,7 @@ import { setFormData, resetFormData } from '../../store/slices/checkoutSlice';
 import { useRouter } from 'next/navigation';
 import SuccessPopup from '@/components/toast-messages/success-message-with-button';
 import ErrorPopup from '@/components/toast-messages/error-message';
-import { getForm } from '@/services/retail-service';
+import { getLastOrderAddress } from '@/services/retail-service';
 import { selectCartForOrder } from '../../store/slices/cartItemsSlice';
 import { useSearchParams } from 'next/navigation';
 import { getPickupCenters, PickupCenter } from '@/services/cart-service'
@@ -189,51 +189,59 @@ const Page: React.FC = () => {
       fetchPickupCenters();
     }, [formData.deliveryMethod, token]);
 
-  const handleAddressOptionChange = async (value: string) => {
-    if (value === 'previous') {
-      console.log('fetching')
-      setUsePreviousAddress(true);
-      setFetching(true);
+ const handleAddressOptionChange = async (value: string) => {
+  if (value === 'previous') {
+    console.log('fetching last order address');
+    setUsePreviousAddress(true);
+    setFetching(true);
 
-      try {
-        const response = await getForm(token);
+    try {
+      const response = await getLastOrderAddress(token);
 
+      if (response && response.status) {
+        const data = response.result;
+        console.log('fetch last order address data', data);
 
-        if (response) {
-          // const data = response;
-          console.log('fetch data', response);
-
-          setFormDataLocal(prev => ({
-            ...prev,
-            buildingNo: response.result.buildingNo || '',
-            buildingType: response.result.buildingType || 'Apartment',
-            cityName: response.result.city || '',
-            houseNo: response.result.houseNo || '',
-            phone1: response.result.phone1 || '',
-            phone2: response.result.phone2 || '',
-            phoneCode1: response.result.phonecode1 || '+94',
-            phoneCode2: response.result.phonecode2 || '+94',
-            street: response.result.streetName || '',
-            title: response.result.title || '',
-            buildingName: response.result.buildingName || '',
-            flatNumber: response.result.unitNo || '',
-            floorNumber: response.result.floorNo || '',
-            fullName: response.result.fullName || '',
-            scheduleType: 'One Time', // default
-          }));
-        }
-      } catch (error: any) {
-        console.error('Failed to fetch previous address data:', error);
-        setErrorMsg(error.message || 'Failed to fetch form data.');
+        // Update form data based on building type
+        setFormDataLocal(prev => ({
+          ...prev,
+          buildingType: data.buildingType || 'Apartment',
+          title: data.title || '',
+          fullName: data.fullName || '',
+          phone1: data.phone1 || '',
+          phone2: data.phone2 || '',
+          phoneCode1: data.phonecode1 || '+94',
+          phoneCode2: data.phonecode2 || '+94',
+          scheduleType: 'One Time', // default
+          // Common address fields
+          houseNo: data.houseNo || '',
+          street: data.streetName || '',
+          cityName: data.city || '',
+          // Apartment-specific fields (will be empty for House type)
+          buildingNo: data.buildingNo || '',
+          buildingName: data.buildingName || '',
+          flatNumber: data.unitNo || '',
+          floorNumber: data.floorNo || '',
+        }));
+      } else {
+        // Handle case where no previous address is found
+        setErrorMsg('No previous order address found.');
         setShowErrorPopup(true);
-      } finally {
-        setFetching(false);
+        setUsePreviousAddress(false);
       }
-    } else {
+    } catch (error: any) {
+      console.error('Failed to fetch last order address:', error);
+      setErrorMsg(error.message || 'Failed to fetch last order address.');
+      setShowErrorPopup(true);
       setUsePreviousAddress(false);
-      setFormDataLocal(initialFormState);
+    } finally {
+      setFetching(false);
     }
-  };
+  } else {
+    setUsePreviousAddress(false);
+    setFormDataLocal(initialFormState);
+  }
+};
 
   const handleCenterSelect = (centerId: string, centerName: string) => {
     const selectedCenter = pickupCenters.find(center => center.value === centerId);
@@ -511,7 +519,7 @@ const Page: React.FC = () => {
                           onChange={() => handleAddressOptionChange('previous')}
                           className="mr-2 accent-[#3E206D]"
                         />
-                        Your Last Order Address
+                        Your Saved Address
                       </label>
 
                       <label className="flex items-center text-nowrap text-sm md:text-base">

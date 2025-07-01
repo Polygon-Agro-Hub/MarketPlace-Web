@@ -44,7 +44,7 @@ interface fetchedFormData {
 
 }
 
-export const getForm = async (token: string | null) => {
+export const getLastOrderAddress = async (token: string | null) => {
   try {
     const response = await axios.get('/retail-order/fetch-check-out-data', {
       headers: {
@@ -52,11 +52,13 @@ export const getForm = async (token: string | null) => {
         'Content-Type': 'application/json',
       },
     }); // Make sure this matches your backend route
+    console.log('last address',response.data)
     return response.data;
   } catch (error: any) {
     throw error.response?.data || { message: 'Failed to fetch form data.' };
   }
 };
+
 
 
 // export const updateForm = async (formData: CheckoutFormData, token: string | null) => {
