@@ -602,3 +602,35 @@ export const getPickupCenters = async (): Promise<PickupCentersResponse> => {
     throw new Error(error.response?.data?.message || 'Failed to fetch pickup centers');
   }
 };
+
+export interface CouponValidationResponse {
+  status: boolean;
+  message: string;
+  discount: number;
+}
+
+export const validateCoupon = async (couponCode: string, token: string): Promise<CouponValidationResponse> => {
+  try {
+    const response = await axios.post('/retail-order/check-coupon-avalability', 
+      { 
+        coupon: couponCode 
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      }
+    );
+
+    console.log('coupon details',response.data)
+
+    return response.data;
+  } catch (error: any) {
+    console.error('Error validating coupon:', error);
+    
+    // Handle axios error response
+    const errorMessage = error.response?.data?.message || 'Failed to validate coupon';
+    throw new Error(errorMessage);
+  }
+};

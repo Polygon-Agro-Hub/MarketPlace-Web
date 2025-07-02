@@ -26,6 +26,7 @@ import { useRouter } from 'next/navigation';
 import empty from '../../../public/empty.jpg'
 import pickup from '../../../public/pickup.png'
 import delivery from '../../../public/deliver.png'
+import summary from '../../../public/summary.png'
 import Image from 'next/image'
 
 interface PackageItem {
@@ -952,19 +953,21 @@ if (isCartEmpty()) {
           <div className='border border-[#171717] rounded-lg shadow-md p-4 sm:p-5 md:p-6 md:mx-10 sm:mr-10'>
             <h2 className='font-semibold text-base sm:text-lg mb-3 sm:mb-4'>Your Order</h2>
 
-            <div className='flex justify-between items-center mb-3 sm:mb-4'>
-              <div className='flex items-center gap-2 sm:gap-3'>
-                <div className="w-12 sm:w-14 md:w-16 h-12 sm:h-14 md:h-16 bg-gray-200 rounded-lg flex items-center justify-center">
-                  <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
-                  </svg>
+                <div className='flex justify-between items-center mb-3 sm:mb-4'>
+                  <div className='flex items-center gap-2 sm:gap-3'>
+                    <div className="w-12 sm:w-14 md:w-16 h-12 sm:h-14 md:h-16 border border-[gray] rounded-lg flex items-center justify-center">
+                      <Image 
+                        src={summary} 
+                        alt="Shopping bag" 
+                        width={40} 
+                        height={40}
+                        className="object-contain"
+                      />
+                    </div>
+                    <p className="text-sm sm:text-base">{calculatedSummary?.totalItems || 0} items</p>
+                  </div>
+                  <p className='font-semibold text-sm sm:text-base'>Rs.{formatPrice(calculatedSummary?.grandTotal || 0)}</p>
                 </div>
-                <p className="text-sm sm:text-base">{calculatedSummary?.totalItems || 0} items</p>
-              </div>
-              <p className='font-semibold text-sm sm:text-base'>Rs.{formatPrice(calculatedSummary?.grandTotal || 0)}</p>
-            </div>
-
-            <div className='border-t border-dotted border-gray-300 my-3' />
 
             {cartData.cart?.isCoupon === 1 ? (
               <div className='bg-green-50 border border-green-200 rounded-lg p-3 mb-3'>
