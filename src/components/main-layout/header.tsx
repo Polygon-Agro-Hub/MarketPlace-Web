@@ -52,6 +52,18 @@ const Header = () => {
     setIsMenuOpen(!isMenuOpen);
   }
 
+  const formatPrice = (price: number): string => {
+  // Convert to fixed decimal first, then add commas
+  const fixedPrice = Number(price).toFixed(2);
+  const [integerPart, decimalPart] = fixedPrice.split('.');
+  
+  // Add commas to integer part
+  const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  
+  return `${formattedInteger}.${decimalPart}`;
+};
+
+
   const toggleDesktopCategory = (e: { preventDefault: () => void }) => {
     e.preventDefault();
     setIsDesktopCategoryOpen(!isDesktopCategoryOpen);
@@ -179,7 +191,7 @@ const Header = () => {
                   {isClient ? cartState.count : 0}
                 </span>
               </div>
-              <div className="text-sm">Rs. {isClient ? cartState.price.toFixed(2) : '0.00'}</div>
+              <div className="text-sm">Rs. {isClient ? formatPrice(cartState.price) : '0.00'}</div>
             </div>
           </Link>
           
