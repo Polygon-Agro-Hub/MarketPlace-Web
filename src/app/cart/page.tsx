@@ -28,6 +28,9 @@ import pickup from '../../../public/pickup.png'
 import delivery from '../../../public/deliver.png'
 import summary from '../../../public/summary.png'
 import Image from 'next/image'
+import { updateCartInfo } from '@/store/slices/authSlice';
+import { getCartInfo } from '@/services/auth-service';
+
 
 interface PackageItem {
   name: string;
@@ -295,85 +298,104 @@ const handleProductQuantityChange = (productId: number, delta: number) => {
     setShowConfirmModal({ type: 'package', id: packageId });
   };
 
-  // Actual product removal after confirmation
-  const confirmRemoveProduct = async (productId: number) => {
-    const itemKey = `product-${productId}`;
+const confirmRemoveProduct = async (productId: number) => {
+  const itemKey = `product-${productId}`;
+  
+  // Prevent multiple simultaneous removals
+  if (removingItems.has(itemKey)) return;
+  
+  try {
+    // Add to removing set
+    setRemovingItems(prev => new Set(prev).add(itemKey));
     
-    // Prevent multiple simultaneous removals
-    if (removingItems.has(itemKey)) return;
+    // Make direct API call
+    await removeCartProduct(productId, token);
     
+    // Update Redux store after successful API call
+    dispatch(removeProduct(productId));
+    
+    // Fetch updated cart info after successful removal
     try {
-      // Add to removing set
-      setRemovingItems(prev => new Set(prev).add(itemKey));
-      
-      // Make direct API call
-      await removeCartProduct(productId, token);
-      
-      // Update Redux store after successful API call
-      dispatch(removeProduct(productId));
-      
-      // Optionally refresh cart data to ensure consistency
-      const updatedCartData = await getUserCart(token);
-      dispatch(setCartData({
-        cart: updatedCartData.cart,
-        packages: updatedCartData.packages,
-        additionalItems: updatedCartData.additionalItems,
-        summary: updatedCartData.summary,
-      }));
-      
-    } catch (error: any) {
-      console.error('Error removing product:', error);
-      // Show error message to user
-      alert('Failed to remove item. Please try again.');
-    } finally {
-      // Remove from removing set
-      setRemovingItems(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(itemKey);
-        return newSet;
-      });
+      const cartInfo = await getCartInfo(token);
+      console.log("Updated cart info:", cartInfo);
+      dispatch(updateCartInfo(cartInfo));
+    } catch (cartError) {
+      console.error('Error fetching cart info:', cartError);
+      // Don't fail the whole operation if cart info fetch fails
     }
-  };
+    
+    // Optionally refresh cart data to ensure consistency
+    const updatedCartData = await getUserCart(token);
+    dispatch(setCartData({
+      cart: updatedCartData.cart,
+      packages: updatedCartData.packages,
+      additionalItems: updatedCartData.additionalItems,
+      summary: updatedCartData.summary,
+    }));
+    
+  } catch (error: any) {
+    console.error('Error removing product:', error);
+    // Show error message to user
+    alert('Failed to remove item. Please try again.');
+  } finally {
+    // Remove from removing set
+    setRemovingItems(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(itemKey);
+      return newSet;
+    });
+  }
+};
 
-  // Actual package removal after confirmation
-  const confirmRemovePackage = async (packageId: number) => {
-    const itemKey = `package-${packageId}`;
+// Actual package removal after confirmation
+const confirmRemovePackage = async (packageId: number) => {
+  const itemKey = `package-${packageId}`;
+  
+  // Prevent multiple simultaneous removals
+  if (removingItems.has(itemKey)) return;
+  
+  try {
+    // Add to removing set
+    setRemovingItems(prev => new Set(prev).add(itemKey));
     
-    // Prevent multiple simultaneous removals
-    if (removingItems.has(itemKey)) return;
+    // Make direct API call
+    await removeCartPackage(packageId, token);
     
+    // Update Redux store after successful API call
+    dispatch(removePackage(packageId));
+    
+    // Fetch updated cart info after successful removal
     try {
-      // Add to removing set
-      setRemovingItems(prev => new Set(prev).add(itemKey));
-      
-      // Make direct API call
-      await removeCartPackage(packageId, token);
-      
-      // Update Redux store after successful API call
-      dispatch(removePackage(packageId));
-      
-      // Optionally refresh cart data to ensure consistency
-      const updatedCartData = await getUserCart(token);
-      dispatch(setCartData({
-        cart: updatedCartData.cart,
-        packages: updatedCartData.packages,
-        additionalItems: updatedCartData.additionalItems,
-        summary: updatedCartData.summary,
-      }));
-      
-    } catch (error: any) {
-      console.error('Error removing package:', error);
-      // Show error message to user
-      alert('Failed to remove package. Please try again.');
-    } finally {
-      // Remove from removing set
-      setRemovingItems(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(itemKey);
-        return newSet;
-      });
+      const cartInfo = await getCartInfo(token);
+      console.log("Updated cart info:", cartInfo);
+      dispatch(updateCartInfo(cartInfo));
+    } catch (cartError) {
+      console.error('Error fetching cart info:', cartError);
+      // Don't fail the whole operation if cart info fetch fails
     }
-  };
+    
+    // Optionally refresh cart data to ensure consistency
+    const updatedCartData = await getUserCart(token);
+    dispatch(setCartData({
+      cart: updatedCartData.cart,
+      packages: updatedCartData.packages,
+      additionalItems: updatedCartData.additionalItems,
+      summary: updatedCartData.summary,
+    }));
+    
+  } catch (error: any) {
+    console.error('Error removing package:', error);
+    // Show error message to user
+    alert('Failed to remove package. Please try again.');
+  } finally {
+    // Remove from removing set
+    setRemovingItems(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(itemKey);
+      return newSet;
+    });
+  }
+};
 
         // Add this helper function to get all product IDs
       const getAllProductIds = (): number[] => {
@@ -431,66 +453,76 @@ const handleProductQuantityChange = (productId: number, delta: number) => {
         });
       };
 
-  const confirmBulkDelete = async (productIds: any) => {
-  try {
-    setBulkDeleteLoading(true);
-    
-    // Debug logs
-    console.log('=== BULK DELETE DEBUG ===');
-    console.log('productIds received:', productIds);
-    console.log('productIds type:', typeof productIds);
-    console.log('productIds is array:', Array.isArray(productIds));
-    console.log('productIds length:', productIds?.length);
-    console.log('productIds content:', JSON.stringify(productIds));
-    
-    // Ensure productIds is an array of numbers
-    let validProductIds: number[] = [];
-    
-    if (Array.isArray(productIds)) {
-      validProductIds = productIds
-        .map(id => parseInt(String(id), 10))
-        .filter(id => !isNaN(id) && id > 0);
-    } else {
-      throw new Error('ProductIds must be an array');
-    }
-    
-    console.log('validProductIds after processing:', validProductIds);
-    
-    if (validProductIds.length === 0) {
-      throw new Error('No valid product IDs to delete');
-    }
-    
-    // Call bulk delete API with validated array
-    await bulkRemoveCartProducts(validProductIds, token);
-    
-    // Update Redux store
-    validProductIds.forEach(productId => {
-      dispatch(removeProduct(productId));
-    });
-    
-    // Refresh cart data to ensure consistency
-    const updatedCartData = await getUserCart(token);
-    dispatch(setCartData({
-      cart: updatedCartData.cart,
-      packages: updatedCartData.packages,
-      additionalItems: updatedCartData.additionalItems,
-      summary: updatedCartData.summary,
-    }));
-    
-    // Clear selections
-    setSelectedProducts(new Set());
-    setSelectAll(false);
-    
-    // // Show success message
-    // alert(`Successfully removed ${validProductIds.length} items from cart`);
-    
-  } catch (error: any) {
-    console.error('Error bulk deleting products:', error);
-    alert(error.message || 'Failed to remove selected items. Please try again.');
-  } finally {
-    setBulkDeleteLoading(false);
-  }
-};
+        const confirmBulkDelete = async (productIds: any) => {
+          try {
+            setBulkDeleteLoading(true);
+            
+            // Debug logs
+            console.log('=== BULK DELETE DEBUG ===');
+            console.log('productIds received:', productIds);
+            console.log('productIds type:', typeof productIds);
+            console.log('productIds is array:', Array.isArray(productIds));
+            console.log('productIds length:', productIds?.length);
+            console.log('productIds content:', JSON.stringify(productIds));
+            
+            // Ensure productIds is an array of numbers
+            let validProductIds: number[] = [];
+            
+            if (Array.isArray(productIds)) {
+              validProductIds = productIds
+                .map(id => parseInt(String(id), 10))
+                .filter(id => !isNaN(id) && id > 0);
+            } else {
+              throw new Error('ProductIds must be an array');
+            }
+            
+            console.log('validProductIds after processing:', validProductIds);
+            
+            if (validProductIds.length === 0) {
+              throw new Error('No valid product IDs to delete');
+            }
+            
+            // Call bulk delete API with validated array
+            await bulkRemoveCartProducts(validProductIds, token);
+            
+            // Update Redux store
+            validProductIds.forEach(productId => {
+              dispatch(removeProduct(productId));
+            });
+            
+            // Fetch updated cart info after successful removal
+            try {
+              const cartInfo = await getCartInfo(token);
+              console.log("Updated cart info:", cartInfo);
+              dispatch(updateCartInfo(cartInfo));
+            } catch (cartError) {
+              console.error('Error fetching cart info:', cartError);
+              // Don't fail the whole operation if cart info fetch fails
+            }
+            
+            // Refresh cart data to ensure consistency
+            const updatedCartData = await getUserCart(token);
+            dispatch(setCartData({
+              cart: updatedCartData.cart,
+              packages: updatedCartData.packages,
+              additionalItems: updatedCartData.additionalItems,
+              summary: updatedCartData.summary,
+            }));
+            
+            // Clear selections
+            setSelectedProducts(new Set());
+            setSelectAll(false);
+            
+            // // Show success message
+            // alert(`Successfully removed ${validProductIds.length} items from cart`);
+            
+          } catch (error: any) {
+            console.error('Error bulk deleting products:', error);
+            alert(error.message || 'Failed to remove selected items. Please try again.');
+          } finally {
+            setBulkDeleteLoading(false);
+          }
+        };
 
 
 const handleCheckout = async () => {
@@ -518,6 +550,15 @@ const handleCheckout = async () => {
       additionalItems: updatedCartData.additionalItems,
       summary: updatedCartData.summary,
     }));
+    // Fetch updated cart info after processing updates
+    try {
+      const cartInfo = await getCartInfo(token);
+      console.log("Updated cart info:", cartInfo);
+      dispatch(updateCartInfo(cartInfo));
+    } catch (cartError) {
+      console.error('Error fetching cart info:', cartError);
+      // Don't fail the whole operation if cart info fetch fails
+    }
 
     // Show delivery method selection popup
     setShowDeliveryModal(true);
