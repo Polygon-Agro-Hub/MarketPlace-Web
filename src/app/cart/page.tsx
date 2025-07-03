@@ -26,7 +26,11 @@ import { useRouter } from 'next/navigation';
 import empty from '../../../public/empty.jpg'
 import pickup from '../../../public/pickup.png'
 import delivery from '../../../public/deliver.png'
+import summary from '../../../public/summary.png'
 import Image from 'next/image'
+import { updateCartInfo } from '@/store/slices/authSlice';
+import { getCartInfo } from '@/services/auth-service';
+
 
 interface PackageItem {
   name: string;
@@ -285,94 +289,158 @@ const handleProductQuantityChange = (productId: number, delta: number) => {
 };
 
   // Show confirmation modal for product removal
-  const handleRemoveProduct = (productId: number) => {
-    setShowConfirmModal({ type: 'product', id: productId });
-  };
+const handleRemoveProduct = async (productId: number) => {
+  const itemKey = `product-${productId}`;
+  
+  // Prevent multiple simultaneous removals
+  if (removingItems.has(itemKey)) return;
+  
+  try {
+    // Add to removing set
+    setRemovingItems(prev => new Set(prev).add(itemKey));
+    
+    // Make direct API call
+    await removeCartProduct(productId, token);
+    
+    // Update Redux store after successful API call
+    dispatch(removeProduct(productId));
+    
+    // Fetch updated cart info after successful removal
+    try {
+      const cartInfo = await getCartInfo(token);
+      console.log("Updated cart info:", cartInfo);
+      dispatch(updateCartInfo(cartInfo));
+    } catch (cartError) {
+      console.error('Error fetching cart info:', cartError);
+      // Don't fail the whole operation if cart info fetch fails
+    }
+    
+    // Optionally refresh cart data to ensure consistency
+    const updatedCartData = await getUserCart(token);
+    dispatch(setCartData({
+      cart: updatedCartData.cart,
+      packages: updatedCartData.packages,
+      additionalItems: updatedCartData.additionalItems,
+      summary: updatedCartData.summary,
+    }));
+    
+  } catch (error: any) {
+    console.error('Error removing product:', error);
+    // Show error message to user
+    alert('Failed to remove item. Please try again.');
+  } finally {
+    // Remove from removing set
+    setRemovingItems(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(itemKey);
+      return newSet;
+    });
+  }
+};
 
   // Show confirmation modal for package removal
   const handleRemovePackage = (packageId: number) => {
     setShowConfirmModal({ type: 'package', id: packageId });
   };
 
-  // Actual product removal after confirmation
-  const confirmRemoveProduct = async (productId: number) => {
-    const itemKey = `product-${productId}`;
+const confirmRemoveProduct = async (productId: number) => {
+  const itemKey = `product-${productId}`;
+  
+  // Prevent multiple simultaneous removals
+  if (removingItems.has(itemKey)) return;
+  
+  try {
+    // Add to removing set
+    setRemovingItems(prev => new Set(prev).add(itemKey));
     
-    // Prevent multiple simultaneous removals
-    if (removingItems.has(itemKey)) return;
+    // Make direct API call
+    await removeCartProduct(productId, token);
     
+    // Update Redux store after successful API call
+    dispatch(removeProduct(productId));
+    
+    // Fetch updated cart info after successful removal
     try {
-      // Add to removing set
-      setRemovingItems(prev => new Set(prev).add(itemKey));
-      
-      // Make direct API call
-      await removeCartProduct(productId, token);
-      
-      // Update Redux store after successful API call
-      dispatch(removeProduct(productId));
-      
-      // Optionally refresh cart data to ensure consistency
-      const updatedCartData = await getUserCart(token);
-      dispatch(setCartData({
-        cart: updatedCartData.cart,
-        packages: updatedCartData.packages,
-        additionalItems: updatedCartData.additionalItems,
-        summary: updatedCartData.summary,
-      }));
-      
-    } catch (error: any) {
-      console.error('Error removing product:', error);
-      // Show error message to user
-      alert('Failed to remove item. Please try again.');
-    } finally {
-      // Remove from removing set
-      setRemovingItems(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(itemKey);
-        return newSet;
-      });
+      const cartInfo = await getCartInfo(token);
+      console.log("Updated cart info:", cartInfo);
+      dispatch(updateCartInfo(cartInfo));
+    } catch (cartError) {
+      console.error('Error fetching cart info:', cartError);
+      // Don't fail the whole operation if cart info fetch fails
     }
-  };
+    
+    // Optionally refresh cart data to ensure consistency
+    const updatedCartData = await getUserCart(token);
+    dispatch(setCartData({
+      cart: updatedCartData.cart,
+      packages: updatedCartData.packages,
+      additionalItems: updatedCartData.additionalItems,
+      summary: updatedCartData.summary,
+    }));
+    
+  } catch (error: any) {
+    console.error('Error removing product:', error);
+    // Show error message to user
+    alert('Failed to remove item. Please try again.');
+  } finally {
+    // Remove from removing set
+    setRemovingItems(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(itemKey);
+      return newSet;
+    });
+  }
+};
 
-  // Actual package removal after confirmation
-  const confirmRemovePackage = async (packageId: number) => {
-    const itemKey = `package-${packageId}`;
+// Actual package removal after confirmation
+const confirmRemovePackage = async (packageId: number) => {
+  const itemKey = `package-${packageId}`;
+  
+  // Prevent multiple simultaneous removals
+  if (removingItems.has(itemKey)) return;
+  
+  try {
+    // Add to removing set
+    setRemovingItems(prev => new Set(prev).add(itemKey));
     
-    // Prevent multiple simultaneous removals
-    if (removingItems.has(itemKey)) return;
+    // Make direct API call
+    await removeCartPackage(packageId, token);
     
+    // Update Redux store after successful API call
+    dispatch(removePackage(packageId));
+    
+    // Fetch updated cart info after successful removal
     try {
-      // Add to removing set
-      setRemovingItems(prev => new Set(prev).add(itemKey));
-      
-      // Make direct API call
-      await removeCartPackage(packageId, token);
-      
-      // Update Redux store after successful API call
-      dispatch(removePackage(packageId));
-      
-      // Optionally refresh cart data to ensure consistency
-      const updatedCartData = await getUserCart(token);
-      dispatch(setCartData({
-        cart: updatedCartData.cart,
-        packages: updatedCartData.packages,
-        additionalItems: updatedCartData.additionalItems,
-        summary: updatedCartData.summary,
-      }));
-      
-    } catch (error: any) {
-      console.error('Error removing package:', error);
-      // Show error message to user
-      alert('Failed to remove package. Please try again.');
-    } finally {
-      // Remove from removing set
-      setRemovingItems(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(itemKey);
-        return newSet;
-      });
+      const cartInfo = await getCartInfo(token);
+      console.log("Updated cart info:", cartInfo);
+      dispatch(updateCartInfo(cartInfo));
+    } catch (cartError) {
+      console.error('Error fetching cart info:', cartError);
+      // Don't fail the whole operation if cart info fetch fails
     }
-  };
+    
+    // Optionally refresh cart data to ensure consistency
+    const updatedCartData = await getUserCart(token);
+    dispatch(setCartData({
+      cart: updatedCartData.cart,
+      packages: updatedCartData.packages,
+      additionalItems: updatedCartData.additionalItems,
+      summary: updatedCartData.summary,
+    }));
+    
+  } catch (error: any) {
+    console.error('Error removing package:', error);
+    // Show error message to user
+    alert('Failed to remove package. Please try again.');
+  } finally {
+    // Remove from removing set
+    setRemovingItems(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(itemKey);
+      return newSet;
+    });
+  }
+};
 
         // Add this helper function to get all product IDs
       const getAllProductIds = (): number[] => {
@@ -430,66 +498,76 @@ const handleProductQuantityChange = (productId: number, delta: number) => {
         });
       };
 
-  const confirmBulkDelete = async (productIds: any) => {
-  try {
-    setBulkDeleteLoading(true);
-    
-    // Debug logs
-    console.log('=== BULK DELETE DEBUG ===');
-    console.log('productIds received:', productIds);
-    console.log('productIds type:', typeof productIds);
-    console.log('productIds is array:', Array.isArray(productIds));
-    console.log('productIds length:', productIds?.length);
-    console.log('productIds content:', JSON.stringify(productIds));
-    
-    // Ensure productIds is an array of numbers
-    let validProductIds: number[] = [];
-    
-    if (Array.isArray(productIds)) {
-      validProductIds = productIds
-        .map(id => parseInt(String(id), 10))
-        .filter(id => !isNaN(id) && id > 0);
-    } else {
-      throw new Error('ProductIds must be an array');
-    }
-    
-    console.log('validProductIds after processing:', validProductIds);
-    
-    if (validProductIds.length === 0) {
-      throw new Error('No valid product IDs to delete');
-    }
-    
-    // Call bulk delete API with validated array
-    await bulkRemoveCartProducts(validProductIds, token);
-    
-    // Update Redux store
-    validProductIds.forEach(productId => {
-      dispatch(removeProduct(productId));
-    });
-    
-    // Refresh cart data to ensure consistency
-    const updatedCartData = await getUserCart(token);
-    dispatch(setCartData({
-      cart: updatedCartData.cart,
-      packages: updatedCartData.packages,
-      additionalItems: updatedCartData.additionalItems,
-      summary: updatedCartData.summary,
-    }));
-    
-    // Clear selections
-    setSelectedProducts(new Set());
-    setSelectAll(false);
-    
-    // // Show success message
-    // alert(`Successfully removed ${validProductIds.length} items from cart`);
-    
-  } catch (error: any) {
-    console.error('Error bulk deleting products:', error);
-    alert(error.message || 'Failed to remove selected items. Please try again.');
-  } finally {
-    setBulkDeleteLoading(false);
-  }
-};
+        const confirmBulkDelete = async (productIds: any) => {
+          try {
+            setBulkDeleteLoading(true);
+            
+            // Debug logs
+            console.log('=== BULK DELETE DEBUG ===');
+            console.log('productIds received:', productIds);
+            console.log('productIds type:', typeof productIds);
+            console.log('productIds is array:', Array.isArray(productIds));
+            console.log('productIds length:', productIds?.length);
+            console.log('productIds content:', JSON.stringify(productIds));
+            
+            // Ensure productIds is an array of numbers
+            let validProductIds: number[] = [];
+            
+            if (Array.isArray(productIds)) {
+              validProductIds = productIds
+                .map(id => parseInt(String(id), 10))
+                .filter(id => !isNaN(id) && id > 0);
+            } else {
+              throw new Error('ProductIds must be an array');
+            }
+            
+            console.log('validProductIds after processing:', validProductIds);
+            
+            if (validProductIds.length === 0) {
+              throw new Error('No valid product IDs to delete');
+            }
+            
+            // Call bulk delete API with validated array
+            await bulkRemoveCartProducts(validProductIds, token);
+            
+            // Update Redux store
+            validProductIds.forEach(productId => {
+              dispatch(removeProduct(productId));
+            });
+            
+            // Fetch updated cart info after successful removal
+            try {
+              const cartInfo = await getCartInfo(token);
+              console.log("Updated cart info:", cartInfo);
+              dispatch(updateCartInfo(cartInfo));
+            } catch (cartError) {
+              console.error('Error fetching cart info:', cartError);
+              // Don't fail the whole operation if cart info fetch fails
+            }
+            
+            // Refresh cart data to ensure consistency
+            const updatedCartData = await getUserCart(token);
+            dispatch(setCartData({
+              cart: updatedCartData.cart,
+              packages: updatedCartData.packages,
+              additionalItems: updatedCartData.additionalItems,
+              summary: updatedCartData.summary,
+            }));
+            
+            // Clear selections
+            setSelectedProducts(new Set());
+            setSelectAll(false);
+            
+            // // Show success message
+            // alert(`Successfully removed ${validProductIds.length} items from cart`);
+            
+          } catch (error: any) {
+            console.error('Error bulk deleting products:', error);
+            alert(error.message || 'Failed to remove selected items. Please try again.');
+          } finally {
+            setBulkDeleteLoading(false);
+          }
+        };
 
 
 const handleCheckout = async () => {
@@ -517,6 +595,15 @@ const handleCheckout = async () => {
       additionalItems: updatedCartData.additionalItems,
       summary: updatedCartData.summary,
     }));
+    // Fetch updated cart info after processing updates
+    try {
+      const cartInfo = await getCartInfo(token);
+      console.log("Updated cart info:", cartInfo);
+      dispatch(updateCartInfo(cartInfo));
+    } catch (cartError) {
+      console.error('Error fetching cart info:', cartError);
+      // Don't fail the whole operation if cart info fetch fails
+    }
 
     // Show delivery method selection popup
     setShowDeliveryModal(true);
@@ -616,7 +703,7 @@ if (isCartEmpty()) {
             {/* Continue Shopping Button */}
             <button
               onClick={handleContinueShopping}
-              className="bg-[#3E206D] text-white font-semibold px-8 py-3 rounded-lg text-lg hover:bg-[#2F1A5B] transition-colors shadow-lg"
+              className="bg-[#3E206D] text-white font-semibold px-8 py-3 rounded-lg text-lg hover:bg-[#2F1A5B] transition-colors shadow-lg cursor-pointer"
             >
               Continue Shopping
             </button>
@@ -629,42 +716,41 @@ if (isCartEmpty()) {
   return (
     <>
       {/* Confirmation Modal - Moved to top level */}
-     {showConfirmModal && (
-        <div className="fixed inset-0 bg-black/40 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-96 text-center">
-            <p className="text-lg font-medium mb-6">
-              {showConfirmModal.type === 'bulk' 
-                ? `Are you sure you want to remove ${showConfirmModal.selectedIds?.length} selected products?`
-                : `Are you sure you want to remove this ${showConfirmModal.type === 'package' ? 'package' : 'product'}?`
-              }
-            </p>
-            <div className="flex justify-center gap-4">
-              <button
-                onClick={() => setShowConfirmModal(null)}
-                className="px-6 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  if (showConfirmModal.type === 'bulk') {
-                    confirmBulkDelete(showConfirmModal.selectedIds || []);
-                  } else if (showConfirmModal.type === 'package') {
-                    confirmRemovePackage(showConfirmModal.id);
-                  } else {
-                    confirmRemoveProduct(showConfirmModal.id);
-                  }
-                  setShowConfirmModal(null);
-                }}
-                disabled={showConfirmModal.type === 'bulk' && bulkDeleteLoading}
-                className="px-6 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors disabled:opacity-50"
-              >
-                {showConfirmModal.type === 'bulk' && bulkDeleteLoading ? 'Removing...' : 'Remove'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+    {showConfirmModal && (
+  <div className="fixed inset-0 bg-black/40 bg-opacity-50 flex items-center justify-center z-50">
+    <div className="bg-white p-6 rounded-lg shadow-lg w-96 text-center">
+      <p className="text-lg font-medium mb-6">
+        {showConfirmModal.type === 'bulk' 
+          ? `Are you sure you want to remove ${showConfirmModal.selectedIds?.length} selected products?`
+          : `Are you sure you want to remove this package?`
+        }
+      </p>
+      <div className="flex justify-center gap-4">
+        <button
+          onClick={() => setShowConfirmModal(null)}
+          className="px-6 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={() => {
+            if (showConfirmModal.type === 'bulk') {
+              confirmBulkDelete(showConfirmModal.selectedIds || []);
+            } else {
+              confirmRemovePackage(showConfirmModal.id);
+            }
+            setShowConfirmModal(null);
+          }}
+          disabled={showConfirmModal.type === 'bulk' && bulkDeleteLoading}
+          className="px-6 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors disabled:opacity-50"
+        >
+          {showConfirmModal.type === 'bulk' && bulkDeleteLoading ? 'Removing...' : 'Remove'}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
     {showDeliveryModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
           <div className="bg-[#3E206D] p-8 rounded-2xl shadow-2xl w-full max-w-md relative">
@@ -674,10 +760,10 @@ if (isCartEmpty()) {
             
             <div className="grid grid-cols-2 gap-4 mb-6">
               {/* In-store Pickup Option */}
-              <button
-                onClick={() => handleDeliveryMethodSelect('pickup')}
-                className="bg-white rounded-2xl p-6 flex flex-col items-center justify-center hover:shadow-lg transition-all duration-200 hover:scale-105"
-              >
+                  <button
+                    onClick={() => handleDeliveryMethodSelect('pickup')}
+                    className="bg-white rounded-2xl p-6 flex flex-col items-center justify-center hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer"
+                  >
                 <div className="mb-4">
                   <Image
                     src={pickup}
@@ -694,7 +780,7 @@ if (isCartEmpty()) {
               {/* Home Delivery Option */}
               <button
                 onClick={() => handleDeliveryMethodSelect('delivery')}
-                className="bg-white rounded-2xl p-6 flex flex-col items-center justify-center hover:shadow-lg transition-all duration-200 hover:scale-105"
+                className="bg-white rounded-2xl p-6 flex flex-col items-center justify-center hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer"
               >
                 <div className="mb-4">
                   <Image
@@ -747,16 +833,16 @@ if (isCartEmpty()) {
               {/* Bulk Delete Button - Only show when items are selected */}
               {selectedProducts.size > 0 && (
               <div className='flex justify-end mb-4 '>
-                <button
-                  onClick={handleBulkDelete}
-                  disabled={bulkDeleteLoading}
-                  className='flex items-center gap-2 text-[#FF000D] px-4 py-2 rounded-lg transition-colors disabled:opacity-50'
-                >
-                  <Trash size={20} fill="red" strokeWidth={2} />
-                  <span className='text-sm  underline'>
-                    Delete Selected Items
-                  </span>
-                </button>
+                  <button
+                    onClick={handleBulkDelete}
+                    disabled={bulkDeleteLoading}
+                    className='flex items-center gap-2 text-[#FF000D] px-4 py-2 rounded-lg transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed'
+                  >
+                    <Trash size={20} fill="red" strokeWidth={2} />
+                    <span className='text-sm underline'>
+                      Delete Selected Items
+                    </span>
+                  </button>
               </div>
               )}
                 
@@ -769,12 +855,12 @@ if (isCartEmpty()) {
             <thead className=" border-b border-gray-200 font-bold">
               <tr>
                 <th className="p-4 text-left">
-                  <input 
-                    type="checkbox" 
-                    className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                    checked={selectAll}
-                    onChange={handleSelectAll}
-                  />
+                <input 
+                  type="checkbox" 
+                  className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                  checked={selectAll}
+                  onChange={handleSelectAll}
+                />
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   ITEM
@@ -805,7 +891,7 @@ if (isCartEmpty()) {
                     <td className="p-4">
                       <input 
                         type="checkbox" 
-                        className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                        className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer disabled:cursor-not-allowed"
                         checked={isSelected}
                         onChange={() => handleSelectProduct(item.id)}
                         disabled={isRemoving}
@@ -830,11 +916,11 @@ if (isCartEmpty()) {
                             key={unit}
                             onClick={() => handleUnitChange(item.id, unit)}
                             disabled={isRemoving}
-                            className={`px-3 py-1 text-sm rounded-md border transition-colors ${
+                            className={`px-3 py-1 text-sm rounded-md border transition-colors cursor-pointer ${
                               selectedUnit === unit 
                                 ? 'bg-purple-100 text-purple-700 border-purple-300 font-medium' 
                                 : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
-                            } disabled:opacity-50`}
+                            } disabled:opacity-50 disabled:cursor-not-allowed`}
                           >
                             {unit}
                           </button>
@@ -846,7 +932,7 @@ if (isCartEmpty()) {
                         <button 
                           onClick={() => handleProductQuantityChange(item.id, -1)} 
                           disabled={isRemoving}
-                          className="hover:bg-gray-100 p-1 rounded-full flex items-center justify-center disabled:opacity-50 transition-colors"
+                          className="hover:bg-gray-100 p-1 rounded-full flex items-center justify-center disabled:opacity-50 transition-colors cursor-pointer disabled:cursor-not-allowed"
                         >
                           <Minus size={14} />
                         </button>
@@ -856,7 +942,7 @@ if (isCartEmpty()) {
                         <button 
                           onClick={() => handleProductQuantityChange(item.id, 1)} 
                           disabled={isRemoving}
-                          className="hover:bg-gray-100 p-1 rounded-full flex items-center justify-center disabled:opacity-50 transition-colors"
+                          className="hover:bg-gray-100 p-1 rounded-full flex items-center justify-center disabled:opacity-50 transition-colors cursor-pointer disabled:cursor-not-allowed"
                         >
                           <Plus size={14} />
                         </button>
@@ -872,11 +958,11 @@ if (isCartEmpty()) {
                         Rs.{formatPrice(getDisplayPrice(item))}
                       </span>
                     </td>
-                    <td className="px-4 py-4 text-center">
+                   <td className="px-4 py-4 text-center">
                       <button 
                         onClick={() => handleRemoveProduct(item.id)}
                         disabled={isRemoving}
-                        className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors disabled:opacity-50"
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                         title={isRemoving ? 'Removing...' : 'Remove item'}
                       >
                         <Trash size={20} fill="red" strokeWidth={2} />
@@ -908,7 +994,7 @@ if (isCartEmpty()) {
                   <button 
                     onClick={() => handleRemovePackage(pkg.id)}
                     disabled={isRemoving}
-                    className='text-red-500 hover:scale-105 transition-transform disabled:opacity-50'
+                    className='text-red-500 hover:scale-105 transition-transform disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed'
                     title={isRemoving ? 'Removing...' : 'Remove package'}
                   >
                     <Trash size={20} fill="red" strokeWidth={2} />
@@ -952,19 +1038,21 @@ if (isCartEmpty()) {
           <div className='border border-[#171717] rounded-lg shadow-md p-4 sm:p-5 md:p-6 md:mx-10 sm:mr-10'>
             <h2 className='font-semibold text-base sm:text-lg mb-3 sm:mb-4'>Your Order</h2>
 
-            <div className='flex justify-between items-center mb-3 sm:mb-4'>
-              <div className='flex items-center gap-2 sm:gap-3'>
-                <div className="w-12 sm:w-14 md:w-16 h-12 sm:h-14 md:h-16 bg-gray-200 rounded-lg flex items-center justify-center">
-                  <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
-                  </svg>
+                <div className='flex justify-between items-center mb-3 sm:mb-4'>
+                  <div className='flex items-center gap-2 sm:gap-3'>
+                    <div className="w-12 sm:w-14 md:w-16 h-12 sm:h-14 md:h-16 border border-[gray] rounded-lg flex items-center justify-center">
+                      <Image 
+                        src={summary} 
+                        alt="Shopping bag" 
+                        width={40} 
+                        height={40}
+                        className="object-contain"
+                      />
+                    </div>
+                    <p className="text-sm sm:text-base">{calculatedSummary?.totalItems || 0} items</p>
+                  </div>
+                  <p className='font-semibold text-sm sm:text-base'>Rs.{formatPrice(calculatedSummary?.grandTotal || 0)}</p>
                 </div>
-                <p className="text-sm sm:text-base">{calculatedSummary?.totalItems || 0} items</p>
-              </div>
-              <p className='font-semibold text-sm sm:text-base'>Rs.{formatPrice(calculatedSummary?.grandTotal || 0)}</p>
-            </div>
-
-            <div className='border-t border-dotted border-gray-300 my-3' />
 
             {cartData.cart?.isCoupon === 1 ? (
               <div className='bg-green-50 border border-green-200 rounded-lg p-3 mb-3'>
@@ -1020,13 +1108,13 @@ if (isCartEmpty()) {
               </div>
             </div>
 
-            <button
-              onClick={handleCheckout}
-              disabled={checkoutLoading || isCartEmpty() || (calculatedSummary?.totalItems || 0) === 0}
-              className='w-full bg-[#3E206D] text-white font-semibold rounded-lg py-3 text-sm sm:text-base hover:bg-[#2F1A5B] transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
-            >
-              {checkoutLoading ? 'Processing...' : 'Proceed to Checkout'}
-            </button>
+              <button
+                onClick={handleCheckout}
+                disabled={checkoutLoading || isCartEmpty() || (calculatedSummary?.totalItems || 0) === 0}
+                className='w-full bg-[#3E206D] text-white font-semibold rounded-lg py-3 text-sm sm:text-base hover:bg-[#2F1A5B] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
+              >
+                {checkoutLoading ? 'Processing...' : 'Proceed to Checkout'}
+              </button>
           </div>
         </div>
       </div>
