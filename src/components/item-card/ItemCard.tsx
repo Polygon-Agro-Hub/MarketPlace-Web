@@ -5,6 +5,10 @@ import React, { useState } from 'react';
 import { useRouter } from 'next//navigation';
 import { productAddToCart } from '@/services/product-service';
 import { useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
+import { updateCartInfo } from '@/store/slices/authSlice';
+import { getCartInfo } from '@/services/auth-service';
+
 
 type ItemCardProps = {
     id: number;
@@ -32,6 +36,7 @@ const ItemCard = ({
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [isHovering, setIsHovering] = useState(false);
+    const dispatch = useDispatch();
 
     const isImageUrl = typeof image === 'string';
 
@@ -50,42 +55,52 @@ const ItemCard = ({
     const incrementQuantity = () => setQuantity(prev => prev + 1);
     const decrementQuantity = () => quantity > 1 && setQuantity(prev => prev - 1);
 
-    const handleAddToCartClick = async () => {
-        if (!token || !user) {
-            router.push('/signin');
-            return;
-        }
+   const handleAddToCartClick = async () => {
+    if (!token || !user) {
+        router.push('/signin');
+        return;
+    }
 
-        if (!showQuantitySelector) {
-            setShowQuantitySelector(true);
-            return;
-        }
+    if (!showQuantitySelector) {
+        setShowQuantitySelector(true);
+        return;
+    }
 
+    try {
+        setIsLoading(true);
+        setError(null);
+
+        const productData = {
+            mpItemId: id,
+            quantityType: unit,
+            quantity: quantity
+        };
+
+        await productAddToCart(productData, token);
+
+        // Fetch updated cart info after successful add to cart
         try {
-            setIsLoading(true);
-            setError(null);
-
-            const productData = {
-                mpItemId: id,
-                quantityType: unit,
-                quantity: quantity
-            };
-
-            await productAddToCart(productData, token);
-
-            setShowQuantitySelector(false);
-            setAddedToCart(true);
-        } catch (err: any) {
-            setError(err.message);
-        } finally {
-            setIsLoading(false);
-            setTimeout(() => {
-                setAddedToCart(false);
-                setQuantity(50);
-                setUnit('g');
-            }, 2000);
+            const cartInfo = await getCartInfo(token);
+            console.log("Updated cart info:", cartInfo);
+            dispatch(updateCartInfo(cartInfo));
+        } catch (cartError) {
+            console.error('Error fetching cart info:', cartError);
+            // Don't fail the whole operation if cart info fetch fails
         }
-    };
+
+        setShowQuantitySelector(false);
+        setAddedToCart(true);
+    } catch (err: any) {
+        setError(err.message);
+    } finally {
+        setIsLoading(false);
+        setTimeout(() => {
+            setAddedToCart(false);
+            setQuantity(50);
+            setUnit('g');
+        }, 2000);
+    }
+};
 
     const handleUnitChange = (selectedUnit: 'kg' | 'g') => {
         setUnit(selectedUnit);
@@ -102,7 +117,7 @@ const ItemCard = ({
 
             {/* Loading overlay */}
             {isLoading && (
-                <div className="absolute inset-0 bg-black bg-opacity-10 flex items-center justify-center z-10">
+                <div className="absolute inset-0 bg-white bg-opacity-80 flex items-center justify-center z-10">
                     <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-purple-500"></div>
                 </div>
             )}

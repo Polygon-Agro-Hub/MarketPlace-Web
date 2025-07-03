@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { useViewport } from './hooks/useViewport';
 import Image from 'next/image';
 import { packageAddToCart } from '@/services/product-service';
-import { useSelector } from 'react-redux';
+import { getCartInfo } from '@/services/auth-service'; // Add this import
+import { useSelector, useDispatch } from 'react-redux'; // Add useDispatch
 import { RootState } from '@/store';
+import { updateCartInfo } from '@/store/slices/authSlice'; // Add this import
 import { useRouter } from 'next/navigation';
 
 interface PackageItem {
@@ -46,10 +48,9 @@ const PackageCard: React.FC<PackageProps> = ({
   onShowConfirmModal
 }) => {
   const { isMobile } = useViewport();
+  const dispatch = useDispatch(); // Add this
   const token = useSelector((state: RootState) => state.auth.token) as string | null;
   const router = useRouter();
-  // Remove the local showConfirmModal state
-  // const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
 
   const handlePackageAddToCart = async () => {
     if (!packageDetails || packageDetails.length === 0) {
@@ -71,6 +72,16 @@ const PackageCard: React.FC<PackageProps> = ({
       console.log("res", res);
 
       if (res.status === true) {
+        // Fetch updated cart info after successful add to cart
+        try {
+          const cartInfo = await getCartInfo(token);
+          console.log("Updated cart info:", cartInfo);
+          dispatch(updateCartInfo(cartInfo));
+        } catch (cartError) {
+          console.error('Error fetching cart info:', cartError);
+          // Don't fail the whole operation if cart info fetch fails
+        }
+
         if (onAddToCartSuccess) {
           onAddToCartSuccess(res.message || 'Package added to cart successfully!');
         }

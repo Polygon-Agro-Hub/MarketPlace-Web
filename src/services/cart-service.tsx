@@ -634,3 +634,27 @@ export const validateCoupon = async (couponCode: string, token: string): Promise
     throw new Error(errorMessage);
   }
 };
+
+export interface City {
+  id: number;
+  companycenterId: number | null;
+  city: string;
+  charge: string;
+  createdAt: string;
+}
+
+export interface CityResponse {
+  success: boolean;
+  message: string;
+  count: number;
+  data: City[];
+}
+
+export const getCities = async (): Promise<CityResponse> => {
+  try {
+    const response = await axios.get<CityResponse>('/cart/get-cities');
+    return response.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || 'Failed to fetch cities');
+  }
+};

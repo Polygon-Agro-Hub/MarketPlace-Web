@@ -7,7 +7,9 @@ import { RootState } from '@/store';
 import { useDispatch } from 'react-redux';
 import { logout } from '../../store/slices/authSlice';
 import { clearCart } from '@/store/slices/cartSlice';
-import ExitImg from '../../../public/icons/Exit.png'
+import ExitImg from '../../../public/icons/Exit.png';
+import { useRouter } from 'next/navigation'
+
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -16,11 +18,13 @@ const Header = () => {
   const [isDesktopCategoryOpen, setIsDesktopCategoryOpen] = useState(false);
   const [isClient, setIsClient] = useState(false); // Client-side hydration check
   const categoryRef = useRef<HTMLDivElement | null>(null);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   
   const user = useSelector((state: RootState) => state.auth.user);
   const token = useSelector((state: RootState) => state.auth.token) as string | null;
   const cartState = useSelector((state: RootState) => state.auth.cart);
   const dispatch = useDispatch();
+  const router = useRouter();
 
   useEffect(() => {
     // Set client-side flag after hydration
@@ -52,6 +56,18 @@ const Header = () => {
     setIsMenuOpen(!isMenuOpen);
   }
 
+  const formatPrice = (price: number): string => {
+  // Convert to fixed decimal first, then add commas
+  const fixedPrice = Number(price).toFixed(2);
+  const [integerPart, decimalPart] = fixedPrice.split('.');
+  
+  // Add commas to integer part
+  const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  
+  return `${formattedInteger}.${decimalPart}`;
+};
+
+
   const toggleDesktopCategory = (e: { preventDefault: () => void }) => {
     e.preventDefault();
     setIsDesktopCategoryOpen(!isDesktopCategoryOpen);
@@ -59,8 +75,15 @@ const Header = () => {
 
   const handleLogout = (e: React.MouseEvent) => {
     e.preventDefault();
-    dispatch(logout());
+    setShowLogoutModal(true);
   }
+
+    const confirmLogout = () => {
+      dispatch(logout());
+      dispatch(clearCart());
+      setShowLogoutModal(false);
+      router.push('/signin');
+    };
 
   // Helper function to get the correct home URL
   const getHomeUrl = () => {
@@ -91,22 +114,18 @@ const Header = () => {
                 // Show loading placeholder during SSR/hydration
                 <div className="w-32 h-8 bg-gray-700 rounded-full animate-pulse"></div>
               ) : getUserInfo() ? (
-                <Link
-                  href="/"
-                  className="text-sm flex items-center gap-2"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    dispatch(logout());
-                    dispatch(clearCart());
-                  }}
-                >
-                  <img
-                    src={ExitImg as any}
-                    alt="Logout"
-                    className="w-4 h-4"
-                  />
-                  Logout
-                </Link>
+               <Link
+                href="/"
+                className="text-sm flex items-center gap-2"
+                onClick={handleLogout}
+              >
+                <img
+                  src={ExitImg as any}
+                  alt="Logout"
+                  className="w-4 h-4"
+                />
+                Logout
+              </Link>
               ) : (
                 <>
                   <Link href="/signup" className="text-sm bg-gray-700 rounded-full px-4 py-1 hover:bg-gray-600">
@@ -179,7 +198,7 @@ const Header = () => {
                   {isClient ? cartState.count : 0}
                 </span>
               </div>
-              <div className="text-sm">Rs. {isClient ? cartState.price.toFixed(2) : '0.00'}</div>
+              <div className="text-sm">Rs. {isClient ? formatPrice(cartState.price) : '0.00'}</div>
             </div>
           </Link>
           
@@ -432,6 +451,29 @@ const Header = () => {
           </div>
         </div>
       )}
+      {showLogoutModal && (
+          <div className="fixed inset-0 bg-black/60 bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-[25px] shadow-lg w-96 text-center">
+              <p className="text-lg font-medium mb-6">
+                Are you sure you want to logout?
+              </p>
+              <div className="flex justify-center gap-4">
+                <button
+                  onClick={() => setShowLogoutModal(false)}
+                  className="px-6 py-2 bg-[#F3F4F7] text-gray-800 rounded hover:bg-gray-300 transition-colors rounded-[15px]"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmLogout}
+                  className="px-6 py-2 bg-[#E4001A] text-white rounded-[15px] hover:bg-red-700 transition-colors"
+                >
+                  Logout
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
     </>
   )
 }
