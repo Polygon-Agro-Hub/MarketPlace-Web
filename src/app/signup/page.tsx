@@ -17,6 +17,8 @@ type FormErrors = {
   confirmPassword?: string;
   agreeToTerms?: string;
   general?: string;
+  companyName?: string;
+  companyPhoneNumber?: string;
 };
 
 interface CustomDropdownProps {
@@ -86,6 +88,9 @@ export default function SignupForm() {
     confirmPassword: "",
     agreeToTerms: false,
     agreeToMarketing: false,
+    companyName: "",
+    companyPhoneCode: "+94",
+    companyPhoneNumber: "",
   });
 
   const handleChange = (
@@ -119,64 +124,77 @@ export default function SignupForm() {
   };
 
   const validateForm = (): boolean => {
-    const newErrors: FormErrors = {};
+  const newErrors: FormErrors = {};
 
-    if (!formData.title) newErrors.title = "Title is required";
+  if (!formData.title) newErrors.title = "Title is required";
 
-    if (!formData.firstName) {
-      newErrors.firstName = "First name is required";
-    } else if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(formData.firstName.trim())) {
-      newErrors.firstName =
-        "First name can only contain letters and must not start or end with a space";
-    } else if (formData.firstName !== formData.firstName.trim()) {
-      newErrors.firstName = "First name cannot begin or end with a space";
+  if (!formData.firstName) {
+    newErrors.firstName = "First name is required";
+  } else if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(formData.firstName.trim())) {
+    newErrors.firstName =
+      "First name can only contain letters and must not start or end with a space";
+  } else if (formData.firstName !== formData.firstName.trim()) {
+    newErrors.firstName = "First name cannot begin or end with a space";
+  }
+
+  if (!formData.lastName) {
+    newErrors.lastName = "Last name is required";
+  } else if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(formData.lastName.trim())) {
+    newErrors.lastName =
+      "Last name can only contain letters and must not start or end with a space";
+  } else if (formData.lastName !== formData.lastName.trim()) {
+    newErrors.lastName = "Last name cannot begin or end with a space";
+  }
+
+  if (!formData.phoneNumber) {
+    newErrors.phoneNumber = "Phone number is required";
+  } else if (!/^\d{9}$/.test(formData.phoneNumber)) {
+    newErrors.phoneNumber = "Phone number must be 9 digits";
+  }
+
+  if (!formData.email) {
+    newErrors.email = "Email is required";
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    newErrors.email = "Please enter a valid email address";
+  }
+
+  if (!formData.password) {
+    newErrors.password = "Password is required";
+  } else if (formData.password.length < 6) {
+    newErrors.password = "Password must be at least 6 characters";
+  } else if (!/(?=.*[A-Z])/.test(formData.password)) {
+    newErrors.password = "Password must contain at least one uppercase letter";
+  } else if (!/(?=.*[0-9])/.test(formData.password)) {
+    newErrors.password = "Password must contain at least one number";
+  } else if (!/(?=.*[!@#$%^&*])/.test(formData.password)) {
+    newErrors.password = "Password must contain at least one special character";
+  }
+
+  if (!formData.confirmPassword) {
+    newErrors.confirmPassword = "Please confirm your password";
+  } else if (formData.password !== formData.confirmPassword) {
+    newErrors.confirmPassword = "Passwords do not match";
+  }
+
+  // Add company validation for business buyers
+  if (!isHome) {
+    if (!formData.companyName) {
+      newErrors.companyName = "Company name is required";
     }
 
-    if (!formData.lastName) {
-      newErrors.lastName = "Last name is required";
-    } else if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(formData.lastName.trim())) {
-      newErrors.lastName =
-        "Last name can only contain letters and must not start or end with a space";
-    } else if (formData.lastName !== formData.lastName.trim()) {
-      newErrors.lastName = "Last name cannot begin or end with a space";
+    if (!formData.companyPhoneNumber) {
+      newErrors.companyPhoneNumber = "Company phone number is required";
+    } else if (!/^\d{9}$/.test(formData.companyPhoneNumber)) {
+      newErrors.companyPhoneNumber = "Company phone number must be 9 digits";
     }
+  }
 
-    if (!formData.phoneNumber) {
-      newErrors.phoneNumber = "Phone number is required";
-    } else if (!/^\d{9}$/.test(formData.phoneNumber)) {
-      newErrors.phoneNumber = "Phone number must be 9 digits";
-    }
+  if (!formData.agreeToTerms)
+    newErrors.agreeToTerms = "You must accept the terms and conditions";
 
-    if (!formData.email) {
-      newErrors.email = "Email is required";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = "Please enter a valid email address";
-    }
-
-    if (!formData.password) {
-      newErrors.password = "Password is required";
-    } else if (formData.password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
-    } else if (!/(?=.*[A-Z])/.test(formData.password)) {
-      newErrors.password = "Password must contain at least one uppercase letter";
-    } else if (!/(?=.*[0-9])/.test(formData.password)) {
-      newErrors.password = "Password must contain at least one number";
-    } else if (!/(?=.*[!@#$%^&*])/.test(formData.password)) {
-      newErrors.password = "Password must contain at least one special character";
-    }
-
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = "Please confirm your password";
-    } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
-    }
-
-    if (!formData.agreeToTerms)
-      newErrors.agreeToTerms = "You must accept the terms and conditions";
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  setErrors(newErrors);
+  return Object.keys(newErrors).length === 0;
+};
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -608,6 +626,77 @@ export default function SignupForm() {
                   <div className="text-[#3E206D] text-xs md:text-sm">
                     Your password must contain a minimum of 6 characters with 1
                     Uppercase, Numbers & Special Characters.
+                  </div>
+                </div>
+              )}
+
+  {!isHome && (
+                <div className="mt-8">
+                  <div className="flex items-center mb-4">
+                    <div className="text-[#3E206D] mr-4 whitespace-nowrap">
+                      Company Details
+                    </div>
+                    <div className="flex-grow border-t border-[#E2E2E2]"></div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex flex-col md:flex-row md:space-x-3 space-y-4 md:space-y-0">
+                      <div className="w-full md:w-1/2">
+                        <input
+                          type="text"
+                          name="companyName"
+                          value={formData.companyName}
+                          onChange={handleChange}
+                          placeholder="Company Name"
+                          className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass(
+                            "companyName"
+                          )}`}
+                        />
+                        {errors.companyName && (
+                          <p className="mt-1 text-sm text-red-600">
+                            {errors.companyName}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex flex-row w-full md:w-1/2 space-x-3">
+                        <div className="w-23 md:w-26">
+                          <CustomDropdown
+                            options={[
+                              { value: "+94", label: "+94" },
+                              { value: "+1", label: "+1" },
+                              { value: "+44", label: "+44" },
+                            ]}
+                            selectedValue={formData.companyPhoneCode}
+                            onSelect={(value) =>
+                              handleChange({
+                                target: { name: "companyPhoneCode", value },
+                              } as React.ChangeEvent<HTMLSelectElement>)
+                            }
+                            placeholder="Select code"
+                            className="cursor-pointer"
+                          />
+                        </div>
+
+                        <div className="w-3/4 md:w-7/9">
+                          <input
+                            type="text"
+                            name="companyPhoneNumber"
+                            value={formData.companyPhoneNumber}
+                            onChange={handleChange}
+                            placeholder="7XXXXXXXX"
+                            className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass(
+                              "companyPhoneNumber"
+                            )}`}
+                          />
+                          {errors.companyPhoneNumber && (
+                            <p className="mt-1 text-sm text-red-600">
+                              {errors.companyPhoneNumber}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
