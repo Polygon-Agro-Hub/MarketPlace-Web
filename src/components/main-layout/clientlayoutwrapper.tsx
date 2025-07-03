@@ -13,7 +13,9 @@ const excludedRoutes = [
   '/reset-password',
   '/error/404',
   '/error/451',
-  '/unsubscribe'
+  '/unsubscribe',
+  '/exclude/summary',
+  '/exclude/exclude',
 ];
 
 export default function ClientLayoutWrapper({ children }: { children: React.ReactNode }) {
