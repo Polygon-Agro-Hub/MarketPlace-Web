@@ -45,6 +45,7 @@ import PersonalDetailsForm from '@/components/profile/PersonalDetailsForm';
 import BillingDetailsForm from '@/components/profile/BillingDetailsForm';
 import ReportComplaintForm from '@/components/profile/reportComplaint';
 import ComplaintsHistory from '@/components/profile/ComplaintsHistory'; // Import ComplaintsHistory
+import ViewMyList from '@/components/profile/ViewMyList';
 
 export default function AccountPage() {
   const [selectedMenu, setSelectedMenu] = useState('personalDetails');
@@ -69,7 +70,10 @@ export default function AccountPage() {
           {selectedMenu === 'billingAddress' && <BillingDetailsForm />}
            {selectedMenu === 'Complaints' && <ReportComplaintForm />}
           {selectedMenu === 'reportComplaint' && <ReportComplaintForm />}
-          {selectedMenu === 'ComplaintHistory' && <ComplaintsHistory />} {/* Add this line */}
+          {selectedMenu === 'ComplaintHistory' && <ComplaintsHistory />}
+           {selectedMenu === 'ExcludedItemList' && <ViewMyList />}
+          {selectedMenu === 'ViewMyList' && <ViewMyList />}
+          {/* {selectedMenu === 'AddMoreItems' && <AddMoreItems />} Add this line */}
         </div>
       )}
     </div>
