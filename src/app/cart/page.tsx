@@ -795,14 +795,6 @@ if (isCartEmpty()) {
                 </div>
               </button>
             </div>
-            
-            {/* Close button */}
-            <button
-              onClick={() => setShowDeliveryModal(false)}
-              className="w-full text-white/80 hover:text-white text-center py-2 text-sm"
-            >
-              Cancel
-            </button>
           </div>
         </div>
       )}

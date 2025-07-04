@@ -8,10 +8,14 @@ import SuccessPopup from '@/components/toast-messages/success-message-with-butto
 import ErrorPopup from '@/components/toast-messages/error-message';
 import Visa from '../../../public/images/Visa.png';
 import MasterCard from '../../../public/images/Mastercard.png';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store';
 import { submitOrderToBackend, validateOrderData, OrderPayload, formatValidationErrors,validateCoupon } from '@/services/cart-service';
 import summary from '../../../public/summary.png'
+import { updateCartInfo } from '@/store/slices/authSlice';
+import { getCartInfo } from '@/services/auth-service';
+
+
 const Page: React.FC = () => {
   const router = useRouter();
   const NavArray = [
@@ -43,6 +47,13 @@ const Page: React.FC = () => {
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [couponValidationLoading, setCouponValidationLoading] = useState(false);
   const [couponError, setCouponError] = useState('');
+  const [deliveryCharge, setDeliveryCharge] = useState<number>(0);
+  const user = useSelector((state: RootState) => state.auth.user);
+  const dispatch = useDispatch();
+
+  const getHomeUrl = () => {
+  return user?.buyerType === 'Wholesale' ? '/wholesale/home' : '/';
+  };
 
    
   useEffect(() => {
@@ -51,251 +62,270 @@ const Page: React.FC = () => {
     console.log('Calculated Summary:', cartItems.calculatedSummary);
   }, [cartItems, checkoutDetails]);
 
-  const handleCardInputChange = (field: string, value: string) => {
-    setCardDetails((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
+      useEffect(() => {
+      // Load delivery charge from localStorage if available
+      const savedCharge = localStorage.getItem('deliveryCharge');
+      console.log('delivery charge',savedCharge);
+      if (savedCharge) {
+        setDeliveryCharge(parseFloat(savedCharge));
+      }
+    }, []);
 
-// 1. Updated prepareOrderPayload function
-const prepareOrderPayload = (): OrderPayload => {
-  const calculatedSummary = cartItems.calculatedSummary;
-  const originalGrandTotal = calculatedSummary?.finalTotal || 0;
-  const discountAmount = calculatedSummary?.totalDiscount || 0;
-  
-  const couponDiscountAmount = isCouponApplied ? couponDiscount : 0;
-  // Calculate final grand total: original total - coupon discount + delivery charges
-  const finalGrandTotal = isCouponApplied ? (originalGrandTotal - couponDiscount + 185) : (originalGrandTotal + 185);
+        const handleCardInputChange = (field: string, value: string) => {
+          setCardDetails((prev) => ({
+            ...prev,
+            [field]: value,
+          }));
+        };
 
-  let finalCheckoutDetails = {
-    deliveryMethod: checkoutDetails.deliveryMethod || 'home',
-    title: checkoutDetails.title || '',
-    fullName: checkoutDetails.fullName || '',
-    phoneCode1: checkoutDetails.phoneCode1 || '+94',
-    phone1: checkoutDetails.phone1 || '',
-    phoneCode2: checkoutDetails.phoneCode2 || '',
-    phone2: checkoutDetails.phone2 || '',
-    buildingType: '',
-    deliveryDate: checkoutDetails.deliveryDate || '',
-    timeSlot: checkoutDetails.timeSlot || '',
-    buildingNo: '',
-    buildingName: '',
-    flatNumber: '',
-    floorNumber: '',
-    houseNo: '',
-    street: '',
-    cityName: '',
-    scheduleType: checkoutDetails.scheduleType || 'One Time',
-    centerId: null as number | null,
-    couponValue: Number(couponDiscountAmount) || 0, // Send the discount amount, not the final price
-    isCoupon: isCouponApplied,
-    couponCode: isCouponApplied ? couponCode : '',
-  };
+      // 1. Updated prepareOrderPayload function
+      const prepareOrderPayload = (): OrderPayload => {
+        const calculatedSummary = cartItems.calculatedSummary;
+        const originalGrandTotal = calculatedSummary?.finalTotal || 0;
+        const discountAmount = calculatedSummary?.totalDiscount || 0;
+        
+        const couponDiscountAmount = isCouponApplied ? couponDiscount : 0;
+        const finalGrandTotal = isCouponApplied ? (originalGrandTotal - couponDiscount + deliveryCharge) : (originalGrandTotal + deliveryCharge);
 
-  // ... rest of the function remains the same
-  if (checkoutDetails.deliveryMethod === 'home') {
-    finalCheckoutDetails.buildingType = (checkoutDetails.buildingType || 'apartment').toLowerCase();
-    finalCheckoutDetails.houseNo = checkoutDetails.houseNo || '';
-    finalCheckoutDetails.street = checkoutDetails.street || '';
-    finalCheckoutDetails.cityName = checkoutDetails.cityName || '';
-    finalCheckoutDetails.centerId = null;
+        let finalCheckoutDetails = {
+          deliveryMethod: checkoutDetails.deliveryMethod || 'home',
+          title: checkoutDetails.title || '',
+          fullName: checkoutDetails.fullName || '',
+          phoneCode1: checkoutDetails.phoneCode1 || '+94',
+          phone1: checkoutDetails.phone1 || '',
+          phoneCode2: checkoutDetails.phoneCode2 || '',
+          phone2: checkoutDetails.phone2 || '',
+          buildingType: '',
+          deliveryDate: checkoutDetails.deliveryDate || '',
+          timeSlot: checkoutDetails.timeSlot || '',
+          buildingNo: '',
+          buildingName: '',
+          flatNumber: '',
+          floorNumber: '',
+          houseNo: '',
+          street: '',
+          cityName: '',
+          scheduleType: checkoutDetails.scheduleType || 'One Time',
+          centerId: null as number | null,
+          couponValue: Number(couponDiscountAmount) || 0, // Send the discount amount, not the final price
+          isCoupon: isCouponApplied,
+          couponCode: isCouponApplied ? couponCode : '',
+        };
 
-    if (checkoutDetails.buildingType?.toLowerCase() === 'apartment') {
-      finalCheckoutDetails.buildingNo = checkoutDetails.buildingNo || '';
-      finalCheckoutDetails.buildingName = checkoutDetails.buildingName || '';
-      finalCheckoutDetails.flatNumber = checkoutDetails.flatNumber || '';
-      finalCheckoutDetails.floorNumber = checkoutDetails.floorNumber || '';
-    }
-  } else if (checkoutDetails.deliveryMethod === 'pickup') {
-    finalCheckoutDetails.centerId = checkoutDetails.centerId || null;
-  }
+        // ... rest of the function remains the same
+        if (checkoutDetails.deliveryMethod === 'home') {
+          finalCheckoutDetails.buildingType = (checkoutDetails.buildingType || 'apartment').toLowerCase();
+          finalCheckoutDetails.houseNo = checkoutDetails.houseNo || '';
+          finalCheckoutDetails.street = checkoutDetails.street || '';
+          finalCheckoutDetails.cityName = checkoutDetails.cityName || '';
+          finalCheckoutDetails.centerId = null;
 
-  return {
-    cartId: cartItems.cartId || 0,
-    checkoutDetails: finalCheckoutDetails,
-    paymentMethod,
-    discountAmount: Number(discountAmount) || 0,
-    grandTotal: Number(finalGrandTotal) || 0,
-    orderApp: 'marketplace',
-  };
-};
-
-
-const formatPrice = (price: number): string => {
-  // Convert to fixed decimal first, then add commas
-  const fixedPrice = Number(price).toFixed(2);
-  const [integerPart, decimalPart] = fixedPrice.split('.');
-  
-  // Add commas to integer part
-  const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  
-  return `${formattedInteger}.${decimalPart}`;
-};
-
-const handleApplyCoupon = async () => {
-  if (!couponCode.trim()) return;
-  
-  setCouponValidationLoading(true);
-  setCouponError('');
-  
-  try {
-    if (!token) {
-      throw new Error('Please log in to apply coupon');
-    }
-
-    const response = await validateCoupon(couponCode.trim(),token);
-    
-    if (response.status) {
-      setIsCouponApplied(true);
-      setCouponDiscount(response.discount);
-      console.log('Coupon applied successfully:', response);
-    } else {
-      setCouponError(response.message);
-      setIsCouponApplied(false);
-      setCouponDiscount(0);
-    }
-  } catch (error: any) {
-    console.error('Error applying coupon:', error);
-    setCouponError(error.message || 'Failed to apply coupon');
-    setIsCouponApplied(false);
-    setCouponDiscount(0);
-  } finally {
-    setCouponValidationLoading(false);
-  }
-};
-
-
- const validateCartData = (): { isValid: boolean; error?: string } => {
-  // Check if cart exists and has valid ID
-  if (!cartItems.cartId || cartItems.cartId === 0) {
-    return { isValid: false, error: 'Cart ID is missing. Please refresh and try again.' };
-  }
-
-  // Check if cart has items (packages or additional items)
-  const hasPackages = cartItems.packages && cartItems.packages.length > 0;
-  const hasAdditionalItems = cartItems.additionalItems && 
-    cartItems.additionalItems.length > 0 && 
-    cartItems.additionalItems.some(group => group.Items && group.Items.length > 0);
-
-  if (!hasPackages && !hasAdditionalItems) {
-    return { isValid: false, error: 'No items in cart. Please add items before placing order.' };
-  }
-
-  // Check if calculated summary exists
-  if (!cartItems.calculatedSummary) {
-    return { isValid: false, error: 'Cart summary is missing. Please refresh and try again.' };
-  }
-
-  // Check if checkout details are complete
-  if (!checkoutDetails) {
-    return { isValid: false, error: 'Checkout details are missing. Please complete the checkout process.' };
-  }
-
-  // Validate required checkout fields
-  const requiredFields = ['deliveryMethod', 'title', 'fullName', 'phone1'];
-  for (const field of requiredFields) {
-    if (!checkoutDetails[field as keyof typeof checkoutDetails]) {
-      return { isValid: false, error: `Missing required field: ${field}` };
-    }
-  }
-
-  // Validate delivery method specific fields
-  if (checkoutDetails.deliveryMethod === 'home') {
-    // Validate building type specific fields for home delivery
-    if (checkoutDetails.buildingType?.toLowerCase() === 'apartment') {
-      const apartmentFields = ['buildingNo', 'buildingName', 'flatNumber', 'floorNumber'];
-      for (const field of apartmentFields) {
-        if (!checkoutDetails[field as keyof typeof checkoutDetails]) {
-          return { isValid: false, error: `Missing required apartment field: ${field}` };
+          if (checkoutDetails.buildingType?.toLowerCase() === 'apartment') {
+            finalCheckoutDetails.buildingNo = checkoutDetails.buildingNo || '';
+            finalCheckoutDetails.buildingName = checkoutDetails.buildingName || '';
+            finalCheckoutDetails.flatNumber = checkoutDetails.flatNumber || '';
+            finalCheckoutDetails.floorNumber = checkoutDetails.floorNumber || '';
+          }
+        } else if (checkoutDetails.deliveryMethod === 'pickup') {
+          finalCheckoutDetails.centerId = checkoutDetails.centerId || null;
         }
-      }
-    }
-    
-    // Common home delivery fields (required for both house and apartment)
-    const homeDeliveryFields = ['houseNo', 'street', 'cityName'];
-    for (const field of homeDeliveryFields) {
-      if (!checkoutDetails[field as keyof typeof checkoutDetails]) {
-        return { isValid: false, error: `Missing required home delivery field: ${field}` };
-      }
-    }
-  } else if (checkoutDetails.deliveryMethod === 'pickup') {
-    // Validate pickup center selection
-    if (!checkoutDetails.centerId) {
-      return { isValid: false, error: 'Please select a pickup center.' };
-    }
-  }
 
-  return { isValid: true };
-};
+        return {
+          cartId: cartItems.cartId || 0,
+          checkoutDetails: finalCheckoutDetails,
+          paymentMethod,
+          discountAmount: Number(discountAmount) || 0,
+          grandTotal: Number(finalGrandTotal) || 0,
+          orderApp: 'marketplace',
+        };
+      };
+
+
+      const formatPrice = (price: number): string => {
+        // Convert to fixed decimal first, then add commas
+        const fixedPrice = Number(price).toFixed(2);
+        const [integerPart, decimalPart] = fixedPrice.split('.');
+        
+        // Add commas to integer part
+        const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        
+        return `${formattedInteger}.${decimalPart}`;
+      };
+
+      const handleApplyCoupon = async () => {
+        if (!couponCode.trim()) return;
+        
+        setCouponValidationLoading(true);
+        setCouponError('');
+        
+        try {
+          if (!token) {
+            throw new Error('Please log in to apply coupon');
+          }
+
+          const response = await validateCoupon(couponCode.trim(),token);
+          
+          if (response.status) {
+            setIsCouponApplied(true);
+            setCouponDiscount(response.discount);
+            console.log('Coupon applied successfully:', response);
+          } else {
+            setCouponError(response.message);
+            setIsCouponApplied(false);
+            setCouponDiscount(0);
+          }
+        } catch (error: any) {
+          console.error('Error applying coupon:', error);
+          setCouponError(error.message || 'Failed to apply coupon');
+          setIsCouponApplied(false);
+          setCouponDiscount(0);
+        } finally {
+          setCouponValidationLoading(false);
+        }
+      };
+
+
+      const validateCartData = (): { isValid: boolean; error?: string } => {
+        // Check if cart exists and has valid ID
+        if (!cartItems.cartId || cartItems.cartId === 0) {
+          return { isValid: false, error: 'Cart ID is missing. Please refresh and try again.' };
+        }
+
+        // Check if cart has items (packages or additional items)
+        const hasPackages = cartItems.packages && cartItems.packages.length > 0;
+        const hasAdditionalItems = cartItems.additionalItems && 
+          cartItems.additionalItems.length > 0 && 
+          cartItems.additionalItems.some(group => group.Items && group.Items.length > 0);
+
+        if (!hasPackages && !hasAdditionalItems) {
+          return { isValid: false, error: 'No items in cart. Please add items before placing order.' };
+        }
+
+        // Check if calculated summary exists
+        if (!cartItems.calculatedSummary) {
+          return { isValid: false, error: 'Cart summary is missing. Please refresh and try again.' };
+        }
+
+        // Check if checkout details are complete
+        if (!checkoutDetails) {
+          return { isValid: false, error: 'Checkout details are missing. Please complete the checkout process.' };
+        }
+
+        // Validate required checkout fields
+        const requiredFields = ['deliveryMethod', 'title', 'fullName', 'phone1'];
+        for (const field of requiredFields) {
+          if (!checkoutDetails[field as keyof typeof checkoutDetails]) {
+            return { isValid: false, error: `Missing required field: ${field}` };
+          }
+        }
+
+        // Validate delivery method specific fields
+        if (checkoutDetails.deliveryMethod === 'home') {
+          // Validate building type specific fields for home delivery
+          if (checkoutDetails.buildingType?.toLowerCase() === 'apartment') {
+            const apartmentFields = ['buildingNo', 'buildingName', 'flatNumber', 'floorNumber'];
+            for (const field of apartmentFields) {
+              if (!checkoutDetails[field as keyof typeof checkoutDetails]) {
+                return { isValid: false, error: `Missing required apartment field: ${field}` };
+              }
+            }
+          }
+          
+          // Common home delivery fields (required for both house and apartment)
+          const homeDeliveryFields = ['houseNo', 'street', 'cityName'];
+          for (const field of homeDeliveryFields) {
+            if (!checkoutDetails[field as keyof typeof checkoutDetails]) {
+              return { isValid: false, error: `Missing required home delivery field: ${field}` };
+            }
+          }
+        } else if (checkoutDetails.deliveryMethod === 'pickup') {
+          // Validate pickup center selection
+          if (!checkoutDetails.centerId) {
+            return { isValid: false, error: 'Please select a pickup center.' };
+          }
+        }
+
+        return { isValid: true };
+      };
 
   console.log('cartId', cartItems.cartId);
   console.log('Total items:', cartItems.calculatedSummary?.totalItems);
   console.log('Grand total:', cartItems.calculatedSummary?.finalTotal);
 
-  const handleSubmitOrder = async (event: MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-    setIsSubmitting(true);
+      const handleSubmitOrder = async (event: MouseEvent<HTMLButtonElement>) => {
+        event.preventDefault();
+        setIsSubmitting(true);
 
-    try {
-      // Validate authentication
-      if (!token) {
-        throw new Error('Authentication required. Please log in again.');
-      }
+        try {
+          // Validate authentication
+          if (!token) {
+            throw new Error('Authentication required. Please log in again.');
+          }
 
-      // Validate cart data
-      const cartValidation = validateCartData();
-      if (!cartValidation.isValid) {
-        throw new Error(cartValidation.error);
-      }
+          // Validate cart data
+          const cartValidation = validateCartData();
+          if (!cartValidation.isValid) {
+            throw new Error(cartValidation.error);
+          }
 
-      // Additional validation for card payment
-      if (paymentMethod === 'card') {
-        const { cardNumber, nameOnCard, expirationDate, cvv } = cardDetails;
-        if (!cardNumber || !nameOnCard || !expirationDate || !cvv) {
-          throw new Error('Please fill in all card details.');
+          // Additional validation for card payment
+          if (paymentMethod === 'card') {
+            const { cardNumber, nameOnCard, expirationDate, cvv } = cardDetails;
+            if (!cardNumber || !nameOnCard || !expirationDate || !cvv) {
+              throw new Error('Please fill in all card details.');
+            }
+          }
+
+          const payload = prepareOrderPayload();
+
+          // Validate the payload
+          const validation = validateOrderData(payload);
+          if (!validation.isValid) {
+            console.error('Validation errors:', validation.errors);
+            setErrorMessage(formatValidationErrors(validation.errors));
+            setShowErrorPopup(true);
+            return;
+          }
+
+          console.log('Prepared Order Payload:', payload);
+
+          // Submit to backend with token from Redux
+          const result = await submitOrderToBackend(payload, token);
+          console.log('Order submitted successfully:', result);
+
+          // Check if the response has the expected structure
+          if (result.status && result.orderId) {
+            setOrderId(result.orderId);
+            localStorage.removeItem('deliveryCharge');
+            setShowSuccessPopup(true);
+
+            // Fetch updated cart info after successful order creation
+            try {
+              const cartInfo = await getCartInfo(token);
+              console.log("Updated cart info:", cartInfo);
+              dispatch(updateCartInfo(cartInfo));
+            } catch (cartError) {
+              console.error('Error fetching cart info:', cartError);
+              // Don't fail the whole operation if cart info fetch fails
+            }
+          } else {
+            throw new Error('Invalid response from server');
+          }
+        } catch (error: any) {
+          console.error('Error submitting order:', error);
+          const errorMsg = error.message || 'Order submission failed. Please try again.';
+          setErrorMessage(errorMsg);
+          setShowErrorPopup(true);
+        } finally {
+          setIsSubmitting(false);
         }
-      }
-
-      const payload = prepareOrderPayload();
-
-      // Validate the payload
-      const validation = validateOrderData(payload);
-      if (!validation.isValid) {
-        console.error('Validation errors:', validation.errors);
-        setErrorMessage(formatValidationErrors(validation.errors));
-        setShowErrorPopup(true);
-        return;
-      }
-
-      console.log('Prepared Order Payload:', payload);
-
-      // Submit to backend with token from Redux
-      const result = await submitOrderToBackend(payload, token);
-      console.log('Order submitted successfully:', result);
-
-      // Check if the response has the expected structure
-      if (result.status && result.orderId) {
-        setOrderId(result.orderId);
-        setShowSuccessPopup(true);
-      } else {
-        throw new Error('Invalid response from server');
-      }
-    } catch (error: any) {
-      console.error('Error submitting order:', error);
-      const errorMsg = error.message || 'Order submission failed. Please try again.';
-      setErrorMessage(errorMsg);
-      setShowErrorPopup(true);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+      };
 
           // Calculate display values for OrderSummary
             const getDisplayValues = () => {
               const calculatedSummary = cartItems.calculatedSummary;
               const originalGrandTotal = calculatedSummary?.finalTotal || 0;
-              const deliveryCharges = 185;
+              const deliveryCharges = deliveryCharge;
               
               // couponDiscount from API is the discount amount (e.g., 325)
               const couponDiscountAmount = isCouponApplied ? couponDiscount : 0;
@@ -312,6 +342,7 @@ const handleApplyCoupon = async () => {
                 originalGrandTotal: originalGrandTotal,
                 couponDiscount: couponDiscountAmount, // This shows the coupon discount amount (e.g., 325)
                 grandTotal: finalGrandTotal,
+                deliveryCharges: deliveryCharges,
               };
             };
 
@@ -323,7 +354,7 @@ const handleApplyCoupon = async () => {
         isVisible={showSuccessPopup}
         onClose={() => {
           setShowSuccessPopup(false);
-          router.push(`/order-confirmation?orderId=${orderId}`);
+          router.push(getHomeUrl());
         }}
         title="Order Placed Successfully!"
         description="Your order has been confirmed. View details in your order history."
@@ -505,10 +536,10 @@ const handleApplyCoupon = async () => {
                 </div>
               )}
 
-              <div className='flex justify-between text-sm mb-2'>
-                <p className='text-gray-600'>Delivery Charges</p>
-                <p className='text-gray-600'>Rs.185.00</p>
-              </div>
+                <div className='flex justify-between text-sm mb-2'>
+                  <p className='text-gray-600'>Delivery Charges</p>
+                  <p className='text-gray-600'>Rs.{formatPrice(displayValues.deliveryCharges || 0)}</p>
+                </div>
 
               <div className='border-t border-gray-300 my-4' />
 
