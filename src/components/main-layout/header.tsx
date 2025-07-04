@@ -9,7 +9,7 @@ import { logout } from '../../store/slices/authSlice';
 import { clearCart } from '@/store/slices/cartSlice';
 import ExitImg from '../../../public/icons/Exit.png';
 import { useRouter } from 'next/navigation'
-
+import { LogOut } from 'lucide-react';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -119,11 +119,7 @@ const Header = () => {
                 className="text-sm flex items-center gap-2"
                 onClick={handleLogout}
               >
-                <img
-                  src={ExitImg as any}
-                  alt="Logout"
-                  className="w-4 h-4"
-                />
+                <LogOut />
                 Logout
               </Link>
               ) : (
