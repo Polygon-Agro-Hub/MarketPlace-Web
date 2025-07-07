@@ -1,3 +1,5 @@
+
+
 'use client';
 import React, { useState } from 'react';
 import LeftSidebar from '@/components/profile/LeftSidebar';
@@ -6,6 +8,7 @@ import BillingDetailsForm from '@/components/profile/BillingDetailsForm';
 import ReportComplaintForm from '@/components/profile/reportComplaint';
 import ComplaintsHistory from '@/components/profile/ComplaintsHistory'; // Import ComplaintsHistory
 import ViewMyList from '@/components/profile/ViewMyList';
+import AddMoreItems from '@/components/profile/AddMoreItems';
 
 export default function AccountPage() {
   const [selectedMenu, setSelectedMenu] = useState('personalDetails');
@@ -33,7 +36,7 @@ export default function AccountPage() {
           {selectedMenu === 'ComplaintHistory' && <ComplaintsHistory />}
            {selectedMenu === 'ExcludedItemList' && <ViewMyList />}
           {selectedMenu === 'ViewMyList' && <ViewMyList />}
-          {/* {selectedMenu === 'AddMoreItems' && <AddMoreItems />} Add this line */}
+         {selectedMenu === 'AddMoreItems' && <AddMoreItems />} 
         </div>
       )}
     </div>
