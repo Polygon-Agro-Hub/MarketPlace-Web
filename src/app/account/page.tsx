@@ -1,7 +1,6 @@
 
 
 'use client';
-
 import React, { useState } from 'react';
 import LeftSidebar from '@/components/profile/LeftSidebar';
 import PersonalDetailsForm from '@/components/profile/PersonalDetailsForm';

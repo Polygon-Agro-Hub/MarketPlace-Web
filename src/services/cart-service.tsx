@@ -607,6 +607,7 @@ export interface CouponValidationResponse {
   status: boolean;
   message: string;
   discount: number;
+  type?: string;
 }
 
 export const validateCoupon = async (couponCode: string, token: string): Promise<CouponValidationResponse> => {

@@ -44,10 +44,10 @@ export default function CustomDropdown({
   const selectedOption = options.find(option => option.value === selectedValue);
 
   return (
-    <div className="relative w-full" ref={dropdownRef}>
+    <div className="relative w-full cursor-pointer" ref={dropdownRef}>
       <button
         type="button"
-        className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-gray-700  border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#ad46ff]"
+        className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-gray-700  border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#ad46ff] cursor-pointer"
         onClick={() => setIsOpen(!isOpen)}
         aria-haspopup="listbox"
         aria-expanded={isOpen}

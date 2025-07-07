@@ -2,6 +2,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { sendResetEmail, sendOTP } from '@/services/auth-service';
 import countryData from '../../../public/countryCodes.json';
+import { Router } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 const Page = () => {
   const [email, setEmail] = useState('');
@@ -17,12 +19,15 @@ const Page = () => {
   const [isEmailSent, setIsEmailSent] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [phoneError, setPhoneError] = useState('');
+  const router = useRouter();
   
   // New state for searchable dropdown
   const [isCountryDropdownOpen, setIsCountryDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredCountries, setFilteredCountries] = useState(countryData);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [isSendingOTP, setIsSendingOTP] = useState(false);
+  const [isOTPSent, setIsOTPSent] = useState(false);
 
   // Initialize timer from localStorage on component mount
     useEffect(() => {
@@ -87,6 +92,18 @@ const Page = () => {
       };
     }, [countdown]);
 
+    useEffect(() => {
+      // Reset states when switching methods
+      setIsEmailSent(false);
+      setIsOTPSent(false);
+      setIsSendingEmail(false);
+      setIsSendingOTP(false);
+      setCountdown(0);
+      setIsResendDisabled(false);
+      setEmailError('');
+      setPhoneError('');
+    }, [resetMethod]);
+
     const startResendTimer = () => {
       setIsResendDisabled(true);
       setCountdown(60); // 60 seconds = 1 minute
@@ -135,76 +152,82 @@ const Page = () => {
           }
         };
 
-      const handleReset = async () => {
-        try {
-          if (resetMethod === 'email') {
-            // Validate email before sending
-            const error = validateEmail(email);
-            if (error) {
-              setEmailError(error);
-              setModalMessage(error);
-              setIsError(true);
-              setIsModalOpen(true);
-              return;
-            }
+     const handleReset = async () => {
+  try {
+    if (resetMethod === 'email') {
+      // Validate email before sending
+      const error = validateEmail(email);
+      if (error) {
+        setEmailError(error);
+        setModalMessage(error);
+        setIsError(true);
+        setIsModalOpen(true);
+        return;
+      }
 
-            setIsSendingEmail(true);
-            const res = await sendResetEmail(email);
-            setModalMessage(res.message || 'If an account exists, a password reset link has been sent.');
-            
-            // Check if the response indicates no account found
-            if (res.message && res.message.includes("dont have a account with us")) {
-              setIsError(true);
-            } else {
-              setIsEmailSent(true);
-              setIsError(false);
-              startResendTimer(); // Start timer only for successful email
-              setEmail(''); // Clear email field after successful send
-            }
-            
-            setIsModalOpen(true);
-          } else {
-            // Validate phone number before sending
-            const error = validatePhoneNumber(phoneNumber);
-            if (error) {
-              setPhoneError(error);
-              setModalMessage(error);
-              setIsError(true);
-              setIsModalOpen(true);
-              return;
-            }
+      setIsSendingEmail(true);
+      const res = await sendResetEmail(email);
+      setModalMessage(res.message || 'If an account exists, a password reset link has been sent.');
+      
+      // Check if the response indicates no account found
+      if (res.message && res.message.includes("dont have a account with us")) {
+        setIsError(true);
+      } else {
+        setIsEmailSent(true);
+        setIsError(false);
+        startResendTimer(); // Start timer only for successful email
+        setEmail(''); // Clear email field after successful send
+      }
+      
+      setIsModalOpen(true);
+    } else {
+      // Validate phone number before sending
+      const error = validatePhoneNumber(phoneNumber);
+      if (error) {
+        setPhoneError(error);
+        setModalMessage(error);
+        setIsError(true);
+        setIsModalOpen(true);
+        return;
+      }
 
-            // Send OTP via SMS using Shoutout
-            const res = await sendOTP(phoneNumber, countryCode);
-            setModalMessage(`OTP code has been sent to ${countryCode}${phoneNumber}`);
-            
-            // Store reference ID if needed for verification later
-            if (res && res.referenceId) {
-              localStorage.setItem("otpReferenceId", res.referenceId);
-            }
+      setIsSendingOTP(true); // Start loading for OTP
+      
+      // Send OTP via SMS using Shoutout
+      const res = await sendOTP(phoneNumber, countryCode);
+      setModalMessage(`OTP code has been sent to ${countryCode}${phoneNumber}`);
+      setIsOTPSent(true); // Mark OTP as sent
+      
+      // Store reference ID if needed for verification later
+      if (res && res.referenceId) {
+        localStorage.setItem("otpReferenceId", res.referenceId);
+      }
 
-            const cleanedPhone = phoneNumber.replace(/\s+/g, "");
-            const fullPhoneNumber = countryCode + cleanedPhone;
+      const cleanedPhone = phoneNumber.replace(/\s+/g, "");
+      const fullPhoneNumber = countryCode + cleanedPhone;
 
-            console.log('country code -', countryCode);
-            console.log('cleaned phone -', cleanedPhone);
+      console.log('country code -', countryCode);
+      console.log('cleaned phone -', cleanedPhone);
 
-            // Store phone number without country code and country code separately
-            localStorage.setItem('otpPhoneOnly', cleanedPhone); // e.g., "728196767"
-            localStorage.setItem('otpCountryCode', countryCode); // e.g., "+94"
+      // Store phone number without country code and country code separately
+      localStorage.setItem('otpPhoneOnly', cleanedPhone); // e.g., "728196767"
+      localStorage.setItem('otpCountryCode', countryCode); // e.g., "+94"
 
-            // Redirect only for phone reset
-            window.location.href = `/otp`;
-          }
-        } catch (err: any) {
-          setModalMessage(err.message || 'Failed to send reset code');
-          setIsError(true);
-          setIsModalOpen(true);
-          console.error(err);
-        } finally {
-          setIsSendingEmail(false);
-        }
-      };
+      // Small delay to show "Sent!" state before redirect
+      setTimeout(() => {
+        router.push('/otp');
+      }, 1000);
+    }
+  } catch (err: any) {
+    setModalMessage(err.message || 'Failed to send reset code');
+    setIsError(true);
+    setIsModalOpen(true);
+    console.error(err);
+  } finally {
+    setIsSendingEmail(false);
+    setIsSendingOTP(false); // Stop loading for OTP
+  }
+};
 
       const handleResendEmail = async () => {
         if (isResendDisabled || isSendingEmail) return;
@@ -246,14 +269,20 @@ const Page = () => {
   const selectedCountry = countryData.find(country => country.dial_code === countryCode);
 
   // Get button text for send button
-  const getSendButtonText = () => {
-    if (isSendingEmail) return 'Sending...';
-    if (isEmailSent && resetMethod === 'email' && isResendDisabled) return 'Sent !';
-    return resetMethod === 'email' ? 'Send Password Reset Link' : 'Send OTP via SMS';
-  };
+    const getSendButtonText = () => {
+      if (resetMethod === 'email') {
+        if (isSendingEmail) return 'Sending...';
+        if (isEmailSent && isResendDisabled) return 'Sent !';
+        return 'Send Password Reset Link';
+      } else {
+        if (isSendingOTP) return 'Sending...';
+        if (isOTPSent) return 'Sent !';
+        return 'Send OTP via SMS';
+      }
+    };
 
   const handleBackToLogin = () => {
-  window.location.href = '/signin'; // Adjust the path as needed
+  router.push('/signin'); // Adjust the path as needed
   };
 
   return (
@@ -427,21 +456,23 @@ const Page = () => {
   </div>
 )}
 
-            <button
-              onClick={handleReset}
-              className={`w-full py-3 text-white rounded-md transition-colors mb-4 ${
-                (resetMethod === 'email' && isEmailSent) || 
-                (resetMethod === 'email' ? !email : !phoneNumber)
-                  ? 'bg-gray-400 cursor-not-allowed' 
-                  : 'bg-purple-800 hover:bg-purple-900 cursor-pointer'
-              }`}
-              disabled={
-                (resetMethod === 'email' && isEmailSent) || 
-                (resetMethod === 'email' ? !email : !phoneNumber)
-              }
-            >
-              {getSendButtonText()}
-            </button>
+          <button
+            onClick={handleReset}
+            className={`w-full py-3 text-white rounded-md transition-colors mb-4 ${
+              (resetMethod === 'email' && (isEmailSent || isSendingEmail)) || 
+              (resetMethod === 'sms' && (isOTPSent || isSendingOTP)) ||
+              (resetMethod === 'email' ? !email : !phoneNumber)
+                ? 'bg-gray-400 cursor-not-allowed' 
+                : 'bg-purple-800 hover:bg-purple-900 cursor-pointer'
+            }`}
+            disabled={
+              (resetMethod === 'email' && (isEmailSent || isSendingEmail)) || 
+              (resetMethod === 'sms' && (isOTPSent || isSendingOTP)) ||
+              (resetMethod === 'email' ? !email : !phoneNumber)
+            }
+          >
+            {getSendButtonText()}
+          </button>
 
             {/* Show timer and resend button only for email */}
             {resetMethod === 'email' && isEmailSent && (
