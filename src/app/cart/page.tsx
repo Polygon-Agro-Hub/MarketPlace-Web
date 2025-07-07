@@ -122,26 +122,25 @@ const Page: React.FC = () => {
   const dispatch = useDispatch();
   const router = useRouter();
 
-  // Helper functions for unit calculations
-  const calculateDiscount = (baseDiscount: number, unit: 'kg' | 'g', quantity: number): number => {
-    const quantityInKg = unit === 'g' ? quantity / 1000 : quantity;
-    return baseDiscount * quantityInKg;
-  };
+ const calculateDiscount = (baseDiscount: number, unit: 'kg' | 'g', quantity: number): number => {
+  const quantityInKg = unit === 'g' ? quantity / 1000 : quantity;
+  return parseFloat((baseDiscount * quantityInKg).toFixed(2));
+};
 
-  const calculatePrice = (basePrice: number, unit: 'kg' | 'g', quantity: number): number => {
-    const quantityInKg = unit === 'g' ? quantity / 1000 : quantity;
-    return basePrice * quantityInKg;
-  };
+const calculatePrice = (basePrice: number, unit: 'kg' | 'g', quantity: number): number => {
+  const quantityInKg = unit === 'g' ? quantity / 1000 : quantity;
+  return parseFloat((basePrice * quantityInKg).toFixed(2));
+};
 
-  const getDisplayDiscount = (item: CartItem): number => {
-    const selectedUnit = unitSelection[item.id] || item.unit;
-    return calculateDiscount(item.discount, selectedUnit, item.quantity);
-  };
+const getDisplayDiscount = (item: CartItem): number => {
+  const selectedUnit = unitSelection[item.id] || item.unit;
+  return calculateDiscount(item.discount, selectedUnit, item.quantity);
+};
 
-  const getDisplayPrice = (item: CartItem): number => {
-    const selectedUnit = unitSelection[item.id] || item.unit;
-    return calculatePrice(item.price, selectedUnit, item.quantity);
-  };
+const getDisplayPrice = (item: CartItem): number => {
+  const selectedUnit = unitSelection[item.id] || item.unit;
+  return calculatePrice(item.price, selectedUnit, item.quantity);
+};
 
   // Helper function to check if cart is empty
   const isCartEmpty = (): boolean => {
@@ -183,6 +182,7 @@ const Page: React.FC = () => {
     }
   }, [token, dispatch]);
 
+// Updated handleUnitChange function
 const handleUnitChange = (itemId: number, newUnit: 'kg' | 'g') => {
   // Find the current item to get current unit and quantity
   let currentItem: CartItem | null = null;
@@ -199,14 +199,14 @@ const handleUnitChange = (itemId: number, newUnit: 'kg' | 'g') => {
   const currentUnit = unitSelection[itemId] || currentItem.unit;
   let newQuantity = currentItem.quantity;
 
-  // Convert quantity based on unit change
+  // Convert quantity based on unit change with proper precision handling
   if (currentUnit !== newUnit) {
     if (currentUnit === 'kg' && newUnit === 'g') {
       // Convert kg to g: multiply by 1000
-      newQuantity = currentItem.quantity * 1000;
+      newQuantity = parseFloat((currentItem.quantity * 1000).toFixed(2));
     } else if (currentUnit === 'g' && newUnit === 'kg') {
       // Convert g to kg: divide by 1000
-      newQuantity = currentItem.quantity / 1000;
+      newQuantity = parseFloat((currentItem.quantity / 1000).toFixed(2));
     }
   }
 
@@ -232,11 +232,11 @@ const handleUnitChange = (itemId: number, newUnit: 'kg' | 'g') => {
 };
 
 
-//price update with comma functions
+// Updated formatPrice function to handle decimal precision
 const formatPrice = (price: number): string => {
-  // Convert to fixed decimal first, then add commas
-  const fixedPrice = Number(price).toFixed(2);
-  const [integerPart, decimalPart] = fixedPrice.split('.');
+  // Ensure proper decimal precision before formatting
+  const fixedPrice = parseFloat(price.toFixed(2));
+  const [integerPart, decimalPart] = fixedPrice.toFixed(2).split('.');
   
   // Add commas to integer part
   const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
@@ -245,6 +245,7 @@ const formatPrice = (price: number): string => {
 };
 
 
+// Updated handleProductQuantityChange function
 const handleProductQuantityChange = (productId: number, delta: number) => {
   let currentItem: CartItem | null = null;
   
@@ -260,17 +261,29 @@ const handleProductQuantityChange = (productId: number, delta: number) => {
   if (!currentItem) return;
 
   const currentQuantity = currentItem.quantity;
-  const changeBy = currentItem.changeby || 1; // Default to 1 if changeby is not available
-  const startValue = currentItem.startValue || 1; // Default to 1 if startValue is not available
+  const selectedUnit = unitSelection[productId] || currentItem.unit;
+  
+  // Get changeby value based on selected unit with proper precision
+  let changeBy = currentItem.changeby || 1;
+  let startValue = currentItem.startValue || 1;
+  
+  // If unit is grams but changeby is for kg, convert it
+  if (selectedUnit === 'g' && currentItem.unit === 'kg') {
+    changeBy = parseFloat((changeBy * 1000).toFixed(2));
+    startValue = parseFloat((startValue * 1000).toFixed(2));
+  } else if (selectedUnit === 'kg' && currentItem.unit === 'g') {
+    changeBy = parseFloat((changeBy / 1000).toFixed(2));
+    startValue = parseFloat((startValue / 1000).toFixed(2));
+  }
 
-  // Calculate new quantity using changeby value
+  // Calculate new quantity using changeby value with proper precision
   let newQuantity: number;
   if (delta > 0) {
     // Increment by changeby value
-    newQuantity = currentQuantity + (changeBy * delta);
+    newQuantity = parseFloat((currentQuantity + (changeBy * delta)).toFixed(2));
   } else {
     // Decrement by changeby value, but don't go below startValue
-    newQuantity = Math.max(startValue, currentQuantity + (changeBy * delta));
+    newQuantity = parseFloat(Math.max(startValue, currentQuantity + (changeBy * delta)).toFixed(2));
   }
 
   // Update Redux store
@@ -635,17 +648,62 @@ const handleCheckout = async () => {
     }, [showDeliveryModal]);
 
     // Add this helper function to calculate products total for a specific item group
-  const calculateItemGroupTotal = (itemGroup: AdditionalItems): number => {
-    return itemGroup.Items.reduce((total, item) => {
-      const selectedUnit = unitSelection[item.id] || item.unit;
-      const itemTotal = calculatePrice(item.price, selectedUnit, item.quantity);
-      return total + itemTotal;
-    }, 0);
-  };
+ const calculateItemGroupTotal = (itemGroup: AdditionalItems): number => {
+  return itemGroup.Items.reduce((total, item) => {
+    const selectedUnit = unitSelection[item.id] || item.unit;
+    const itemTotal = calculatePrice(item.price, selectedUnit, item.quantity);
+    return total + itemTotal;
+  }, 0);
+};
   
   useEffect(() => {
   console.log('showDeliveryModal changed:', showDeliveryModal);
 }, [showDeliveryModal]);
+
+// Updated selector for cart summary with proper unit calculations
+const getUpdatedCartSummary = () => {
+  let totalItems = 0;
+  let productTotal = 0;
+  let totalDiscount = 0;
+  let packageTotal = 0;
+
+  // Calculate package totals
+  if (cartData.packages) {
+    cartData.packages.forEach(pkg => {
+      packageTotal += pkg.price * pkg.quantity;
+      totalItems += pkg.quantity;
+    });
+  }
+
+  // Calculate product totals with unit conversions
+  if (cartData.additionalItems) {
+    cartData.additionalItems.forEach(itemGroup => {
+      itemGroup.Items.forEach(item => {
+        const selectedUnit = unitSelection[item.id] || item.unit;
+        const itemPrice = calculatePrice(item.price, selectedUnit, item.quantity);
+        const itemDiscount = calculateDiscount(item.discount, selectedUnit, item.quantity);
+        
+        productTotal += itemPrice;
+        totalDiscount += itemDiscount;
+        totalItems += 1; // Count each item as 1 regardless of quantity
+      });
+    });
+  }
+
+  const grandTotal = packageTotal + productTotal;
+  const finalTotal = grandTotal - totalDiscount;
+
+  return {
+    totalItems,
+    packageTotal,
+    productTotal,
+    totalDiscount,
+    grandTotal,
+    finalTotal
+  };
+};
+
+const dynamicSummary = getUpdatedCartSummary();
 
 
 
@@ -929,7 +987,7 @@ if (isCartEmpty()) {
                           <Minus size={14} />
                         </button>
                         <span className="text-sm font-medium flex-1 text-center">
-                          {item.quantity}
+                          {parseFloat(item.quantity.toFixed(2))}
                         </span>
                         <button 
                           onClick={() => handleProductQuantityChange(item.id, 1)} 
@@ -940,16 +998,16 @@ if (isCartEmpty()) {
                         </button>
                       </div>
                     </td>
-                    <td className="px-4 py-4 text-center">
-                      <span className="text-sm font-medium text-[#3E206D]">
-                        Rs.{formatPrice(getDisplayDiscount(item))}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4 text-center">
-                      <span className="text-sm font-bold text-[#212121]">
-                        Rs.{formatPrice(getDisplayPrice(item))}
-                      </span>
-                    </td>
+                        <td className="px-4 py-4 text-center">
+                          <span className="text-sm font-medium text-[#3E206D]">
+                            Rs.{formatPrice(getDisplayDiscount(item))}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4 text-center">
+                          <span className="text-sm font-bold text-[#212121]">
+                            Rs.{formatPrice(getDisplayPrice(item))}
+                          </span>
+                        </td>
                    <td className="px-4 py-4 text-center">
                       <button 
                         onClick={() => handleRemoveProduct(item.id)}
@@ -1041,9 +1099,9 @@ if (isCartEmpty()) {
                         className="object-contain"
                       />
                     </div>
-                    <p className="text-sm sm:text-base">{calculatedSummary?.totalItems || 0} items</p>
+                    <p className="text-sm sm:text-base">{dynamicSummary.totalItems} items</p>
                   </div>
-                  <p className='font-semibold text-sm sm:text-base'>Rs.{formatPrice(calculatedSummary?.grandTotal || 0)}</p>
+                  <p className='font-semibold text-sm sm:text-base'>Rs.{formatPrice(dynamicSummary.grandTotal)}</p>
                 </div>
 
             {cartData.cart?.isCoupon === 1 ? (
@@ -1079,34 +1137,35 @@ if (isCartEmpty()) {
 
             <div className='border-t border-dotted border-gray-300 my-3 sm:my-4' />
 
-            <div className='space-y-2 mb-4'>
+           <div className='space-y-2 mb-4'>
               <div className='flex justify-between text-sm sm:text-base'>
                 <p className='text-gray-600'>Subtotal</p>
-                  <p>Rs.{formatPrice(calculatedSummary?.grandTotal || 0)}</p>
+                <p>Rs.{formatPrice(dynamicSummary.grandTotal)}</p>
               </div>
               
-              {(calculatedSummary?.totalDiscount || 0) > 0 && (
+              {dynamicSummary.totalDiscount > 0 && (
                 <div className='flex justify-between text-sm sm:text-base'>
                   <p className='text-gray-600'>Discount</p>
-                  <p className='text-gray-600'>Rs.{formatPrice(calculatedSummary?.totalDiscount || 0)}</p>
+                  <p className='text-gray-600'>Rs.{formatPrice(dynamicSummary.totalDiscount)}</p>
                 </div>
               )}
               
               <div className='border-t border-gray-200 pt-2'>
                 <div className='flex justify-between text-[20px] text-[#414347] font-semibold'>
                   <p>Grand Total</p>
-                  <p>Rs.{formatPrice(calculatedSummary?.finalTotal || 0)}</p>
+                  <p>Rs.{formatPrice(dynamicSummary.finalTotal)}</p>
                 </div>
               </div>
             </div>
 
-              <button
-                onClick={handleCheckout}
-                disabled={checkoutLoading || isCartEmpty() || (calculatedSummary?.totalItems || 0) === 0}
-                className='w-full bg-[#3E206D] text-white font-semibold rounded-lg py-3 text-sm sm:text-base hover:bg-[#2F1A5B] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
-              >
-                {checkoutLoading ? 'Processing...' : 'Proceed to Checkout'}
-              </button>
+
+                <button
+                  onClick={handleCheckout}
+                  disabled={checkoutLoading || isCartEmpty() || dynamicSummary.totalItems === 0}
+                  className='w-full bg-[#3E206D] text-white font-semibold rounded-lg py-3 text-sm sm:text-base hover:bg-[#2F1A5B] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
+                >
+                  {checkoutLoading ? 'Processing...' : 'Proceed to Checkout'}
+                </button>
           </div>
         </div>
       </div>

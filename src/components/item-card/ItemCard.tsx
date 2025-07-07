@@ -1,7 +1,7 @@
 'use client'
 
 import Image, { StaticImageData } from 'next/image';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next//navigation';
 import { productAddToCart } from '@/services/product-service';
 import { useSelector } from 'react-redux';
@@ -17,6 +17,9 @@ type ItemCardProps = {
     currentPrice: number;
     image: string | StaticImageData;
     discount?: number | null;
+    unitType?: string; // Add this
+    startValue?: number; // Add this
+    changeby?: number; // Add this
 };
 
 const ItemCard = ({
@@ -26,12 +29,38 @@ const ItemCard = ({
     currentPrice,
     image,
     discount = null,
+    unitType = 'Kg', // Default value
+    startValue = 1, // Default value
+    changeby = 1, // Default value
 }: ItemCardProps) => {
     const router = useRouter();
     const { token, user } = useAppSelector((state) => state.auth);
     const [showQuantitySelector, setShowQuantitySelector] = useState(false);
-    const [quantity, setQuantity] = useState(50);
-    const [unit, setUnit] = useState<'kg' | 'g'>('g');
+    
+    // Initialize quantity based on startValue and unit conversion
+    const getInitialQuantity = () => {
+        if (unitType?.toLowerCase() === 'kg') {
+            return startValue * 1000; // Convert kg to g for internal handling
+        }
+        return startValue;
+    };
+    
+    const [quantity, setQuantity] = useState(getInitialQuantity());
+    const [unit, setUnit] = useState<'kg' | 'g'>(unitType?.toLowerCase() === 'kg' ? 'kg' : 'g');
+    
+    // Update quantity and unit when props change
+    useEffect(() => {
+        const initialQuantity = getInitialQuantity();
+        setQuantity(initialQuantity);
+        setUnit(unitType?.toLowerCase() === 'kg' ? 'kg' : 'g');
+    }, [unitType, startValue, changeby]);
+    // Update quantity and unit when props change
+    useEffect(() => {
+        const initialQuantity = getInitialQuantity();
+        setQuantity(initialQuantity);
+        setUnit(unitType?.toLowerCase() === 'kg' ? 'kg' : 'g');
+    }, [unitType, startValue, changeby]);
+    
     const [addedToCart, setAddedToCart] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -41,69 +70,107 @@ const ItemCard = ({
     const isImageUrl = typeof image === 'string';
 
     // Helper function to format price with commas
-        const formatPrice = (price: number): string => {
-        // Convert to fixed decimal first, then add commas
+    const formatPrice = (price: number): string => {
         const fixedPrice = Number(price).toFixed(2);
         const [integerPart, decimalPart] = fixedPrice.split('.');
-        
-        // Add commas to integer part
         const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-        
         return `${formattedInteger}.${decimalPart}`;
-        };
+    };
 
-    const incrementQuantity = () => setQuantity(prev => prev + 1);
-    const decrementQuantity = () => quantity > 1 && setQuantity(prev => prev - 1);
+    // Get minimum quantity based on unit and startValue
+    const getMinQuantity = () => {
+        if (unitType?.toLowerCase() === 'kg') {
+            return startValue * 1000; // Convert to grams
+        }
+        return startValue;
+    };
 
-   const handleAddToCartClick = async () => {
-    if (!token || !user) {
-        router.push('/signin');
-        return;
-    }
+    // Get increment value based on unit and changeby
+    const getIncrementValue = () => {
+        if (unitType?.toLowerCase() === 'kg') {
+            return changeby * 1000; // Convert to grams
+        }
+        return changeby;
+    };
 
-    if (!showQuantitySelector) {
-        setShowQuantitySelector(true);
-        return;
-    }
+    // Display quantity based on selected unit
+    const getDisplayQuantity = () => {
+        if (unit === 'kg') {
+            return (quantity / 1000).toFixed(3).replace(/\.?0+$/, ''); // Remove trailing zeros
+        }
+        return quantity.toString();
+    };
 
-    try {
-        setIsLoading(true);
-        setError(null);
+    const incrementQuantity = () => {
+        setQuantity(prev => prev + getIncrementValue());
+    };
 
-        const productData = {
-            mpItemId: id,
-            quantityType: unit,
-            quantity: quantity
-        };
+    const decrementQuantity = () => {
+        const minQty = getMinQuantity();
+        const newQuantity = quantity - getIncrementValue();
+        if (newQuantity >= minQty) {
+            setQuantity(newQuantity);
+        }
+    };
 
-        await productAddToCart(productData, token);
-
-        // Fetch updated cart info after successful add to cart
-        try {
-            const cartInfo = await getCartInfo(token);
-            console.log("Updated cart info:", cartInfo);
-            dispatch(updateCartInfo(cartInfo));
-        } catch (cartError) {
-            console.error('Error fetching cart info:', cartError);
-            // Don't fail the whole operation if cart info fetch fails
+    const handleAddToCartClick = async () => {
+        if (!token || !user) {
+            router.push('/signin');
+            return;
         }
 
-        setShowQuantitySelector(false);
-        setAddedToCart(true);
-    } catch (err: any) {
-        setError(err.message);
-    } finally {
-        setIsLoading(false);
-        setTimeout(() => {
-            setAddedToCart(false);
-            setQuantity(50);
-            setUnit('g');
-        }, 2000);
-    }
-};
+        if (!showQuantitySelector) {
+            setShowQuantitySelector(true);
+            return;
+        }
+
+        try {
+            setIsLoading(true);
+            setError(null);
+
+            // Convert quantity to the original unit type for API
+            let apiQuantity = quantity;
+            let apiUnit = unit;
+
+            // If original unitType is kg, convert back to kg for API
+            if (unitType?.toLowerCase() === 'kg') {
+                apiQuantity = quantity / 1000;
+                apiUnit = 'kg';
+            }
+
+            const productData = {
+                mpItemId: id,
+                quantityType: apiUnit,
+                quantity: apiQuantity
+            };
+
+            await productAddToCart(productData, token);
+
+            try {
+                const cartInfo = await getCartInfo(token);
+                console.log("Updated cart info:", cartInfo);
+                dispatch(updateCartInfo(cartInfo));
+            } catch (cartError) {
+                console.error('Error fetching cart info:', cartError);
+            }
+
+            setShowQuantitySelector(false);
+            setAddedToCart(true);
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setIsLoading(false);
+            setTimeout(() => {
+                setAddedToCart(false);
+                setQuantity(getInitialQuantity());
+                setUnit(unitType?.toLowerCase() === 'kg' ? 'kg' : 'g');
+            }, 2000);
+        }
+    };
 
     const handleUnitChange = (selectedUnit: 'kg' | 'g') => {
         setUnit(selectedUnit);
+        // No need to convert quantity as we store everything in grams internally
     };
 
     return (
@@ -168,7 +235,7 @@ const ItemCard = ({
                 {/* Product name */}
                 <h3 className="text-xs md:text-sm lg:text-base font-medium text-gray-800 text-center mb-0.5">{name}</h3>
 
-                {/* Price section - Updated with comma formatting */}
+                {/* Price section */}
                 <div className="flex flex-col items-center space-y-0.5 mb-1 md:mb-2">
                     {originalPrice && originalPrice > currentPrice ? (
                         <>
@@ -180,7 +247,7 @@ const ItemCard = ({
                     )}
                 </div>
 
-                {/* Quantity selector - Only show if user is logged in */}
+                {/* Quantity selector */}
                 {token && user && showQuantitySelector && (
                     <div className="w-full space-y-2 mb-2 flex flex-col items-center justify-center">
                         <div className="flex justify-center">
@@ -208,13 +275,13 @@ const ItemCard = ({
                             <div className="flex w-full max-w-28 rounded-lg bg-white border-1 border-[#3E206D]">
                                 <button
                                     onClick={decrementQuantity}
-                                    disabled={quantity <= 1}
+                                    disabled={quantity <= getMinQuantity()}
                                     className="flex-none px-2 py-1 bg-[#3E206D] text-white font-bold rounded-l-md hover:bg-purple-800 disabled:opacity-50"
                                 >
                                     −
                                 </button>
                                 <div className="flex-grow text-center py-1 text-sm">
-                                    {quantity}
+                                    {getDisplayQuantity()}
                                 </div>
                                 <button
                                     onClick={incrementQuantity}
@@ -229,7 +296,6 @@ const ItemCard = ({
 
                 {/* Bottom button section */}
                 <div className="w-full mt-auto">
-                    {/* Add to cart button */}
                     {addedToCart ? (
                         <button className="w-full py-2 px-4 rounded-full flex items-center justify-center gap-2 text-sm md:text-base bg-purple-100 text-purple-900 transition-colors cursor-pointer">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -259,12 +325,11 @@ const ItemCard = ({
                             }
                         </button>
                     )}
-                                    </div>
+                </div>
             </div>
         </div>
     );
 };
-
 export default ItemCard;
 function useAppSelector<TSelected>(selector: (state: any) => TSelected): TSelected {
     return useSelector(selector);

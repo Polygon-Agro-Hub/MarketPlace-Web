@@ -506,3 +506,32 @@ export const updateUserStatus = async (token: string) => {
     }
   }
 };
+
+export const getMarketplaceSuggestionsProfile = async (token: string): Promise<any> => {
+  try {
+    const response = await axios.get('/product/marketplace/suggestionsprofile', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (response.status >= 200 && response.status < 300) {
+      return response.data;
+    } else {
+      throw new Error(response.data?.message || 'Failed to fetch marketplace suggestions');
+    }
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(
+        error.response.data?.message ||
+        error.response.data?.error ||
+        `Failed with status ${error.response.status}`
+      );
+    } else if (error.request) {
+      throw new Error('No response received from server');
+    } else {
+      throw new Error(error.message || 'An error occurred while fetching marketplace suggestions');
+    }
+  }
+};
