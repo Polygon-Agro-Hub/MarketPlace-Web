@@ -507,7 +507,7 @@ export const validateOrderData = (payload: OrderPayload): { isValid: boolean; er
   }
 
   // Validate coupon details consistency
-  if (payload.checkoutDetails.isCoupon && payload.checkoutDetails.couponValue <= 0) {
+  if (payload.checkoutDetails.isCoupon && payload.checkoutDetails.couponValue < 0) {
     errors.push('Coupon value must be greater than 0 when coupon is applied');
   }
 
