@@ -509,7 +509,7 @@ const Header = () => {
             <div className="flex justify-center gap-4">
               <button
                 onClick={() => setShowLogoutModal(false)}
-                className="px-6 py-2 bg-[#F3F4F7] text-gray-800 rounded hover:bg-gray-300 transition-colors rounded-[15px] cursor-pointer"
+                className="px-6 py-2 bg-[#F3F4F7] text-gray-800 hover:bg-gray-300 transition-colors rounded-[15px] cursor-pointer"
               >
                 Cancel
               </button>
@@ -532,7 +532,7 @@ const Header = () => {
             <div className="flex justify-center gap-4">
               <button
                 onClick={() => setShowSignupModal(false)}
-                className="px-6 py-2 bg-[#F3F4F7] text-gray-800 rounded hover:bg-gray-300 transition-colors rounded-[15px] cursor-pointer"
+                className="px-6 py-2 bg-[#F3F4F7] text-gray-800 hover:bg-gray-300 transition-colors rounded-[15px] cursor-pointer"
               >
                 Cancel
               </button>
