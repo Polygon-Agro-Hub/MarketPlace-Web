@@ -11,6 +11,7 @@ const excludedRoutes = [
   '/otp',
   '/forget-password',
   '/reset-password',
+  '/reset-password-phone/',
   '/error/404',
   '/error/451',
   '/unsubscribe',

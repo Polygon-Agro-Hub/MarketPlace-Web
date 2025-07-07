@@ -39,7 +39,7 @@ interface Category {
 }
 
 export default function CategoryFilterWholesale() {
-    const [selectedCategory, setSelectedCategory] = useState('Fruit');
+    const [selectedCategory, setSelectedCategory] = useState('Vegetables');
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
