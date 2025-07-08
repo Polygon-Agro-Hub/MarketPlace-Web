@@ -26,10 +26,20 @@ const schema = yup.object().shape({
     .required('Last name is required'),
   email: yup.string().email('Invalid email').required('Email is required'),
   countryCode: yup.string().required('Country code is required'),
+  countryCode2: yup.string().required('Country code is required'),
   phoneNumber: yup
     .string()
     .matches(/^[0-9]{9}$/, 'Phone number must be exactly 9 digits')
     .required('Phone number is required'),
+     phoneNumber2: yup
+    .string()
+    .matches(/^[0-9]{9}$/, 'Phone number must be exactly 9 digits')
+    .required('Phone number is required'),
+  companyName: yup.string().when('$buyerType', {
+    is: 'Wholesale',
+    then: (schema) => schema.required('Company name is required'),
+    otherwise: (schema) => schema.notRequired(),
+  }),
   currentPassword: yup.string().when('newPassword', {
     is: (val: string | undefined) => val && val.length > 0,
     then: (schema) => schema.required('Current password is required'),
@@ -165,7 +175,7 @@ const PersonalDetailsForm = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-
+const [buyerType, setBuyerType] = useState<string>('');
   const {
     register,
     handleSubmit,
@@ -174,14 +184,17 @@ const PersonalDetailsForm = () => {
     setValue,
     formState: { errors },
   } = useForm<FormData>({
-    resolver: yupResolver(schema) as any,
+   resolver: yupResolver(schema, { context: { buyerType } }) as any,
     defaultValues: {
       title: '',
       countryCode: '',
+        countryCode2: '',
       firstName: '',
       lastName: '',
       email: '',
       phoneNumber: '',
+      phoneNumber2: '',
+      companyName: '', // Add companyName
       currentPassword: undefined,
       newPassword: undefined,
       confirmPassword: undefined,
@@ -191,6 +204,7 @@ const PersonalDetailsForm = () => {
   // Watch form values for title and countryCode
   const titleValue = watch('title');
   const countryCodeValue = watch('countryCode');
+  const countryCode2Value = watch('countryCode2'); // Added for second phone number
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -204,7 +218,7 @@ const PersonalDetailsForm = () => {
       try {
         const data = await fetchProfile({ token });
         console.log('API Response:', data);
-
+setBuyerType(data.buyerType || '');
         reset({
           title: data.title || '',
           firstName: data.firstName || '',
@@ -212,6 +226,9 @@ const PersonalDetailsForm = () => {
           email: data.email || '',
           countryCode: data.phoneCode || '',
           phoneNumber: data.phoneNumber || '',
+            countryCode2: data.phoneCode2 || '',
+          phoneNumber2: data.phoneNumber2 || '',
+          companyName: data.companyName || '', // Add companyName
           currentPassword: undefined,
           newPassword: undefined,
           confirmPassword: undefined,
@@ -248,7 +265,7 @@ const PersonalDetailsForm = () => {
     }
   };
 
-  const onSubmit: SubmitHandler<FormData> = async (data) => {
+ const onSubmit: SubmitHandler<FormData> = async (data) => {
     setIsLoading(true);
     if (!token) {
       setErrorMessage('You are not authenticated. Please login first.');
@@ -264,16 +281,25 @@ const PersonalDetailsForm = () => {
       setErrorMessage('');
       setSuccessMessage('');
 
+      // Prepare profile data, include company details only if buyerType is Wholesale
+      const profileData: any = {
+        title: data.title,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        phoneCode: data.countryCode,
+        phoneNumber: data.phoneNumber,
+      };
+
+      if (buyerType === 'Wholesale') {
+        profileData.phoneCode2 = data.countryCode2;
+        profileData.phoneNumber2 = data.phoneNumber2;
+        profileData.companyName = data.companyName;
+      }
+
       await updateProfile({
         token,
-        data: {
-          title: data.title,
-          firstName: data.firstName,
-          lastName: data.lastName,
-          email: data.email,
-          phoneCode: data.countryCode,
-          phoneNumber: data.phoneNumber,
-        },
+        data: profileData,
         profilePic,
       });
 
@@ -294,6 +320,7 @@ const PersonalDetailsForm = () => {
       }
 
       const updatedData = await fetchProfile({ token });
+      setBuyerType(updatedData.buyerType || ''); // Update buyerType
       reset({
         title: updatedData.title || '',
         firstName: updatedData.firstName || '',
@@ -301,6 +328,9 @@ const PersonalDetailsForm = () => {
         email: updatedData.email || '',
         countryCode: updatedData.phoneCode || '',
         phoneNumber: updatedData.phoneNumber || '',
+        countryCode2: updatedData.phoneCode2 || '',
+        phoneNumber2: updatedData.phoneNumber2 || '',
+        companyName: updatedData.companyName || '',
         currentPassword: undefined,
         newPassword: undefined,
         confirmPassword: undefined,
@@ -333,10 +363,13 @@ const PersonalDetailsForm = () => {
     reset({
       title: '',
       countryCode: '',
+      countryCode2: '',
       firstName: '',
       lastName: '',
       email: '',
       phoneNumber: '',
+      phoneNumber2: '',
+      companyName: '',
       currentPassword: undefined,
       newPassword: undefined,
       confirmPassword: undefined,
@@ -365,7 +398,6 @@ const PersonalDetailsForm = () => {
     { value: 'Ms', label: 'Ms' },
     { value: 'Mrs', label: 'Mrs' },
   ];
-
   return (
     <>
       <div className="relative z-50">
@@ -383,12 +415,7 @@ const PersonalDetailsForm = () => {
           title="Error!"
           description={errorMessage}
         />
-        <CancelSuccessPopup
-          isVisible={showCancelSuccessPopup}
-          onClose={() => setShowCancelSuccessPopup(false)}
-          title="Form reset successfully!"
-          duration={3000}
-        />
+       
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="px-2 md:px-10 bg-white">
@@ -475,7 +502,7 @@ const PersonalDetailsForm = () => {
           Manage your account email address for the invoices.
         </p>
         <div className="flex flex-col md:flex-row gap-8 mb-6">
-          <div className="md:w-[63%]">
+          <div className="md:w-[60%]">
             <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">Email</label>
             <input
               type="text"
@@ -484,7 +511,7 @@ const PersonalDetailsForm = () => {
             />
             <p className="text-red-500 text-xs">{errors.email?.message}</p>
           </div>
-          <div className="md:w-[55%]">
+          <div className="md:w-[56%]">
             <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">Phone Number</label>
             <div className="flex gap-4">
               <div className="relative w-[30%] md:w-[15%]">
@@ -498,7 +525,7 @@ const PersonalDetailsForm = () => {
                   onChange={(value) => setValue('countryCode', value, { shouldValidate: true })}
                 />
               </div>
-              <div className="w-[80%]">
+              <div className="w-[82%]">
                 <input
                   {...register('phoneNumber')}
                   className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm"
@@ -508,14 +535,57 @@ const PersonalDetailsForm = () => {
             </div>
           </div>
         </div>
-
+{/* Company Details Section - Conditional Rendering */}
+        {buyerType === 'Wholesale' && (
+          <>
+            <div className="w-full border-t border-[#BDBDBD] mb-6 mt-6"></div>
+            <h2 className="font-medium text-base text-[14px] md:text-[18px] mt-0 mb-1">Company Details</h2>
+            <p className="text-[12px] md:text-[16px] text-[#626D76] mb-6">
+              Manage your company account email address for the invoices.
+            </p>
+            <div className="flex flex-col md:flex-row gap-8 mb-6">
+              <div className="md:w-[60%]">
+                <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">Name</label>
+                <input
+                  type="text"
+                  {...register('companyName')}
+                  className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm"
+                />
+                <p className="text-red-500 text-xs">{errors.companyName?.message}</p>
+              </div>
+              <div className="md:w-[56%]">
+                <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">Phone Number</label>
+                <div className="flex gap-4">
+                  <div className="relative w-[30%] md:w-[15%]">
+                    <CustomDropdown
+                      register={register}
+                      name="countryCode2"
+                      value={countryCode2Value}
+                      errors={errors}
+                      options={phoneCodeOptions}
+                      placeholder="Select Code"
+                      onChange={(value) => setValue('countryCode2', value, { shouldValidate: true })}
+                    />
+                  </div>
+                  <div className="w-[82%]">
+                    <input
+                      {...register('phoneNumber2')}
+                      className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm"
+                    />
+                    <p className="text-red-500 text-xs">{errors.phoneNumber2?.message}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
         {/* Password Section */}
         <div className="w-full border-t border-[#BDBDBD] mb-6 mt-6"></div>
         <h2 className="font-medium text-base text-[14px] md:text-[18px] mt-0 mb-1">Password</h2>
         <p className="text-[12px] md:text-[16px] text-[#626D76] mb-6">
           Modify your password at any time.
         </p>
-        <div className="md:w-[43%]">
+        <div className="md:w-[50%]">
           <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">Current Password</label>
           <div className="relative flex items-center border border-[#CECECE] rounded-lg p-2">
             <FiLock className="text-gray-500 mr-2" />
@@ -532,7 +602,7 @@ const PersonalDetailsForm = () => {
         </div>
 
         <div className="flex flex-col md:flex-row gap-8 mt-6">
-          <div className="md:w-[43%]">
+          <div className="md:w-[50%]">
             <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">New Password</label>
             <div className="relative flex items-center border border-[#CECECE] rounded-lg p-2">
               <FiLock className="text-gray-500 mr-2" />
@@ -548,7 +618,7 @@ const PersonalDetailsForm = () => {
             <p className="text-red-500 text-xs">{errors.newPassword?.message}</p>
           </div>
 
-          <div className="md:w-[45%]">
+          <div className="md:w-[47%]">
             <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">Confirm New Password</label>
             <div className="relative flex items-center border border-[#CECECE] rounded-lg p-2">
               <FiLock className="text-gray-500 mr-2" />
@@ -565,22 +635,27 @@ const PersonalDetailsForm = () => {
           </div>
         </div>
 
-        <div className="flex justify-end gap-4 mt-10">
-          <button
-            type="button"
-            className={`w-[90px] h-[36px] sm:w-[110px] sm:h-[44px] cursor-pointer text-[16px] md:text-[20px] font-medium rounded-lg text-[#757E87] bg-[#F3F4F7] hover:bg-[#e1e2e5] ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-            onClick={handleCancel}
-            disabled={isLoading}
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            className={`w-[90px] h-[36px] sm:w-[110px] sm:h-[44px] cursor-pointer mb-4 text-[16px] md:text-[20px] font-medium rounded-lg text-white bg-[#3E206D] hover:bg-[#341a5a] ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-            disabled={isLoading}
-          >
-            Save
-          </button>
+        <div className="flex justify-end gap-4 mt-10 mb-5">
+<div className="flex gap-4">
+  <button
+    type="button"
+    className={`px-6 py-2.5 text-[16px] md:text-[20px] font-medium rounded-lg text-[#757E87] bg-[#F3F4F7] hover:bg-[#e1e2e5] cursor-pointer leading-none ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+    onClick={handleCancel}
+    disabled={isLoading}
+  >
+    Cancel
+  </button>
+
+  <button
+    type="submit"
+    className={`px-6 py-2.5 text-[16px] md:text-[20px] font-medium rounded-lg text-white bg-[#3E206D] hover:bg-[#341a5a] cursor-pointer leading-none ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+    disabled={isLoading}
+  >
+    Save
+  </button>
+</div>
+
+
         </div>
       </form>
     </>

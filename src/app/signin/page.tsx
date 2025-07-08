@@ -277,7 +277,7 @@ const Page = () => {
               onClick={() => setShowPassword((prev) => !prev)}
               className="absolute right-3 top-2.5 text-gray-400"
             >
-              <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} className="w-5 h-5" />
+              <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} className="w-5 h-5 cursor-pointer" />
             </button>
             {passwordError && <p className="text-sm text-red-600 mt-1">{passwordError}</p>}
           </div>

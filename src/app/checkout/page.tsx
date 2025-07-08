@@ -1004,7 +1004,7 @@ const Page: React.FC = () => {
                   <label className='block text-[#2E2E2E] font-semibold mb-4'>Date *</label>
                     <input
                       type="date"
-                      className='w-full border h-[39px] border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2 text-[#3D3D3D]'
+                      className='w-full border h-[39px] border-gray-300 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2 text-[#3D3D3D]'
                       value={formData.deliveryDate}
                       onChange={(e) => handleFieldChange('deliveryDate', e.target.value)}
                       min={getMinDate()} // Only allows dates 3 days after today or later
