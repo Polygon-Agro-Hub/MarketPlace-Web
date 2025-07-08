@@ -182,8 +182,8 @@ const PackageCard: React.FC<PackageProps> = ({
                       key={item.id}
                       className="flex justify-between items-center border-b border-white/30 py-1 text-sm"
                     >
-                      <span className="flex-1 text-start truncate pr-2">{item.displayName}</span>
-                      <span className="text-white text-start whitespace-nowrap">
+                      <span className="flex-1 text-start truncate pr-2 mb-7">{item.displayName}</span>
+                      <span className="text-white text-start whitespace-nowrap mb-7">
                         {item.quantity}
                         {item.quantityType && <span className="ml-1">{item.quantityType}</span>}
                       </span>

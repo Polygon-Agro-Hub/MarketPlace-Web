@@ -507,7 +507,7 @@ export const validateOrderData = (payload: OrderPayload): { isValid: boolean; er
   }
 
   // Validate coupon details consistency
-  if (payload.checkoutDetails.isCoupon && payload.checkoutDetails.couponValue <= 0) {
+  if (payload.checkoutDetails.isCoupon && payload.checkoutDetails.couponValue < 0) {
     errors.push('Coupon value must be greater than 0 when coupon is applied');
   }
 
@@ -607,6 +607,7 @@ export interface CouponValidationResponse {
   status: boolean;
   message: string;
   discount: number;
+  type?: string;
 }
 
 export const validateCoupon = async (couponCode: string, token: string): Promise<CouponValidationResponse> => {

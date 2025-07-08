@@ -101,7 +101,7 @@ const Page: React.FC = () => {
   // const storedFormData = useSelector((state: RootState) => state.checkout);
 
 
- const [formData, setFormDataLocal] = useState<FormData>(initialFormState);
+  const [formData, setFormDataLocal] = useState<FormData>(initialFormState);
 
   const [errors, setErrors] = useState<FormErrors>({
     centerId: '',
@@ -149,204 +149,204 @@ const Page: React.FC = () => {
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
   const [deliveryCharge, setDeliveryCharge] = useState<number>(0); // Default charge
 
-      useEffect(() => {
-        // Only run on client side
-        if (typeof window === 'undefined') return;
-        
-        // Get search params from window.location
-        const urlParams = new URLSearchParams(window.location.search);
-        const deliveryMethodFromQuery = urlParams.get('deliveryMethod');
+  useEffect(() => {
+    // Only run on client side
+    if (typeof window === 'undefined') return;
 
-        if (deliveryMethodFromQuery && (deliveryMethodFromQuery === 'home' || deliveryMethodFromQuery === 'pickup')) {
-          setFormDataLocal(prev => ({
-            ...prev,
-            deliveryMethod: deliveryMethodFromQuery
-          }));
+    // Get search params from window.location
+    const urlParams = new URLSearchParams(window.location.search);
+    const deliveryMethodFromQuery = urlParams.get('deliveryMethod');
 
-          // Set default to saved address for home delivery
-          if (deliveryMethodFromQuery === 'home') {
-            setUsePreviousAddress(true);
-            // Trigger fetch of previous address
-            handleAddressOptionChange('previous');
-          }
+    if (deliveryMethodFromQuery && (deliveryMethodFromQuery === 'home' || deliveryMethodFromQuery === 'pickup')) {
+      setFormDataLocal(prev => ({
+        ...prev,
+        deliveryMethod: deliveryMethodFromQuery
+      }));
 
-          console.log('Delivery method set from query params:', deliveryMethodFromQuery);
-        }
-        
-        setSearchParamsLoaded(true);
-      }, []);
-
-        useEffect(() => {
-      // Reset delivery charge when delivery method changes
-      if (formData.deliveryMethod === 'pickup') {
-        setDeliveryCharge(0);
-      } else if (formData.deliveryMethod === 'home' && !selectedCity) {
-        setDeliveryCharge(0); // Default home delivery charge
+      // Set default to saved address for home delivery
+      if (deliveryMethodFromQuery === 'home') {
+        setUsePreviousAddress(true);
+        // Trigger fetch of previous address
+        handleAddressOptionChange('previous');
       }
-    }, [formData.deliveryMethod, selectedCity]);
+
+      console.log('Delivery method set from query params:', deliveryMethodFromQuery);
+    }
+
+    setSearchParamsLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    // Reset delivery charge when delivery method changes
+    if (formData.deliveryMethod === 'pickup') {
+      setDeliveryCharge(0);
+    } else if (formData.deliveryMethod === 'home' && !selectedCity) {
+      setDeliveryCharge(0); // Default home delivery charge
+    }
+  }, [formData.deliveryMethod, selectedCity]);
 
 
-    useEffect(() => {
-      // Only run on client side
-      if (typeof window === 'undefined') return;
-      
-      const fetchPickupCenters = async () => {
-        if (formData.deliveryMethod === 'pickup') {
-          setLoadingCenters(true);
-          try {
-            const response = await getPickupCenters();
-            if (response.success) {
-              setPickupCenters(response.data);
-              console.log('Pickup centers loaded:', response.data);
-            }
-          } catch (error: any) {
-            console.error('Failed to fetch pickup centers:', error);
-            setErrorMsg(error.message || 'Failed to load pickup centers.');
-            setShowErrorPopup(true);
-          } finally {
-            setLoadingCenters(false);
-          }
-        }
-      };
+  useEffect(() => {
+    // Only run on client side
+    if (typeof window === 'undefined') return;
 
-      fetchPickupCenters();
-    }, [formData.deliveryMethod, token]);
-
-    useEffect(() => {
-      const fetchCities = async () => {
-        setLoadingCities(true);
+    const fetchPickupCenters = async () => {
+      if (formData.deliveryMethod === 'pickup') {
+        setLoadingCenters(true);
         try {
-          const response = await getCities();
+          const response = await getPickupCenters();
           if (response.success) {
-            setCities(response.data);
-            console.log('Cities loaded:', response.data);
+            setPickupCenters(response.data);
+            console.log('Pickup centers loaded:', response.data);
           }
         } catch (error: any) {
-          console.error('Failed to fetch cities:', error);
-          setErrorMsg(error.message || 'Failed to load cities.');
+          console.error('Failed to fetch pickup centers:', error);
+          setErrorMsg(error.message || 'Failed to load pickup centers.');
           setShowErrorPopup(true);
         } finally {
-          setLoadingCities(false);
+          setLoadingCenters(false);
         }
-      };
+      }
+    };
 
-      fetchCities();
-    }, []);
+    fetchPickupCenters();
+  }, [formData.deliveryMethod, token]);
+
+  useEffect(() => {
+    const fetchCities = async () => {
+      setLoadingCities(true);
+      try {
+        const response = await getCities();
+        if (response.success) {
+          setCities(response.data);
+          console.log('Cities loaded:', response.data);
+        }
+      } catch (error: any) {
+        console.error('Failed to fetch cities:', error);
+        setErrorMsg(error.message || 'Failed to load cities.');
+        setShowErrorPopup(true);
+      } finally {
+        setLoadingCities(false);
+      }
+    };
+
+    fetchCities();
+  }, []);
 
 
-        useEffect(() => {
-          // Set default to saved address if delivery method is home on initial load
-          if (formData.deliveryMethod === 'home' && searchParamsLoaded && !usePreviousAddress) {
-            setUsePreviousAddress(true);
-            handleAddressOptionChange('previous');
+  useEffect(() => {
+    // Set default to saved address if delivery method is home on initial load
+    if (formData.deliveryMethod === 'home' && searchParamsLoaded && !usePreviousAddress) {
+      setUsePreviousAddress(true);
+      handleAddressOptionChange('previous');
+    }
+  }, [formData.deliveryMethod, searchParamsLoaded]);
+
+
+  const handleCitySelect = (cityId: string, cityName: string) => {
+    const selectedCityData = cities.find(city => city.id.toString() === cityId);
+
+    if (selectedCityData) {
+      setSelectedCity(selectedCityData);
+      setFormDataLocal(prev => ({ ...prev, cityName: selectedCityData.city }));
+
+      // Set delivery charge based on selected city
+      const charge = parseFloat(selectedCityData.charge);
+      setDeliveryCharge(charge);
+
+      console.log('Selected city:', selectedCityData);
+      console.log('Delivery charge:', charge);
+    }
+  };
+
+  // 5. Create city dropdown options
+  const cityOptions = cities.map(city => ({
+    value: city.id.toString(),
+    label: city.city
+  }));
+
+  const handleAddressOptionChange = async (value: string) => {
+    if (value === 'previous') {
+      console.log('fetching last order address');
+      setUsePreviousAddress(true);
+      setFetching(true);
+
+      try {
+        const response = await getLastOrderAddress(token);
+
+        if (response && response.status) {
+          const data = response.result;
+          console.log('fetch last order address data', data);
+
+          // Find the city from the cities list
+          const cityData = cities.find(city => city.city === data.city);
+          if (cityData) {
+            setSelectedCity(cityData);
+            // Set delivery charge for previous address city
+            const charge = parseFloat(cityData.charge);
+            setDeliveryCharge(charge);
           }
-        }, [formData.deliveryMethod, searchParamsLoaded]);
 
-
-      const handleCitySelect = (cityId: string, cityName: string) => {
-        const selectedCityData = cities.find(city => city.id.toString() === cityId);
-        
-        if (selectedCityData) {
-          setSelectedCity(selectedCityData);
-          setFormDataLocal(prev => ({ ...prev, cityName: selectedCityData.city }));
-          
-          // Set delivery charge based on selected city
-          const charge = parseFloat(selectedCityData.charge);
-          setDeliveryCharge(charge);
-          
-          console.log('Selected city:', selectedCityData);
-          console.log('Delivery charge:', charge);
+          // Update form data based on building type
+          setFormDataLocal(prev => ({
+            ...prev,
+            buildingType: data.buildingType || 'Apartment',
+            title: data.title || '',
+            fullName: data.fullName || '',
+            phone1: data.phone1 || '',
+            phone2: data.phone2 || '',
+            phoneCode1: data.phonecode1 || '+94',
+            phoneCode2: data.phonecode2 || '+94',
+            scheduleType: 'One Time', // default
+            // Common address fields
+            houseNo: data.houseNo || '',
+            street: data.streetName || '',
+            cityName: data.city || '',
+            // Apartment-specific fields (will be empty for House type)
+            buildingNo: data.buildingNo || '',
+            buildingName: data.buildingName || '',
+            flatNumber: data.unitNo || '',
+            floorNumber: data.floorNo || '',
+          }));
+        } else {
+          // Handle case where no previous address is found
+          console.log('No previous order address found, staying with saved address option but clearing form');
+          // Keep usePreviousAddress as true but don't show error popup
+          // User can still choose to enter new address manually
+          setUsePreviousAddress(true);
         }
-      };
+      } catch (error: any) {
+        console.error('Failed to fetch last order address:', error);
+        // Keep the saved address option selected but allow user to choose new address
+        setUsePreviousAddress(true);
+      } finally {
+        setFetching(false);
+      }
+    } else {
+      setUsePreviousAddress(false);
+      setSelectedCity(null);
+      // Reset only the form fields, keep the delivery method
+      setFormDataLocal(prev => ({
+        ...initialFormState,
+        deliveryMethod: prev.deliveryMethod // Preserve the current delivery method
+      }));
+      // Reset delivery charge to default
+      setDeliveryCharge(0);
+    }
+  };
 
-    // 5. Create city dropdown options
-    const cityOptions = cities.map(city => ({
-      value: city.id.toString(),
-      label: city.city
-    }));
+  const calculateFinalTotal = (): number => {
+    const baseTotal = cartData?.grandTotal || 0;
+    const discount = cartData?.discountAmount || 0;
 
-       const handleAddressOptionChange = async (value: string) => {
-            if (value === 'previous') {
-              console.log('fetching last order address');
-              setUsePreviousAddress(true);
-              setFetching(true);
-
-              try {
-                const response = await getLastOrderAddress(token);
-
-                if (response && response.status) {
-                  const data = response.result;
-                  console.log('fetch last order address data', data);
-
-                  // Find the city from the cities list
-                  const cityData = cities.find(city => city.city === data.city);
-                  if (cityData) {
-                    setSelectedCity(cityData);
-                    // Set delivery charge for previous address city
-                    const charge = parseFloat(cityData.charge);
-                    setDeliveryCharge(charge);
-                  }
-
-                  // Update form data based on building type
-                  setFormDataLocal(prev => ({
-                    ...prev,
-                    buildingType: data.buildingType || 'Apartment',
-                    title: data.title || '',
-                    fullName: data.fullName || '',
-                    phone1: data.phone1 || '',
-                    phone2: data.phone2 || '',
-                    phoneCode1: data.phonecode1 || '+94',
-                    phoneCode2: data.phonecode2 || '+94',
-                    scheduleType: 'One Time', // default
-                    // Common address fields
-                    houseNo: data.houseNo || '',
-                    street: data.streetName || '',
-                    cityName: data.city || '',
-                    // Apartment-specific fields (will be empty for House type)
-                    buildingNo: data.buildingNo || '',
-                    buildingName: data.buildingName || '',
-                    flatNumber: data.unitNo || '',
-                    floorNumber: data.floorNo || '',
-                  }));
-                } else {
-                  // Handle case where no previous address is found
-                  console.log('No previous order address found, staying with saved address option but clearing form');
-                  // Keep usePreviousAddress as true but don't show error popup
-                  // User can still choose to enter new address manually
-                  setUsePreviousAddress(true);
-                }
-              } catch (error: any) {
-                console.error('Failed to fetch last order address:', error);
-                // Keep the saved address option selected but allow user to choose new address
-                setUsePreviousAddress(true);
-              } finally {
-                setFetching(false);
-              }
-            } else {
-              setUsePreviousAddress(false);
-              setSelectedCity(null);
-              // Reset only the form fields, keep the delivery method
-              setFormDataLocal(prev => ({
-                ...initialFormState,
-                deliveryMethod: prev.deliveryMethod // Preserve the current delivery method
-              }));
-              // Reset delivery charge to default
-              setDeliveryCharge(0);
-            }
-          };
-
-          const calculateFinalTotal = (): number => {
-              const baseTotal = cartData?.grandTotal || 0;
-              const discount = cartData?.discountAmount || 0;
-              
-              // Only add delivery charge for home delivery
-              if (formData.deliveryMethod === 'home') {
-                return baseTotal - discount + deliveryCharge;
-              } else {
-                // For pickup, no delivery charge
-                return baseTotal - discount;
-              }
-            };
+    // Only add delivery charge for home delivery
+    if (formData.deliveryMethod === 'home') {
+      return baseTotal - discount + deliveryCharge;
+    } else {
+      // For pickup, no delivery charge
+      return baseTotal - discount;
+    }
+  };
 
 
   const handleCenterSelect = (centerId: string, centerName: string) => {
@@ -375,109 +375,109 @@ const Page: React.FC = () => {
     label: center.label
   }));
 
-            const getMinDate = (): string => {
-              const today = new Date();
-              const minDate = new Date(today);
-              minDate.setDate(today.getDate() + 3); // Add 3 days to current date
-              
-              // Format as YYYY-MM-DD for the date input
-              return minDate.toISOString().split('T')[0];
-            };
+  const getMinDate = (): string => {
+    const today = new Date();
+    const minDate = new Date(today);
+    minDate.setDate(today.getDate() + 3); // Add 3 days to current date
+
+    // Format as YYYY-MM-DD for the date input
+    return minDate.toISOString().split('T')[0];
+  };
 
 
 
-            const handleFieldChange = (field: keyof FormData, value: string | number) => {
-            // Update the form state
-            setFormDataLocal(prev => ({ ...prev, [field]: value }));
+  const handleFieldChange = (field: keyof FormData, value: string | number) => {
+    // Update the form state
+    setFormDataLocal(prev => ({ ...prev, [field]: value }));
 
-            // Validate the field with access to current form data
-            const error = validateField(field, value, formData);
-            setErrors(prev => ({ ...prev, [field]: error }));
+    // Validate the field with access to current form data
+    const error = validateField(field, value, formData);
+    setErrors(prev => ({ ...prev, [field]: error }));
 
-            // Special case: if deliveryMethod changes, revalidate all address fields and centerId
-            if (field === 'deliveryMethod') {
-              // Set default to saved address for home delivery
-              if (value === 'home') {
-                setUsePreviousAddress(true);
-                // Trigger fetch of previous address
-                handleAddressOptionChange('previous');
-              } else {
-                setUsePreviousAddress(false);
-              }
+    // Special case: if deliveryMethod changes, revalidate all address fields and centerId
+    if (field === 'deliveryMethod') {
+      // Set default to saved address for home delivery
+      if (value === 'home') {
+        setUsePreviousAddress(true);
+        // Trigger fetch of previous address
+        handleAddressOptionChange('previous');
+      } else {
+        setUsePreviousAddress(false);
+      }
 
-              const addressFields = [
-                'buildingType', 'buildingName', 'buildingNo',
-                'street', 'cityName', 'houseNo',
-                'floorNumber', 'flatNumber', 'centerId'
-              ];
+      const addressFields = [
+        'buildingType', 'buildingName', 'buildingNo',
+        'street', 'cityName', 'houseNo',
+        'floorNumber', 'flatNumber', 'centerId'
+      ];
 
-              addressFields.forEach(addressField => {
-                const fieldValue = addressField === 'centerId'
-                  ? formData[addressField as keyof FormData]
-                  : formData[addressField as keyof FormData];
+      addressFields.forEach(addressField => {
+        const fieldValue = addressField === 'centerId'
+          ? formData[addressField as keyof FormData]
+          : formData[addressField as keyof FormData];
 
-                const addressError = validateField(
-                  addressField as keyof FormData,
-                  fieldValue,
-                  { ...formData, deliveryMethod: value as string } // Updated deliveryMethod
-                );
-                setErrors(prev => ({ ...prev, [addressField]: addressError }));
-              });
-            }
-          };
+        const addressError = validateField(
+          addressField as keyof FormData,
+          fieldValue,
+          { ...formData, deliveryMethod: value as string } // Updated deliveryMethod
+        );
+        setErrors(prev => ({ ...prev, [addressField]: addressError }));
+      });
+    }
+  };
 
-        const isFormValid = (): boolean => {
-        const isHomeDelivery = formData.deliveryMethod === 'home';
-        const isPickup = formData.deliveryMethod === 'pickup';
-        const isApartment = formData.buildingType === 'Apartment';
+  const isFormValid = (): boolean => {
+    const isHomeDelivery = formData.deliveryMethod === 'home';
+    const isPickup = formData.deliveryMethod === 'pickup';
+    const isApartment = formData.buildingType === 'Apartment';
 
-        // Check required fields based on delivery method
-        const requiredFields = [
-          'title',
-          'fullName', 
-          'phone1',
-          'deliveryDate',
-          'timeSlot'
-        ];
+    // Check required fields based on delivery method
+    const requiredFields = [
+      'title',
+      'fullName',
+      'phone1',
+      'deliveryDate',
+      'timeSlot'
+    ];
 
-        // Add delivery method specific required fields
-        if (isPickup) {
-          requiredFields.push('centerId');
-        }
+    // Add delivery method specific required fields
+    if (isPickup) {
+      requiredFields.push('centerId');
+    }
 
-        if (isHomeDelivery) {
-          requiredFields.push('buildingType', 'houseNo', 'street', 'cityName');
-          
-          // Add apartment specific required fields
-          if (isApartment) {
-            requiredFields.push('buildingName', 'buildingNo', 'flatNumber', 'floorNumber');
-          }
-        }
+    if (isHomeDelivery) {
+      requiredFields.push('buildingType', 'houseNo', 'street', 'cityName');
 
-        // Check if all required fields are filled and valid
-        for (const field of requiredFields) {
-          const value = formData[field as keyof FormData];
-          
-          // Check if field is empty
-          if (field === 'centerId') {
-            if (value === null || value === undefined) return false;
-          } else {
-            if (!value || (typeof value === 'string' && !value.trim())) return false;
-          }
-          
-          // Check if field has validation errors
-          const error = validateField(field as keyof FormData, value, formData);
-          if (error) return false;
-        }
+      // Add apartment specific required fields
+      if (isApartment) {
+        requiredFields.push('buildingName', 'buildingNo', 'flatNumber', 'floorNumber');
+      }
+    }
 
-        return true;
-      };
+    // Check if all required fields are filled and valid
+    for (const field of requiredFields) {
+      const value = formData[field as keyof FormData];
 
-   const [isFormValidState, setIsFormValidState] = useState(false);
+      // Check if field is empty
+      if (field === 'centerId') {
+        if (value === null || value === undefined) return false;
+      } else {
+        if (!value || (typeof value === 'string' && !value.trim())) return false;
+      }
 
-      useEffect(() => {
-      setIsFormValidState(isFormValid());
-    }, [formData, errors]);
+      // Check if field has validation errors
+      const error = validateField(field as keyof FormData, value, formData);
+      if (error) return false;
+    }
+
+    return true;
+  };
+
+  const [isFormValidState, setIsFormValidState] = useState(false);
+
+  useEffect(() => {
+    setIsFormValidState(isFormValid());
+  }, [formData, errors]);
 
 
   const validateField = (field: keyof FormData, value: string | number | null, formData: FormData): string => {
@@ -637,16 +637,16 @@ const Page: React.FC = () => {
     }
   };
 
-    const formatPrice = (price: number): string => {
-      // Convert to fixed decimal first, then add commas
-      const fixedPrice = Number(price).toFixed(2);
-      const [integerPart, decimalPart] = fixedPrice.split('.');
-      
-      // Add commas to integer part
-      const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-      
-      return `${formattedInteger}.${decimalPart}`;
-    };
+  const formatPrice = (price: number): string => {
+    // Convert to fixed decimal first, then add commas
+    const fixedPrice = Number(price).toFixed(2);
+    const [integerPart, decimalPart] = fixedPrice.split('.');
+
+    // Add commas to integer part
+    const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+    return `${formattedInteger}.${decimalPart}`;
+  };
 
 
   return (
@@ -677,7 +677,7 @@ const Page: React.FC = () => {
                 {/* Dropdown - Full width on all screens */}
                 <div className="w-full md:w-[32%]  cursor-pointer">
                   <CustomDropdown
-                  
+
                     options={[
                       { value: 'home', label: 'Home Delivery' },
                       { value: 'pickup', label: 'Pickup' },
@@ -770,9 +770,9 @@ const Page: React.FC = () => {
 
               <div className='flex flex-row md:gap-4 gap-2 mb-6'>
                 {/* Title dropdown */}
-                <div className="w-1/4 md:w-1/9">
-                  <label htmlFor="title" className='block font-semibold mb-1 text-[#2E2E2E]'>Title *</label>
-                  <div className="w-full">
+                <div className="w-1/4 md:w-1/9 cursor-pointer">
+                  <label htmlFor="title" className='block font-semibold mb-1 text-[#2E2E2E] '>Title *</label>
+                  <div className="w-full ">
                     <CustomDropdown
                       options={[
                         { value: 'Mr', label: 'Mr' },
@@ -969,27 +969,27 @@ const Page: React.FC = () => {
                   </div>
 
                   {/* City */}
-                    <div className="w-full md:w-1/2 px-2 mb-4">
-                      <label className="block font-semibold text-[#2E2E2E] mb-1">Nearest City *</label>
-                      {loadingCities ? (
-                        <div className="w-full h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] rounded-lg flex items-center justify-center">
-                          <span className="text-sm text-gray-500">Loading cities...</span>
-                        </div>
-                      ) : (
-                        <CustomDropdown
-                          options={cityOptions}
-                          selectedValue={selectedCity?.id?.toString() || ''}
-                          onSelect={(value) => {
-                            const selectedCityData = cities.find(city => city.id.toString() === value);
-                            if (selectedCityData) {
-                              handleCitySelect(value, selectedCityData.city);
-                            }
-                          }}
-                          placeholder="Select nearest city"
-                        />
-                      )}
-                      {errors.cityName && <p className="text-red-600 text-sm mt-1">{errors.cityName}</p>}
-                    </div>
+                  <div className="w-full md:w-1/2 px-2 mb-4">
+                    <label className="block font-semibold text-[#2E2E2E] mb-1">Nearest City *</label>
+                    {loadingCities ? (
+                      <div className="w-full h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] rounded-lg flex items-center justify-center">
+                        <span className="text-sm text-gray-500">Loading cities...</span>
+                      </div>
+                    ) : (
+                      <CustomDropdown
+                        options={cityOptions}
+                        selectedValue={selectedCity?.id?.toString() || ''}
+                        onSelect={(value) => {
+                          const selectedCityData = cities.find(city => city.id.toString() === value);
+                          if (selectedCityData) {
+                            handleCitySelect(value, selectedCityData.city);
+                          }
+                        }}
+                        placeholder="Select nearest city"
+                      />
+                    )}
+                    {errors.cityName && <p className="text-red-600 text-sm mt-1">{errors.cityName}</p>}
+                  </div>
                 </div>
               )}
 
@@ -1031,21 +1031,21 @@ const Page: React.FC = () => {
             <div className='w-full lg:w-1/3 mt-6 lg:mt-0'>
               <div className='border border-gray-300 rounded-lg shadow-md p-4 sm:p-5 md:p-6'>
                 <h2 className='font-semibold text-lg mb-4'>Your Order </h2>
-                
-                                <div className='flex justify-between items-center mb-3 sm:mb-4'>
+
+                <div className='flex justify-between items-center mb-3 sm:mb-4'>
                   <div className='flex items-center gap-2 sm:gap-3'>
                     <div className="w-12 sm:w-14 md:w-16 h-12 sm:h-14 md:h-16 border border-[gray] rounded-lg flex items-center justify-center">
-                      <Image 
-                        src={summary} 
-                        alt="Shopping bag" 
-                        width={40} 
+                      <Image
+                        src={summary}
+                        alt="Shopping bag"
+                        width={40}
                         height={40}
                         className="object-contain"
                       />
                     </div>
-                     <p className="text-gray-600">{cartData?.totalItems || 0} items</p>
+                    <p className="text-gray-600">{cartData?.totalItems || 0} items</p>
                   </div>
-                 <p className='font-semibold'>Rs.{formatPrice(cartData?.grandTotal || 0)}</p>
+                  <p className='font-semibold'>Rs.{formatPrice(cartData?.grandTotal || 0)}</p>
                 </div>
 
                 <div className='border-t border-gray-300 my-4' />
@@ -1060,35 +1060,44 @@ const Page: React.FC = () => {
                   <p className='text-gray-600'>Rs.{formatPrice(cartData?.discountAmount || 0)}</p>
                 </div>
 
-                    {formData.deliveryMethod === 'home' && (
-                      <div className='flex justify-between text-sm mb-2'>
-                        <p className='text-gray-600'>Delivery Charges</p>
-                        <p className='text-gray-600'>Rs.{formatPrice(deliveryCharge)}</p>
-                      </div>
-                    )}
+                {formData.deliveryMethod === 'home' && (
+                  <div className='flex justify-between text-sm mb-2'>
+                    <p className='text-gray-600'>Delivery Charges</p>
+                    <p className='text-gray-600'>Rs.{formatPrice(deliveryCharge)}</p>
+                  </div>
+                )}
 
-                    {formData.deliveryMethod === 'pickup' && (
-                      <div className='flex justify-between text-sm mb-2'>
-                      </div>
-                    )}
+                {formData.deliveryMethod === 'pickup' && (
+                  <div className='flex justify-between text-sm mb-2'>
+                  </div>
+                )}
 
                 <div className='border-t border-gray-300 my-4' />
 
-                    <div className='flex justify-between mb-4 text-[20px] text-[#414347]'>
-                      <p className='font-semibold'>Grand Total</p>
-                      <p className='font-semibold'>Rs.{formatPrice(calculateFinalTotal())}</p>
-                    </div>
-                  <button 
-                    type="submit" 
+                <div className='flex justify-between mb-4 text-[20px] text-[#414347]'>
+                  <p className='font-semibold'>Grand Total</p>
+                  <p className='font-semibold'>Rs.{formatPrice(calculateFinalTotal())}</p>
+                </div>
+                <div className="relative group">
+                  <button
+                    type="submit"
                     disabled={!isFormValidState || isLoading}
-                    className={`w-full font-semibold rounded-lg cursor-pointer px-4 py-3 transition-colors ${
-                      !isFormValidState || isLoading
-                        ? 'bg-purple-800 text-white cursor-not-allowed' 
-                        : 'bg-purple-800 text-white hover:bg-purple-900'
-                    }`}
+                    className={`w-full font-semibold rounded-lg px-4 py-3 transition-colors ${!isFormValidState || isLoading
+                        ? 'bg-purple-800  text-white cursor-not-allowed '
+                        : 'bg-purple-800 text-white hover:bg-purple-900 cursor-pointer'
+                      }`}
                   >
                     {isLoading ? 'Processing...' : 'Continue to Payment'}
                   </button>
+
+                  {/* Tooltip */}
+                  {(!isFormValidState && !isLoading) && (
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
+                      Please complete all required fields
+                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

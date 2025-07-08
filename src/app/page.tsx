@@ -124,7 +124,7 @@ export default function Home() {
             <div className="flex justify-end space-x-3">
               <button
                 onClick={handleCloseConfirmModal}
-                className="px-6 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors"
+                className="px-6 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors cursor-pointer"
               >
                 Cancel
               </button>
@@ -136,7 +136,7 @@ export default function Home() {
                   }
                   handleCloseConfirmModal();
                 }}
-                className="px-6 py-2 bg-[#3E206D] text-white rounded hover:bg-[#2D1850] transition-colors"
+                className="px-6 py-2 bg-[#3E206D] text-white rounded hover:bg-[#2D1850] transition-colors cursor-pointer"
               >
                 Add to Cart
               </button>
