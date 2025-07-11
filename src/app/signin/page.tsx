@@ -47,15 +47,18 @@ const Page = () => {
     e.preventDefault();
     let valid = true;
 
-    if (!email.trim()) {
-      setEmailError('Email is required');
-      valid = false;
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      setEmailError('Enter a valid email address');
-      valid = false;
-    } else {
-      setEmailError('');
-    }
+   const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+const isPhone = /^\+?\d{10,15}$/.test(email.trim()); // Allows +94... etc.
+
+if (!email.trim()) {
+  setEmailError('Email or phone number is required');
+  valid = false;
+} else if (!isEmail && !isPhone) {
+  setEmailError('Enter a valid email address or phone number');
+  valid = false;
+} else {
+  setEmailError('');
+}
 
     if (!password.trim()) {
       setPasswordError('Password is required');
@@ -242,7 +245,7 @@ const Page = () => {
             <input
               type="text"
               name="email"
-              placeholder="Email"
+              placeholder="Email / Phone Number"
               className={`w-full px-10 py-2 border rounded-md ${emailError ? 'border-red-500' : 'border-gray-300'
                 }`}
               value={email}
@@ -277,7 +280,7 @@ const Page = () => {
               onClick={() => setShowPassword((prev) => !prev)}
               className="absolute right-3 top-2.5 text-gray-400"
             >
-              <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} className="w-5 h-5" />
+              <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} className="w-5 h-5 cursor-pointer" />
             </button>
             {passwordError && <p className="text-sm text-red-600 mt-1">{passwordError}</p>}
           </div>

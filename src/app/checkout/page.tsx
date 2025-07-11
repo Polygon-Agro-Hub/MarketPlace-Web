@@ -1002,13 +1002,13 @@ const Page: React.FC = () => {
               <div className='flex md:flex-row flex-col gap-4 mb-6'>
                 <div className="md:w-1/2 w-full">
                   <label className='block text-[#2E2E2E] font-semibold mb-4'>Date *</label>
-                  <input
-                    type="date"
-                    className='w-full border h-[39px] border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2 text-[#3D3D3D]'
-                    value={formData.deliveryDate}
-                    onChange={(e) => handleFieldChange('deliveryDate', e.target.value)}
-                    min={getMinDate()} // Only allows dates 3 days after today or later
-                  />
+                    <input
+                      type="date"
+                      className='w-full border h-[39px] border-gray-300 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2 text-[#3D3D3D]'
+                      value={formData.deliveryDate}
+                      onChange={(e) => handleFieldChange('deliveryDate', e.target.value)}
+                      min={getMinDate()} // Only allows dates 3 days after today or later
+                    />
                   {errors.deliveryDate && <p className="text-red-600 text-sm mt-1">{errors.deliveryDate}</p>}
                 </div>
                 <div className="md:w-1/2 w-full">

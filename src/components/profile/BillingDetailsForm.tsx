@@ -7,7 +7,7 @@ import { useForm, SubmitHandler, UseFormRegister, FieldErrors, UseFormSetValue, 
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
 import { FaAngleDown } from 'react-icons/fa';
-import { fetchBillingDetails, saveBillingDetails, BillingDetails, BillingAddress } from '@/services/auth-service';
+import { fetchBillingDetails, saveBillingDetails, fetchCities, BillingDetails, BillingAddress } from '@/services/auth-service';
 import SuccessPopup from '@/components/toast-messages/success-message';
 import ErrorPopup from '@/components/toast-messages/error-message';
 import Loader from '@/components/loader-spinner/Loader';
@@ -50,6 +50,7 @@ interface CustomDropdownProps {
 const CustomDropdown = ({ register, setValue, name, value, errors, options, placeholder }: CustomDropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -142,9 +143,26 @@ const BillingDetailsForm = () => {
   const [billingNameError, setBillingNameError] = useState('');
   const [initialFormData, setInitialFormData] = useState<BillingFormData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+const [cities, setCities] = useState<string[]>([]);
 
-  // Static list of cities for dropdown
-  const cities = ['Colombo', 'Kandy', 'Galle', 'Jaffna', 'Negombo', 'Anuradhapura'];
+useEffect(() => {
+  const loadCities = async () => {
+    if (!token) return; // Additional safeguard
+    try {
+      const fetchedCities = await fetchCities(token as string); // Type assertion
+      setCities(fetchedCities);
+    } catch (error: any) {
+      console.error('Error fetching cities:', error);
+      setErrorMessage('Failed to fetch cities. Using default cities.');
+      setShowErrorPopup(true);
+      setCities(['Colombo', 'Kandy', 'Galle', 'Jaffna', 'Negombo', 'Anuradhapura']);
+    }
+  };
+
+  if (token) {
+    loadCities();
+  }
+}, [token]);
 
   // Options for dropdowns
   const billingTitleOptions = [
@@ -158,10 +176,10 @@ const BillingDetailsForm = () => {
     { value: 'house', label: 'House' },
     { value: 'apartment', label: 'Apartment' },
   ];
-
-  const cityOptions = [
-    ...cities.map((city) => ({ value: city.toLowerCase(), label: city })), // Normalize to lowercase
-  ];
+const cityOptions = cities.map((city) => ({
+  value: city.toLowerCase(),
+  label: city,
+}));
 
   const phoneCodeOptions = [
     { value: '+94', label: '+94' },
@@ -405,12 +423,7 @@ const BillingDetailsForm = () => {
         title="Error!"
         description={errorMessage}
       />
-      <CancelSuccessPopup
-        isVisible={showCancelSuccessPopup}
-        onClose={() => setShowCancelSuccessPopup(false)}
-        title="Form reset successfully!"
-        duration={3000}
-      />
+   
 
       <form onSubmit={handleSubmit(onSubmit)} className="px-2 md:px-10 bg-white">
         <h2 className="font-medium text-[14px] md:text-[18px] mb-2 mt-2">Account Details</h2>
@@ -698,3 +711,4 @@ const BillingDetailsForm = () => {
 };
 
 export default BillingDetailsForm;
+
