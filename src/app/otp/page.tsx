@@ -350,9 +350,6 @@ export default function Page() {
           >
             {isVerifying ? 'Verifying...' : isOtpExpired ? 'OTP Expired' : !isOtpComplete ? 'Enter 5 digits' : 'Verify'}
           </button>
-                  <div className="text-xs sm:text-sm text-gray-500 text-center mb-1">
-          I didn't receive the OTP message
-        </div>
       </div>
 
       {/* Modal */}
