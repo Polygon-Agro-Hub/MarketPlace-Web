@@ -145,7 +145,7 @@ const PackageCard: React.FC<PackageProps> = ({
         </div>
       ) : (
         <div
-          className="w-full h-full bg-[#3E206D] rounded-2xl shadow-lg relative md:min-h-[540px] min-h-[480px] md:max-w-[360px] min-w-[260px] border border-gray-200 text-white flex flex-col"
+          className="w-full h-full bg-[#3E206D] rounded-2xl shadow-lg relative md:min-h-[360px] min-h-[480px] md:max-w-[360px] min-w-[260px] border border-gray-200 text-white flex flex-col"
           data-package-popup={packageItem.id}
         >
           <div className="p-4 h-full flex flex-col flex-grow mt-1">
