@@ -16,7 +16,8 @@ const Header = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [isCategoryExpanded, setIsCategoryExpanded] = useState(false);
   const [isDesktopCategoryOpen, setIsDesktopCategoryOpen] = useState(false);
-  const [isClient, setIsClient] = useState(false); // Client-side hydration check
+  const [isClient, setIsClient] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false); // New state for hydration
   const categoryRef = useRef<HTMLDivElement | null>(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
@@ -31,6 +32,10 @@ const Header = () => {
   useEffect(() => {
     // Set client-side flag after hydration
     setIsClient(true);
+    // Add a small delay to ensure hydration is complete
+    const timer = setTimeout(() => {
+      setIsHydrated(true);
+    }, 100);
 
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768)
@@ -49,6 +54,7 @@ const Header = () => {
     document.addEventListener('mousedown', handleClickOutside);
 
     return () => {
+      clearTimeout(timer);
       window.removeEventListener('resize', handleResize);
       document.removeEventListener('mousedown', handleClickOutside);
     };
@@ -69,7 +75,6 @@ const Header = () => {
     return `${formattedInteger}.${decimalPart}`;
   };
 
-
   const toggleDesktopCategory = (e: { preventDefault: () => void }) => {
     e.preventDefault();
     setIsDesktopCategoryOpen(!isDesktopCategoryOpen);
@@ -89,18 +94,18 @@ const Header = () => {
 
   // Helper function to get the correct home URL
   const getHomeUrl = () => {
-    if (!isClient) return '/'; // Default during SSR
+    if (!isHydrated) return '/'; // Default during SSR/hydration
     return user?.buyerType === 'Wholesale' ? '/wholesale/home' : '/';
   };
 
   // Helper function to check if user is authenticated
   const isAuthenticated = () => {
-    return isClient && token;
+    return isHydrated && token;
   };
 
   // Helper function to get user info safely
   const getUserInfo = () => {
-    return isClient ? user : null;
+    return isHydrated ? user : null;
   };
 
   const handleCategoryClick = (e: React.MouseEvent, buyerType: string) => {
@@ -126,52 +131,123 @@ const Header = () => {
     setIsMenuOpen(false); // Close mobile menu
   };
 
-  
-    const handleCartClick = (e: React.MouseEvent) => {
-      e.preventDefault();
-      
-      // Check if user is authenticated
-      if (!isAuthenticated()) {
-        // Redirect to signin if not authenticated
-        router.push('/signin');
-        return;
-      }
-      
-      // If authenticated, proceed to cart
-      router.push('/cart');
-    };
+  const handleCartClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    
+    // Check if user is authenticated
+    if (!isAuthenticated()) {
+      // Redirect to signin if not authenticated
+      router.push('/signin');
+      return;
+    }
+    
+    // If authenticated, proceed to cart
+    router.push('/cart');
+  };
+
+  // Render auth buttons consistently
+  const renderAuthButtons = () => {
+    if (!isHydrated) {
+      // Show default unauthenticated state during hydration
+      return (
+        <>
+          <Link href="/signup" className="text-sm bg-gray-700 rounded-full px-4 py-1 hover:bg-gray-600">
+            Signup
+          </Link>
+          <Link href="/signin" className="text-sm bg-gray-700 rounded-full px-4 py-1 hover:bg-gray-600">
+            Login
+          </Link>
+        </>
+      );
+    }
+
+    if (getUserInfo()) {
+      return (
+        <Link
+          href="/"
+          className="text-sm flex items-center gap-2"
+          onClick={handleLogout}
+        >
+          <LogOut />
+          Logout
+        </Link>
+      );
+    }
+
+    return (
+      <>
+        <Link href="/signup" className="text-sm bg-gray-700 rounded-full px-4 py-1 hover:bg-gray-600">
+          Signup
+        </Link>
+        <Link href="/signin" className="text-sm bg-gray-700 rounded-full px-4 py-1 hover:bg-gray-600">
+          Login
+        </Link>
+      </>
+    );
+  };
+
+  // Render mobile auth buttons consistently
+  const renderMobileAuthButtons = () => {
+    if (!isHydrated) {
+      // Show default unauthenticated state during hydration
+      return (
+        <>
+          <Link
+            href="/signin"
+            className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800 flex items-center gap-2"
+          >
+            Login
+          </Link>
+          <Link
+            href="/signup"
+            className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800 flex items-center gap-2"
+          >
+            Signup
+          </Link>
+        </>
+      );
+    }
+
+    if (getUserInfo()) {
+      return (
+        <Link
+          href="/logout"
+          className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800 flex items-center gap-2"
+          onClick={handleLogout}
+        >
+          Logout
+        </Link>
+      );
+    }
+
+    return (
+      <>
+        <Link
+          href="/signin"
+          className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800 flex items-center gap-2"
+        >
+          Login
+        </Link>
+        <Link
+          href="/signup"
+          className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800 flex items-center gap-2"
+        >
+          Signup
+        </Link>
+      </>
+    );
+  };
 
   return (
     <>
       {!isMobile && (
-        <div className='bg-[#2C2C2C] text-gray-300 py-2 px-7'>
+        <div className="bg-[#2C2C2C] text-gray-300 py-2 px-7">
           <div className="mx-auto flex justify-between items-center">
             <span className="text-sm italic">
               Call us for any query or help +94 770 111 999
             </span>
             <div className="flex gap-2">
-              {!isClient ? (
-                // Show loading placeholder during SSR/hydration
-                <div className="w-32 h-8 bg-gray-700 rounded-full animate-pulse"></div>
-              ) : getUserInfo() ? (
-                <Link
-                  href="/"
-                  className="text-sm flex items-center gap-2"
-                  onClick={handleLogout}
-                >
-                  <LogOut />
-                  Logout
-                </Link>
-              ) : (
-                <>
-                  <Link href="/signup" className="text-sm bg-gray-700 rounded-full px-4 py-1 hover:bg-gray-600">
-                    Signup
-                  </Link>
-                  <Link href="/signin" className="text-sm bg-gray-700 rounded-full px-4 py-1 hover:bg-gray-600">
-                    Login
-                  </Link>
-                </>
-              )}
+              {renderAuthButtons()}
             </div>
           </div>
         </div>
@@ -209,7 +285,6 @@ const Header = () => {
                       </button>
                     </div>
                   )}
-
                 </div>
               )}
               <Link href="/promotions" className="hover:text-purple-200">
@@ -238,10 +313,10 @@ const Header = () => {
               <div className='relative'>
                 <FontAwesomeIcon className='text-2xl' icon={faBagShopping} />
                 <span className="absolute top-3 -right-2 bg-[#FF8F66] text-white rounded-full w-4 h-4 flex items-center justify-center text-xs">
-                  {isClient ? cartState.count : 0}
+                  {isHydrated ? cartState.count : 0}
                 </span>
               </div>
-              <div className="text-sm">Rs. {isClient ? formatPrice(cartState.price) : '0.00'}</div>
+              <div className="text-sm">Rs. {isHydrated ? formatPrice(cartState.price) : '0.00'}</div>
             </div>
           </div>
 
@@ -428,35 +503,7 @@ const Header = () => {
                 </button>
               </div>
               <nav className="flex flex-col w-full">
-                {!isClient ? (
-                  // Show placeholder during SSR/hydration
-                  <div className="py-4 px-6 border-b border-purple-800">
-                    <div className="w-20 h-4 bg-purple-700 rounded animate-pulse"></div>
-                  </div>
-                ) : getUserInfo() ? (
-                  <Link
-                    href="/logout"
-                    className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800 flex items-center gap-2"
-                    onClick={handleLogout}
-                  >
-                    Logout
-                  </Link>
-                ) : (
-                  <>
-                    <Link
-                      href="/signin"
-                      className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800 flex items-center gap-2"
-                    >
-                      Login
-                    </Link>
-                    <Link
-                      href="/signup"
-                      className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800 flex items-center gap-2"
-                    >
-                      Signup
-                    </Link>
-                  </>
-                )}
+                {renderMobileAuthButtons()}
                 <Link href={getHomeUrl()} className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800">
                   Home
                 </Link>
