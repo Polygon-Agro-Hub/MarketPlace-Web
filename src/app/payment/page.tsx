@@ -592,7 +592,7 @@ const Page: React.FC = () => {
                 <p className='text-[#3E206D] text-sm mt-2'>✓ Coupon applied successfully</p>
               )}
               {couponError && (
-                <p className='text-red-600 text-sm mt-2'>⚠ {couponError}</p>
+                <p className='text-red-600 text-sm mt-2'>{couponError}!</p>
               )}
             </div>
 

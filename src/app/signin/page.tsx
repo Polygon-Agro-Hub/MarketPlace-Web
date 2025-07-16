@@ -43,18 +43,36 @@ const Page = () => {
     }
   }, []);
 
- const handleLogin = async (e: React.FormEvent) => {
+const handleLogin = async (e: React.FormEvent) => {
   e.preventDefault();
   let valid = true;
 
   if (!email.trim()) {
     setEmailError('Email is required');
     valid = false;
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-    setEmailError('Enter a valid email address');
-    valid = false;
   } else {
-    setEmailError('');
+    const emailInput = email.trim();
+    
+
+    if (emailInput.includes('@')) {
+      // Email validation
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput)) {
+        setEmailError('Enter a valid email address');
+        valid = false;
+      } else {
+        setEmailError('');
+      }
+    } else if (emailInput.startsWith('+')) {
+      if (!/^\+947\d{8}$/.test(emailInput)) {
+        setEmailError('Enter the number in +947XXXXXXXX');
+        valid = false;
+      } else {
+        setEmailError('');
+      }
+    } else {
+      setEmailError('Enter a valid email address or phone number in +947XXXXXXXX format');
+      valid = false;
+    }
   }
 
   if (!password.trim()) {
@@ -250,7 +268,7 @@ const Page = () => {
             <input
               type="text"
               name="email"
-              placeholder="Email / Phone Number"
+              placeholder="Email / Phone Number (e.g. +947XXXXXXXX)"
               className={`w-full px-10 py-2 border rounded-md ${emailError ? 'border-red-500' : 'border-gray-300'
                 }`}
               value={email}

@@ -175,6 +175,9 @@ const PersonalDetailsForm = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [originalData, setOriginalData] = useState<any>(null);
+  const [originalProfilePic, setOriginalProfilePic] = useState<string | null>(null);
+
 const [buyerType, setBuyerType] = useState<string>('');
   const {
     register,
@@ -206,45 +209,52 @@ const [buyerType, setBuyerType] = useState<string>('');
   const countryCodeValue = watch('countryCode');
   const countryCode2Value = watch('countryCode2'); // Added for second phone number
 
-  useEffect(() => {
-    const loadProfile = async () => {
-      if (!token) {
-        // For new users: do not fetch data, keep form with empty values
-        return;
-      }
+useEffect(() => {
+  const loadProfile = async () => {
+    if (!token) {
+      // For new users: do not fetch data, keep form with empty values
+      return;
+    }
 
-      // For existing users: fetch profile data
-      setIsLoading(true);
-      try {
-        const data = await fetchProfile({ token });
-        console.log('API Response:', data);
-setBuyerType(data.buyerType || '');
-        reset({
-          title: data.title || '',
-          firstName: data.firstName || '',
-          lastName: data.lastName || '',
-          email: data.email || '',
-          countryCode: data.phoneCode || '',
-          phoneNumber: data.phoneNumber || '',
-            countryCode2: data.phoneCode2 || '',
-          phoneNumber2: data.phoneNumber2 || '',
-          companyName: data.companyName || '', // Add companyName
-          currentPassword: undefined,
-          newPassword: undefined,
-          confirmPassword: undefined,
-        });
-        setPreviewURL(data.image || data.profileImageURL || null);
-      } catch (error: any) {
-        setErrorMessage(error.message || 'Failed to fetch profile');
-        setShowErrorPopup(true);
-        setShowSuccessPopup(false);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    // For existing users: fetch profile data
+    setIsLoading(true);
+    try {
+      const data = await fetchProfile({ token });
+      console.log('API Response:', data);
+      setBuyerType(data.buyerType || '');
+      
+      // Store original data for cancel functionality
+      const formData = {
+        title: data.title || '',
+        firstName: data.firstName || '',
+        lastName: data.lastName || '',
+        email: data.email || '',
+        countryCode: data.phoneCode || '',
+        phoneNumber: data.phoneNumber || '',
+        countryCode2: data.phoneCode2 || '',
+        phoneNumber2: data.phoneNumber2 || '',
+        companyName: data.companyName || '',
+        currentPassword: undefined,
+        newPassword: undefined,
+        confirmPassword: undefined,
+      };
+      
+      setOriginalData(formData);
+      setOriginalProfilePic(data.image || data.profileImageURL || null);
+      
+      reset(formData);
+      setPreviewURL(data.image || data.profileImageURL || null);
+    } catch (error: any) {
+      setErrorMessage(error.message || 'Failed to fetch profile');
+      setShowErrorPopup(true);
+      setShowSuccessPopup(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    loadProfile();
-  }, [token, reset]);
+  loadProfile();
+}, [token, reset]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -358,8 +368,16 @@ setBuyerType(data.buyerType || '');
     }
   };
 
-  const handleCancel = () => {
-    setIsLoading(true);
+ const handleCancel = () => {
+  setIsLoading(true);
+  
+  if (originalData) {
+    // Restore original data
+    reset(originalData);
+    setPreviewURL(originalProfilePic);
+    setProfilePic(null); // Clear any new profile pic selection
+  } else {
+    // If no original data (new user), clear all fields
     reset({
       title: '',
       countryCode: '',
@@ -376,12 +394,14 @@ setBuyerType(data.buyerType || '');
     });
     setProfilePic(null);
     setPreviewURL(null);
-    setTimeout(() => {
-      setIsLoading(false);
-      setShowCancelSuccessPopup(true);
-      setTimeout(() => setShowCancelSuccessPopup(false), 3000);
-    }, 500);
-  };
+  }
+  
+  setTimeout(() => {
+    setIsLoading(false);
+    setShowCancelSuccessPopup(true);
+    setTimeout(() => setShowCancelSuccessPopup(false), 3000);
+  }, 500);
+};
 
   // Phone code options
   const phoneCodeOptions = [

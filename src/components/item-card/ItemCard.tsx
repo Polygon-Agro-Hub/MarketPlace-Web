@@ -150,6 +150,7 @@ const ItemCard = ({
                 const cartInfo = await getCartInfo(token);
                 console.log("Updated cart info:", cartInfo);
                 dispatch(updateCartInfo(cartInfo));
+                router.push('/cart')
             } catch (cartError) {
                 console.error('Error fetching cart info:', cartError);
             }
