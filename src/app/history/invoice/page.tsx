@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
@@ -9,7 +10,9 @@ import { getInvoice, getOrderDetails } from '@/services/retail-order-service';
 import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
 pdfMake.vfs = (pdfFonts as any).vfs;
-import { Suspense } from 'react'
+import { Suspense } from 'react';
+import Loader from '@/components/loader-spinner/Loader';
+
 // Define interfaces based on the API responses
 export interface InvoiceItem {
   id: number;
@@ -63,8 +66,8 @@ interface InvoiceData {
   familyPackTotal: string;
   additionalItemsTotal: string;
   deliveryFee: string;
-  grandTotal: string;
   discount: string;
+  grandTotal: string;
   billingInfo: BillingInfo;
   pickupInfo?: PickupInfo;
 }
@@ -101,8 +104,8 @@ function InvoiceView({
 }) {
   if (!invoice) {
     return (
-      <div className="w-full p-8">
-        <p className="text-red-600 text-center">Loading...</p>
+      <div className="flex flex-col items-center justify-center h-[70vh] text-center text-[rgb(75,85,99)]">
+        <Loader isVisible={true} />
       </div>
     );
   }
@@ -115,12 +118,11 @@ function InvoiceView({
   return (
     <div className="w-[794px] mx-auto p-8 bg-white" ref={invoiceRef}>
       <h1 className="text-2xl font-bold text-center" style={{ color: 'rgb(62,32,109)' }}>
-       <div className="flex justify-start">
- <button onClick={onClose} className="text-[rgb(107,114,128)] cursor-pointer hover:text-[rgb(62,32,109)]">
-            <span className="text-2xl">⟶</span>
+        <div className="flex justify-start">
+          <button onClick={onClose} className="text-[rgb(107,114,128)] cursor-pointer hover:text-[rgb(62,32,109)]">
+            <span className="text-2xl">⟵</span>
           </button>
-</div>
-
+        </div>
         INVOICE
       </h1>
 
@@ -269,12 +271,17 @@ function InvoiceView({
               <td className="p-2">Delivery Fee</td>
               <td className="p-2 text-right">{`Rs. ${parseCurrency(invoice.deliveryFee).toFixed(2)}`}</td>
             </tr>
+            <tr>
+              <td className="p-2">Discount</td>
+              <td className="p-2 text-right">{`Rs. ${parseCurrency(invoice.discount).toFixed(2)}`}</td>
+            </tr>
             <tr className="font-bold border-t-4 border-black">
               <td className="p-4">Grand Total</td>
               <td className="p-2 text-right">{`Rs. ${(
                 parseCurrency(invoice.familyPackTotal) +
                 parseCurrency(invoice.additionalItemsTotal) +
-                parseCurrency(invoice.deliveryFee)
+                parseCurrency(invoice.deliveryFee) -
+                parseCurrency(invoice.discount)
               ).toFixed(2)}`}</td>
             </tr>
           </tbody>
@@ -325,7 +332,7 @@ function InvoicePageContent() {
       try {
         // Check if pdfMake is already loaded
         if (window.pdfMake) {
-          console.log('pdfMake already loaded at 05:51 PM +0530, June 09, 2025');
+          console.log('pdfMake already loaded at 01:20 PM +0530, July 08, 2025');
           setPdfMakeLoaded(true);
         } else {
           const loadScript = (src: string, isCritical: boolean): Promise<void> =>
@@ -334,11 +341,11 @@ function InvoicePageContent() {
               script.src = src;
               script.async = true;
               script.onload = () => {
-                console.log(`${src} loaded at 05:51 PM +0530, June 09, 2025`);
+                console.log(`${src} loaded at 01:20 PM +0530, July 08, 2025`);
                 resolve();
               };
               script.onerror = () => {
-                console.error(`Failed to load ${src} at 05:51 PM +0530, June 09, 2025`);
+                console.error(`Failed to load ${src} at 01:20 PM +0530, July 08, 2025`);
                 if (isCritical) reject(new Error(`Failed to load ${src}`));
                 else resolve();
               };
@@ -364,16 +371,17 @@ function InvoicePageContent() {
             const base64 = canvas.toDataURL('image/png');
             setLogoBase64(base64);
             setImageLoaded(true);
-            console.log('Logo image loaded and converted to base64 at 05:51 PM +0530, June 09, 2025');
+            console.log('Logo image loaded and converted to base64 at 01:20 PM +0530, July 08, 2025');
           }
         };
         img.onerror = () => {
-          console.error('Failed to load logo image at 05:51 PM +0530, June 09, 2025');
+          console.error('Failed to load logo image at 01:20 PM +0530, July 08, 2025');
           setImageLoaded(true); // Proceed even if image fails
         };
       } catch (error) {
-        console.error('Error loading scripts at 05:51 PM +0530, June 09, 2025:', error);
+        console.error('Error loading scripts at 01:20 PM +0530, July 08, 2025:', error);
         alert('Failed to load PDF library. Please try again later.');
+        setLoading(false);
       }
     };
 
@@ -586,12 +594,17 @@ function InvoicePageContent() {
                 { text: `Rs. ${parseNum(invoice.deliveryFee).toFixed(2)}`, fontSize: 9, alignment: 'right' }
               ],
               [
+                { text: 'Discount', fontSize: 9 },
+                { text: `Rs. ${parseNum(invoice.discount).toFixed(2)}`, fontSize: 9, alignment: 'right' }
+              ],
+              [
                 { text: 'Total', bold: true, fontSize: 9 },
                 {
                   text: `Rs. ${(
                     parseNum(invoice.familyPackTotal) +
                     parseNum(invoice.additionalItemsTotal) +
-                    parseNum(invoice.deliveryFee)
+                    parseNum(invoice.deliveryFee) -
+                    parseNum(invoice.discount)
                   ).toFixed(2)}`,
                   bold: true,
                   fontSize: 9,
@@ -640,7 +653,7 @@ function InvoicePageContent() {
         { text: 'Thank you for shopping with us!', italics: true, alignment: 'center', fontSize: 9, margin: [0, 10, 0, 2] },
         { text: 'WE WILL SEND YOU MORE OFFERS, LOWEST PRICED VEGGIES FROM US', italics: true, alignment: 'center', fontSize: 9 },
         { text: '-THIS IS A COMPUTER GENERATED INVOICE, THUS NO SIGNATURE REQUIRED-', italics: true, alignment: 'center', color: 'gray', fontSize: 8, margin: [0, 8, 0, 0] }
-      ].filter(item => item !== null), // Remove null from pageBreak if not needed
+      ].filter(item => item !== null),
       images: { logo: logoBase64 || '' },
       defaultStyle: { font: 'Roboto', fontSize: 9 },
       styles: {
@@ -650,82 +663,68 @@ function InvoicePageContent() {
 
     pdfMake.createPdf(docDefinition).download(`invoice_${invoice.invoiceNumber}.pdf`);
   };
+const fetchInvoice = async (orderId: string): Promise<void> => {
+  if (!token) {
+    console.error('No token available at 01:25 PM +0530, July 08, 2025');
+    setSelectedInvoice(null);
+    setLoading(false);
+    return;
+  }
 
-  const fetchInvoice = async (orderId: string): Promise<void> => {
-    if (!token) {
-      console.error('No token available at 05:51 PM +0530, June 09, 2025');
-      setSelectedInvoice(null);
-      setLoading(false);
-      return;
-    }
+  try {
+    setSelectedInvoice(null);
+    const data = await getInvoice(token, orderId);
+    console.log('Invoice Response at 01:25 PM +0530, July 08, 2025:', data);
 
-    try {
-      setSelectedInvoice(null);
-      const data = await getInvoice(token, orderId);
-      const orderDetails = await getOrderDetails(token, orderId);
-      console.log('Invoice Response at 05:51 PM +0530, June 09, 2025:', data);
-      console.log('Order Details for Discount at 05:51 PM +0530, June 09, 2025:', orderDetails);
+    if (data.status && data.invoice) {
+      const apiInvoice = data.invoice.invoice || data.invoice;
 
-      if (data.status && data.invoice) {
-        const apiInvoice = data.invoice.invoice || data.invoice;
-        const additionalItemsDiscount = orderDetails.additionalItemsData?.reduce((sum: number, item: any) => {
-          const qty = parseFloat(item.quantity || '1');
-          const discount = parseFloat(item.discount || '0');
-          return sum + (discount * qty);
-        }, 0) || 0;
-        const totalDiscount = parseFloat(orderDetails.order?.discount || '0') + additionalItemsDiscount;
-
-        const familyPackTotal = parseFloat(apiInvoice.familyPackTotal?.replace('Rs. ', '') || '0');
-        const additionalItemsTotal = parseFloat(apiInvoice.additionalItemsTotal?.replace('Rs. ', '') || '0');
-        const deliveryFee = parseFloat(apiInvoice.deliveryFee?.replace('Rs. ', '') || '0');
-        const grandTotal = (familyPackTotal + additionalItemsTotal + deliveryFee - totalDiscount).toFixed(2);
-
-        const invoiceData: InvoiceData = {
-          invoiceNumber: apiInvoice.invoiceNumber || 'N/A',
-          invoiceDate: apiInvoice.invoiceDate || 'N/A',
-          scheduledDate: apiInvoice.scheduledDate || 'N/A',
-          deliveryMethod: apiInvoice.deliveryMethod || 'N/A',
-          paymentMethod: apiInvoice.paymentMethod || 'N/A',
-          amountDue: parseCurrency(apiInvoice.amountDue),
-          familyPackItems: apiInvoice.familyPackItems?.map((item: any) => ({
-            id: item.id ?? 0,
-            name: item.name || 'Unknown',
-            unitPrice: parseCurrency(item.unitPrice),
-            quantity: item.quantity || '1',
-            unit: item.unit || 'units',
-            amount: parseCurrency(item.amount),
-            packageDetails: item.packageDetails?.map((detail: any) => ({
-              packageId: detail.packageId,
-              productTypeId: detail.productTypeId,
-              typeName: detail.typeName,
-              qty: detail.qty
-            })) || []
-          })) || [],
-          additionalItems: apiInvoice.additionalItems?.map((item: any) => ({
-            id: item.id ?? 0,
-            name: item.name || 'Unknown',
-            unitPrice: parseCurrency(item.unitPrice),
-            quantity: item.quantity || '1',
-            unit: item.unit || 'units',
-            amount: parseCurrency(item.amount),
-            image: item.image || undefined,
-          })) || [],
-          familyPackTotal: parseCurrency(apiInvoice.familyPackTotal),
-          additionalItemsTotal: parseCurrency(apiInvoice.additionalItemsTotal),
-          deliveryFee: parseCurrency(apiInvoice.deliveryFee),
-          discount: totalDiscount > 0 ? `Rs. ${totalDiscount.toFixed(2)}` : 'Rs. 0.00',
-          grandTotal: `Rs. ${grandTotal}`,
-          billingInfo: {
-            title: apiInvoice.billingInfo?.title || 'N/A',
-            fullName: apiInvoice.billingInfo?.fullName || 'N/A',
-            buildingType: apiInvoice.billingInfo?.buildingType || 'N/A',
-            houseNo: apiInvoice.billingInfo?.houseNo || 'N/A',
-            street: apiInvoice.billingInfo?.street || 'N/A',
-            city: apiInvoice.billingInfo?.city || 'N/A',
-            phone: apiInvoice.billingInfo?.phone || 'N/A',
-          },
-          pickupInfo: apiInvoice.pickupInfo
-            ? {
+      const invoiceData: InvoiceData = {
+        invoiceNumber: apiInvoice.invoiceNumber || 'N/A',
+        invoiceDate: apiInvoice.invoiceDate || 'N/A',
+        scheduledDate: apiInvoice.scheduledDate || 'N/A',
+        deliveryMethod: apiInvoice.deliveryMethod || 'N/A',
+        paymentMethod: apiInvoice.paymentMethod || 'N/A',
+        amountDue: parseCurrency(apiInvoice.amountDue),
+        familyPackItems: apiInvoice.familyPackItems?.map((item: any) => ({
+          id: item.id ?? 0,
+          name: item.name || 'Unknown',
+          unitPrice: parseCurrency(item.unitPrice),
+          quantity: item.quantity || '1',
+          unit: item.unit || 'units',
+          amount: parseCurrency(item.amount),
+          packageDetails: item.packageDetails?.map((detail: any) => ({
+            packageId: detail.packageId,
+            productTypeId: detail.productTypeId,
+            typeName: detail.typeName,
+            qty: detail.qty
+          })) || []
+        })) || [],
+        additionalItems: apiInvoice.additionalItems?.map((item: any) => ({
+          id: item.id ?? 0,
+          name: item.name || 'Unknown',
+          unitPrice: parseCurrency(item.unitPrice),
+          quantity: item.quantity || '1',
+          unit: item.unit || 'units',
+          amount: parseCurrency(item.amount),
+          image: item.image || undefined,
+        })) || [],
+        familyPackTotal: parseCurrency(apiInvoice.familyPackTotal),
+        additionalItemsTotal: parseCurrency(apiInvoice.additionalItemsTotal),
+        deliveryFee: parseCurrency(apiInvoice.deliveryFee),
+        discount: parseCurrency(apiInvoice.discount), // Use discount directly from API
+        grandTotal: parseCurrency(apiInvoice.grandTotal),
+        billingInfo: {
+          title: apiInvoice.billingInfo?.title || 'N/A',
+          fullName: apiInvoice.billingInfo?.fullName || 'N/A',
+          buildingType: apiInvoice.billingInfo?.buildingType || 'N/A',
+          houseNo: apiInvoice.billingInfo?.houseNo || 'N/A',
+          street: apiInvoice.billingInfo?.street || 'N/A',
+          city: apiInvoice.billingInfo?.city || 'N/A',
+          phone: apiInvoice.billingInfo?.phone || 'N/A',
+        },
+        pickupInfo: apiInvoice.pickupInfo
+          ? {
               centerId: apiInvoice.pickupInfo.centerId ?? undefined,
               centerName: apiInvoice.pickupInfo.centerName || 'N/A',
               contact01: apiInvoice.pickupInfo.contact01 || 'N/A',
@@ -738,61 +737,80 @@ function InvoicePageContent() {
                 zipCode: apiInvoice.pickupInfo.address?.zipCode || 'N/A',
               },
             }
-            : undefined,
-        };
+          : undefined,
+      };
 
-        if (
-          parseFloat(invoiceData.amountDue.replace('Rs. ', '')) !==
-          parseFloat(invoiceData.grandTotal.replace('Rs. ', ''))
-        ) {
-          console.warn('Amount due and grand total mismatch at 05:51 PM +0530, June 09, 2025:', invoiceData);
-        }
+      // Validate grand total
+      const calculatedGrandTotal = (
+        parseFloat(apiInvoice.familyPackTotal?.replace('Rs. ', '') || '0') +
+        parseFloat(apiInvoice.additionalItemsTotal?.replace('Rs. ', '') || '0') +
+        parseFloat(apiInvoice.deliveryFee?.replace('Rs. ', '') || '0') -
+        parseFloat(apiInvoice.discount?.replace('Rs. ', '') || '0')
+      ).toFixed(2);
 
-        setSelectedInvoice(invoiceData);
-
-        if (imageLoaded && pdfMakeLoaded) {
-          setTimeout(() => {
-            if (invoiceData) {
-              generatePDF(invoiceData);
-            } else {
-              console.error('No invoice data available for PDF generation at 05:51 PM +0530, June 09, 2025');
-              alert('Failed to generate PDF. Invoice data not available.');
-            }
-          }, 500);
-        }
-      } else {
-        console.error('Invalid invoice data received at 05:51 PM +0530, June 09, 2025:', data);
-        setSelectedInvoice(null);
-        alert('Invalid invoice data received. Please try again.');
+      if (
+        parseFloat(invoiceData.amountDue.replace('Rs. ', '')) !==
+        parseFloat(invoiceData.grandTotal.replace('Rs. ', ''))
+      ) {
+        console.warn('Amount due and grand total mismatch at 01:25 PM +0530, July 08, 2025:', invoiceData);
       }
-    } catch (error) {
-      console.error('Error fetching invoice at 05:51 PM +0530, June 09, 2025:', error);
+
+      if (parseFloat(invoiceData.grandTotal.replace('Rs. ', '')) !== parseFloat(calculatedGrandTotal)) {
+        console.warn(
+          'Calculated grand total does not match API grand total at 01:25 PM +0530, July 08, 2025:',
+          { apiGrandTotal: invoiceData.grandTotal, calculatedGrandTotal }
+        );
+      }
+
+      setSelectedInvoice(invoiceData);
+
+      if (imageLoaded && pdfMakeLoaded) {
+        setTimeout(() => {
+          if (invoiceData) {
+            generatePDF(invoiceData);
+          } else {
+            console.error('No invoice data available for PDF generation at 01:25 PM +0530, July 08, 2025');
+            alert('Failed to generate PDF. Invoice data not available.');
+          }
+        }, 500);
+      }
+    } else {
+      console.error('Invalid invoice data received at 01:25 PM +0530, July 08, 2025:', data);
       setSelectedInvoice(null);
-      alert('Failed to fetch invoice. Please try again.');
-    } finally {
-      setLoading(false);
+      alert('Invalid invoice data received. Please try again.');
     }
-  };
+  } catch (error) {
+    console.error('Error fetching invoice at 01:25 PM +0530, July 08, 2025:', error);
+    setSelectedInvoice(null);
+    alert('Failed to fetch invoice. Please try again.');
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
-    if (orderId && imageLoaded && pdfMakeLoaded) {
+    if (orderId) {
       fetchInvoice(orderId);
-    } else if (!orderId) {
+    } else {
       setLoading(false);
       alert('No order ID provided.');
     }
   }, [orderId, token, imageLoaded, pdfMakeLoaded]);
 
-  if (loading) return <div className="p-10 text-center">Loading...</div>;
-
   return (
     <div className="flex flex-col min-h-screen bg-white">
       <main className="flex-1 p-6">
-        <InvoiceView
-          invoice={selectedInvoice}
-          onClose={() => router.push('/history/order')}
-          invoiceRef={invoiceRef as any}
-        />
+        {loading || !imageLoaded || !pdfMakeLoaded ? (
+          <div className="flex flex-col items-center justify-center h-[70vh] text-center text-[rgb(75,85,99)]">
+            <Loader isVisible={true} />
+          </div>
+        ) : (
+          <InvoiceView
+            invoice={selectedInvoice}
+            onClose={() => router.push('/history/order')}
+            invoiceRef={invoiceRef as any}
+          />
+        )}
       </main>
     </div>
   );
@@ -805,4 +823,3 @@ export default function InvoicePage() {
     </Suspense>
   );
 }
-

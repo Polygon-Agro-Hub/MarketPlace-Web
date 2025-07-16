@@ -335,7 +335,7 @@ export default function OTPComponent({
 
         <button
           onClick={onVerificationFailure}
-          className="text-[#3E206D] font-semibold mt-4 hover:underline"
+          className="text-[#3E206D] font-semibold mt-4 cursor-pointer hover:underline"
         >
           Back to Registration
         </button>

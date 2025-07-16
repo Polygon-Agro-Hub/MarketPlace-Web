@@ -67,12 +67,17 @@ interface ApiComplaint {
 }
 
 interface Profile {
+  companyName: string;
+ buyerType?: string;
   title: string;
   firstName: string;
   lastName: string;
   email: string;
+  
   phoneCode: string;
   phoneNumber: string;
+    phoneCode2: string;
+  phoneNumber2: string;
   image?: string;
   profileImageURL?: string;
 }
@@ -84,8 +89,12 @@ interface ApiProfile {
   email: string;
   phoneCode: string;
   phoneNumber: string;
+   phoneCode2: string;
+  phoneNumber2: string;
   image?: string;
   profileImageURL?: string;
+ companyName?: string; // Optional
+  buyerType?: string | '' ; // Optional
 }
 
 export interface BillingAddress {
@@ -137,6 +146,9 @@ interface UpdateProfilePayload {
     email: string;
     phoneCode: string;
     phoneNumber: string;
+    phoneCode2: string;
+    phoneNumber2: string;
+    companyName: string;
   };
   profilePic: File | null;
 }
@@ -529,15 +541,18 @@ export const fetchProfile = async (payload: FetchProfilePayload): Promise<Profil
 
       if (resData.status && resData.data) {
         return {
-        
           firstName: resData.data.firstName || '',
           lastName: resData.data.lastName || '',
           email: resData.data.email || '',
           phoneCode: resData.data.phoneCode || '+94',
           phoneNumber: resData.data.phoneNumber || '',
+          phoneCode2: resData.data.phoneCode2 || '+94',
+          phoneNumber2: resData.data.phoneNumber2 || '',
           image: resData.data.image,
           profileImageURL: resData.data.profileImageURL,
           title: resData.data.title || '',
+          companyName: resData.data.companyName || '',
+          buyerType: resData.data.buyerType || '', // Include buyerType
         };
       } else {
         throw new Error(resData.message || 'Invalid response format');
@@ -573,6 +588,11 @@ export const updateProfile = async (payload: UpdateProfilePayload): Promise<void
     formData.append('email', payload.data.email);
     formData.append('phoneCode', payload.data.phoneCode);
     formData.append('phoneNumber', payload.data.phoneNumber);
+      formData.append('phoneCode', payload.data.phoneCode);
+    formData.append('phoneNumber', payload.data.phoneNumber);
+    formData.append('phoneCode2', payload.data.phoneCode2);
+    formData.append('phoneNumber2', payload.data.phoneNumber2);
+    
 
     if (payload.profilePic) {
       formData.append('profilePicture', payload.profilePic);
@@ -977,6 +997,46 @@ export const getCartInfo = async ( token: string | null): Promise<any> => {
       throw new Error('No response from server. Please try again.');
     } else {
       throw new Error(error.message || 'Failed to update package quantity');
+    }
+  }
+};
+
+// services/auth-service.ts
+
+// Define the expected response type for the cities API
+
+export const fetchCities = async (token: string | null): Promise<string[]> => {
+  if (!token) {
+    throw new Error('Authentication required');
+  }
+
+  try {
+    const response = await axios.get('/auth/get-cities', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    console.log('cities response', response);
+
+    if (response.status >= 200 && response.status < 300) {
+      console.log('cities response', response);
+      return response.data.data; // assuming response.data = { status: true, data: [...] }
+    }
+
+    throw new Error(response.data?.message || 'Failed to fetch cities');
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(
+        error.response.data?.message ||
+        error.response.data?.error ||
+        'Failed to fetch cities'
+      );
+    } else if (error.request) {
+      throw new Error('No response from server. Please try again.');
+    } else {
+      throw new Error(error.message || 'Failed to fetch cities');
     }
   }
 };
