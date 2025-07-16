@@ -1083,7 +1083,7 @@ const Page: React.FC = () => {
                     type="submit"
                     disabled={!isFormValidState || isLoading}
                     className={`w-full font-semibold rounded-lg px-4 py-3 transition-colors ${!isFormValidState || isLoading
-                        ? 'bg-purple-800  text-white cursor-not-allowed '
+                        ? 'bg-[#EBEEF2] text-[#B1BAC3] cursor-not-allowed '
                         : 'bg-purple-800 text-white hover:bg-purple-900 cursor-pointer'
                       }`}
                   >

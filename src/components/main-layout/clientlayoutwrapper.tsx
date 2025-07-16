@@ -4,6 +4,8 @@ import { usePathname } from 'next/navigation';
 import Layout from './layout';
 import { Provider } from 'react-redux';
 import { store } from '@/store';
+import AuthGuard from '@/components/AuthGuard';
+import TokenExpirationChecker from '@/components/TokenExpirationChecker';
 
 const excludedRoutes = [
   '/signin',
@@ -11,7 +13,7 @@ const excludedRoutes = [
   '/otp',
   '/forget-password',
   '/reset-password',
-  '/reset-password-phone/',
+  '/reset-password-phone',
   '/error/404',
   '/error/451',
   '/unsubscribe',
@@ -19,24 +21,47 @@ const excludedRoutes = [
   '/exclude/exclude',
 ];
 
+const publicRoutes = [
+  '/signin',
+  '/signup',
+  '/otp',
+  '/forget-password',
+  '/reset-password',
+  '/reset-password-phone',
+  '/error/404',
+  '/error/451',
+  '/unsubscribe',
+  '/', // Root route should be accessible without auth
+];
+
 export default function ClientLayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   
   if (!pathname) {
-    // Handle case where pathname is not available yet
     return <Provider store={store}>{children}</Provider>;
   }
 
-  // Remove trailing slash and query params
   const cleanPathname = pathname.replace(/\/$/, '').split('?')[0];
   
-  const shouldExcludeLayout = excludedRoutes.some(route => 
-    cleanPathname === route || cleanPathname.startsWith(`${route}/`)
-  );
+  // For root route, handle it specifically
+  const isRootRoute = cleanPathname === '' || cleanPathname === '/';
+  
+  const shouldExcludeLayout = excludedRoutes.some(route => {
+    if (route === '/') return isRootRoute;
+    return cleanPathname === route || cleanPathname.startsWith(`${route}/`);
+  });
+
+  const isPublicRoute = isRootRoute || publicRoutes.some(route => {
+    if (route === '/') return isRootRoute;
+    return cleanPathname === route || cleanPathname.startsWith(`${route}/`);
+  });
 
   return (
     <Provider store={store}>
-      {shouldExcludeLayout ? children : <Layout>{children}</Layout>}
+      {!isPublicRoute && <TokenExpirationChecker />}
+      <AuthGuard requireAuth={!isPublicRoute}>
+        {shouldExcludeLayout ? children : <Layout>{children}</Layout>}
+      </AuthGuard>
     </Provider>
   );
 }

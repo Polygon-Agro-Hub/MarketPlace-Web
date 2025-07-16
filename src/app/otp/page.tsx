@@ -295,7 +295,7 @@ export default function Page() {
         <p className="text-center text-gray-500 mb-6 text-sm sm:text-base">
           The OTP has been sent to your mobile number
           {isOtpExpired && (
-            <span className="block text-red-500 mt-1 font-medium">
+            <span className="block text-red-500 mt-1 font-xs ">
               OTP has expired. Please request a new one.
             </span>
           )}
@@ -350,9 +350,6 @@ export default function Page() {
           >
             {isVerifying ? 'Verifying...' : isOtpExpired ? 'OTP Expired' : !isOtpComplete ? 'Enter 5 digits' : 'Verify'}
           </button>
-                  <div className="text-xs sm:text-sm text-gray-500 text-center mb-1">
-          I didn't receive the OTP message
-        </div>
       </div>
 
       {/* Modal */}

@@ -2,6 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { resetPasswordByPhone } from '@/services/auth-service';
+import Image from 'next/image';
+import wrongImg from '../../../public/images/wrong.png'
+import resetImg from '../../../public/images/reset.png'
+import CorrectImg from '../../../public/images/correct.png'
+
 
 const Page = () => {
   const router = useRouter();
@@ -68,35 +73,13 @@ const Page = () => {
     }
   };
 
-  if (!phoneNumber) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-black/40">
-        <div className="bg-white p-8 rounded-xl text-center w-[90%] max-w-md shadow-xl">
-          <img
-            src="/images/wrong.png"
-            alt="Error"
-            className="w-20 h-20 mx-auto mb-4"
-          />
-          <h2 className="text-xl font-bold mb-2">Error</h2>
-          <p className="text-gray-700 mb-4">{modalMessage}</p>
-          <button
-            onClick={() => router.push('/forget-password')}
-            className="px-6 py-2 bg-gray-200 rounded hover:bg-gray-300 transition"
-          >
-            Request New Reset Link
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-black/40 relative">
       <div className="w-[90vw] h-[90vh] bg-white rounded-xl shadow-lg flex flex-col md:flex-row overflow-hidden">
         {/* Left Illustration */}
         <div className="md:w-1/2 flex items-center justify-center bg-white p-8">
-          <img
-            src="/images/reset.png"
+          <Image
+            src={resetImg}
             alt="Forgot password illustration"
             className="w-[70%] h-auto object-cover"
           />
@@ -152,8 +135,8 @@ const Page = () => {
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
           <div className="bg-white p-8 rounded-xl text-center w-[90%] max-w-md shadow-xl">
-            <img
-              src={isError ? '/images/wrong.png' : '/images/correct.png'}
+            <Image
+              src={isError ? wrongImg : CorrectImg}
               alt={isError ? 'Error' : 'Success'}
               className="w-20 h-20 mx-auto mb-4"
             />

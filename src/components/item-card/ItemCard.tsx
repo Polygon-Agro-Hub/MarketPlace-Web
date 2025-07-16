@@ -254,7 +254,7 @@ const ItemCard = ({
                             <div className="flex rounded overflow-hidden gap-2 cursor-pointer">
                                 <button
                                     onClick={() => handleUnitChange('kg')}
-                                    className={`w-8 text-xs py-1 border rounded-md ${unit === 'kg'
+                                    className={`w-8 text-xs py-1 border rounded-md cursor-pointer ${unit === 'kg'
                                         ? 'bg-purple-100 text-purple-900 border-purple-300'
                                         : 'bg-gray-100 text-gray-500 border-gray-200'}`}
                                 >
@@ -262,7 +262,7 @@ const ItemCard = ({
                                 </button>
                                 <button
                                     onClick={() => handleUnitChange('g')}
-                                    className={`w-8 text-xs py-1 border rounded-md ${unit === 'g'
+                                    className={`w-8 text-xs py-1 border cursor-pointer rounded-md ${unit === 'g'
                                         ? 'bg-purple-100 text-purple-900 border-purple-300'
                                         : 'bg-gray-100 text-gray-500 border-gray-200'}`}
                                 >
@@ -276,7 +276,7 @@ const ItemCard = ({
                                 <button
                                     onClick={decrementQuantity}
                                     disabled={quantity <= getMinQuantity()}
-                                    className="flex-none px-2 py-1 bg-[#3E206D] text-white font-bold rounded-l-md hover:bg-purple-800 disabled:opacity-50"
+                                    className="flex-none px-2 py-1 bg-[#3E206D] text-white font-bold rounded-l-md hover:bg-purple-800 disabled:opacity-50 cursor-pointer"
                                 >
                                     −
                                 </button>
@@ -285,7 +285,7 @@ const ItemCard = ({
                                 </div>
                                 <button
                                     onClick={incrementQuantity}
-                                    className="flex-none px-2 py-1 bg-[#3E206D] text-white font-bold rounded-r-md hover:bg-purple-800"
+                                    className="flex-none px-2 py-1 bg-[#3E206D] text-white font-bold rounded-r-md hover:bg-purple-800 cursor-pointer"
                                 >
                                     +
                                 </button>
