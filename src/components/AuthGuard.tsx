@@ -35,7 +35,12 @@ export default function AuthGuard({
   const isValidlyAuthenticated = isAuthenticated && !isTokenExpired();
 
   useEffect(() => {
-    // Handle token expiration
+    // If this is a public route (requireAuth = false), don't do any auth checks
+    if (!requireAuth) {
+      return;
+    }
+
+    // Handle token expiration for protected routes only
     if (isAuthenticated && isTokenExpired()) {
       console.log('Token expired, logging out...');
       dispatch(logout());
@@ -49,25 +54,19 @@ export default function AuthGuard({
       return;
     }
 
-    // Original logic with updated authentication check
+    // Redirect unauthenticated users from protected routes
     if (requireAuth && !isValidlyAuthenticated) {
       router.push(redirectTo);
-    } else if (!requireAuth && isValidlyAuthenticated) {
-      // Redirect authenticated users away from auth pages
-      router.push('/');
     }
-  }, [isValidlyAuthenticated, requireAuth, router, redirectTo, dispatch, token, tokenExpiration]);
+  }, [isValidlyAuthenticated, requireAuth, router, redirectTo, dispatch, token, tokenExpiration, isAuthenticated]);
 
-  // Show loading while checking authentication
-  if (requireAuth && !isValidlyAuthenticated) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
+  // For public routes, always render children without auth checks
+  if (!requireAuth) {
+    return <>{children}</>;
   }
 
-  if (!requireAuth && isValidlyAuthenticated) {
+  // For protected routes, show loading while checking authentication
+  if (requireAuth && !isValidlyAuthenticated) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>

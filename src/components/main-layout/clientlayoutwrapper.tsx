@@ -1,4 +1,3 @@
-
 'use client';
 
 import { usePathname } from 'next/navigation';
@@ -32,7 +31,7 @@ const publicRoutes = [
   '/error/404',
   '/error/451',
   '/unsubscribe',
-  '/', 
+  '/', // Root route should be accessible without auth
 ];
 
 export default function ClientLayoutWrapper({ children }: { children: React.ReactNode }) {
@@ -44,17 +43,22 @@ export default function ClientLayoutWrapper({ children }: { children: React.Reac
 
   const cleanPathname = pathname.replace(/\/$/, '').split('?')[0];
   
-  const shouldExcludeLayout = excludedRoutes.some(route => 
-    cleanPathname === route || cleanPathname.startsWith(`${route}/`)
-  );
+  // For root route, handle it specifically
+  const isRootRoute = cleanPathname === '' || cleanPathname === '/';
+  
+  const shouldExcludeLayout = excludedRoutes.some(route => {
+    if (route === '/') return isRootRoute;
+    return cleanPathname === route || cleanPathname.startsWith(`${route}/`);
+  });
 
-  const isPublicRoute = publicRoutes.some(route => 
-    cleanPathname === route || cleanPathname.startsWith(`${route}/`)
-  );
+  const isPublicRoute = isRootRoute || publicRoutes.some(route => {
+    if (route === '/') return isRootRoute;
+    return cleanPathname === route || cleanPathname.startsWith(`${route}/`);
+  });
 
   return (
     <Provider store={store}>
-      <TokenExpirationChecker />
+      {!isPublicRoute && <TokenExpirationChecker />}
       <AuthGuard requireAuth={!isPublicRoute}>
         {shouldExcludeLayout ? children : <Layout>{children}</Layout>}
       </AuthGuard>
