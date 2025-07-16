@@ -295,7 +295,7 @@ export default function Page() {
         <p className="text-center text-gray-500 mb-6 text-sm sm:text-base">
           The OTP has been sent to your mobile number
           {isOtpExpired && (
-            <span className="block text-red-500 mt-1 font-medium">
+            <span className="block text-red-500 mt-1 font-xs ">
               OTP has expired. Please request a new one.
             </span>
           )}

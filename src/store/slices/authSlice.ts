@@ -11,6 +11,7 @@ interface UserData {
 
 interface AuthState {
   token: string | null;
+  tokenExpiration: number | null; // Unix timestamp
   user: UserData | null;
   cart: CartInfo;
 }
@@ -27,6 +28,7 @@ const initialStateCart: CartInfo = {
 
 const initialState: AuthState = {
   token: null,
+  tokenExpiration: null,
   user: null,
   cart: initialStateCart
 };
@@ -35,16 +37,18 @@ const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    setCredentials: (state, action: PayloadAction<{ token: string; user: UserData, cart: CartInfo }>) => {
+    setCredentials: (state, action: PayloadAction<{ token: string; user: UserData, cart: CartInfo, tokenExpiration?: number }>) => {
       state.token = action.payload.token;
       state.user = action.payload.user;
       state.cart = action.payload.cart || initialStateCart;
+      state.tokenExpiration = action.payload.tokenExpiration || null;
     },
     updateCartInfo: (state, action: PayloadAction<CartInfo>) => {
       state.cart = action.payload;
     },
     logout: (state) => {
       state.token = null;
+      state.tokenExpiration = null;
       state.user = null;
       state.cart = initialStateCart;
     },

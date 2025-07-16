@@ -13,7 +13,8 @@ interface LoginResponse {
   firstName?: string;
   user?: any;
   message?: string;
-  cart:any
+  cart:any;
+  tokenExpiration:any
 }
 
 // Signup interface

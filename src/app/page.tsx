@@ -8,6 +8,7 @@ import PackageSlider from "@/components/home/PackageSlider";
 import CategoryFilter from "@/components/type-filters/CategoryFilter";
 import { getAllProduct } from "@/services/product-service";
 import TopBanner from '@/components/home/TopBanner';
+import AuthGuard from '@/components/AuthGuard';
 
 interface Package {
   id: number;
@@ -92,6 +93,7 @@ export default function Home() {
   };
 
   return (
+  
     <main className="flex min-h-screen flex-col items-center justify-between">
       <div className='mt-0 my-8'>
         <TopBanner />
@@ -145,5 +147,6 @@ export default function Home() {
         </div>
       )}
     </main>
+  
   );
 }

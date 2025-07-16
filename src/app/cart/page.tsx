@@ -765,7 +765,7 @@ const Page: React.FC = () => {
             {/* Close Button */}
             <button
               onClick={() => setShowDeliveryModal(false)}
-              className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors duration-200 border border-white  p-1 hover:border-gray-300"
+              className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors duration-200 border border-white  p-1 hover:border-gray-300 cursor-pointer"
             >
               <X size={15}  />
             </button>

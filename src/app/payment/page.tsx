@@ -4,8 +4,6 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import TopNavigation from '@/components/top-navigation/TopNavigation';
 // import OrderSummary from '@/components/cart-right-cart/right-cart';
-import SuccessPopup from '@/components/toast-messages/success-message-with-button';
-import ErrorPopup from '@/components/toast-messages/error-message';
 import Visa from '../../../public/images/Visa.png';
 import MasterCard from '../../../public/images/Mastercard.png';
 import { useDispatch, useSelector } from 'react-redux';
@@ -14,6 +12,8 @@ import { submitOrderToBackend, validateOrderData, OrderPayload, formatValidation
 import summary from '../../../public/summary.png'
 import { updateCartInfo } from '@/store/slices/authSlice';
 import { getCartInfo } from '@/services/auth-service';
+import wrongImg from '../../../public/images/wrong.png'
+import correct from '../../../public/images/correct.png'
 
 
 const Page: React.FC = () => {
@@ -51,6 +51,9 @@ const Page: React.FC = () => {
   const user = useSelector((state: RootState) => state.auth.user);
   const dispatch = useDispatch();
   const [couponType, setCouponType] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isError, setIsError] = useState(false);
+  const [modalMessage, setModalMessage] = useState('');
 
   const getHomeUrl = () => {
     return user?.buyerType === 'Wholesale' ? '/wholesale/home' : '/';
@@ -299,15 +302,18 @@ const Page: React.FC = () => {
 
       console.log('Prepared Order Payload:', payload);
 
-      // Submit to backend with token from Redux
       const result = await submitOrderToBackend(payload, token);
       console.log('Order submitted successfully:', result);
 
       // Check if the response has the expected structure
-      if (result.status && result.orderId) {
-        setOrderId(result.orderId);
+      if (result.status && result.processOrderId) {
+        setOrderId(result.processOrderId);
         localStorage.removeItem('deliveryCharge');
-        setShowSuccessPopup(true);
+
+        // Show success modal
+        setIsError(false);
+        setModalMessage('Your order has been placed.');
+        setIsModalOpen(true);
 
         // Fetch updated cart info after successful order creation
         try {
@@ -324,13 +330,39 @@ const Page: React.FC = () => {
     } catch (error: any) {
       console.error('Error submitting order:', error);
       const errorMsg = error.message || 'Order submission failed. Please try again.';
-      setErrorMessage(errorMsg);
-      setShowErrorPopup(true);
+
+      // Show error modal
+      setIsError(true);
+      setModalMessage(errorMsg);
+      setIsModalOpen(true);
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    if (!isError) {
+      // If success, redirect to home
+      router.push(getHomeUrl());
+    }
+  };
+
+  // Handle view invoice
+    const handleViewInvoice = () => {
+      setIsModalOpen(false);
+      console.log('Navigating to invoice with orderId:', orderId); // Debug log
+      
+      if (orderId) {
+        router.push(`/history/invoice/?orderId=${orderId}`);
+      } else {
+        console.error('Order ID is not available');
+        // Handle case where orderId is not available
+        setIsError(true);
+        setModalMessage('Order ID not available. Please try again.');
+        setIsModalOpen(true);
+      }
+    };
   // Calculate display values for OrderSummary
   const getDisplayValues = () => {
     const calculatedSummary = cartItems.calculatedSummary;
@@ -359,24 +391,63 @@ const Page: React.FC = () => {
 
   const displayValues = getDisplayValues();
 
+
+
   return (
     <div className="px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5">
-      <SuccessPopup
-        isVisible={showSuccessPopup}
-        onClose={() => {
-          setShowSuccessPopup(false);
-          router.push(getHomeUrl());
-        }}
-        title="Order Placed Successfully!"
-        description="Your order has been confirmed. View details in your order history."
-        path={`/order-confirmation?orderId=${orderId}`}
-      />
-      <ErrorPopup
-        isVisible={showErrorPopup}
-        onClose={() => setShowErrorPopup(false)}
-        title="Error"
-        description={errorMessage}
-      />
+     {isModalOpen && (
+      <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+        <div className="bg-white p-8 rounded-2xl text-center w-[90%] max-w-md shadow-xl">
+          {isError ? (
+            <Image
+              src={wrongImg}
+              alt="Error"
+              className="w-28 h-28 mx-auto mb-4"
+            />
+          ) : (
+            <Image
+              src={correct}
+              alt="Success"
+              className="w-28 h-28 mx-auto mb-4"
+            />
+          )}
+          
+          <h2 className="text-xl font-bold mb-2 text-gray-900">
+            {isError ? 'Error' : 'Thank you for ordering!'}
+          </h2>
+          <p className="text-gray-500 mb-6">{modalMessage}</p>
+          
+          {isError ? (
+            <button
+              onClick={handleModalClose}
+              className="px-6 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition cursor-pointer text-gray-700 font-medium"
+            >
+              Close
+            </button>
+          ) : (
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={handleModalClose}
+                className="px-6 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition cursor-pointer text-gray-700 font-medium"
+              >
+                Go Back
+              </button>
+                <button
+                    onClick={handleViewInvoice}
+                    disabled={!orderId} // Disable if orderId is not available
+                    className={`px-6 py-2 rounded-lg transition cursor-pointer font-medium ${
+                      !orderId 
+                        ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
+                        : 'bg-[#3E206D] text-white hover:bg-[#3E206D]'
+                    }`}
+                  >
+                View Invoice
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    )}
       <TopNavigation NavArray={NavArray} />
 
       <div className="flex flex-col lg:flex-row lg:items-start gap-4 sm:gap-6 items-start">
