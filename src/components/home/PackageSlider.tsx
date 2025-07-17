@@ -19,6 +19,7 @@ interface Package {
 interface packagesProps {
     productData: Package[];
     onShowConfirmModal: (packageData: any) => void; 
+    onShowLoginPopup: () => void;
 }
 
 const NextArrow = (props: any) => {
@@ -47,7 +48,7 @@ const PrevArrow = (props: any) => {
     );
 };
 
-const PackageSlider: React.FC<packagesProps> = ({ productData , onShowConfirmModal }) => {
+const PackageSlider: React.FC<packagesProps> = ({ productData , onShowConfirmModal,onShowLoginPopup }) => {
     const { isMobile } = useViewport();
     const [selectedPackageId, setSelectedPackageId] = useState<number | null>(null);
     const [packageDetails, setPackageDetails] = useState<any>(null);
@@ -189,6 +190,7 @@ const PackageSlider: React.FC<packagesProps> = ({ productData , onShowConfirmMod
                                 isLoadingDetails={isLoadingDetails && selectedPackageId === packageItem.id}
                                 errorDetails={selectedPackageId === packageItem.id ? errorDetails : undefined}
                                 onShowConfirmModal={onShowConfirmModal}
+                                onShowLoginPopup={onShowLoginPopup}
                             />
                         </div>
                     ))}
@@ -212,6 +214,7 @@ const PackageSlider: React.FC<packagesProps> = ({ productData , onShowConfirmMod
                             isLoadingDetails={isLoadingDetails}
                             errorDetails={errorDetails}
                             onShowConfirmModal={onShowConfirmModal}
+                            onShowLoginPopup={onShowLoginPopup}
                         />
                     </div>
                 </div>

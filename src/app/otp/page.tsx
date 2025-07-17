@@ -20,22 +20,22 @@ export default function Page() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isError, setIsError] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
-  
+
   // New states for OTP expiration and button protection
   const [isOtpExpired, setIsOtpExpired] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isResending, setIsResending] = useState(false);
-  
+
 
   useEffect(() => {
     // Load referenceId, phone number, and country code from localStorage
     const refId = localStorage.getItem('otpReferenceId');
     const phone = localStorage.getItem('otpPhoneOnly');
     const country = localStorage.getItem('otpCountryCode');
-    
+
     console.log('Phone:', phone);
     console.log('Country Code:', country);
-    
+
     if (refId) setReferenceId(refId);
     if (phone) setPhoneNumber(phone);
     if (country) setCountryCode(country);
@@ -48,7 +48,7 @@ export default function Page() {
     } else {
       setDisabledResend(false);
       setIsOtpExpired(true);
-      
+
       // Delete expired referenceId from localStorage
       localStorage.removeItem('otpReferenceId');
       setReferenceId(''); // Clear from state as well
@@ -57,11 +57,11 @@ export default function Page() {
 
   const handleChange = (value: string, idx: number) => {
     if (!/^\d?$/.test(value)) return;
-    
+
     const newOtp = [...otp];
     newOtp[idx] = value;
     setOtp(newOtp);
-    
+
     if (value && idx < 4) {
       inputsRef.current[idx + 1]?.focus();
     }
@@ -70,16 +70,16 @@ export default function Page() {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, idx: number) => {
     if (e.key === 'Backspace') {
       e.preventDefault();
-      
+
       const newOtp = [...otp];
-      
+
       // If current field has a value, just clear it
       if (newOtp[idx] !== '') {
         newOtp[idx] = '';
         setOtp(newOtp);
         return;
       }
-      
+
       // If current field is empty, shift all values from right to left
       if (newOtp[idx] === '') {
         // Find the last non-empty field from current position onwards
@@ -89,7 +89,7 @@ export default function Page() {
             lastFilledIndex = i;
           }
         }
-        
+
         // If there are values to the right, shift them left
         if (lastFilledIndex > idx) {
           // Shift all values from idx to lastFilledIndex one position left
@@ -107,9 +107,9 @@ export default function Page() {
       }
     } else if (e.key === 'Delete') {
       e.preventDefault();
-      
+
       const newOtp = [...otp];
-      
+
       // Clear current field and shift remaining values left
       if (newOtp[idx] !== '') {
         // Find the last non-empty field from current position onwards
@@ -119,7 +119,7 @@ export default function Page() {
             lastFilledIndex = i;
           }
         }
-        
+
         // Shift all values from idx+1 to lastFilledIndex one position left
         for (let i = idx; i < lastFilledIndex; i++) {
           newOtp[i] = newOtp[i + 1];
@@ -138,7 +138,7 @@ export default function Page() {
     e.preventDefault();
     const pastedData = e.clipboardData.getData('text');
     const digits = pastedData.replace(/\D/g, '').slice(0, 5);
-    
+
     if (digits.length > 0) {
       const newOtp = [...otp];
       for (let i = 0; i < digits.length && i < 5; i++) {
@@ -149,7 +149,7 @@ export default function Page() {
         newOtp[i] = '';
       }
       setOtp(newOtp);
-      
+
       // Focus on the next empty field or the last field
       const nextFocusIndex = Math.min(digits.length, 4);
       inputsRef.current[nextFocusIndex]?.focus();
@@ -159,7 +159,7 @@ export default function Page() {
   const handleVerify = async () => {
     // Prevent duplicate clicks
     if (isVerifying) return;
-    
+
     const code = otp.join('');
     if (code.length !== 5) {
       setIsError(true);
@@ -181,18 +181,18 @@ export default function Page() {
     try {
       const response = await verifyOTP(code, referenceId);
       const { statusCode } = response;
-      
+
       if (statusCode === '1000') {
         setIsVerified(true);
         setIsError(false);
         setModalMessage('OTP Verified Successfully!');
         setIsModalOpen(true);
-        
+
         // Clean up localStorage on successful verification
         localStorage.removeItem('otpReferenceId');
         // localStorage.removeItem('otpPhoneOnly');
         localStorage.removeItem('otpCountryCode');
-        
+
         setTimeout(() => router.push('/reset-password-phone'), 2000);
       } else if (statusCode === '1001') {
         setIsError(true);
@@ -204,7 +204,7 @@ export default function Page() {
         setIsError(true);
         setModalMessage('OTP has expired. Please request a new one.');
         setIsModalOpen(true);
-        
+
         // Remove expired referenceId
         localStorage.removeItem('otpReferenceId');
         setReferenceId('');
@@ -220,7 +220,7 @@ export default function Page() {
         setIsError(true);
         setModalMessage('OTP has expired. Please request a new one.');
         setIsModalOpen(true);
-        
+
         // Remove expired referenceId
         localStorage.removeItem('otpReferenceId');
         setReferenceId('');
@@ -234,52 +234,52 @@ export default function Page() {
     }
   };
 
- const handleResendOTP = async () => {
-  // Prevent duplicate clicks and check if already disabled
-  if (disabledResend || isResending) return;
-  
-  // Ensure we have phone number and country code
-  if (!phoneNumber || !countryCode) {
-    setIsError(true);
-    setModalMessage('Phone number information is missing. Please go back and try again.');
-    setIsModalOpen(true);
-    return;
-  }
-  
-  setIsResending(true); // Disable button during API call
-  
-  try {
-    const res = await sendOTP(phoneNumber, countryCode);
-    
-    if (res.referenceId) {
-      setReferenceId(res.referenceId);
-      localStorage.setItem('otpReferenceId', res.referenceId);
-      
-      // Reset timer and states
-      setTimer(60);
-      setDisabledResend(true);
-      setIsOtpExpired(false); // Reset expiration status
-      setOtp(['', '', '', '', '']); // Clear current OTP inputs
-      
-      // Reset modal states properly before showing success message
-      setIsVerified(false); // Reset verification status
-      setIsError(false);
-      setModalMessage('New OTP has been sent to your mobile number.');
+  const handleResendOTP = async () => {
+    // Prevent duplicate clicks and check if already disabled
+    if (disabledResend || isResending) return;
+
+    // Ensure we have phone number and country code
+    if (!phoneNumber || !countryCode) {
+      setIsError(true);
+      setModalMessage('Phone number information is missing. Please go back and try again.');
       setIsModalOpen(true);
-      
-      // Focus on first input field
-      inputsRef.current[0]?.focus();
-    } else {
-      throw new Error('Failed to get reference ID for new OTP');
+      return;
     }
-  } catch (error: any) {
-    setIsError(true);
-    setModalMessage(error.message || 'Failed to resend OTP');
-    setIsModalOpen(true);
-  } finally {
-    setIsResending(false); // Re-enable button
-  }
-};
+
+    setIsResending(true); // Disable button during API call
+
+    try {
+      const res = await sendOTP(phoneNumber, countryCode);
+
+      if (res.referenceId) {
+        setReferenceId(res.referenceId);
+        localStorage.setItem('otpReferenceId', res.referenceId);
+
+        // Reset timer and states
+        setTimer(60);
+        setDisabledResend(true);
+        setIsOtpExpired(false); // Reset expiration status
+        setOtp(['', '', '', '', '']); // Clear current OTP inputs
+
+        // Reset modal states properly before showing success message
+        setIsVerified(false); // Reset verification status
+        setIsError(false);
+        setModalMessage('New OTP has been sent to your mobile number.');
+        setIsModalOpen(true);
+
+        // Focus on first input field
+        inputsRef.current[0]?.focus();
+      } else {
+        throw new Error('Failed to get reference ID for new OTP');
+      }
+    } catch (error: any) {
+      setIsError(true);
+      setModalMessage(error.message || 'Failed to resend OTP');
+      setIsModalOpen(true);
+    } finally {
+      setIsResending(false); // Re-enable button
+    }
+  };
 
   const timerText = `${Math.floor(timer / 60)}:${String(timer % 60).padStart(2, '0')}`;
 
@@ -325,31 +325,33 @@ export default function Page() {
         <button
           onClick={handleResendOTP}
           disabled={disabledResend || isResending}
-          className={`text-xs sm:text-sm mb-6 ${
-            disabledResend || isResending
-              ? 'text-gray-400 cursor-not-allowed' 
+          className={`text-xs sm:text-sm mb-6 ${disabledResend || isResending
+              ? 'text-gray-400 cursor-not-allowed'
               : 'text-[#3E206D] font-semibold hover:underline cursor-pointer'
-          }`}
+            }`}
         >
-          {isResending 
-            ? 'Sending...' 
-            : disabledResend 
-              ? `Resend in ${timerText}` 
+          {isResending
+            ? 'Sending...'
+            : disabledResend
+              ? `Resend in ${timerText}`
               : 'Resend OTP'
           }
         </button>
 
-          <button
-            onClick={handleVerify}
-            disabled={isVerifying || isOtpExpired || !isOtpComplete}
-            className={`font-semibold w-full max-w-[307px] h-[45px] rounded-[10px] mt-1 transition-colors ${
-              isVerifying || isOtpExpired || !isOtpComplete
-                ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
-                : 'bg-[#3E206D] text-white hover:bg-[#2D1A4F] cursor-pointer'
+        <button
+          onClick={handleVerify}
+          disabled={isVerifying || isOtpExpired || !isOtpComplete || isVerified}
+          className={`font-semibold w-full max-w-[307px] h-[45px] rounded-[10px] mt-1 transition-colors ${isVerifying || isOtpExpired || !isOtpComplete || isVerified
+              ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+              : 'bg-[#3E206D] text-white hover:bg-[#2D1A4F] cursor-pointer'
             }`}
-          >
-            {isVerifying ? 'Verifying...' : isOtpExpired ? 'OTP Expired' : !isOtpComplete ? 'Enter 5 digits' : 'Verify'}
-          </button>
+        >
+          {isVerifying ? 'Verifying...' :
+            isVerified ? 'Verified ✓' :
+              isOtpExpired ? 'OTP Expired' :
+                !isOtpComplete ? 'Enter 5 digits' :
+                  'Verify'}
+        </button>
       </div>
 
       {/* Modal */}

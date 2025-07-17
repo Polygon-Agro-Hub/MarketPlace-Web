@@ -643,6 +643,10 @@ useEffect(() => {
             <div className="relative flex items-center border border-[#CECECE] rounded-lg p-2">
               <FiLock className="text-gray-500 mr-2" />
               <input
+              onPaste={(e) => {
+                e.preventDefault();
+                return false;
+              }}
                 type={showConfirmPassword ? 'text' : 'password'}
                 {...register('confirmPassword')}
                 className="w-full focus:outline-none text-xs sm:text-sm"

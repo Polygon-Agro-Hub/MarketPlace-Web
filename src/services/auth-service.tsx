@@ -588,7 +588,7 @@ export const updateProfile = async (payload: UpdateProfilePayload): Promise<void
     formData.append('email', payload.data.email);
     formData.append('phoneCode', payload.data.phoneCode);
     formData.append('phoneNumber', payload.data.phoneNumber);
-      formData.append('phoneCode', payload.data.phoneCode);
+     formData.append('phoneCode', payload.data.phoneCode);
     formData.append('phoneNumber', payload.data.phoneNumber);
     formData.append('phoneCode2', payload.data.phoneCode2);
     formData.append('phoneNumber2', payload.data.phoneNumber2);

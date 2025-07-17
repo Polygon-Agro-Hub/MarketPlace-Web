@@ -33,6 +33,7 @@ interface PackageProps {
   isLoadingDetails: boolean;
   errorDetails?: string | null;
   onShowConfirmModal: (packageData: any) => void;
+  onShowLoginPopup: () => void;
 }
 
 const PackageCard: React.FC<PackageProps> = ({
@@ -45,12 +46,15 @@ const PackageCard: React.FC<PackageProps> = ({
   onAddToCartError,
   isLoadingDetails,
   errorDetails,
-  onShowConfirmModal
+  onShowConfirmModal,
+  onShowLoginPopup
 }) => {
   const { isMobile } = useViewport();
   const dispatch = useDispatch(); // Add this
   const token = useSelector((state: RootState) => state.auth.token) as string | null;
+  const user = useSelector((state:RootState) => state.auth.user) as string | null;
   const router = useRouter();
+  const [showLoginPopup, setShowLoginPopup] = useState(false);
 
   const handlePackageAddToCart = async () => {
     if (!packageDetails || packageDetails.length === 0) {
@@ -60,12 +64,15 @@ const PackageCard: React.FC<PackageProps> = ({
       return;
     }
 
-    if (!token) {
+    if (!token || !user) {
       if (onAddToCartError) {
-        router.push('/signin');
+        if (onShowLoginPopup) {
+        onShowLoginPopup(); 
+      }
       }
       return;
     }
+
 
     try {
       const res = await packageAddToCart(packageItem.id, token);
@@ -101,7 +108,6 @@ const PackageCard: React.FC<PackageProps> = ({
   };
 
   const handleAddToCartClick = () => {
-    // Instead of setting local state, call the parent function with package data
     onShowConfirmModal({
       packageItem,
       packageDetails,
@@ -119,6 +125,8 @@ const PackageCard: React.FC<PackageProps> = ({
     
     return `${formattedInteger}.${decimalPart}`;
   };
+
+  
 
   return (
     <div className="w-full h-full">

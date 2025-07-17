@@ -5,6 +5,7 @@ import { resetPassword, validateResetToken } from '@/services/auth-service';
 import wrongImg from '../../../../public/images/wrong.png'
 import resetImg from '../../../../public/images/reset.png'
 import CorrectImg from '../../../../public/images/correct.png'
+import Image from 'next/image';
 
 const Page = () => {
   const router = useRouter();
@@ -18,7 +19,6 @@ const Page = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isTokenValid, setIsTokenValid] = useState(false);
 
-  // Validate token on component mount
   useEffect(() => {
     const validateToken = async () => {
       try {
@@ -120,8 +120,8 @@ const Page = () => {
       <div className="w-[90vw] h-[90vh] bg-white rounded-xl shadow-lg flex flex-col md:flex-row overflow-hidden">
         {/* Left Illustration */}
         <div className="md:w-1/2 flex items-center justify-center bg-white p-8">
-          <img
-            src={resetImg as any}
+          <Image
+            src={resetImg}
             alt="Forgot password illustration"
             className="w-[70%] h-auto object-cover"
           />

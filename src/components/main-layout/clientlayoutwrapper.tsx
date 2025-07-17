@@ -29,6 +29,7 @@ const publicRoutes = [
   '/reset-password',
   '/reset-password-phone',
   '/error/404',
+  '/wholesale/home',
   '/error/451',
   '/unsubscribe',
   '/', // Root route should be accessible without auth
