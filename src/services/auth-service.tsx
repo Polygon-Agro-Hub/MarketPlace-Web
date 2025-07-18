@@ -582,18 +582,29 @@ export const updateProfile = async (payload: UpdateProfilePayload): Promise<void
     }
 
     const formData = new FormData();
+    
+    // Required fields
     formData.append('title', payload.data.title);
     formData.append('firstName', payload.data.firstName);
     formData.append('lastName', payload.data.lastName);
     formData.append('email', payload.data.email);
     formData.append('phoneCode', payload.data.phoneCode);
     formData.append('phoneNumber', payload.data.phoneNumber);
-     formData.append('phoneCode', payload.data.phoneCode);
-    formData.append('phoneNumber', payload.data.phoneNumber);
-    formData.append('phoneCode2', payload.data.phoneCode2);
-    formData.append('phoneNumber2', payload.data.phoneNumber2);
-    
 
+    // Optional fields - only append if they exist
+    if (payload.data.phoneCode2) {
+      formData.append('phoneCode2', payload.data.phoneCode2);
+    }
+    
+    if (payload.data.phoneNumber2) {
+      formData.append('phoneNumber2', payload.data.phoneNumber2);
+    }
+    
+    if (payload.data.companyName) {
+      formData.append('companyName', payload.data.companyName);
+    }
+
+    // Profile picture - only append if provided
     if (payload.profilePic) {
       formData.append('profilePicture', payload.profilePic);
     }
