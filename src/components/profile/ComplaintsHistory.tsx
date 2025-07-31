@@ -8,6 +8,8 @@ import { FaAngleDown } from 'react-icons/fa';
 import { RootState } from '@/store';
 import { fetchComplaints } from '@/services/auth-service';
 import EmptyComplaints from '../complaints/No-complaint';
+import Select, { ActionMeta, SingleValue } from 'react-select'; // Import react-select
+import Loader from '@/components/loader-spinner/Loader';
 
 // Interfaces
 interface Complaint {
@@ -24,11 +26,19 @@ interface Complaint {
   customerName?: string;
 }
 
+// Define filter options for react-select
+const filterOptions = [
+  { value: 'This Month', label: 'This Month' },
+  { value: 'Last Month', label: 'Last Month' },
+  { value: 'Last 3 Months', label: 'Last 3 Months' },
+  { value: 'All', label: 'All' },
+];
+
 const ComplaintsHistory = () => {
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<'This Month' | 'Last Month' | 'Last 3 Months' | 'All'>('This Month');
+  const [filter, setFilter] = useState('This Month');
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
 
   const { token, user } = useSelector((state: RootState) => state.auth);
@@ -42,6 +52,9 @@ const ComplaintsHistory = () => {
     }
 
     const getComplaints = async () => {
+      const startTime = Date.now();
+      const minimumLoadTime = 2500; // 2.5 seconds minimum loader time
+
       try {
         setLoading(true);
         const fetchedComplaints = await fetchComplaints({ userId, token });
@@ -51,7 +64,13 @@ const ComplaintsHistory = () => {
         const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
         setError(errorMessage);
       } finally {
-        setLoading(false);
+        // Ensure loader shows for minimum duration
+        const elapsedTime = Date.now() - startTime;
+        const remainingTime = Math.max(0, minimumLoadTime - elapsedTime);
+
+        setTimeout(() => {
+          setLoading(false);
+        }, remainingTime);
       }
     };
 
@@ -98,12 +117,23 @@ const ComplaintsHistory = () => {
     setSelectedComplaint(null);
   };
 
+  // Handle filter change for react-select
+  const handleFilterChange = (
+    newValue: SingleValue<{ value: string; label: string }>,
+    actionMeta: ActionMeta<{ value: string; label: string }>
+  ): void => {
+    if (newValue) {
+      setFilter(newValue.value);
+    }
+  };
+
+
   return (
     <div>
+      <Loader isVisible={loading} />
       <div
-        className={`relative z-10 px-4 sm:px-6 md:px-8 min-h-screen mb-10 ${
-          selectedComplaint ? 'bg-white' : 'bg-white'
-        } blur-effect`}
+        className={`relative z-10 px-4 sm:px-6 md:px-8 min-h-screen mb-10 ${selectedComplaint ? 'bg-white' : 'bg-white'
+          } blur-effect`}
       >
         <h2 className="font-medium text-[14px] text-base md:text-[18px] mb-2 mt-2">
           Complaints History
@@ -139,7 +169,7 @@ const ComplaintsHistory = () => {
                 </div>
                 <button
                   onClick={handleGoBack}
-                  className="w-24 h-9 text-sm text-gray-700 rounded-lg hover:bg-gray-300"
+                  className="w-24 h-9 text-sm text-gray-700 rounded-lg cursor-pointer hover:bg-gray-300"
                   style={{ backgroundColor: '#F3F4F7' }}
                 >
                   Go Back
@@ -155,20 +185,66 @@ const ComplaintsHistory = () => {
               <div className="text-[14px] text-base md:text-[18px] font-bold">
                 All ({String(filteredComplaints.length).padStart(2, '0')})
               </div>
-              <div className="relative w-32 sm:w-40">
-                <select
-                  value={filter}
-                  onChange={(e) => setFilter(e.target.value as 'This Month' | 'Last Month' | 'Last 3 Months' | 'All')}
-                  className="appearance-none border border-[#CECECE] rounded-lg p-2 pr-8 w-full h-9 sm:h-10 text-xs sm:text-sm bg-[#F3F3F3] focus:ring-0 focus:border-[#CECECE]"
-                >
-                  <option value="This Month">This Month</option>
-                  <option value="Last Month">Last Month</option>
-                  <option value="Last 3 Months">Last 3 Months</option>
-                  <option value="All">All</option>
-                </select>
-                <div className="pointer-events-none absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500">
-                  <FaAngleDown className="text-xs sm:text-sm text-[#6B7280]" />
-                </div>
+              <div className="relative w-[140px] sm:w-[180px]">
+                <Select
+                  instanceId="complaints-history-filter"
+                  options={filterOptions}
+                  value={filterOptions.find((option) => option.value === filter)}
+                  onChange={handleFilterChange}
+                  className="text-xs sm:text-sm"
+                  isSearchable={false} 
+                  styles={{
+                    control: (base) => ({
+                      ...base,
+                      border: '1px solid #CECECE',
+                      borderRadius: '0.25rem',
+                      height: '36px',
+                      backgroundColor: '#F3F3F3',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      textAlign: 'center',
+                      paddingRight: '1.5rem',
+                      boxShadow: 'none',
+                      ':hover': {
+                        borderColor: '#3E206D',
+                        backgroundColor: '#F3F4F6',
+                      },
+                    }),
+                    option: (base, { isFocused }) => ({
+                      ...base,
+                      cursor: 'pointer',
+                      backgroundColor: isFocused ? '#F3F4F6' : 'white',
+                      color: '#1F2937',
+                      textAlign: 'center',
+                      padding: '8px 12px',
+                    }),
+                    menu: (base) => ({
+                      ...base,
+                      marginTop: '0',
+                      borderRadius: '0.25rem',
+                      textAlign: 'center',
+                      width: '100%',
+                    }),
+                    singleValue: (base) => ({
+                      ...base,
+                      textAlign: 'center',
+                      width: '100%',
+                      color: '#1F2937',
+                    }),
+                    dropdownIndicator: (base) => ({
+                      ...base,
+                      color: '#6B7280',
+                      paddingRight: '8px',
+                    }),
+                  }}
+                  components={{
+                    DropdownIndicator: () => (
+                      <FaAngleDown className="text-[#6B7280] text-xs sm:text-sm" />
+                    ),
+                    IndicatorSeparator: () => null,
+                  }}
+                />
               </div>
             </div>
 
@@ -195,13 +271,12 @@ const ComplaintsHistory = () => {
                       <div className="flex flex-col items-start sm:items-center">
                         <div className="flex items-center">
                           <span
-                            className={`min-w-[100px] sm:min-w-[120px] text-center px-2 py-1 rounded-full text-[12px] md:text-[16px] ${
-                              complaint.status === 'Closed'
+                            className={`min-w-[100px] sm:min-w-[120px] text-center px-2 py-1 rounded-full text-[12px] md:text-[16px] ${complaint.status === 'Closed'
                                 ? 'bg-[#EDE1FF] text-[#3E206D]'
                                 : complaint.status === 'Opened'
-                                ? 'bg-[#CFE1FF] text-[#3B82F6]'
-                                : 'bg-gray-200 text-gray-800'
-                            }`}
+                                  ? 'bg-[#CFE1FF] text-[#3B82F6]'
+                                  : 'bg-gray-200 text-gray-800'
+                              }`}
                           >
                             {complaint.status || 'Unknown'}
                           </span>
@@ -233,7 +308,7 @@ const ComplaintsHistory = () => {
                           />
                         ))
                       ) : (
-                        <p className="text-[12px] md:text-[16px] text-[#626D76]">No images available.</p>
+                        <p className="text-[12px] md:text-[16px] text-[#626D76]"></p>
                       )}
                     </div>
                   </div>

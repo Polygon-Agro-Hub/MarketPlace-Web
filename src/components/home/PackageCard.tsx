@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { useViewport } from './hooks/useViewport';
 import Image from 'next/image';
 import { packageAddToCart } from '@/services/product-service';
-import { useSelector } from 'react-redux';
+import { getCartInfo } from '@/services/auth-service'; // Add this import
+import { useSelector, useDispatch } from 'react-redux'; // Add useDispatch
 import { RootState } from '@/store';
+import { updateCartInfo } from '@/store/slices/authSlice'; // Add this import
 import { useRouter } from 'next/navigation';
 
 interface PackageItem {
@@ -31,6 +33,7 @@ interface PackageProps {
   isLoadingDetails: boolean;
   errorDetails?: string | null;
   onShowConfirmModal: (packageData: any) => void;
+  onShowLoginPopup: () => void;
 }
 
 const PackageCard: React.FC<PackageProps> = ({
@@ -43,13 +46,15 @@ const PackageCard: React.FC<PackageProps> = ({
   onAddToCartError,
   isLoadingDetails,
   errorDetails,
-  onShowConfirmModal
+  onShowConfirmModal,
+  onShowLoginPopup
 }) => {
   const { isMobile } = useViewport();
+  const dispatch = useDispatch(); // Add this
   const token = useSelector((state: RootState) => state.auth.token) as string | null;
+  const user = useSelector((state:RootState) => state.auth.user) as string | null;
   const router = useRouter();
-  // Remove the local showConfirmModal state
-  // const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
+  const [showLoginPopup, setShowLoginPopup] = useState(false);
 
   const handlePackageAddToCart = async () => {
     if (!packageDetails || packageDetails.length === 0) {
@@ -59,18 +64,31 @@ const PackageCard: React.FC<PackageProps> = ({
       return;
     }
 
-    if (!token) {
+    if (!token || !user) {
       if (onAddToCartError) {
-        router.push('/signin');
+        if (onShowLoginPopup) {
+        onShowLoginPopup(); 
+      }
       }
       return;
     }
+
 
     try {
       const res = await packageAddToCart(packageItem.id, token);
       console.log("res", res);
 
       if (res.status === true) {
+        // Fetch updated cart info after successful add to cart
+        try {
+          const cartInfo = await getCartInfo(token);
+          console.log("Updated cart info:", cartInfo);
+          dispatch(updateCartInfo(cartInfo));
+        } catch (cartError) {
+          console.error('Error fetching cart info:', cartError);
+          // Don't fail the whole operation if cart info fetch fails
+        }
+
         if (onAddToCartSuccess) {
           onAddToCartSuccess(res.message || 'Package added to cart successfully!');
         }
@@ -90,7 +108,6 @@ const PackageCard: React.FC<PackageProps> = ({
   };
 
   const handleAddToCartClick = () => {
-    // Instead of setting local state, call the parent function with package data
     onShowConfirmModal({
       packageItem,
       packageDetails,
@@ -108,6 +125,8 @@ const PackageCard: React.FC<PackageProps> = ({
     
     return `${formattedInteger}.${decimalPart}`;
   };
+
+  
 
   return (
     <div className="w-full h-full">
@@ -134,7 +153,7 @@ const PackageCard: React.FC<PackageProps> = ({
         </div>
       ) : (
         <div
-          className="w-full h-full bg-[#3E206D] rounded-2xl shadow-lg relative md:min-h-[540px] min-h-[480px] md:max-w-[360px] min-w-[260px] border border-gray-200 text-white flex flex-col"
+          className="w-full h-full bg-[#3E206D] rounded-2xl shadow-lg relative md:min-h-[360px] min-h-[480px] md:max-w-[360px] min-w-[260px] border border-gray-200 text-white flex flex-col"
           data-package-popup={packageItem.id}
         >
           <div className="p-4 h-full flex flex-col flex-grow mt-1">
@@ -171,8 +190,8 @@ const PackageCard: React.FC<PackageProps> = ({
                       key={item.id}
                       className="flex justify-between items-center border-b border-white/30 py-1 text-sm"
                     >
-                      <span className="flex-1 text-start truncate pr-2">{item.displayName}</span>
-                      <span className="text-white text-start whitespace-nowrap">
+                      <span className="flex-1 text-start truncate pr-2 mb-7">{item.displayName}</span>
+                      <span className="text-white text-start whitespace-nowrap mb-7">
                         {item.quantity}
                         {item.quantityType && <span className="ml-1">{item.quantityType}</span>}
                       </span>

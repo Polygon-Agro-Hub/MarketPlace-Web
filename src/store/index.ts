@@ -11,7 +11,7 @@ import cartItemsReducer  from './slices/cartItemsSlice'
 const persistConfig = {
   key: 'root',
   storage,
-  whitelist: ['auth', 'form', 'checkout', 'cart', 'cartItems'], // Specify which reducers to persist
+  whitelist: ['auth', 'form', 'checkout', 'cart', 'cartItems'],
 };
 
 const rootReducer = combineReducers({

@@ -330,3 +330,208 @@ export const getCategoryCountsWholesale = async (): Promise<any> => {
     }
   }
 };
+
+export const getMarketplaceSuggestions = async (token: string): Promise<any> => {
+  try {
+    const response = await axios.get('/product/marketplace/suggestions', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (response.status >= 200 && response.status < 300) {
+      return response.data;
+    } else {
+      throw new Error(response.data?.message || 'Failed to fetch marketplace suggestions');
+    }
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(
+        error.response.data?.message ||
+        error.response.data?.error ||
+        `Failed with status ${error.response.status}`
+      );
+    } else if (error.request) {
+      throw new Error('No response received from server');
+    } else {
+      throw new Error(error.message || 'An error occurred while fetching marketplace suggestions');
+    }
+  }
+};
+
+export interface ExcludeItemsResponse {
+  status: boolean;
+  message: string;
+  result?: any;
+  error?: string;
+}
+
+
+export async function excludeItems(
+  items: string[],
+  authToken: string
+): Promise<ExcludeItemsResponse> {
+  try {
+    const response = await axios.post(
+      '/product/marketplace/exclude-items',
+      { items },
+      {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (response.status >= 200 && response.status < 300) {
+      return response.data;
+    } else {
+      throw new Error(response.data?.message || 'Failed to exclude items');
+    }
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(
+        error.response.data?.message ||
+        error.response.data?.error ||
+        `Failed with status ${error.response.status}`
+      );
+    } else if (error.request) {
+      throw new Error('No response received from server');
+    } else {
+      throw new Error(error.message || 'An error occurred while excluding items');
+    }
+  }
+}
+export interface Item {
+  displayName: string;
+  image: string;
+}
+
+export async function getExcludedItems(authToken: string): Promise<{ status: boolean; items: Item[]; message?: string }> {
+  try {
+    const response = await axios.get('/product/marketplace/excluded-items', {
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (response.status >= 200 && response.status < 300) {
+      return response.data;
+    } else {
+      throw new Error(response.data?.message || 'Failed to fetch excluded items');
+    }
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(
+        error.response.data?.message ||
+        error.response.data?.error ||
+        `Failed with status ${error.response.status}`
+      );
+    } else if (error.request) {
+      throw new Error('No response received from server');
+    } else {
+      throw new Error(error.message || 'An error occurred while fetching excluded items');
+    }
+  }
+}
+
+export async function deleteExcludedItems(items: string[], authToken: string) {
+  try {
+    const response = await axios.post(
+      '/product/marketplace/delete-excluded',
+      { items },
+      {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (response.status >= 200 && response.status < 300) {
+      return response.data;
+    } else {
+      throw new Error(response.data?.message || 'Failed to delete excluded items');
+    }
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(
+        error.response.data?.message ||
+        error.response.data?.error ||
+        `Failed with status ${error.response.status}`
+      );
+    } else if (error.request) {
+      throw new Error('No response received from server');
+    } else {
+      throw new Error(error.message || 'An error occurred while deleting excluded items');
+    }
+  }
+}
+
+
+
+export const updateUserStatus = async (token: string) => {
+  try {
+    const response = await axios.post(
+      '/product/update-user-status',
+      {  },// POST body is empty
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    if (error.response) {
+      console.error(
+        `Update user status failed: ${error.response.status} ${error.response.statusText}`
+      );
+      console.error('Response body:', error.response.data);
+      return {
+        status: false,
+        message:
+          error.response.data?.message ||
+          error.response.data?.error ||
+          `Failed with status ${error.response.status}`,
+      };
+    } else if (error.request) {
+      return { status: false, message: 'No response received from server' };
+    } else {
+      return { status: false, message: error.message || 'An error occurred' };
+    }
+  }
+};
+
+export const getMarketplaceSuggestionsProfile = async (token: string): Promise<any> => {
+  try {
+    const response = await axios.get('/product/marketplace/suggestionsprofile', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (response.status >= 200 && response.status < 300) {
+      return response.data;
+    } else {
+      throw new Error(response.data?.message || 'Failed to fetch marketplace suggestions');
+    }
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(
+        error.response.data?.message ||
+        error.response.data?.error ||
+        `Failed with status ${error.response.status}`
+      );
+    } else if (error.request) {
+      throw new Error('No response received from server');
+    } else {
+      throw new Error(error.message || 'An error occurred while fetching marketplace suggestions');
+    }
+  }
+};

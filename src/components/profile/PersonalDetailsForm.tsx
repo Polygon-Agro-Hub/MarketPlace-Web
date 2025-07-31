@@ -26,10 +26,25 @@ const schema = yup.object().shape({
     .required('Last name is required'),
   email: yup.string().email('Invalid email').required('Email is required'),
   countryCode: yup.string().required('Country code is required'),
+  countryCode2: yup.string().when('$buyerType', {
+    is: 'Wholesale',
+    then: (schema) => schema.required('Country code is required'),
+    otherwise: (schema) => schema.notRequired(),
+  }),
   phoneNumber: yup
     .string()
     .matches(/^[0-9]{9}$/, 'Phone number must be exactly 9 digits')
     .required('Phone number is required'),
+  phoneNumber2: yup.string().when('$buyerType', {
+    is: 'Wholesale',
+    then: (schema) => schema.matches(/^[0-9]{9}$/, 'Phone number must be exactly 9 digits').required('Phone number is required'),
+    otherwise: (schema) => schema.notRequired(),
+  }),
+  companyName: yup.string().when('$buyerType', {
+    is: 'Wholesale',
+    then: (schema) => schema.required('Company name is required'),
+    otherwise: (schema) => schema.notRequired(),
+  }),
   currentPassword: yup.string().when('newPassword', {
     is: (val: string | undefined) => val && val.length > 0,
     then: (schema) => schema.required('Current password is required'),
@@ -58,18 +73,17 @@ type FormData = yup.InferType<typeof schema>;
 interface CustomDropdownProps {
   register: UseFormRegister<FormData>;
   name: keyof FormData;
-  value: string; // Current form value
+  value: string;
   errors?: FieldErrors<FormData>;
   options: { value: string; label: string }[];
   placeholder: string;
-  onChange: (value: string) => void; // Callback to update form value
+  onChange: (value: string) => void;
 }
 
 const CustomDropdown = ({ register, name, value, errors, options, placeholder, onChange }: CustomDropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Handle clicking outside to close dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -80,18 +94,14 @@ const CustomDropdown = ({ register, name, value, errors, options, placeholder, o
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Handle option selection
   const handleSelect = (optionValue: string) => {
-    onChange(optionValue); // Update form value
+    onChange(optionValue);
     setIsOpen(false);
   };
 
   return (
     <div className="relative cursor-pointer" ref={dropdownRef}>
-      {/* Hidden input for React Hook Form */}
       <input type="hidden" {...register(name)} value={value} />
-
-      {/* Dropdown Trigger */}
       <div
         className="appearance-none border border-[#CECECE] cursor-pointer rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm pr-8 flex items-center justify-between"
         onClick={() => setIsOpen(!isOpen)}
@@ -99,8 +109,6 @@ const CustomDropdown = ({ register, name, value, errors, options, placeholder, o
         <span>{value ? options.find((opt) => opt.value === value)?.label || placeholder : placeholder}</span>
         <FaAngleDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none" />
       </div>
-
-      {/* Dropdown Options */}
       {isOpen && (
         <ul className="absolute z-10 w-full bg-white border border-[#CECECE] rounded-lg mt-1">
           <li
@@ -165,6 +173,9 @@ const PersonalDetailsForm = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [originalData, setOriginalData] = useState<any>(null);
+  const [originalProfilePic, setOriginalProfilePic] = useState<string | null>(null);
+  const [buyerType, setBuyerType] = useState<string>('');
 
   const {
     register,
@@ -172,50 +183,59 @@ const PersonalDetailsForm = () => {
     reset,
     watch,
     setValue,
+    getValues,
     formState: { errors },
   } = useForm<FormData>({
-    resolver: yupResolver(schema) as any,
+    resolver: yupResolver(schema, { context: { buyerType } }) as any,
     defaultValues: {
       title: '',
       countryCode: '',
+      countryCode2: '',
       firstName: '',
       lastName: '',
       email: '',
       phoneNumber: '',
+      phoneNumber2: '',
+      companyName: '',
       currentPassword: undefined,
       newPassword: undefined,
       confirmPassword: undefined,
     },
   });
 
-  // Watch form values for title and countryCode
   const titleValue = watch('title');
   const countryCodeValue = watch('countryCode');
+  const countryCode2Value = watch('countryCode2');
 
   useEffect(() => {
     const loadProfile = async () => {
       if (!token) {
-        // For new users: do not fetch data, keep form with empty values
         return;
       }
 
-      // For existing users: fetch profile data
       setIsLoading(true);
       try {
         const data = await fetchProfile({ token });
-        console.log('API Response:', data);
+        setBuyerType(data.buyerType || '');
 
-        reset({
+        const formData = {
           title: data.title || '',
           firstName: data.firstName || '',
           lastName: data.lastName || '',
           email: data.email || '',
           countryCode: data.phoneCode || '',
           phoneNumber: data.phoneNumber || '',
+          countryCode2: data.phoneCode2 || '',
+          phoneNumber2: data.phoneNumber2 || '',
+          companyName: data.companyName || '',
           currentPassword: undefined,
           newPassword: undefined,
           confirmPassword: undefined,
-        });
+        };
+
+        setOriginalData(formData);
+        setOriginalProfilePic(data.image || data.profileImageURL || null);
+        reset(formData);
         setPreviewURL(data.image || data.profileImageURL || null);
       } catch (error: any) {
         setErrorMessage(error.message || 'Failed to fetch profile');
@@ -232,7 +252,7 @@ const PersonalDetailsForm = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const maxSizeInBytes = 15 * 1024 * 1024; // 15MB
+      const maxSizeInBytes = 15 * 1024 * 1024;
       if (file.size > maxSizeInBytes) {
         setErrorMessage(
           `The image you uploaded has a size of ${(file.size / (1024 * 1024)).toFixed(2)}MB, which is larger than 15MB. Please re-upload an image under the allowed criteria.`
@@ -248,7 +268,9 @@ const PersonalDetailsForm = () => {
     }
   };
 
-  const onSubmit: SubmitHandler<FormData> = async (data) => {
+  const handleProfileUpdate = async () => {
+    const formValues = getValues();
+
     setIsLoading(true);
     if (!token) {
       setErrorMessage('You are not authenticated. Please login first.');
@@ -264,28 +286,45 @@ const PersonalDetailsForm = () => {
       setErrorMessage('');
       setSuccessMessage('');
 
+      // Clean profile data - only send what's needed
+      const profileData: any = {
+        title: formValues.title,
+        firstName: formValues.firstName,
+        lastName: formValues.lastName,
+        email: formValues.email,
+        phoneCode: formValues.countryCode,
+        phoneNumber: formValues.phoneNumber,
+      };
+
+      // Only add wholesale fields if buyerType is Wholesale and values exist
+      if (buyerType === 'Wholesale') {
+        if (formValues.countryCode2) {
+          profileData.phoneCode2 = formValues.countryCode2;
+        }
+        if (formValues.phoneNumber2) {
+          profileData.phoneNumber2 = formValues.phoneNumber2;
+        }
+        if (formValues.companyName) {
+          profileData.companyName = formValues.companyName;
+        }
+      }
+
       await updateProfile({
         token,
-        data: {
-          title: data.title,
-          firstName: data.firstName,
-          lastName: data.lastName,
-          email: data.email,
-          phoneCode: data.countryCode,
-          phoneNumber: data.phoneNumber,
-        },
+        data: profileData,
         profilePic,
       });
 
       let successMessages: string[] = ['Profile updated successfully!'];
 
-      if (data.newPassword && data.currentPassword && data.confirmPassword) {
+      // Handle password update if provided
+      if (formValues.newPassword && formValues.currentPassword && formValues.confirmPassword) {
         try {
           const passwordResponse = await updatePassword({
             token,
-            currentPassword: data.currentPassword,
-            newPassword: data.newPassword,
-            confirmPassword: data.confirmPassword,
+            currentPassword: formValues.currentPassword,
+            newPassword: formValues.newPassword,
+            confirmPassword: formValues.confirmPassword,
           });
           successMessages.push(passwordResponse.message || 'Password updated successfully!');
         } catch (passwordErr: any) {
@@ -293,23 +332,34 @@ const PersonalDetailsForm = () => {
         }
       }
 
+      // Fetch updated profile data
       const updatedData = await fetchProfile({ token });
-      reset({
+      setBuyerType(updatedData.buyerType || '');
+
+      const newFormData = {
         title: updatedData.title || '',
         firstName: updatedData.firstName || '',
         lastName: updatedData.lastName || '',
         email: updatedData.email || '',
         countryCode: updatedData.phoneCode || '',
         phoneNumber: updatedData.phoneNumber || '',
+        countryCode2: updatedData.phoneCode2 || '',
+        phoneNumber2: updatedData.phoneNumber2 || '',
+        companyName: updatedData.companyName || '',
         currentPassword: undefined,
         newPassword: undefined,
         confirmPassword: undefined,
-      });
+      };
+
+      reset(newFormData);
+      setOriginalData(newFormData);
+      setOriginalProfilePic(updatedData.profileImageURL || updatedData.image || null);
 
       if (updatedData.profileImageURL || updatedData.image) {
         setPreviewURL(updatedData.profileImageURL || updatedData.image || null);
       }
 
+      setProfilePic(null);
       setSuccessMessage(successMessages.join(' '));
       setShowSuccessPopup(true);
       setTimeout(() => setShowSuccessPopup(false), 5000);
@@ -330,19 +380,30 @@ const PersonalDetailsForm = () => {
 
   const handleCancel = () => {
     setIsLoading(true);
-    reset({
-      title: '',
-      countryCode: '',
-      firstName: '',
-      lastName: '',
-      email: '',
-      phoneNumber: '',
-      currentPassword: undefined,
-      newPassword: undefined,
-      confirmPassword: undefined,
-    });
-    setProfilePic(null);
-    setPreviewURL(null);
+
+    if (originalData) {
+      reset(originalData);
+      setPreviewURL(originalProfilePic);
+      setProfilePic(null);
+    } else {
+      reset({
+        title: '',
+        countryCode: '',
+        countryCode2: '',
+        firstName: '',
+        lastName: '',
+        email: '',
+        phoneNumber: '',
+        phoneNumber2: '',
+        companyName: '',
+        currentPassword: undefined,
+        newPassword: undefined,
+        confirmPassword: undefined,
+      });
+      setProfilePic(null);
+      setPreviewURL(null);
+    }
+
     setTimeout(() => {
       setIsLoading(false);
       setShowCancelSuccessPopup(true);
@@ -350,7 +411,6 @@ const PersonalDetailsForm = () => {
     }, 500);
   };
 
-  // Phone code options
   const phoneCodeOptions = [
     { value: '+94', label: '+94' },
     { value: '+91', label: '+91' },
@@ -358,7 +418,6 @@ const PersonalDetailsForm = () => {
     { value: '+44', label: '+44' },
   ];
 
-  // Title options
   const titleOptions = [
     { value: 'Rev', label: 'Rev' },
     { value: 'Mr', label: 'Mr' },
@@ -383,15 +442,9 @@ const PersonalDetailsForm = () => {
           title="Error!"
           description={errorMessage}
         />
-        <CancelSuccessPopup
-          isVisible={showCancelSuccessPopup}
-          onClose={() => setShowCancelSuccessPopup(false)}
-          title="Form reset successfully!"
-          duration={3000}
-        />
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="px-2 md:px-10 bg-white">
+      <form className="px-2 md:px-10 bg-white">
         <h2 className="font-medium text-[14px] text-base md:text-[18px] mb-2 mt-2">Account</h2>
         <p className="text-xs md:text-sm lg:text-[16px] text-[#626D76] mb-2 whitespace-nowrap">
           Real-time information and activities of your property.
@@ -475,7 +528,7 @@ const PersonalDetailsForm = () => {
           Manage your account email address for the invoices.
         </p>
         <div className="flex flex-col md:flex-row gap-8 mb-6">
-          <div className="md:w-[63%]">
+          <div className="md:w-[60%]">
             <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">Email</label>
             <input
               type="text"
@@ -484,7 +537,7 @@ const PersonalDetailsForm = () => {
             />
             <p className="text-red-500 text-xs">{errors.email?.message}</p>
           </div>
-          <div className="md:w-[55%]">
+          <div className="md:w-[56%]">
             <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">Phone Number</label>
             <div className="flex gap-4">
               <div className="relative w-[30%] md:w-[15%]">
@@ -498,7 +551,7 @@ const PersonalDetailsForm = () => {
                   onChange={(value) => setValue('countryCode', value, { shouldValidate: true })}
                 />
               </div>
-              <div className="w-[80%]">
+              <div className="w-[82%]">
                 <input
                   {...register('phoneNumber')}
                   className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm"
@@ -509,13 +562,58 @@ const PersonalDetailsForm = () => {
           </div>
         </div>
 
+        {/* Company Details Section - Conditional Rendering */}
+        {buyerType === 'Wholesale' && (
+          <>
+            <div className="w-full border-t border-[#BDBDBD] mb-6 mt-6"></div>
+            <h2 className="font-medium text-base text-[14px] md:text-[18px] mt-0 mb-1">Company Details</h2>
+            <p className="text-[12px] md:text-[16px] text-[#626D76] mb-6">
+              Manage your company account email address for the invoices.
+            </p>
+            <div className="flex flex-col md:flex-row gap-8 mb-6">
+              <div className="md:w-[60%]">
+                <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">Name</label>
+                <input
+                  type="text"
+                  {...register('companyName')}
+                  className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm"
+                />
+                <p className="text-red-500 text-xs">{errors.companyName?.message}</p>
+              </div>
+              <div className="md:w-[56%]">
+                <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">Phone Number</label>
+                <div className="flex gap-4">
+                  <div className="relative w-[30%] md:w-[15%]">
+                    <CustomDropdown
+                      register={register}
+                      name="countryCode2"
+                      value={countryCode2Value as any}
+                      errors={errors}
+                      options={phoneCodeOptions}
+                      placeholder="Select Code"
+                      onChange={(value) => setValue('countryCode2', value, { shouldValidate: true })}
+                    />
+                  </div>
+                  <div className="w-[82%]">
+                    <input
+                      {...register('phoneNumber2')}
+                      className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm"
+                    />
+                    <p className="text-red-500 text-xs">{errors.phoneNumber2?.message}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
         {/* Password Section */}
         <div className="w-full border-t border-[#BDBDBD] mb-6 mt-6"></div>
         <h2 className="font-medium text-base text-[14px] md:text-[18px] mt-0 mb-1">Password</h2>
         <p className="text-[12px] md:text-[16px] text-[#626D76] mb-6">
           Modify your password at any time.
         </p>
-        <div className="md:w-[43%]">
+        <div className="md:w-[50%]">
           <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">Current Password</label>
           <div className="relative flex items-center border border-[#CECECE] rounded-lg p-2">
             <FiLock className="text-gray-500 mr-2" />
@@ -532,7 +630,7 @@ const PersonalDetailsForm = () => {
         </div>
 
         <div className="flex flex-col md:flex-row gap-8 mt-6">
-          <div className="md:w-[43%]">
+          <div className="md:w-[50%]">
             <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">New Password</label>
             <div className="relative flex items-center border border-[#CECECE] rounded-lg p-2">
               <FiLock className="text-gray-500 mr-2" />
@@ -548,11 +646,15 @@ const PersonalDetailsForm = () => {
             <p className="text-red-500 text-xs">{errors.newPassword?.message}</p>
           </div>
 
-          <div className="md:w-[45%]">
+          <div className="md:w-[47%]">
             <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">Confirm New Password</label>
             <div className="relative flex items-center border border-[#CECECE] rounded-lg p-2">
               <FiLock className="text-gray-500 mr-2" />
               <input
+                onPaste={(e) => {
+                  e.preventDefault();
+                  return false;
+                }}
                 type={showConfirmPassword ? 'text' : 'password'}
                 {...register('confirmPassword')}
                 className="w-full focus:outline-none text-xs sm:text-sm"
@@ -565,22 +667,26 @@ const PersonalDetailsForm = () => {
           </div>
         </div>
 
-        <div className="flex justify-end gap-4 mt-10">
-          <button
-            type="button"
-            className={`w-[90px] h-[36px] sm:w-[110px] sm:h-[44px] cursor-pointer text-[16px] md:text-[20px] font-medium rounded-lg text-[#757E87] bg-[#F3F4F7] hover:bg-[#e1e2e5] ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-            onClick={handleCancel}
-            disabled={isLoading}
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            className={`w-[90px] h-[36px] sm:w-[110px] sm:h-[44px] cursor-pointer mb-4 text-[16px] md:text-[20px] font-medium rounded-lg text-white bg-[#3E206D] hover:bg-[#341a5a] ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-            disabled={isLoading}
-          >
-            Save
-          </button>
+        <div className="flex justify-end gap-4 mt-10 mb-5">
+          <div className="flex gap-4">
+            <button
+              type="button"
+              className={`px-6 py-2.5 text-[16px] md:text-[20px] font-medium rounded-lg text-[#757E87] bg-[#F3F4F7] hover:bg-[#e1e2e5] cursor-pointer leading-none ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              onClick={handleCancel}
+              disabled={isLoading}
+            >
+              Cancel
+            </button>
+
+            <button
+              type="submit"
+              className={`px-6 py-2.5 text-[16px] md:text-[20px] font-medium rounded-lg text-white bg-[#3E206D] hover:bg-[#341a5a] cursor-pointer leading-none ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              onClick={handleProfileUpdate}
+              disabled={isLoading}
+            >
+              Save
+            </button>
+          </div>
         </div>
       </form>
     </>

@@ -1,10 +1,14 @@
 'use client'
 
 import Image, { StaticImageData } from 'next/image';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next//navigation';
 import { productAddToCart } from '@/services/product-service';
 import { useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
+import { updateCartInfo } from '@/store/slices/authSlice';
+import { getCartInfo } from '@/services/auth-service';
+
 
 type ItemCardProps = {
     id: number;
@@ -13,6 +17,9 @@ type ItemCardProps = {
     currentPrice: number;
     image: string | StaticImageData;
     discount?: number | null;
+    unitType?: string;
+    startValue?: any;
+    changeby?: number;
 };
 
 const ItemCard = ({
@@ -22,40 +29,136 @@ const ItemCard = ({
     currentPrice,
     image,
     discount = null,
+    unitType = 'Kg',
+    startValue = 1,
+    changeby = 1,
 }: ItemCardProps) => {
     const router = useRouter();
     const { token, user } = useAppSelector((state) => state.auth);
+    const buyerType = useAppSelector((state) => state.auth.user?.buyerType);
     const [showQuantitySelector, setShowQuantitySelector] = useState(false);
-    const [quantity, setQuantity] = useState(50);
-    const [unit, setUnit] = useState<'kg' | 'g'>('g');
+    const [showLoginPopup, setShowLoginPopup] = useState(false);
+
+
+    const getInitialQuantity = () => {
+        if (unitType?.toLowerCase() === 'kg') {
+            return startValue * 1000;
+        }
+        return startValue;
+    };
+
+    const [quantity, setQuantity] = useState(getInitialQuantity());
+    const [unit, setUnit] = useState<'kg' | 'g'>(unitType?.toLowerCase() === 'kg' ? 'kg' : 'g');
+
+    // Update quantity and unit when props change
+    useEffect(() => {
+        const initialQuantity = getInitialQuantity();
+        setQuantity(initialQuantity);
+        setUnit(unitType?.toLowerCase() === 'kg' ? 'kg' : 'g');
+    }, [unitType, startValue, changeby]);
+    // Update quantity and unit when props change
+    useEffect(() => {
+        const initialQuantity = getInitialQuantity();
+        setQuantity(initialQuantity);
+        setUnit(unitType?.toLowerCase() === 'kg' ? 'kg' : 'g');
+    }, [unitType, startValue, changeby]);
+
     const [addedToCart, setAddedToCart] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [isHovering, setIsHovering] = useState(false);
+    const dispatch = useDispatch();
 
     const isImageUrl = typeof image === 'string';
 
     // Helper function to format price with commas
-        const formatPrice = (price: number): string => {
-        // Convert to fixed decimal first, then add commas
+    const formatPrice = (price: number): string => {
         const fixedPrice = Number(price).toFixed(2);
         const [integerPart, decimalPart] = fixedPrice.split('.');
-        
-        // Add commas to integer part
         const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-        
         return `${formattedInteger}.${decimalPart}`;
-        };
+    };
 
-    const incrementQuantity = () => setQuantity(prev => prev + 1);
-    const decrementQuantity = () => quantity > 1 && setQuantity(prev => prev - 1);
+    // Get minimum quantity based on unit and startValue
+    const getMinQuantity = () => {
+        if (unitType?.toLowerCase() === 'kg') {
+            return startValue * 1000; // Convert to grams
+        }
+        return startValue;
+    };
+
+    // Get increment value based on unit and changeby
+    const getIncrementValue = () => {
+        if (unitType?.toLowerCase() === 'kg') {
+            return changeby * 1000; // Convert to grams
+        }
+        return changeby;
+    };
+
+    // Display quantity based on selected unit
+    const getDisplayQuantity = () => {
+        if (unit === 'kg') {
+            return (quantity / 1000).toFixed(3).replace(/\.?0+$/, ''); // Remove trailing zeros
+        }
+        return quantity.toString();
+    };
+
+    const incrementQuantity = () => {
+        setQuantity((prev: number) => prev + getIncrementValue());
+    };
+
+    const decrementQuantity = () => {
+        const minQty = getMinQuantity();
+        const newQuantity = quantity - getIncrementValue();
+        if (newQuantity >= minQty) {
+            setQuantity(newQuantity);
+        }
+    };
 
     const handleAddToCartClick = async () => {
         if (!token || !user) {
-            router.push('/signin');
+            setShowLoginPopup(true);
             return;
         }
 
+        // For wholesale users, skip quantity selector
+        if (buyerType === 'Wholesale') {
+            try {
+                setIsLoading(true);
+                setError(null);
+
+                // Ensure quantityType is properly formatted for API
+                const normalizedQuantityType = unitType?.toLowerCase() === 'kg' ? 'kg' : 'g';
+
+                const productData = {
+                    mpItemId: id,
+                    quantityType: normalizedQuantityType as 'kg' | 'g', // Type assertion for API compatibility
+                    quantity: startValue // Use the fetched startValue
+                };
+
+                await productAddToCart(productData, token);
+
+                try {
+                    const cartInfo = await getCartInfo(token);
+                    console.log("Updated cart info:", cartInfo);
+                    dispatch(updateCartInfo(cartInfo));
+                } catch (cartError) {
+                    console.error('Error fetching cart info:', cartError);
+                }
+
+                setAddedToCart(true);
+            } catch (err: any) {
+                setError(err.message);
+            } finally {
+                setIsLoading(false);
+                setTimeout(() => {
+                    setAddedToCart(false);
+                }, 2000);
+            }
+            return;
+        }
+
+        // For retail users, show quantity selector first
         if (!showQuantitySelector) {
             setShowQuantitySelector(true);
             return;
@@ -65,13 +168,31 @@ const ItemCard = ({
             setIsLoading(true);
             setError(null);
 
+            // Convert quantity to the original unit type for API
+            let apiQuantity = quantity;
+            let apiUnit = unit;
+
+            // If original unitType is kg, convert back to kg for API
+            if (unitType?.toLowerCase() === 'kg') {
+                apiQuantity = quantity / 1000;
+                apiUnit = 'kg';
+            }
+
             const productData = {
                 mpItemId: id,
-                quantityType: unit,
-                quantity: quantity
+                quantityType: apiUnit as 'kg' | 'g', // Type assertion for API compatibility
+                quantity: apiQuantity
             };
 
             await productAddToCart(productData, token);
+
+            try {
+                const cartInfo = await getCartInfo(token);
+                console.log("Updated cart info:", cartInfo);
+                dispatch(updateCartInfo(cartInfo));
+            } catch (cartError) {
+                console.error('Error fetching cart info:', cartError);
+            }
 
             setShowQuantitySelector(false);
             setAddedToCart(true);
@@ -81,8 +202,8 @@ const ItemCard = ({
             setIsLoading(false);
             setTimeout(() => {
                 setAddedToCart(false);
-                setQuantity(50);
-                setUnit('g');
+                setQuantity(getInitialQuantity());
+                setUnit(unitType?.toLowerCase() === 'kg' ? 'kg' : 'g');
             }, 2000);
         }
     };
@@ -90,6 +211,66 @@ const ItemCard = ({
     const handleUnitChange = (selectedUnit: 'kg' | 'g') => {
         setUnit(selectedUnit);
     };
+
+    const handleLoginClick = () => {
+        setShowLoginPopup(false);
+        router.push('/signin');
+    };
+
+    const handleRegisterClick = () => {
+        setShowLoginPopup(false);
+        router.push('/signup');
+    };
+
+    const LoginPopup = () => {
+        if (!showLoginPopup) return null;
+
+        return (
+            <div className="fixed top-0 left-0 w-full h-full bg-black bg-black/50 flex items-center justify-center z-[9999] mb-[5%]">
+                <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4 relative">
+                    {/* Close button */}
+                    <button
+                        onClick={() => setShowLoginPopup(false)}
+                        className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 cursor-pointer"
+                    >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+
+                    {/* Header */}
+                    <div className="text-center mb-6">
+                        <h2 className="text-xl font-bold text-[#000000] mb-4">
+                            Welcome, Guest! 👋
+                        </h2>
+                        <p className="text-[#8492A3] text-base leading-relaxed">
+                            We're excited to have you here!<br />
+                            To unlock the best experience,<br />
+                            please log in or create a new account.
+                        </p>
+                    </div>
+
+                    {/* Buttons */}
+                    <div className="flex justify-center space-x-4">
+                        <button
+                            onClick={handleRegisterClick}
+                            className="py-3 px-6 max-w-32 flex-1 rounded-2xl bg-[#EDE1FF] text-[#3E206D] text-sm sm:text-base font-semibold hover:bg-[#DCC7FF] transition-colors cursor-pointer"
+                        >
+                            Register
+                        </button>
+                        <button
+                            onClick={handleLoginClick}
+                            className="py-3 px-6 max-w-32 flex-1 rounded-2xl bg-[#3E206D] text-white font-semibold hover:bg-[#2D1A4F] text-sm sm:text-base transition-colors cursor-pointer"
+                        >
+                            Login
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+
 
     return (
         <div className="relative bg-white rounded-lg shadow-sm border border-gray-200 p-2 w-full h-[240px] flex flex-col items-center transition-all duration-300 hover:shadow-md cursor-default">
@@ -102,7 +283,7 @@ const ItemCard = ({
 
             {/* Loading overlay */}
             {isLoading && (
-                <div className="absolute inset-0 bg-black bg-opacity-10 flex items-center justify-center z-10">
+                <div className="absolute inset-0 bg-white bg-opacity-80 flex items-center justify-center z-10">
                     <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-purple-500"></div>
                 </div>
             )}
@@ -153,7 +334,7 @@ const ItemCard = ({
                 {/* Product name */}
                 <h3 className="text-xs md:text-sm lg:text-base font-medium text-gray-800 text-center mb-0.5">{name}</h3>
 
-                {/* Price section - Updated with comma formatting */}
+                {/* Price section */}
                 <div className="flex flex-col items-center space-y-0.5 mb-1 md:mb-2">
                     {originalPrice && originalPrice > currentPrice ? (
                         <>
@@ -165,14 +346,14 @@ const ItemCard = ({
                     )}
                 </div>
 
-                {/* Quantity selector - Only show if user is logged in */}
-                {token && user && showQuantitySelector && (
+                {/* Quantity selector */}
+                {token && user && showQuantitySelector && buyerType !== 'Wholesale' && (
                     <div className="w-full space-y-2 mb-2 flex flex-col items-center justify-center">
                         <div className="flex justify-center">
                             <div className="flex rounded overflow-hidden gap-2 cursor-pointer">
                                 <button
                                     onClick={() => handleUnitChange('kg')}
-                                    className={`w-8 text-xs py-1 border rounded-md ${unit === 'kg'
+                                    className={`w-8 text-xs py-1 border rounded-md cursor-pointer ${unit === 'kg'
                                         ? 'bg-purple-100 text-purple-900 border-purple-300'
                                         : 'bg-gray-100 text-gray-500 border-gray-200'}`}
                                 >
@@ -180,7 +361,7 @@ const ItemCard = ({
                                 </button>
                                 <button
                                     onClick={() => handleUnitChange('g')}
-                                    className={`w-8 text-xs py-1 border rounded-md ${unit === 'g'
+                                    className={`w-8 text-xs py-1 border cursor-pointer rounded-md ${unit === 'g'
                                         ? 'bg-purple-100 text-purple-900 border-purple-300'
                                         : 'bg-gray-100 text-gray-500 border-gray-200'}`}
                                 >
@@ -193,17 +374,17 @@ const ItemCard = ({
                             <div className="flex w-full max-w-28 rounded-lg bg-white border-1 border-[#3E206D]">
                                 <button
                                     onClick={decrementQuantity}
-                                    disabled={quantity <= 1}
-                                    className="flex-none px-2 py-1 bg-[#3E206D] text-white font-bold rounded-l-md hover:bg-purple-800 disabled:opacity-50"
+                                    disabled={quantity <= getMinQuantity()}
+                                    className="flex-none px-2 py-1 bg-[#3E206D] text-white font-bold rounded-l-md hover:bg-purple-800 disabled:opacity-50 cursor-pointer"
                                 >
                                     −
                                 </button>
                                 <div className="flex-grow text-center py-1 text-sm">
-                                    {quantity}
+                                    {getDisplayQuantity()}
                                 </div>
                                 <button
                                     onClick={incrementQuantity}
-                                    className="flex-none px-2 py-1 bg-[#3E206D] text-white font-bold rounded-r-md hover:bg-purple-800"
+                                    className="flex-none px-2 py-1 bg-[#3E206D] text-white font-bold rounded-r-md hover:bg-purple-800 cursor-pointer"
                                 >
                                     +
                                 </button>
@@ -214,9 +395,8 @@ const ItemCard = ({
 
                 {/* Bottom button section */}
                 <div className="w-full mt-auto">
-                    {/* Add to cart button */}
                     {addedToCart ? (
-                        <button className="w-full py-2 px-4 rounded-full flex items-center justify-center gap-2 text-sm md:text-base bg-purple-100 text-purple-900 transition-colors cursor-pointer">
+                        <button className="w-full py-2 px-4 rounded flex items-center justify-center gap-2 text-sm md:text-base bg-[#EDE1FF] text-purple-900 border border-[#3E206D] transition-colors cursor-pointer">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                             </svg>
@@ -228,7 +408,7 @@ const ItemCard = ({
                             onMouseEnter={() => setIsHovering(true)}
                             onMouseLeave={() => setIsHovering(false)}
                             disabled={isLoading}
-                            className={`w-full py-1 px-1.5 rounded flex items-center justify-center gap-1 text-xs md:text-sm transition-colors cursor-pointer ${token && user && showQuantitySelector
+                            className={`w-full py-1 px-1.5 rounded flex items-center justify-center gap-1 text-xs md:text-sm transition-colors cursor-pointer ${token && user && showQuantitySelector && buyerType !== 'Wholesale'
                                 ? "bg-purple-900 text-white hover:bg-purple-800"
                                 : "bg-gray-100 text-gray-400 hover:bg-[#3E206D] hover:text-white"
                                 } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -238,18 +418,21 @@ const ItemCard = ({
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                                 </svg>
                             )}
-                            {token && user && showQuantitySelector 
-                                ? "Add to Cart" 
-                                : (isHovering ? "I want this !" : "Add to Cart")
+                            {token && user && showQuantitySelector && buyerType !== 'Wholesale'
+                                ? "Add to Cart"
+                                : buyerType === 'Wholesale'
+                                    ? "Add to Cart"
+                                    : (isHovering ? "I want this !" : "Add to Cart")
                             }
                         </button>
                     )}
-                                    </div>
+                </div>
             </div>
+            <LoginPopup />
         </div>
+
     );
 };
-
 export default ItemCard;
 function useAppSelector<TSelected>(selector: (state: any) => TSelected): TSelected {
     return useSelector(selector);

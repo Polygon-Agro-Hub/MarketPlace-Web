@@ -507,7 +507,7 @@ export const validateOrderData = (payload: OrderPayload): { isValid: boolean; er
   }
 
   // Validate coupon details consistency
-  if (payload.checkoutDetails.isCoupon && payload.checkoutDetails.couponValue <= 0) {
+  if (payload.checkoutDetails.isCoupon && payload.checkoutDetails.couponValue < 0) {
     errors.push('Coupon value must be greater than 0 when coupon is applied');
   }
 
@@ -600,5 +600,62 @@ export const getPickupCenters = async (): Promise<PickupCentersResponse> => {
   } catch (error: any) {
     console.error('Error fetching pickup centers:', error);
     throw new Error(error.response?.data?.message || 'Failed to fetch pickup centers');
+  }
+};
+
+export interface CouponValidationResponse {
+  status: boolean;
+  message: string;
+  discount: number;
+  type?: string;
+}
+
+export const validateCoupon = async (couponCode: string, token: string): Promise<CouponValidationResponse> => {
+  try {
+    const response = await axios.post('/retail-order/check-coupon-avalability', 
+      { 
+        coupon: couponCode 
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      }
+    );
+
+    console.log('coupon details',response.data)
+
+    return response.data;
+  } catch (error: any) {
+    console.error('Error validating coupon:', error);
+    
+    // Handle axios error response
+    const errorMessage = error.response?.data?.message || 'Failed to validate coupon';
+    throw new Error(errorMessage);
+  }
+};
+
+export interface City {
+  id: number;
+  companycenterId: number | null;
+  city: string;
+  charge: string;
+  createdAt: string;
+}
+
+export interface CityResponse {
+  success: boolean;
+  message: string;
+  count: number;
+  data: City[];
+}
+
+export const getCities = async (): Promise<CityResponse> => {
+  try {
+    const response = await axios.get<CityResponse>('/cart/get-cities');
+    return response.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || 'Failed to fetch cities');
   }
 };

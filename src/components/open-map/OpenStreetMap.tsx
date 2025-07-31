@@ -74,84 +74,89 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({
 
   // Separate effect to handle pickup centers
   useEffect(() => {
-    if (!mapInstanceRef.current || !pickupCenters.length) return;
+  if (!mapInstanceRef.current || !pickupCenters.length) return;
 
-    const map = mapInstanceRef.current;
+  const map = mapInstanceRef.current;
 
-    // Clear existing markers
-    markersRef.current.forEach(marker => {
-      map.removeLayer(marker);
-    });
-    markersRef.current = [];
+  // Clear existing markers
+  markersRef.current.forEach(marker => {
+    map.removeLayer(marker);
+  });
+  markersRef.current = [];
 
-    // Create custom icons for selected and unselected states
-    const defaultIcon = L.icon({
-      iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-      iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-      popupAnchor: [1, -34],
-      shadowSize: [41, 41]
-    });
+  // Create custom icons for selected and unselected states
+  const defaultIcon = L.icon({
+    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+  });
 
-    const selectedIcon = L.icon({
-      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
-      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-      popupAnchor: [1, -34],
-      shadowSize: [41, 41]
-    });
+  const selectedIcon = L.icon({
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+  });
 
-    // Add pickup center markers
-    pickupCenters.forEach(center => {
-      const isSelected = selectedCenterId === center.value;
-      const marker = L.marker([center.latitude, center.longitude], {
-        icon: isSelected ? selectedIcon : defaultIcon
-      }).addTo(map);
+  // Add pickup center markers
+  pickupCenters.forEach(center => {
+    const isSelected = selectedCenterId === center.value;
+    const marker = L.marker([center.latitude, center.longitude], {
+      icon: isSelected ? selectedIcon : defaultIcon
+    }).addTo(map);
 
-      // Create popup content
-      const popupContent = `
-        <div style="text-align: center; min-width: 200px;">
-          <b style="color: #3E206D; font-size: 14px;">${center.label}</b><br>
-          ${center.address ? `<span style="color: #666; font-size: 12px;">${center.address}</span><br>` : ''}
-          ${center.phone ? `<span style="color: #666; font-size: 12px;">📞 ${center.phone}</span><br>` : ''}
-          <button onclick="window.selectPickupCenter('${center.value}', '${center.label}')" 
-                  style="background: ${isSelected ? '#10B981' : '#3E206D'}; color: white; border: none; padding: 8px 16px; border-radius: 6px; margin-top: 10px; cursor: pointer; font-size: 12px; font-weight: 600;">
-            ${isSelected ? '✓ Selected' : 'Select This Center'}
-          </button>
-        </div>
-      `;
+    // Create popup content with conditional button
+    const popupContent = `
+      <div style="text-align: center; min-width: 200px;">
+        <b style="color: #3E206D; font-size: 14px;">${center.label}</b><br>
+        ${center.address ? `<span style="color: #666; font-size: 12px;">${center.address}</span><br>` : ''}
+        ${center.phone ? `<span style="color: #666; font-size: 12px;">📞 ${center.phone}</span><br>` : ''}
+        ${isSelected ? 
+          `<div style="background: #10B981; color: white; border: none; padding: 8px 16px; border-radius: 6px; margin-top: 10px; font-size: 12px; font-weight: 600; display: inline-block;">
+            ✓ Selected
+          </div>` :
+          `<button>" 
+                  style="background: #3E206D; color: white; border: none; padding: 8px 16px; border-radius: 6px; margin-top: 10px; cursor: pointer; font-size: 12px; font-weight: 600;">
+            Select This Center
+          </button>`
+        }
+      </div>
+    `;
 
-      marker.bindPopup(popupContent);
-      markersRef.current.push(marker);
+    marker.bindPopup(popupContent);
+    markersRef.current.push(marker);
 
-      // Auto-open popup for selected center
-      if (isSelected) {
-        marker.openPopup();
-      }
-    });
-
-    // Global function for popup button clicks
-    (window as any).selectPickupCenter = (centerId: string, centerName: string) => {
-      if (onCenterSelect) {
-        onCenterSelect(centerId, centerName);
-      }
-    };
-
-    // Fit map bounds to show all pickup centers if there are any
-    if (pickupCenters.length > 0) {
-      const group = new L.FeatureGroup(markersRef.current);
-      const bounds = group.getBounds();
-      
-      // Only fit bounds if we have valid bounds and it's not just a single point
-      if (bounds.isValid() && pickupCenters.length > 1) {
-        map.fitBounds(bounds, { padding: [20, 20] });
-      }
+    // Auto-open popup for selected center
+    if (isSelected) {
+      marker.openPopup();
     }
+  });
 
-  }, [pickupCenters, selectedCenterId, onCenterSelect]);
+  // Global function for popup button clicks
+  (window as any).selectPickupCenter = (centerId: string, centerName: string) => {
+    if (onCenterSelect) {
+      onCenterSelect(centerId, centerName);
+    }
+  };
+
+  // Fit map bounds to show all pickup centers if there are any
+  if (pickupCenters.length > 0) {
+    const group = new L.FeatureGroup(markersRef.current);
+    const bounds = group.getBounds();
+    
+    // Only fit bounds if we have valid bounds and it's not just a single point
+    if (bounds.isValid() && pickupCenters.length > 1) {
+      map.fitBounds(bounds, { padding: [20, 20] });
+    }
+  }
+
+}, [pickupCenters, selectedCenterId, onCenterSelect]);
 
   // Separate effect to handle center and zoom changes
   useEffect(() => {

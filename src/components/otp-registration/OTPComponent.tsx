@@ -12,10 +12,10 @@ interface OTPComponentProps {
   onOTPExpired?: () => void; // New optional prop to handle expiration
 }
 
-export default function OTPComponent({ 
-  phoneNumber, 
-  referenceId, 
-  onVerificationSuccess, 
+export default function OTPComponent({
+  phoneNumber,
+  referenceId,
+  onVerificationSuccess,
   onVerificationFailure,
   onResendOTP,
   onOTPExpired // Add this
@@ -29,7 +29,7 @@ export default function OTPComponent({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isError, setIsError] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
-  
+
   // New states for button protection and OTP expiration
   const [isOtpExpired, setIsOtpExpired] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
@@ -38,29 +38,29 @@ export default function OTPComponent({
   // Helper function to check if OTP is complete
   const isOtpComplete = otp.every(digit => digit !== '');
 
-      useEffect(() => {
-        if (timer > 0) {
-          const interval = setInterval(() => setTimer(prev => prev - 1), 1000);
-          return () => clearInterval(interval);
-        } else {
-          // When timer expires, enable resend and mark OTP as expired
-          setDisabledResend(false);
-          setIsOtpExpired(true);
-          
-          // Clear the referenceId in parent component
-          if (onOTPExpired) {
-            onOTPExpired();
-          }
-        }
-      }, [timer, onOTPExpired]);
+  useEffect(() => {
+    if (timer > 0) {
+      const interval = setInterval(() => setTimer(prev => prev - 1), 1000);
+      return () => clearInterval(interval);
+    } else {
+      // When timer expires, enable resend and mark OTP as expired
+      setDisabledResend(false);
+      setIsOtpExpired(true);
+
+      // Clear the referenceId in parent component
+      if (onOTPExpired) {
+        onOTPExpired();
+      }
+    }
+  }, [timer, onOTPExpired]);
 
   const handleChange = (value: string, idx: number) => {
     if (!/^\d?$/.test(value)) return;
-    
+
     const newOtp = [...otp];
     newOtp[idx] = value;
     setOtp(newOtp);
-    
+
     if (value && idx < 4) {
       inputsRef.current[idx + 1]?.focus();
     }
@@ -69,16 +69,16 @@ export default function OTPComponent({
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, idx: number) => {
     if (e.key === 'Backspace') {
       e.preventDefault();
-      
+
       const newOtp = [...otp];
-      
+
       // If current field has a value, just clear it
       if (newOtp[idx] !== '') {
         newOtp[idx] = '';
         setOtp(newOtp);
         return;
       }
-      
+
       // If current field is empty, shift all values from right to left
       if (newOtp[idx] === '') {
         // Find the last non-empty field from current position onwards
@@ -88,7 +88,7 @@ export default function OTPComponent({
             lastFilledIndex = i;
           }
         }
-        
+
         // If there are values to the right, shift them left
         if (lastFilledIndex > idx) {
           // Shift all values from idx to lastFilledIndex one position left
@@ -106,9 +106,9 @@ export default function OTPComponent({
       }
     } else if (e.key === 'Delete') {
       e.preventDefault();
-      
+
       const newOtp = [...otp];
-      
+
       // Clear current field and shift remaining values left
       if (newOtp[idx] !== '') {
         // Find the last non-empty field from current position onwards
@@ -118,7 +118,7 @@ export default function OTPComponent({
             lastFilledIndex = i;
           }
         }
-        
+
         // Shift all values from idx+1 to lastFilledIndex one position left
         for (let i = idx; i < lastFilledIndex; i++) {
           newOtp[i] = newOtp[i + 1];
@@ -135,7 +135,7 @@ export default function OTPComponent({
     e.preventDefault();
     const pastedData = e.clipboardData.getData('text');
     const digits = pastedData.replace(/\D/g, '').slice(0, 5);
-    
+
     if (digits.length > 0) {
       const newOtp = [...otp];
       for (let i = 0; i < digits.length && i < 5; i++) {
@@ -146,17 +146,17 @@ export default function OTPComponent({
         newOtp[i] = '';
       }
       setOtp(newOtp);
-      
+
       // Focus on the next empty field or the last field
       const nextFocusIndex = Math.min(digits.length, 4);
       inputsRef.current[nextFocusIndex]?.focus();
     }
   };
 
-    const handleVerify = async () => {
+  const handleVerify = async () => {
     // Prevent duplicate clicks
     if (isVerifying) return;
-    
+
     const code = otp.join('');
     if (code.length !== 5) {
       setIsError(true);
@@ -178,7 +178,7 @@ export default function OTPComponent({
     try {
       const response = await verifyOTP(code, referenceId);
       const { statusCode } = response;
-      
+
       if (statusCode === '1000') {
         setIsVerified(true);
         setIsError(false);
@@ -223,32 +223,32 @@ export default function OTPComponent({
   const handleResendOTP = async () => {
     // Prevent duplicate clicks
     if (disabledResend || isResending) return;
-    
+
     setIsResending(true); // Disable button during API call
-    
+
     try {
       const countryCode = phoneNumber.substring(0, phoneNumber.length - 10);
       const phone = phoneNumber.substring(countryCode.length);
 
       console.log('send otp', phone, countryCode);
-      
+
       const res = await sendOTPInSignup(phone, countryCode);
-      
+
       if (res.referenceId) {
         onResendOTP(res.referenceId);
-        
+
         // Reset timer and states
         setTimer(60);
         setDisabledResend(true);
         setIsOtpExpired(false); // Reset expiration status
         setOtp(['', '', '', '', '']); // Clear current OTP inputs
-        
+
         // Reset modal states properly before showing success message
         setIsVerified(false); // Reset verification status
         setIsError(false);
         setModalMessage('New OTP has been sent to your mobile number.');
         setIsModalOpen(true);
-        
+
         // Focus on first input field
         inputsRef.current[0]?.focus();
       } else {
@@ -277,7 +277,7 @@ export default function OTPComponent({
         <p className="text-center text-gray-500 mb-6 text-sm sm:text-base">
           The OTP has been sent to your mobile number
           {isOtpExpired && (
-            <span className="block text-red-500 mt-1 font-medium">
+            <span className="block text-red-500 mt-1 font-sm ">
               OTP has expired. Please request a new one.
             </span>
           )}
@@ -307,35 +307,38 @@ export default function OTPComponent({
         <button
           onClick={handleResendOTP}
           disabled={disabledResend || isResending}
-          className={`text-xs sm:text-sm mb-6 ${
-            disabledResend || isResending
-              ? 'text-gray-400 cursor-not-allowed' 
+          className={`text-xs sm:text-sm mb-6 ${disabledResend || isResending
+              ? 'text-gray-400 cursor-not-allowed'
               : 'text-[#3E206D] font-semibold hover:underline cursor-pointer'
-          }`}
+            }`}
         >
-          {isResending 
-            ? 'Sending...' 
-            : disabledResend 
-              ? `Resend in ${timerText}` 
+          {isResending
+            ? 'Sending...'
+            : disabledResend
+              ? `Resend in ${timerText}`
               : 'Resend OTP'
           }
         </button>
 
+
         <button
           onClick={handleVerify}
-          disabled={isVerifying || isOtpExpired || !isOtpComplete}
-          className={`font-semibold w-full max-w-[307px] h-[45px] rounded-[10px] mt-1 transition-colors ${
-            isVerifying || isOtpExpired || !isOtpComplete
+          disabled={isVerifying || isOtpExpired || !isOtpComplete || isVerified}
+          className={`font-semibold w-full max-w-[307px] h-[45px] rounded-[10px] mt-1 transition-colors ${isVerifying || isOtpExpired || !isOtpComplete || isVerified
               ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
               : 'bg-[#3E206D] text-white hover:bg-[#2D1A4F] cursor-pointer'
-          }`}
+            }`}
         >
-          {isVerifying ? 'Verifying...' : isOtpExpired ? 'OTP Expired' : !isOtpComplete ? 'Enter 5 digits' : 'Verify'}
+          {isVerifying ? 'Verifying...' :
+            isVerified ? 'Verified ✓' :
+              isOtpExpired ? 'OTP Expired' :
+                !isOtpComplete ? 'Enter 5 digits' :
+                  'Verify'}
         </button>
 
         <button
           onClick={onVerificationFailure}
-          className="text-[#3E206D] font-semibold mt-4 hover:underline"
+          className="text-[#3E206D] font-semibold mt-4 cursor-pointer hover:underline"
         >
           Back to Registration
         </button>

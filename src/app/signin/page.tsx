@@ -43,78 +43,104 @@ const Page = () => {
     }
   }, []);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    let valid = true;
+const handleLogin = async (e: React.FormEvent) => {
+  e.preventDefault();
+  let valid = true;
 
-    if (!email.trim()) {
-      setEmailError('Email is required');
-      valid = false;
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      setEmailError('Enter a valid email address');
-      valid = false;
+  if (!email.trim()) {
+    setEmailError('Email is required');
+    valid = false;
+  } else {
+    const emailInput = email.trim();
+    
+
+    if (emailInput.includes('@')) {
+      // Email validation
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput)) {
+        setEmailError('Enter a valid email address');
+        valid = false;
+      } else {
+        setEmailError('');
+      }
+    } else if (emailInput.startsWith('+')) {
+      if (!/^\+947\d{8}$/.test(emailInput)) {
+        setEmailError('Enter the number in +947XXXXXXXX');
+        valid = false;
+      } else {
+        setEmailError('');
+      }
     } else {
-      setEmailError('');
+      setEmailError('Enter a valid email address or phone number in +947XXXXXXXX format');
+      valid = false;
     }
+  }
 
-    if (!password.trim()) {
-      setPasswordError('Password is required');
-      valid = false;
+  if (!password.trim()) {
+    setPasswordError('Password is required');
+    valid = false;
+  } else {
+    setPasswordError('');
+  }
+
+  if (!valid) return;
+
+  try {
+    setIsLoading(true);
+    const data = await login({ email, password, buyerType: userType });
+
+    setShowSuccessPopup(true);
+    console.log('token details', data.userData, data.token, data.cart);
+    
+    // Store token and credentials
+    if (data.token) {
+      dispatch(setCredentials({ 
+        token: data.token, 
+        user: data.userData, 
+        cart: data.userData.cart,
+        tokenExpiration: data.tokenExpiration
+      }));
+
+      console.log('token expiration time',data.tokenExpiration)
+
+      // Save credentials to localStorage if "Remember me" is checked
+      if (rememberMe) {
+        localStorage.setItem('rememberedEmail', email);
+        localStorage.setItem('rememberedPassword', password);
+      } else {
+        localStorage.removeItem('rememberedEmail');
+        localStorage.removeItem('rememberedPassword');
+      }
+
+      console.log('rememberedEmail',email)
+
+      if (data.userData.buyerType === 'Retail') {
+        router.push('/'); // Redirect to home page
+      } else if (data.userData.buyerType === 'Wholesale') {
+        router.push('/wholesale/home'); // Redirect to wholesale page
+      }
+    }
+  } catch (err: any) {
+    setShowErrorPopup(true);
+
+    const message = err.message;
+
+    if (message === 'Wrong password.') {
+      setPasswordError('Incorrect password. Please try again!');
+      setEmailError('');
+    } else if (message === 'User not found.' || message === 'Invalid buyer type.') {
+      // Treat invalid buyer type as "User not found"
+      setPasswordError('');
+      setEmailError('');
     } else {
+      // Generic error
+      setEmailError('');
       setPasswordError('');
     }
 
-    if (!valid) return;
-
-    try {
-      setIsLoading(true);
-      const data = await login({ email, password, buyerType: userType });
-
-      setShowSuccessPopup(true);
-      console.log('token details', data.userData, data.token, data.cart);
-      
-      // Store token and credentials
-      if (data.token) {
-        dispatch(setCredentials({ token: data.token, user: data.userData, cart: data.userData.cart }));
-
-        // Save credentials to localStorage if "Remember me" is checked
-        if (rememberMe) {
-          localStorage.setItem('rememberedEmail', email);
-          localStorage.setItem('rememberedPassword', password);
-        } else {
-          localStorage.removeItem('rememberedEmail');
-          localStorage.removeItem('rememberedPassword');
-        }
-
-        if (data.userData.buyerType === 'Retail') {
-          router.push('/'); // Redirect to home page
-        } else if (data.userData.buyerType === 'Wholesale') {
-          router.push('/wholesale/home'); // Redirect to wholesale page
-        }
-
-      }
-    } catch (err: any) {
-      setShowErrorPopup(true);
-
-      const message = err.message;
-
-      if (message === 'Wrong password.') {
-        setPasswordError('Incorrect password. Please try again!');
-        setEmailError('');
-      } else if (message === 'User not found.' || message === 'Invalid buyer type.') {
-        // Treat invalid buyer type as "User not found"
-        setPasswordError('');
-        setEmailError('');
-      } else {
-        // Generic error
-        setEmailError('');
-        setPasswordError('');
-      }
-
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  } finally {
+    setIsLoading(false);
+  }
+};
 
 
   return (
@@ -242,7 +268,7 @@ const Page = () => {
             <input
               type="text"
               name="email"
-              placeholder="Email"
+              placeholder="Email / Phone Number (e.g. +947XXXXXXXX)"
               className={`w-full px-10 py-2 border rounded-md ${emailError ? 'border-red-500' : 'border-gray-300'
                 }`}
               value={email}
@@ -277,7 +303,7 @@ const Page = () => {
               onClick={() => setShowPassword((prev) => !prev)}
               className="absolute right-3 top-2.5 text-gray-400"
             >
-              <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} className="w-5 h-5" />
+              <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} className="w-5 h-5 cursor-pointer" />
             </button>
             {passwordError && <p className="text-sm text-red-600 mt-1">{passwordError}</p>}
           </div>

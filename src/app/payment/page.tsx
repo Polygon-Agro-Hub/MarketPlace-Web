@@ -4,13 +4,17 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import TopNavigation from '@/components/top-navigation/TopNavigation';
 // import OrderSummary from '@/components/cart-right-cart/right-cart';
-import SuccessPopup from '@/components/toast-messages/success-message-with-button';
-import ErrorPopup from '@/components/toast-messages/error-message';
 import Visa from '../../../public/images/Visa.png';
 import MasterCard from '../../../public/images/Mastercard.png';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store';
-import { submitOrderToBackend, validateOrderData, OrderPayload, formatValidationErrors } from '@/services/cart-service';
+import { submitOrderToBackend, validateOrderData, OrderPayload, formatValidationErrors, validateCoupon } from '@/services/cart-service';
+import summary from '../../../public/summary.png'
+import { updateCartInfo } from '@/store/slices/authSlice';
+import { getCartInfo } from '@/services/auth-service';
+import wrongImg from '../../../public/images/wrong.png'
+import correct from '../../../public/images/correct.png'
+
 
 const Page: React.FC = () => {
   const router = useRouter();
@@ -38,12 +42,38 @@ const Page: React.FC = () => {
   const [showErrorPopup, setShowErrorPopup] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [orderId, setOrderId] = useState<number | null>(null);
+  const [couponCode, setCouponCode] = useState('');
+  const [isCouponApplied, setIsCouponApplied] = useState(false);
+  const [couponDiscount, setCouponDiscount] = useState(0);
+  const [couponValidationLoading, setCouponValidationLoading] = useState(false);
+  const [couponError, setCouponError] = useState('');
+  const [deliveryCharge, setDeliveryCharge] = useState<number>(0);
+  const user = useSelector((state: RootState) => state.auth.user);
+  const dispatch = useDispatch();
+  const [couponType, setCouponType] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isError, setIsError] = useState(false);
+  const [modalMessage, setModalMessage] = useState('');
+
+  const getHomeUrl = () => {
+    return user?.buyerType === 'Wholesale' ? '/wholesale/home' : '/';
+  };
+
 
   useEffect(() => {
     console.log('Cart Items:', cartItems);
     console.log('Checkout Details:', checkoutDetails);
     console.log('Calculated Summary:', cartItems.calculatedSummary);
   }, [cartItems, checkoutDetails]);
+
+  useEffect(() => {
+    // Load delivery charge from localStorage if available
+    const savedCharge = localStorage.getItem('deliveryCharge');
+    console.log('delivery charge', savedCharge);
+    if (savedCharge) {
+      setDeliveryCharge(parseFloat(savedCharge));
+    }
+  }, []);
 
   const handleCardInputChange = (field: string, value: string) => {
     setCardDetails((prev) => ({
@@ -52,136 +82,184 @@ const Page: React.FC = () => {
     }));
   };
 
-const prepareOrderPayload = (): OrderPayload => {
-  // Use calculatedSummary instead of summary
-  const calculatedSummary = cartItems.calculatedSummary;
-  const summary = cartItems.summary;
-  
-  // Get totals from calculated summary
-  const grandTotal = calculatedSummary?.finalTotal || 0;
-  const discountAmount = calculatedSummary?.totalDiscount || 0;
-  const couponDiscount = summary?.couponDiscount || 0;
+  // 1. Updated prepareOrderPayload function
+  const prepareOrderPayload = (): OrderPayload => {
+    const calculatedSummary = cartItems.calculatedSummary;
+    const originalGrandTotal = calculatedSummary?.finalTotal || 0;
+    const discountAmount = calculatedSummary?.totalDiscount || 0;
 
-  // Initialize all required fields first
-  let finalCheckoutDetails = {
-    deliveryMethod: checkoutDetails.deliveryMethod || 'home',
-    title: checkoutDetails.title || '',
-    fullName: checkoutDetails.fullName || '',
-    phoneCode1: checkoutDetails.phoneCode1 || '+94',
-    phone1: checkoutDetails.phone1 || '',
-    phoneCode2: checkoutDetails.phoneCode2 || '',
-    phone2: checkoutDetails.phone2 || '',
-    buildingType: '',
-    deliveryDate: checkoutDetails.deliveryDate || '',
-    timeSlot: checkoutDetails.timeSlot || '',
-    buildingNo: '',
-    buildingName: '',
-    flatNumber: '',
-    floorNumber: '',
-    houseNo: '',
-    street: '',
-    cityName: '',
-    scheduleType: checkoutDetails.scheduleType || 'One Time',
-    centerId: null as number | null,
-    couponValue: Number(couponDiscount) || 0,
-    isCoupon: (couponDiscount || 0) > 0,
+    const couponDiscountAmount = isCouponApplied ? couponDiscount : 0;
+
+    // Handle Free Delivery coupon type
+    const effectiveDeliveryCharge = (isCouponApplied && couponType === 'Free Delivary') ? 0 : deliveryCharge;
+
+    const finalGrandTotal = isCouponApplied ?
+      (originalGrandTotal - couponDiscount + effectiveDeliveryCharge) :
+      (originalGrandTotal + deliveryCharge);
+
+    let finalCheckoutDetails = {
+      deliveryMethod: checkoutDetails.deliveryMethod || 'home',
+      title: checkoutDetails.title || '',
+      fullName: checkoutDetails.fullName || '',
+      phoneCode1: checkoutDetails.phoneCode1 || '+94',
+      phone1: checkoutDetails.phone1 || '',
+      phoneCode2: checkoutDetails.phoneCode2 || '',
+      phone2: checkoutDetails.phone2 || '',
+      buildingType: '',
+      deliveryDate: checkoutDetails.deliveryDate || '',
+      timeSlot: checkoutDetails.timeSlot || '',
+      buildingNo: '',
+      buildingName: '',
+      flatNumber: '',
+      floorNumber: '',
+      houseNo: '',
+      street: '',
+      cityName: '',
+      scheduleType: checkoutDetails.scheduleType || 'One Time',
+      centerId: null as number | null,
+      couponValue: Number(couponDiscountAmount) || 0,
+      isCoupon: isCouponApplied,
+      couponCode: isCouponApplied ? couponCode : '',
+    };
+
+    // ... rest of the function remains the same
+    if (checkoutDetails.deliveryMethod === 'home') {
+      finalCheckoutDetails.buildingType = (checkoutDetails.buildingType || 'apartment').toLowerCase();
+      finalCheckoutDetails.houseNo = checkoutDetails.houseNo || '';
+      finalCheckoutDetails.street = checkoutDetails.street || '';
+      finalCheckoutDetails.cityName = checkoutDetails.cityName || '';
+      finalCheckoutDetails.centerId = null;
+
+      if (checkoutDetails.buildingType?.toLowerCase() === 'apartment') {
+        finalCheckoutDetails.buildingNo = checkoutDetails.buildingNo || '';
+        finalCheckoutDetails.buildingName = checkoutDetails.buildingName || '';
+        finalCheckoutDetails.flatNumber = checkoutDetails.flatNumber || '';
+        finalCheckoutDetails.floorNumber = checkoutDetails.floorNumber || '';
+      }
+    } else if (checkoutDetails.deliveryMethod === 'pickup') {
+      finalCheckoutDetails.centerId = checkoutDetails.centerId || null;
+    }
+
+    return {
+      cartId: cartItems.cartId || 0,
+      checkoutDetails: finalCheckoutDetails,
+      paymentMethod,
+      discountAmount: Number(discountAmount) || 0,
+      grandTotal: Number(finalGrandTotal) || 0,
+      orderApp: 'marketplace',
+    };
   };
 
-  // Set values based on delivery method and building type
-  if (checkoutDetails.deliveryMethod === 'home') {
-    // Add address fields for home delivery
-    finalCheckoutDetails.buildingType = (checkoutDetails.buildingType || 'apartment').toLowerCase();
-    finalCheckoutDetails.houseNo = checkoutDetails.houseNo || '';
-    finalCheckoutDetails.street = checkoutDetails.street || '';
-    finalCheckoutDetails.cityName = checkoutDetails.cityName || '';
-    finalCheckoutDetails.centerId = null;
+  const formatPrice = (price: number): string => {
+    // Convert to fixed decimal first, then add commas
+    const fixedPrice = Number(price).toFixed(2);
+    const [integerPart, decimalPart] = fixedPrice.split('.');
 
-    // Add apartment-specific fields only if building type is apartment
-    if (checkoutDetails.buildingType?.toLowerCase() === 'apartment') {
-      finalCheckoutDetails.buildingNo = checkoutDetails.buildingNo || '';
-      finalCheckoutDetails.buildingName = checkoutDetails.buildingName || '';
-      finalCheckoutDetails.flatNumber = checkoutDetails.flatNumber || '';
-      finalCheckoutDetails.floorNumber = checkoutDetails.floorNumber || '';
-    }
-  } else if (checkoutDetails.deliveryMethod === 'pickup') {
-    // For pickup delivery, keep address fields empty and set centerId
-    finalCheckoutDetails.centerId = checkoutDetails.centerId || null;
-  }
+    // Add commas to integer part
+    const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
-  return {
-    cartId: cartItems.cartId || 0,
-    checkoutDetails: finalCheckoutDetails,
-    paymentMethod,
-    discountAmount: Number(discountAmount) || 0,
-    grandTotal: Number(grandTotal) || 0,
-    orderApp: 'marketplace',
+    return `${formattedInteger}.${decimalPart}`;
   };
-};
 
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
 
+    setCouponValidationLoading(true);
+    setCouponError('');
 
- const validateCartData = (): { isValid: boolean; error?: string } => {
-  // Check if cart exists and has valid ID
-  if (!cartItems.cartId || cartItems.cartId === 0) {
-    return { isValid: false, error: 'Cart ID is missing. Please refresh and try again.' };
-  }
+    try {
+      if (!token) {
+        throw new Error('Please log in to apply coupon');
+      }
 
-  // Check if cart has items (packages or additional items)
-  const hasPackages = cartItems.packages && cartItems.packages.length > 0;
-  const hasAdditionalItems = cartItems.additionalItems && 
-    cartItems.additionalItems.length > 0 && 
-    cartItems.additionalItems.some(group => group.Items && group.Items.length > 0);
+      const response = await validateCoupon(couponCode.trim(), token);
 
-  if (!hasPackages && !hasAdditionalItems) {
-    return { isValid: false, error: 'No items in cart. Please add items before placing order.' };
-  }
-
-  // Check if calculated summary exists
-  if (!cartItems.calculatedSummary) {
-    return { isValid: false, error: 'Cart summary is missing. Please refresh and try again.' };
-  }
-
-  // Check if checkout details are complete
-  if (!checkoutDetails) {
-    return { isValid: false, error: 'Checkout details are missing. Please complete the checkout process.' };
-  }
-
-  // Validate required checkout fields
-  const requiredFields = ['deliveryMethod', 'title', 'fullName', 'phone1'];
-  for (const field of requiredFields) {
-    if (!checkoutDetails[field as keyof typeof checkoutDetails]) {
-      return { isValid: false, error: `Missing required field: ${field}` };
+      if (response.status) {
+        setIsCouponApplied(true);
+        setCouponDiscount(response.discount);
+        setCouponType(response.type || ''); // Store coupon type from response
+        console.log('Coupon applied successfully:', response);
+      } else {
+        setCouponError(response.message);
+        setIsCouponApplied(false);
+        setCouponDiscount(0);
+        setCouponType('');
+      }
+    } catch (error: any) {
+      console.error('Error applying coupon:', error);
+      setCouponError(error.message || 'Failed to apply coupon');
+      setIsCouponApplied(false);
+      setCouponDiscount(0);
+      setCouponType('');
+    } finally {
+      setCouponValidationLoading(false);
     }
-  }
+  };
 
-  // Validate delivery method specific fields
-  if (checkoutDetails.deliveryMethod === 'home') {
-    // Validate building type specific fields for home delivery
-    if (checkoutDetails.buildingType?.toLowerCase() === 'apartment') {
-      const apartmentFields = ['buildingNo', 'buildingName', 'flatNumber', 'floorNumber'];
-      for (const field of apartmentFields) {
-        if (!checkoutDetails[field as keyof typeof checkoutDetails]) {
-          return { isValid: false, error: `Missing required apartment field: ${field}` };
+
+
+  const validateCartData = (): { isValid: boolean; error?: string } => {
+    // Check if cart exists and has valid ID
+    if (!cartItems.cartId || cartItems.cartId === 0) {
+      return { isValid: false, error: 'Cart ID is missing. Please refresh and try again.' };
+    }
+
+    // Check if cart has items (packages or additional items)
+    const hasPackages = cartItems.packages && cartItems.packages.length > 0;
+    const hasAdditionalItems = cartItems.additionalItems &&
+      cartItems.additionalItems.length > 0 &&
+      cartItems.additionalItems.some(group => group.Items && group.Items.length > 0);
+
+    if (!hasPackages && !hasAdditionalItems) {
+      return { isValid: false, error: 'No items in cart. Please add items before placing order.' };
+    }
+
+    // Check if calculated summary exists
+    if (!cartItems.calculatedSummary) {
+      return { isValid: false, error: 'Cart summary is missing. Please refresh and try again.' };
+    }
+
+    // Check if checkout details are complete
+    if (!checkoutDetails) {
+      return { isValid: false, error: 'Checkout details are missing. Please complete the checkout process.' };
+    }
+
+    // Validate required checkout fields
+    const requiredFields = ['deliveryMethod', 'title', 'fullName', 'phone1'];
+    for (const field of requiredFields) {
+      if (!checkoutDetails[field as keyof typeof checkoutDetails]) {
+        return { isValid: false, error: `Missing required field: ${field}` };
+      }
+    }
+
+    // Validate delivery method specific fields
+    if (checkoutDetails.deliveryMethod === 'home') {
+      // Validate building type specific fields for home delivery
+      if (checkoutDetails.buildingType?.toLowerCase() === 'apartment') {
+        const apartmentFields = ['buildingNo', 'buildingName', 'flatNumber', 'floorNumber'];
+        for (const field of apartmentFields) {
+          if (!checkoutDetails[field as keyof typeof checkoutDetails]) {
+            return { isValid: false, error: `Missing required apartment field: ${field}` };
+          }
         }
       }
-    }
-    
-    // Common home delivery fields (required for both house and apartment)
-    const homeDeliveryFields = ['houseNo', 'street', 'cityName'];
-    for (const field of homeDeliveryFields) {
-      if (!checkoutDetails[field as keyof typeof checkoutDetails]) {
-        return { isValid: false, error: `Missing required home delivery field: ${field}` };
+
+      // Common home delivery fields (required for both house and apartment)
+      const homeDeliveryFields = ['houseNo', 'street', 'cityName'];
+      for (const field of homeDeliveryFields) {
+        if (!checkoutDetails[field as keyof typeof checkoutDetails]) {
+          return { isValid: false, error: `Missing required home delivery field: ${field}` };
+        }
+      }
+    } else if (checkoutDetails.deliveryMethod === 'pickup') {
+      // Validate pickup center selection
+      if (!checkoutDetails.centerId) {
+        return { isValid: false, error: 'Please select a pickup center.' };
       }
     }
-  } else if (checkoutDetails.deliveryMethod === 'pickup') {
-    // Validate pickup center selection
-    if (!checkoutDetails.centerId) {
-      return { isValid: false, error: 'Please select a pickup center.' };
-    }
-  }
 
-  return { isValid: true };
-};
+    return { isValid: true };
+  };
 
   console.log('cartId', cartItems.cartId);
   console.log('Total items:', cartItems.calculatedSummary?.totalItems);
@@ -224,60 +302,152 @@ const prepareOrderPayload = (): OrderPayload => {
 
       console.log('Prepared Order Payload:', payload);
 
-      // Submit to backend with token from Redux
       const result = await submitOrderToBackend(payload, token);
       console.log('Order submitted successfully:', result);
 
       // Check if the response has the expected structure
-      if (result.status && result.orderId) {
-        setOrderId(result.orderId);
-        setShowSuccessPopup(true);
+      if (result.status && result.processOrderId) {
+        setOrderId(result.processOrderId);
+        localStorage.removeItem('deliveryCharge');
+
+        // Show success modal
+        setIsError(false);
+        setModalMessage('Your order has been placed.');
+        setIsModalOpen(true);
+
+        // Fetch updated cart info after successful order creation
+        try {
+          const cartInfo = await getCartInfo(token);
+          console.log("Updated cart info:", cartInfo);
+          dispatch(updateCartInfo(cartInfo));
+        } catch (cartError) {
+          console.error('Error fetching cart info:', cartError);
+          // Don't fail the whole operation if cart info fetch fails
+        }
       } else {
         throw new Error('Invalid response from server');
       }
     } catch (error: any) {
       console.error('Error submitting order:', error);
       const errorMsg = error.message || 'Order submission failed. Please try again.';
-      setErrorMessage(errorMsg);
-      setShowErrorPopup(true);
+
+      // Show error modal
+      setIsError(true);
+      setModalMessage(errorMsg);
+      setIsModalOpen(true);
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    if (!isError) {
+      // If success, redirect to home
+      router.push(getHomeUrl());
+    }
+  };
+
+  // Handle view invoice
+    const handleViewInvoice = () => {
+      setIsModalOpen(false);
+      console.log('Navigating to invoice with orderId:', orderId); // Debug log
+      
+      if (orderId) {
+        router.push(`/history/invoice/?orderId=${orderId}`);
+      } else {
+        console.error('Order ID is not available');
+        // Handle case where orderId is not available
+        setIsError(true);
+        setModalMessage('Order ID not available. Please try again.');
+        setIsModalOpen(true);
+      }
+    };
   // Calculate display values for OrderSummary
   const getDisplayValues = () => {
     const calculatedSummary = cartItems.calculatedSummary;
-    const summary = cartItems.summary;
-    
+    const originalGrandTotal = calculatedSummary?.finalTotal || 0;
+
+    // Handle Free Delivery coupon type
+    const effectiveDeliveryCharge = (isCouponApplied && couponType === 'Free Delivary') ? 0 : deliveryCharge;
+
+    const couponDiscountAmount = isCouponApplied ? couponDiscount : 0;
+
+    const finalGrandTotal = isCouponApplied
+      ? (originalGrandTotal - couponDiscount + effectiveDeliveryCharge)
+      : (originalGrandTotal + deliveryCharge);
+
     return {
       totalItems: calculatedSummary?.totalItems || 0,
       totalPrice: calculatedSummary?.grandTotal || 0,
       discountAmount: calculatedSummary?.totalDiscount || 0,
-      grandTotal: calculatedSummary?.finalTotal || 0,
+      originalGrandTotal: originalGrandTotal,
+      couponDiscount: couponDiscountAmount,
+      grandTotal: finalGrandTotal,
+      deliveryCharges: effectiveDeliveryCharge, // Use effective delivery charge
+      isFreeDelivery: isCouponApplied && couponType === 'Free Delivary', // Flag for UI display
     };
   };
 
   const displayValues = getDisplayValues();
 
+
+
   return (
     <div className="px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5">
-      <SuccessPopup
-        isVisible={showSuccessPopup}
-        onClose={() => {
-          setShowSuccessPopup(false);
-          router.push(`/order-confirmation?orderId=${orderId}`);
-        }}
-        title="Order Placed Successfully!"
-        description="Your order has been confirmed. View details in your order history."
-        path={`/order-confirmation?orderId=${orderId}`}
-      />
-      <ErrorPopup
-        isVisible={showErrorPopup}
-        onClose={() => setShowErrorPopup(false)}
-        title="Error"
-        description={errorMessage}
-      />
+     {isModalOpen && (
+      <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+        <div className="bg-white p-8 rounded-2xl text-center w-[90%] max-w-md shadow-xl">
+          {isError ? (
+            <Image
+              src={wrongImg}
+              alt="Error"
+              className="w-28 h-28 mx-auto mb-4"
+            />
+          ) : (
+            <Image
+              src={correct}
+              alt="Success"
+              className="w-28 h-28 mx-auto mb-4"
+            />
+          )}
+          
+          <h2 className="text-xl font-bold mb-2 text-gray-900">
+            {isError ? 'Error' : 'Thank you for ordering!'}
+          </h2>
+          <p className="text-gray-500 mb-6">{modalMessage}</p>
+          
+          {isError ? (
+            <button
+              onClick={handleModalClose}
+              className="px-6 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition cursor-pointer text-gray-700 font-medium"
+            >
+              Close
+            </button>
+          ) : (
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={handleModalClose}
+                className="px-6 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition cursor-pointer text-gray-700 font-medium"
+              >
+                Go Back
+              </button>
+                <button
+                    onClick={handleViewInvoice}
+                    disabled={!orderId} // Disable if orderId is not available
+                    className={`px-6 py-2 rounded-lg transition cursor-pointer font-medium ${
+                      !orderId 
+                        ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
+                        : 'bg-[#3E206D] text-white hover:bg-[#3E206D]'
+                    }`}
+                  >
+                View Invoice
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    )}
       <TopNavigation NavArray={NavArray} />
 
       <div className="flex flex-col lg:flex-row lg:items-start gap-4 sm:gap-6 items-start">
@@ -293,11 +463,10 @@ const prepareOrderPayload = (): OrderPayload => {
               >
                 <div className="flex items-center">
                   <div
-                    className={`w-5 h-5 rounded-full ${
-                      paymentMethod === 'card'
-                        ? 'bg-indigo-800 border-2 border-indigo-800 ring-2 ring-indigo-100'
-                        : 'border border-gray-400'
-                    }`}
+                    className={`w-5 h-5 rounded-full ${paymentMethod === 'card'
+                      ? 'bg-indigo-800 border-2 border-indigo-800 ring-2 ring-indigo-100'
+                      : 'border border-gray-400'
+                      }`}
                   ></div>
                   <span className="ml-3 text-base">Credit / Debit Card</span>
                 </div>
@@ -354,11 +523,10 @@ const prepareOrderPayload = (): OrderPayload => {
               >
                 <div className="flex items-center">
                   <div
-                    className={`w-5 h-5 rounded-full ${
-                      paymentMethod === 'cash'
-                        ? 'bg-indigo-800 border-2 border-indigo-800 ring-2 ring-indigo-100'
-                        : 'border border-gray-400'
-                    }`}
+                    className={`w-5 h-5 rounded-full ${paymentMethod === 'cash'
+                      ? 'bg-indigo-800 border-2 border-indigo-800 ring-2 ring-indigo-100'
+                      : 'border border-gray-400'
+                      }`}
                   ></div>
                   <span className="ml-3 text-base">Pay by Cash</span>
                 </div>
@@ -374,30 +542,113 @@ const prepareOrderPayload = (): OrderPayload => {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+        <div className="w-full lg:w-1/3 mt-6 lg:mt-0 pt-14">
+          <div className='border border-gray-300 rounded-lg shadow-md p-4 sm:p-5 md:p-6'>
+            <h2 className='font-semibold text-lg mb-4'>Your Order</h2>
 
-            {/* Submit Order Button */}
+            <div className='flex justify-between items-center mb-3 sm:mb-4'>
+              <div className='flex items-center gap-2 sm:gap-3'>
+                <div className="w-12 sm:w-14 md:w-16 h-12 sm:h-14 md:h-16 border border-[gray] rounded-lg flex items-center justify-center">
+                  <Image
+                    src={summary}
+                    alt="Shopping bag"
+                    width={40}
+                    height={40}
+                    className="object-contain"
+                  />
+                </div>
+                <p className="text-gray-600">{displayValues.totalItems || 0} items</p>
+              </div>
+              <p className='font-semibold'>Rs.{formatPrice(displayValues.totalPrice || 0)}</p>
+            </div>
+
+            <div className='mb-4'>
+              <h3 className='font-semibold text-base mb-3'>Coupon Code</h3>
+              <div className='flex gap-2'>
+                <input
+                  type="text"
+                  placeholder="Add Coupon Code"
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value)}
+                  className="flex-1 p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm"
+                  disabled={isCouponApplied || couponValidationLoading}
+                />
+                <button
+                  onClick={handleApplyCoupon}
+                  disabled={!couponCode.trim() || isCouponApplied || couponValidationLoading}
+                  className={`px-4 py-2 rounded-lg text-sm cursor-pointer font-medium ${isCouponApplied
+                    ? 'bg-[#3E206D] text-white cursor-not-allowed'
+                    : couponValidationLoading
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-[#3E206D] text-white hover:bg-[#2f1854] disabled:bg-gray-300 disabled:cursor-not-allowed'
+                    }`}
+                >
+                  {couponValidationLoading ? 'Validating...' : isCouponApplied ? 'Applied' : 'Apply'}
+                </button>
+              </div>
+              {isCouponApplied && (
+                <p className='text-[#3E206D] text-sm mt-2'>✓ Coupon applied successfully</p>
+              )}
+              {couponError && (
+                <p className='text-red-600 text-sm mt-2'>{couponError}!</p>
+              )}
+            </div>
+
+            <div className='border-t border-gray-300 my-4' />
+
+            <div className='flex justify-between text-sm mb-2'>
+              <p className='text-gray-600'>Total</p>
+              <p className='font-semibold'>Rs.{formatPrice(displayValues.totalPrice || 0)}</p>
+            </div>
+
+            <div className='flex justify-between text-sm mb-2'>
+              <p className='text-gray-600'>Discount</p>
+              <p className='text-gray-600'>Rs.{formatPrice(displayValues.discountAmount || 0)}</p>
+            </div>
+
+            {isCouponApplied && (
+              <div className='flex justify-between text-sm mb-2'>
+                <p className='text-gray-600'>Coupon Discount</p>
+                <p className='text-gray-600'>Rs.{formatPrice(displayValues.couponDiscount || 0)}</p>
+              </div>
+            )}
+            <div className='flex justify-between text-sm mb-2'>
+              <p className='text-gray-600'>
+                Delivery Charges
+                {displayValues.isFreeDelivery && (
+                  <span className='font-semibold ml-1'>(Free)</span>
+                )}
+              </p>
+              <p className={`text-gray-600 ${displayValues.isFreeDelivery ? 'line-through' : ''}`}>
+                Rs.{formatPrice(deliveryCharge || 0)}
+              </p>
+              {displayValues.isFreeDelivery && (
+                <p className='text-gray-600 font-semibold'>Rs.0.00</p>
+              )}
+            </div>
+
+
+            <div className='border-t border-gray-300 my-4' />
+
+            <div className='flex justify-between mb-4 text-[20px] text-[#414347]'>
+              <p className='font-semibold'>Grand Total</p>
+              <p className='font-semibold'>Rs.{formatPrice(displayValues.grandTotal || 0)}</p>
+            </div>
             <div className="mt-8">
               <button
                 onClick={handleSubmitOrder}
                 disabled={isSubmitting}
-                className={`w-full py-4 px-6 rounded-lg text-white font-semibold ${
-                  isSubmitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-indigo-800 hover:bg-indigo-900'
-                } transition-colors`}
+                className={`w-full py-4 px-6 rounded-lg cursor-pointer text-white font-semibold ${isSubmitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#3E206D] hover:bg-[#3E206D]'
+                  } transition-colors`}
               >
-                {isSubmitting ? 'Processing Order...' : 'Place Order'}
+                {isSubmitting ? 'Processing Order...' : 'Confirm Order'}
               </button>
             </div>
+
+
           </div>
-        </div>
-        <div className="w-full lg:w-1/3 mt-6 lg:mt-0 pt-14">
-          {/* <OrderSummary
-            totalItems={displayValues.totalItems}
-            totalPrice={displayValues.totalPrice}
-            discountAmount={displayValues.discountAmount}
-            grandTotal={displayValues.grandTotal}
-            fromPayment={true}
-            paymentMethod={paymentMethod}
-          /> */}
         </div>
       </div>
     </div>

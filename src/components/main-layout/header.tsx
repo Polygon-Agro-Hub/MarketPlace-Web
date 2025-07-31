@@ -7,24 +7,35 @@ import { RootState } from '@/store';
 import { useDispatch } from 'react-redux';
 import { logout } from '../../store/slices/authSlice';
 import { clearCart } from '@/store/slices/cartSlice';
-import ExitImg from '../../../public/icons/Exit.png'
+import ExitImg from '../../../public/icons/Exit.png';
+import { useRouter } from 'next/navigation'
+import { LogOut } from 'lucide-react';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isCategoryExpanded, setIsCategoryExpanded] = useState(false);
   const [isDesktopCategoryOpen, setIsDesktopCategoryOpen] = useState(false);
-  const [isClient, setIsClient] = useState(false); // Client-side hydration check
+  const [isClient, setIsClient] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false); // New state for hydration
   const categoryRef = useRef<HTMLDivElement | null>(null);
-  
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
   const user = useSelector((state: RootState) => state.auth.user);
   const token = useSelector((state: RootState) => state.auth.token) as string | null;
   const cartState = useSelector((state: RootState) => state.auth.cart);
   const dispatch = useDispatch();
+  const router = useRouter();
+  const [showSignupModal, setShowSignupModal] = useState(false);
+  const [selectedBuyerType, setSelectedBuyerType] = useState('');
 
   useEffect(() => {
     // Set client-side flag after hydration
     setIsClient(true);
+    // Add a small delay to ensure hydration is complete
+    const timer = setTimeout(() => {
+      setIsHydrated(true);
+    }, 100);
 
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768)
@@ -43,6 +54,7 @@ const Header = () => {
     document.addEventListener('mousedown', handleClickOutside);
 
     return () => {
+      clearTimeout(timer);
       window.removeEventListener('resize', handleResize);
       document.removeEventListener('mousedown', handleClickOutside);
     };
@@ -52,6 +64,17 @@ const Header = () => {
     setIsMenuOpen(!isMenuOpen);
   }
 
+  const formatPrice = (price: number): string => {
+    // Convert to fixed decimal first, then add commas
+    const fixedPrice = Number(price).toFixed(2);
+    const [integerPart, decimalPart] = fixedPrice.split('.');
+
+    // Add commas to integer part
+    const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+    return `${formattedInteger}.${decimalPart}`;
+  };
+
   const toggleDesktopCategory = (e: { preventDefault: () => void }) => {
     e.preventDefault();
     setIsDesktopCategoryOpen(!isDesktopCategoryOpen);
@@ -59,64 +82,172 @@ const Header = () => {
 
   const handleLogout = (e: React.MouseEvent) => {
     e.preventDefault();
-    dispatch(logout());
+    setShowLogoutModal(true);
   }
+
+  const confirmLogout = () => {
+    dispatch(logout());
+    dispatch(clearCart());
+    setShowLogoutModal(false);
+    router.push('/signin');
+  };
 
   // Helper function to get the correct home URL
   const getHomeUrl = () => {
-    if (!isClient) return '/'; // Default during SSR
+    if (!isHydrated) return '/'; // Default during SSR/hydration
     return user?.buyerType === 'Wholesale' ? '/wholesale/home' : '/';
   };
 
   // Helper function to check if user is authenticated
   const isAuthenticated = () => {
-    return isClient && token;
+    return isHydrated && token;
   };
 
   // Helper function to get user info safely
   const getUserInfo = () => {
-    return isClient ? user : null;
+    return isHydrated ? user : null;
+  };
+
+  const handleCategoryClick = (e: React.MouseEvent, buyerType: string) => {
+    e.preventDefault();
+    setSelectedBuyerType(buyerType);
+    setShowSignupModal(true);
+    setIsDesktopCategoryOpen(false); // Close dropdown
+  };
+
+  const confirmSignup = () => {
+    setShowSignupModal(false);
+    if (selectedBuyerType === 'Wholesale') {
+      router.push('/wholesale/home');
+    } else {
+      router.push('/');
+    }
+  };
+
+  const handleMobileCategoryClick = (e: React.MouseEvent, buyerType: string) => {
+    e.preventDefault();
+    setSelectedBuyerType(buyerType);
+    setShowSignupModal(true);
+    setIsMenuOpen(false); // Close mobile menu
+  };
+
+  const handleCartClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    
+    // Check if user is authenticated
+    if (!isAuthenticated()) {
+      // Redirect to signin if not authenticated
+      router.push('/signin');
+      return;
+    }
+    
+    // If authenticated, proceed to cart
+    router.push('/cart');
+  };
+
+  // Render auth buttons consistently
+  const renderAuthButtons = () => {
+    if (!isHydrated) {
+      // Show default unauthenticated state during hydration
+      return (
+        <>
+          <Link href="/signup" className="text-sm bg-gray-700 rounded-full px-4 py-1 hover:bg-gray-600">
+            Signup
+          </Link>
+          <Link href="/signin" className="text-sm bg-gray-700 rounded-full px-4 py-1 hover:bg-gray-600">
+            Login
+          </Link>
+        </>
+      );
+    }
+
+    if (getUserInfo()) {
+      return (
+        <Link
+          href="/"
+          className="text-sm flex items-center gap-2"
+          onClick={handleLogout}
+        >
+          <LogOut />
+          Logout
+        </Link>
+      );
+    }
+
+    return (
+      <>
+        <Link href="/signup" className="text-sm bg-gray-700 rounded-full px-4 py-1 hover:bg-gray-600">
+          Signup
+        </Link>
+        <Link href="/signin" className="text-sm bg-gray-700 rounded-full px-4 py-1 hover:bg-gray-600">
+          Login
+        </Link>
+      </>
+    );
+  };
+
+  // Render mobile auth buttons consistently
+  const renderMobileAuthButtons = () => {
+    if (!isHydrated) {
+      // Show default unauthenticated state during hydration
+      return (
+        <>
+          <Link
+            href="/signin"
+            className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800 flex items-center gap-2"
+          >
+            Login
+          </Link>
+          <Link
+            href="/signup"
+            className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800 flex items-center gap-2"
+          >
+            Signup
+          </Link>
+        </>
+      );
+    }
+
+    if (getUserInfo()) {
+      return (
+        <Link
+          href="/logout"
+          className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800 flex items-center gap-2"
+          onClick={handleLogout}
+        >
+          Logout
+        </Link>
+      );
+    }
+
+    return (
+      <>
+        <Link
+          href="/signin"
+          className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800 flex items-center gap-2"
+        >
+          Login
+        </Link>
+        <Link
+          href="/signup"
+          className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800 flex items-center gap-2"
+        >
+          Signup
+        </Link>
+      </>
+    );
   };
 
   return (
     <>
       {!isMobile && (
-        <div className='bg-[#2C2C2C] text-gray-300 py-2 px-7'>
+        <div className="bg-[#2C2C2C] text-gray-300 py-2 px-7">
           <div className="mx-auto flex justify-between items-center">
             <span className="text-sm italic">
               Call us for any query or help +94 770 111 999
             </span>
             <div className="flex gap-2">
-              {!isClient ? (
-                // Show loading placeholder during SSR/hydration
-                <div className="w-32 h-8 bg-gray-700 rounded-full animate-pulse"></div>
-              ) : getUserInfo() ? (
-                <Link
-                  href="/"
-                  className="text-sm flex items-center gap-2"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    dispatch(logout());
-                    dispatch(clearCart());
-                  }}
-                >
-                  <img
-                    src={ExitImg as any}
-                    alt="Logout"
-                    className="w-4 h-4"
-                  />
-                  Logout
-                </Link>
-              ) : (
-                <>
-                  <Link href="/signup" className="text-sm bg-gray-700 rounded-full px-4 py-1 hover:bg-gray-600">
-                    Signup
-                  </Link>
-                  <Link href="/signin" className="text-sm bg-gray-700 rounded-full px-4 py-1 hover:bg-gray-600">
-                    Login
-                  </Link>
-                </>
-              )}
+              {renderAuthButtons()}
             </div>
           </div>
         </div>
@@ -131,21 +262,27 @@ const Header = () => {
                 Home
               </Link>
               {!isAuthenticated() && (
-                <div className='relative' ref={categoryRef}>
+                <div className='relative cursor-pointer' ref={categoryRef}>
                   <button
-                    className='flex items-center hover:text-purple-200'
+                    className='flex items-center hover:text-purple-200  cursor-pointer'
                     onClick={toggleDesktopCategory}
                   >
                     Category <span className='ml-1'><FontAwesomeIcon icon={faAngleDown} /></span>
                   </button>
                   {isDesktopCategoryOpen && (
-                    <div className='absolute bg-[#3E206D] text-white w-48 shadow-lg mt-7 z-10'>
-                      <Link href="/" className="border-b-1 block px-4 py-2 hover:bg-[#6c5394]">
+                    <div className='absolute bg-[#3E206D] text-white w-48 shadow-lg mt-7 z-10  cursor-pointer'>
+                      <button
+                        onClick={(e) => handleCategoryClick(e, 'Retail')}
+                        className="border-b-1 block px-4 py-2 hover:bg-[#6c5394] w-full text-left"
+                      >
                         Retail
-                      </Link>
-                      <Link href="/wholesale/home" className="block px-4 py-2 hover:bg-[#6c5394]">
+                      </button>
+                      <button
+                        onClick={(e) => handleCategoryClick(e, 'Wholesale')}
+                        className="block px-4 py-2 hover:bg-[#6c5394] w-full text-left"
+                      >
                         Wholesale
-                      </Link>
+                      </button>
                     </div>
                   )}
                 </div>
@@ -171,30 +308,30 @@ const Header = () => {
             </div>
           )}
 
-          <Link href='/cart'>
+          <div onClick={handleCartClick} className="cursor-pointer">
             <div className="flex items-center space-x-4 bg-[#502496] px-8 py-2 rounded-full">
               <div className='relative'>
                 <FontAwesomeIcon className='text-2xl' icon={faBagShopping} />
                 <span className="absolute top-3 -right-2 bg-[#FF8F66] text-white rounded-full w-4 h-4 flex items-center justify-center text-xs">
-                  {isClient ? cartState.count : 0}
+                  {isHydrated ? cartState.count : 0}
                 </span>
               </div>
-              <div className="text-sm">Rs. {isClient ? cartState.price.toFixed(2) : '0.00'}</div>
+              <div className="text-sm">Rs. {isHydrated ? formatPrice(cartState.price) : '0.00'}</div>
             </div>
-          </Link>
-          
+          </div>
+
           {!isMobile && isAuthenticated() && (
             <Link href="/history/order">
               <FontAwesomeIcon className='text-4xl' icon={faClockRotateLeft} />
             </Link>
           )}
-          
+
           {isAuthenticated() && (
             <Link className='border-2 w-9 h-9 flex justify-center items-center rounded-full' href="/account">
               <FontAwesomeIcon className='text-1xl' icon={faUser} />
             </Link>
           )}
-          
+
           {isMobile && (
             <button onClick={toggleMenu} className='md:hidden'>
               <FontAwesomeIcon className='text-2xl' icon={faBars} />
@@ -366,35 +503,7 @@ const Header = () => {
                 </button>
               </div>
               <nav className="flex flex-col w-full">
-                {!isClient ? (
-                  // Show placeholder during SSR/hydration
-                  <div className="py-4 px-6 border-b border-purple-800">
-                    <div className="w-20 h-4 bg-purple-700 rounded animate-pulse"></div>
-                  </div>
-                ) : getUserInfo() ? (
-                  <Link
-                    href="/logout"
-                    className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800 flex items-center gap-2"
-                    onClick={handleLogout}
-                  >
-                    Logout
-                  </Link>
-                ) : (
-                  <>
-                    <Link
-                      href="/signin"
-                      className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800 flex items-center gap-2"
-                    >
-                      Login
-                    </Link>
-                    <Link
-                      href="/signup"
-                      className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800 flex items-center gap-2"
-                    >
-                      Signup
-                    </Link>
-                  </>
-                )}
+                {renderMobileAuthButtons()}
                 <Link href={getHomeUrl()} className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800">
                   Home
                 </Link>
@@ -409,12 +518,18 @@ const Header = () => {
                     </button>
                     {isCategoryExpanded && (
                       <div className="bg-purple-950">
-                        <Link href="/category/retail" className="block py-3 px-8 hover:bg-purple-800">
+                        <button
+                          onClick={(e) => handleMobileCategoryClick(e, 'Retail')}
+                          className="block py-3 px-8 hover:bg-purple-800 w-full text-left"
+                        >
                           • Retail
-                        </Link>
-                        <Link href="/category/wholesale" className="block py-3 px-8 hover:bg-purple-800">
+                        </button>
+                        <button
+                          onClick={(e) => handleMobileCategoryClick(e, 'Wholesale')}
+                          className="block py-3 px-8 hover:bg-purple-800 w-full text-left"
+                        >
                           • Wholesale
-                        </Link>
+                        </button>
                       </div>
                     )}
                   </div>
@@ -428,6 +543,52 @@ const Header = () => {
                   </Link>
                 )}
               </nav>
+            </div>
+          </div>
+        </div>
+      )}
+      {showLogoutModal && (
+        <div className="fixed inset-0 bg-black/60 bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-[25px] shadow-lg w-96 text-center">
+            <p className="text-lg font-medium mb-6">
+              Are you sure you want to logout?
+            </p>
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={() => setShowLogoutModal(false)}
+                className="px-6 py-2 bg-[#F3F4F7] text-gray-800 hover:bg-gray-300 transition-colors rounded-[15px] cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmLogout}
+                className="px-6 py-2 bg-[#E4001A] text-white rounded-[15px] hover:bg-red-700 transition- cursor-pointer"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showSignupModal && (
+        <div className="fixed inset-0 bg-black/60 bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-[25px] shadow-lg w-96 text-center">
+            <p className="text-lg font-medium mb-5">
+              Do you want to SignIn as a {selectedBuyerType} buyer?
+            </p>
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={() => setShowSignupModal(false)}
+                className="px-6 py-2 bg-[#F3F4F7] text-gray-800 hover:bg-gray-300 transition-colors rounded-[15px] cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmSignup}
+                className="px-6 py-2 bg-[#3E206D] text-white rounded-[15px] hover:bg-[#502496] transition-colors cursor-pointer"
+              >
+                Yes
+              </button>
             </div>
           </div>
         </div>

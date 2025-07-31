@@ -9,6 +9,8 @@ import { RootState } from '@/store';
 import { getOrderHistory, getOrderDetails } from '@/services/retail-order-service';
 import { useRouter } from 'next/navigation';
 import Select, { ActionMeta, SingleValue } from 'react-select'; // Import react-select
+import Loader from '@/components/loader-spinner/Loader';
+
 
 // Define interfaces based on the API responses
 interface DetailedItem {
@@ -65,7 +67,7 @@ interface OrderSummary {
 
 interface DetailedOrder {
   orderId: string;
-  invoiceNo:string;
+  invoiceNo: string;
   scheduleDate: string;
   scheduleTime: string;
   deliveryType: string;
@@ -145,52 +147,52 @@ export default function OrderHistoryPage() {
   const [selectedOrder, setSelectedOrder] = useState<DetailedOrder | null>(null);
   const modalContentRef = useRef<HTMLDivElement>(null);
   const mainRef = useRef<HTMLElement>(null);
-
+const [isFetchingDetails, setIsFetchingDetails] = useState(false);
   const HEADER_HEIGHT = 64;
   const FOOTER_HEIGHT = 64;
 
   useEffect(() => {
-    if (!token) {
-      console.error('Token not found in Redux store at 12:03 PM +0530, June 06, 2025');
-      setLoading(false);
-      return;
-    }
+  if (!token) {
+    console.error('Token not found in Redux store at 04:37 PM +0530, July 07, 2025');
+    setLoading(false);
+    return;
+  }
 
-    const fetchOrders = async () => {
-      try {
-        setLoading(true);
-        const data = await getOrderHistory(token);
-        console.log('API Response at 12:03 PM +0530, June 06, 2025:', data);
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      const data = await getOrderHistory(token);
+      console.log('API Response at 04:37 PM +0530, July 07, 2025:', data);
 
-        const orderHistory = data.orderHistory || [];
-        if (!Array.isArray(orderHistory)) {
-          console.error('orderHistory is not an array at 12:03 PM +0530, June 06, 2025:', orderHistory);
-          setOrders([]);
-          return;
-        }
-
-        const normalizedOrders: OrderSummary[] = orderHistory.map((order: any) => ({
-          orderId: order.orderId ? String(order.orderId) : 'N/A',
-           invoiceNo: order. invoiceNo ? String(order. invoiceNo) : 'N/A',
-          scheduleDate: order.scheduleDate ? formatDateTime(order.scheduleDate, 'date') : 'N/A',
-          scheduleTime: order.scheduleTime || 'N/A',
-          deliveryType: order.delivaryMethod || 'N/A',
-          total: order.fullTotal || 'N/A',
-          orderPlaced: order.createdAt ? formatDateTime(order.createdAt, 'date') : 'N/A',
-          status: order.processStatus || 'Pending',
-        }));
-
-        setOrders(normalizedOrders);
-      } catch (err) {
-        console.error('Error fetching orders at 12:03 PM +0530, June 06, 2025:', err);
+      const orderHistory = data.orderHistory || [];
+      if (!Array.isArray(orderHistory)) {
+        console.error('orderHistory is not an array at 04:37 PM +0530, July 07, 2025:', orderHistory);
         setOrders([]);
-      } finally {
-        setLoading(false);
+        return;
       }
-    };
 
-    fetchOrders();
-  }, [token]);
+      const normalizedOrders: OrderSummary[] = orderHistory.map((order: any) => ({
+        orderId: order.orderId ? String(order.orderId) : 'N/A',
+        invoiceNo: order.invoiceNo ? String(order.invoiceNo) : 'N/A',
+        scheduleDate: order.scheduleDate ? formatDateTime(order.scheduleDate, 'date') : 'N/A',
+        scheduleTime: order.scheduleTime || 'N/A',
+        deliveryType: order.delivaryMethod || 'N/A',
+        total: order.fullTotal || 'N/A',
+        orderPlaced: order.createdAt ? formatDateTime(order.createdAt, 'date') : 'N/A',
+        status: order.processStatus || 'Pending',
+      }));
+
+      setOrders(normalizedOrders);
+    } catch (err) {
+      console.error('Error fetching orders at 04:37 PM +0530, July 07, 2025:', err);
+      setOrders([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchOrders();
+}, [token]);
 
   useEffect(() => {
     if (selectedOrder && modalContentRef.current && mainRef.current) {
@@ -203,139 +205,142 @@ export default function OrderHistoryPage() {
     }
   }, [selectedOrder]);
 
-  const fetchDetailedOrder = async (orderId: string) => {
-    if (!token) return;
-    try {
-      setSelectedOrder(null);
-      const { order: orderData, packages: packagesData, additionalItems: additionalItemsData } = await getOrderDetails(token, orderId);
-      console.log('Detailed Order Response at 12:03 PM +0530, June 06, 2025:', { orderData, packagesData, additionalItemsData });
+const fetchDetailedOrder = async (orderId: string) => {
+  if (!token) return;
+  try {
+    setIsFetchingDetails(true); // Start loading
+    setSelectedOrder(null);
+    const { order: orderData, packages: packagesData, additionalItems: additionalItemsData } = await getOrderDetails(token, orderId);
+    console.log('Detailed Order Response at 04:32 PM +0530, July 07, 2025:', { orderData, packagesData, additionalItemsData });
 
-      if (orderData.status && orderData.order) {
-        const apiOrder = orderData.order;
-        const additionalItemsDiscount = additionalItemsData.status && additionalItemsData.data
-          ? additionalItemsData.data.reduce((sum: number, item: any) => sum + parseFloat(item.discount || '0'), 0)
-          : 0;
-        const totalDiscount = parseFloat(apiOrder.discount || '0') + additionalItemsDiscount;
+    if (orderData.status && orderData.order) {
+      const apiOrder = orderData.order;
+      const additionalItemsDiscount = additionalItemsData.status && additionalItemsData.data
+        ? additionalItemsData.data.reduce((sum: number, item: any) => sum + parseFloat(item.discount || '0'), 0)
+        : 0;
+      const totalDiscount = parseFloat(apiOrder.discount || '0') + additionalItemsDiscount;
 
-        const detailedOrder: DetailedOrder = {
-          orderId: String(apiOrder.id) || 'N/A',
-          invoiceNo: String(apiOrder.invoiceNo) || 'N/A',
-          scheduleDate: apiOrder.sheduleDate ? formatDateTime(apiOrder.sheduleDate, 'date') : 'N/A',
-          scheduleTime: apiOrder.sheduleTime || 'N/A',
-          deliveryType: apiOrder.delivaryMethod || 'N/A',
-          total: apiOrder.fullTotal ? `Rs. ${parseFloat(apiOrder.fullTotal || '0').toFixed(2)}` : 'Rs. 0.00',
-          orderPlaced: apiOrder.createdAt ? formatDateTime(apiOrder.createdAt, 'date') : 'N/A',
-          status: apiOrder.processStatus || 'Pending',
-          fullName: apiOrder.fullName || 'N/A',
-          phonecode1: apiOrder.phonecode1 || '',
-          phone1: apiOrder.phone1 || '',
-          phonecode2: apiOrder.phonecode2 || '',
-          phone2: apiOrder.phone2 || '',
-          pickupInfo:
-            apiOrder.delivaryMethod?.toLowerCase() === 'pickup' && apiOrder.pickupInfo
-              ? {
-                  centerName: apiOrder.pickupInfo.centerName || 'N/A',
-                  contact01: apiOrder.pickupInfo.contact01 || 'N/A',
-                  fullName: apiOrder.pickupInfo.fullName || 'N/A',
-                  buildingNumber: apiOrder.pickupInfo.address?.street || 'N/A',
-                  street: apiOrder.pickupInfo.address?.street || 'N/A',
-                  city: apiOrder.pickupInfo.address?.city || 'N/A',
-                  district: apiOrder.pickupInfo.address?.district || 'N/A',
-                  province: apiOrder.pickupInfo.address?.province || 'N/A',
-                  country: apiOrder.pickupInfo.address?.country || 'N/A',
-                  zipCode: apiOrder.pickupInfo.address?.zipCode || 'N/A',
-                }
-              : undefined,
-          deliveryInfo:
-            apiOrder.delivaryMethod?.toLowerCase() === 'delivery' && apiOrder.deliveryInfo
-              ? {
-                  buildingType: apiOrder.deliveryInfo.buildingType || 'N/A',
-                  houseNo: apiOrder.deliveryInfo.houseNo || 'N/A',
-                  street: apiOrder.deliveryInfo.streetName || 'N/A',
-                  city: apiOrder.deliveryInfo.city || 'N/A',
-                  buildingNo: apiOrder.deliveryInfo.buildingNo || 'N/A',
-                  buildingName: apiOrder.deliveryInfo.buildingName || 'N/A',
-                  flatNo: apiOrder.deliveryInfo.unitNo || 'N/A',
-                  floorNo: apiOrder.deliveryInfo.floorNo || 'N/A',
-                }
-              : undefined,
-          familyPackItems: packagesData.status && packagesData.data
-            ? packagesData.data.map((pack: any, index: number) => ({
-                packageId: `${pack.packageId}_${index}`,
-                name: pack.displayName || 'Family Pack',
-                items: pack.products?.map((item: any) => ({
-                  id: item.id || 0,
-                  name: item.typeName || 'Unknown',
-                  weight: item.weight || '1 kg',
-                  price: item.price ? `Rs. ${parseFloat(item.price || '0').toFixed(2)}` : 'Rs. 0.00',
-                  quantity: item.qty ? String(item.qty).padStart(2, '0') : '01',
-                })) || [],
-                totalPrice: pack.productPrice || 'Rs. 0.00',
-              }))
-            : [],
-          additionalItems: additionalItemsData.status && additionalItemsData.data
-            ? additionalItemsData.data.map((item: any) => ({
+      const detailedOrder: DetailedOrder = {
+        orderId: String(apiOrder.id) || 'N/A',
+        invoiceNo: String(apiOrder.invoiceNo) || 'N/A',
+        scheduleDate: apiOrder.sheduleDate ? formatDateTime(apiOrder.sheduleDate, 'date') : 'N/A',
+        scheduleTime: apiOrder.sheduleTime || 'N/A',
+        deliveryType: apiOrder.delivaryMethod || 'N/A',
+        total: apiOrder.fullTotal ? `Rs. ${parseFloat(apiOrder.fullTotal || '0').toFixed(2)}` : 'Rs. 0.00',
+        orderPlaced: apiOrder.createdAt ? formatDateTime(apiOrder.createdAt, 'date') : 'N/A',
+        status: apiOrder.processStatus || 'Pending',
+        fullName: apiOrder.fullName || 'N/A',
+        phonecode1: apiOrder.phonecode1 || '',
+        phone1: apiOrder.phone1 || '',
+        phonecode2: apiOrder.phonecode2 || '',
+        phone2: apiOrder.phone2 || '',
+        pickupInfo:
+          apiOrder.delivaryMethod?.toLowerCase() === 'pickup' && apiOrder.pickupInfo
+            ? {
+                centerName: apiOrder.pickupInfo.centerName || 'N/A',
+                contact01: apiOrder.pickupInfo.contact01 || 'N/A',
+                fullName: apiOrder.pickupInfo.fullName || 'N/A',
+                buildingNumber: apiOrder.pickupInfo.address?.street || 'N/A',
+                street: apiOrder.pickupInfo.address?.street || 'N/A',
+                city: apiOrder.pickupInfo.address?.city || 'N/A',
+                district: apiOrder.pickupInfo.address?.district || 'N/A',
+                province: apiOrder.pickupInfo.address?.province || 'N/A',
+                country: apiOrder.pickupInfo.address?.country || 'N/A',
+                zipCode: apiOrder.pickupInfo.address?.zipCode || 'N/A',
+              }
+            : undefined,
+        deliveryInfo:
+          apiOrder.delivaryMethod?.toLowerCase() === 'delivery' && apiOrder.deliveryInfo
+            ? {
+                buildingType: apiOrder.deliveryInfo.buildingType || 'N/A',
+                houseNo: apiOrder.deliveryInfo.houseNo || 'N/A',
+                street: apiOrder.deliveryInfo.streetName || 'N/A',
+                city: apiOrder.deliveryInfo.city || 'N/A',
+                buildingNo: apiOrder.deliveryInfo.buildingNo || 'N/A',
+                buildingName: apiOrder.deliveryInfo.buildingName || 'N/A',
+                flatNo: apiOrder.deliveryInfo.unitNo || 'N/A',
+                floorNo: apiOrder.deliveryInfo.floorNo || 'N/A',
+              }
+            : undefined,
+        familyPackItems: packagesData.status && packagesData.data
+          ? packagesData.data.map((pack: any, index: number) => ({
+              packageId: `${pack.packageId}_${index}`,
+              name: pack.displayName || 'Family Pack',
+              items: pack.products?.map((item: any) => ({
                 id: item.id || 0,
-                name: item.displayName || 'Unknown',
-                quantity: String(item.qty || 1).padStart(2, '0'),
-                unit: item.unit || 'kg',
-                weight: `${item.qty || '1'} ${item.unit || 'kg'}`,
+                name: item.typeName || 'Unknown',
+                weight: item.weight || '1 kg',
                 price: item.price ? `Rs. ${parseFloat(item.price || '0').toFixed(2)}` : 'Rs. 0.00',
-                image: item.image || undefined,
-                amount: item.price && item.qty
-                  ? `Rs. ${(parseFloat(item.price) * parseFloat(item.qty)).toFixed(2)}`
-                  : 'Rs. 0.00',
-              }))
-            : [],
-          discount: totalDiscount > 0 ? `Rs. ${totalDiscount.toFixed(2)}` : 'Rs. 0.00',
-        };
-        setSelectedOrder(detailedOrder);
-      }
-    } catch (err) {
-      console.error('Error fetching detailed order at 12:03 PM +0530, June 06, 2025:', err);
-      setSelectedOrder(null);
+                quantity: item.qty ? String(item.qty).padStart(2, '0') : '01',
+              })) || [],
+              totalPrice: pack.productPrice || 'Rs. 0.00',
+            }))
+          : [],
+        additionalItems: additionalItemsData.status && additionalItemsData.data
+          ? additionalItemsData.data.map((item: any) => ({
+              id: item.id || 0,
+              name: item.displayName || 'Unknown',
+              quantity: String(item.qty || 1).padStart(2, '0'),
+              unit: item.unit || 'kg',
+              weight: `${item.qty || '1'} ${item.unit || 'kg'}`,
+              price: item.price ? `Rs. ${parseFloat(item.price || '0').toFixed(2)}` : 'Rs. 0.00',
+              image: item.image || undefined,
+              amount: item.price && item.qty
+                ? `Rs. ${(parseFloat(item.price) * parseFloat(item.qty)).toFixed(2)}`
+                : 'Rs. 0.00',
+            }))
+          : [],
+        discount: totalDiscount > 0 ? `Rs. ${totalDiscount.toFixed(2)}` : 'Rs. 0.00',
+      };
+      setSelectedOrder(detailedOrder);
     }
-  };
-
-  if (loading) return <div className="p-10 text-center">Loading...</div>;
-
- const filteredOrders = filter === 'all' ? orders : orders.filter((order) => {
-  const orderDate = new Date(order.orderPlaced !== 'N/A' ? order.orderPlaced : order.scheduleDate);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const startOfThisWeek = new Date(today);
-  startOfThisWeek.setDate(today.getDate() - today.getDay()); // Sunday
-
-  const startOfLastWeek = new Date(startOfThisWeek);
-  startOfLastWeek.setDate(startOfThisWeek.getDate() - 7);
-
-  const startOfLast2Weeks = new Date(startOfThisWeek);
-  startOfLast2Weeks.setDate(startOfThisWeek.getDate() - 14);
-
-  const oneMonthAgo = new Date(today);
-  oneMonthAgo.setMonth(today.getMonth() - 1);
-
-  const threeMonthsAgo = new Date(today);
-  threeMonthsAgo.setMonth(today.getMonth() - 3);
-
-  switch (filter) {
-    case 'this-week':
-      return orderDate >= startOfThisWeek && orderDate <= today;
-    case 'last-week':
-      return orderDate >= startOfLastWeek && orderDate < startOfThisWeek;
-    case 'last-2-weeks':
-      return orderDate >= startOfLast2Weeks && orderDate < startOfThisWeek;
-    case 'this-month':
-      return orderDate >= oneMonthAgo && orderDate <= today;
-    case 'last-3-months':
-      return orderDate >= threeMonthsAgo && orderDate <= today;
-    default:
-      return true;
+  } catch (err) {
+    console.error('Error fetching detailed order at 04:32 PM +0530, July 07, 2025:', err);
+    setSelectedOrder(null);
+  } finally {
+    setIsFetchingDetails(false); // Stop loading
   }
-});
+};
 
-    const handleFilterChange = (
+ 
+
+  const filteredOrders = filter === 'all' ? orders : orders.filter((order) => {
+    const orderDate = new Date(order.orderPlaced !== 'N/A' ? order.orderPlaced : order.scheduleDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const startOfThisWeek = new Date(today);
+    startOfThisWeek.setDate(today.getDate() - today.getDay()); // Sunday
+
+    const startOfLastWeek = new Date(startOfThisWeek);
+    startOfLastWeek.setDate(startOfThisWeek.getDate() - 7);
+
+    const startOfLast2Weeks = new Date(startOfThisWeek);
+    startOfLast2Weeks.setDate(startOfThisWeek.getDate() - 14);
+
+    const oneMonthAgo = new Date(today);
+    oneMonthAgo.setMonth(today.getMonth() - 1);
+
+    const threeMonthsAgo = new Date(today);
+    threeMonthsAgo.setMonth(today.getMonth() - 3);
+
+    switch (filter) {
+      case 'this-week':
+        return orderDate >= startOfThisWeek && orderDate <= today;
+      case 'last-week':
+        return orderDate >= startOfLastWeek && orderDate < startOfThisWeek;
+      case 'last-2-weeks':
+        return orderDate >= startOfLast2Weeks && orderDate < startOfThisWeek;
+      case 'this-month':
+        return orderDate >= oneMonthAgo && orderDate <= today;
+      case 'last-3-months':
+        return orderDate >= threeMonthsAgo && orderDate <= today;
+      default:
+        return true;
+    }
+  });
+
+  const handleFilterChange = (
     newValue: SingleValue<{ value: string; label: string }>,
     actionMeta: ActionMeta<{ value: string; label: string }>
   ): void => {
@@ -345,207 +350,227 @@ export default function OrderHistoryPage() {
     }
   };
 
-  return (
+return (
     <div className="flex flex-col min-h-screen bg-[rgb(255,255,255)] relative">
+      <Loader isVisible={loading} />
       <main ref={mainRef} className="flex-1 p-6 z-10 min-h-screen">
-        <div className="flex flex-row justify-between items-center mb-6 space-x-2 lg:mx-[72px]">
-          <h1 className="text-sm lg:text-xl font-bold">
-            Your Orders ({filteredOrders.length.toString().padStart(2, '0')})
-          </h1>
-          <div className="relative w-[140px] sm:w-[180px]">
-           <Select
-              options={filterOptions}
-              value={filterOptions.find((option) => option.value === filter)}
-              onChange={handleFilterChange}
-              className="text-xs lg:text-sm"
-              styles={{
-                control: (base) => ({
-                  ...base,
-                  border: '1px solid rgb(206,206,206)',
-                  borderRadius: '0.25rem',
-                  height: '36px',
-                  backgroundColor: 'rgb(248,248,248)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  textAlign: 'center',
-                  paddingRight: '1.5rem',
-                  boxShadow: 'none',
-                  ':hover': {
-                    borderColor: 'rgb(62,32,109)',
-                    backgroundColor: 'rgb(243,244,246)',
-                  },
-                }),
-                option: (base, { isFocused }) => ({
-                  ...base,
-                  cursor: 'pointer',
-                  backgroundColor: isFocused ? 'rgb(243,244,246)' : 'white',
-                  color: 'rgb(31,41,55)',
-                  textAlign: 'center',
-                  padding: '8px 12px',
-                }),
-                menu: (base) => ({
-                  ...base,
-                  marginTop: '0',
-                  borderRadius: '0.25rem',
-                  textAlign: 'center',
-                  width: '100%',
-                }),
-                singleValue: (base) => ({
-                  ...base,
-                  textAlign: 'center',
-                  width: '100%',
-                  color: 'rgb(31,41,55)',
-                }),
-                dropdownIndicator: (base) => ({
-                  ...base,
-                  color: 'rgb(107,114,128)',
-                  paddingRight: '8px',
-                }),
-              }}
-              components={{
-                DropdownIndicator: () => (
-                  <FaAngleDown className="text-[rgb(107,114,128)] text-xs lg:text-sm" />
-                ),
-                IndicatorSeparator: () => null,
-              }}
-            />
-          </div>
-              
-        </div>
-
-        {filteredOrders.length > 0 ? (
-          <div className="lg:mx-[72px] space-y-4">
-            {filteredOrders.map((order) => (
-              <div
-                key={order.orderId}
-                className="border rounded-xl overflow-hidden"
-                style={{ borderColor: 'rgb(215,215,215)' }}
-              >
-                <div className="hidden sm:grid grid-cols-5 gap-4 p-4 bg-[rgb(248,248,248)] text-xs lg:text-sm">
-                  <div>
-                    <span className="text-[rgb(107,114,128)]">Scheduled Date:</span>
-                    <p className="font-medium">{order.scheduleDate}</p>
-                  </div>
-                  <div>
-                    <span className="text-[rgb(107,114,128)]">Total:</span>
-                    <p className="font-medium">{order.total}</p>
-                  </div>
-                  <div>
-                    <span className="text-[rgb(107,114,128)]">Order ID:</span>
-                    <p className="font-medium">#{order.invoiceNo}</p>
-                  </div>
-                  <div />
-                  <div className="flex gap-2 justify-end">
-                    <button
-                      onClick={() => fetchDetailedOrder(order.orderId)}
-                      className="bg-[rgb(255,255,255)] border text-xs lg:text-sm cursor-pointer border-[rgb(209,213,219)] rounded-lg px-4 py-1.5 hover:bg-[rgb(62,32,109)] hover:text-[rgb(255,255,255)]"
-                    >
-                      View Order
-                    </button>
-                    <button
-                      onClick={() => router.push(`/history/invoice?orderId=${order.orderId}`)}
-                      className="bg-[rgb(255,255,255)] border text-xs lg:text-sm cursor-pointer border-[rgb(209,213,219)] rounded-lg px-4 py-1.5 hover:bg-[rgb(62,32,109)] hover:text-[rgb(255,255,255)]"
-                    >
-                      View Invoice
-                    </button>
-                  </div>
-                </div>
-
-                <div className="sm:hidden bg-[rgb(248,248,248)] p-4 space-y-2 text-sm">
-                  <div>
-                    <strong>Scheduled Date:</strong> {order.scheduleDate}
-                  </div>
-                  <div>
-                    <strong>Total:</strong> {order.total}
-                  </div>
-                  <div>
-                    <strong>Order ID:</strong> #{order.orderId}
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <button
-                      onClick={() => fetchDetailedOrder(order.orderId)}
-                      className="bg-[rgb(255,255,255)] border border-[rgb(209,213,219)] rounded px-4 py-1 hover:bg-[rgb(62,32,109)] hover:text-[rgb(255,255,255)]"
-                    >
-                      View Order
-                    </button>
-                    <button
-                      onClick={() => router.push(`/history/invoice?orderId=${order.orderId}`)}
-                      className="bg-[rgb(255,255,255)] border border-[rgb(209,213,219)] rounded px-4 py-1 hover:bg-[rgb(62,32,109)] hover:text-[rgb(255,255,255)]"
-                    >
-                      View Invoice
-                    </button>
-                  </div>
-                </div>
-
-                <div className="border-t" style={{ borderColor: 'rgb(215,215,215)' }} />
-                <div className="hidden sm:grid grid-cols-5 gap-4 p-4 bg-[rgb(255,255,255)] text-xs lg:text-sm mt-4">
-                  <div>
-                    <span className="text-[rgb(107,114,128)]">Status:</span>
-                    <p>
-                      <span
-                        className={`inline-flex justify-center items-center font-medium px-3 py-0.5 rounded-full text-xs min-w-[100px] ${getStatusClass(
-                          order.status
-                        )}`}
-                      >
-                        {order.status}
-                      </span>
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-[rgb(107,114,128)]">Order Placed:</span>
-                    <p className="text-[rgb(0,0,0)]">{order.orderPlaced}</p>
-                  </div>
-                  <div>
-                    <span className="text-[rgb(107,114,128)]">Scheduled Time:</span>
-                    <p className="text-[rgb(0,0,0)]">{order.scheduleTime}</p>
-                  </div>
-                  <div>
-                    <span className="text-[rgb(107,114,128)]">Delivery / Pickup:</span>
-                    <p className="text-[rgb(0,0,0)]">{order.deliveryType}</p>
-                  </div>
-                </div>
-
-                <div className="sm:hidden p-4 bg-[rgb(255,255,255)] space-y-2 text-sm">
-                  <div>
-                    <strong>Status:</strong>
-                    <span
-                      className={`ml-2 px-2 py-0.5 rounded-full ${getStatusClass(order.status)}`}
-                    >
-                      {order.status}
-                    </span>
-                  </div>
-                  <div>
-                    <strong>Order Placed:</strong> {order.orderPlaced}
-                  </div>
-                  <div>
-                    <strong>Scheduled Time:</strong> {order.scheduleTime}
-                  </div>
-                  <div>
-                    <strong>Delivery / Pickup:</strong> {order.deliveryType}
-                  </div>
-                </div>
-              </div>
-            ))}
+        {loading ? (
+          <div className="flex flex-col items-center justify-center h-[70vh] text-center text-[rgb(75,85,99)]">
+            <Loader isVisible={loading} />
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center h-[70vh] text-center text-[rgb(75,85,99)] -mt-32">
-            <Image src="/images/History.jpg" alt="No Orders" width={200} height={200} />
-            <p className="mt-4 text-sm italic">--No orders available here--</p>
-          </div>
+          <>
+            <div className="flex flex-row justify-between items-center mb-6 space-x-2 lg:mx-[72px]">
+              <h1 className="text-sm lg:text-xl font-bold">
+                Your Orders ({filteredOrders.length.toString().padStart(2, '0')})
+              </h1>
+              <div className="relative w-[140px] sm:w-[180px]">
+                <Select
+                  instanceId="order-history-filter"
+                  options={filterOptions}
+                  value={filterOptions.find((option) => option.value === filter)}
+                  onChange={handleFilterChange}
+                  className="text-xs lg:text-sm"
+                  styles={{
+                    control: (base) => ({
+                      ...base,
+                      border: '1px solid rgb(206,206,206)',
+                      borderRadius: '0.25rem',
+                      height: '36px',
+                      backgroundColor: 'rgb(248,248,248)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      textAlign: 'center',
+                      paddingRight: '1.5rem',
+                      boxShadow: 'none',
+                      ':hover': {
+                        borderColor: 'rgb(62,32,109)',
+                        backgroundColor: 'rgb(243,244,246)',
+                      },
+                    }),
+                    option: (base, { isFocused }) => ({
+                      ...base,
+                      cursor: 'pointer',
+                      backgroundColor: isFocused ? 'rgb(243,244,246)' : 'white',
+                      color: 'rgb(31,41,55)',
+                      textAlign: 'center',
+                      padding: '8px 12px',
+                    }),
+                    menu: (base) => ({
+                      ...base,
+                      marginTop: '0',
+                      borderRadius: '0.25rem',
+                      textAlign: 'center',
+                      width: '100%',
+                    }),
+                    singleValue: (base) => ({
+                      ...base,
+                      textAlign: 'center',
+                      width: '100%',
+                      color: 'rgb(31,41,55)',
+                   
+
+ }),
+                    dropdownIndicator: (base) => ({
+                      ...base,
+                      color: 'rgb(107,114,128)',
+                      paddingRight: '8px',
+                    }),
+                  }}
+                  components={{
+                    DropdownIndicator: () => (
+                      <FaAngleDown className="text-[rgb(107,114,128)] text-xs lg:text-sm" />
+                    ),
+                    IndicatorSeparator: () => null,
+                  }}
+                />
+              </div>
+            </div>
+
+            {filteredOrders.length > 0 ? (
+              <div className="lg:mx-[72px] space-y-4">
+                {filteredOrders.map((order) => (
+                  <div
+                    key={order.orderId}
+                    className="border rounded-xl overflow-hidden"
+                    style={{ borderColor: 'rgb(215,215,215)' }}
+                  >
+                    <div className="hidden sm:grid grid-cols-5 gap-4 p-4 bg-[rgb(248,248,248)] text-xs lg:text-sm">
+                      <div>
+                        <span className="text-[rgb(107,114,128)]">Scheduled Date:</span>
+                        <p className="font-medium">{order.scheduleDate}</p>
+                      </div>
+                      <div>
+                        <span className="text-[rgb(107,114,128)]">Total:</span>
+                        <p className="font-medium">{order.total}</p>
+                      </div>
+                      <div>
+                        <span className="text-[rgb(107,114,128)]">Order ID:</span>
+                        <p className="font-medium">#{order.invoiceNo}</p>
+                      </div>
+                      <div />
+                      <div className="flex gap-2 justify-end">
+                        <button
+                          onClick={() => fetchDetailedOrder(order.orderId)}
+                          className="bg-[rgb(255,255,255)] border text-xs lg:text-sm cursor-pointer border-[rgb(209,213,219)] rounded-lg px-4 py-1.5 hover:bg-[rgb(62,32,109)] hover:text-[rgb(255,255,255)]"
+                          disabled={isFetchingDetails}
+                        >
+                          View Order
+                        </button>
+                        <button
+                          onClick={() => router.push(`/history/invoice?orderId=${order.orderId}`)}
+                          className="bg-[rgb(255,255,255)] border text-xs lg:text-sm cursor-pointer border-[rgb(209,213,219)] rounded-lg px-4 py-1.5 hover:bg-[rgb(62,32,109)] hover:text-[rgb(255,255,255)]"
+                          disabled={isFetchingDetails}
+                        >
+                          View Invoice
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="sm:hidden bg-[rgb(248,248,248)] p-4 space-y-2 text-sm">
+                      <div>
+                        <strong>Scheduled Date:</strong> {order.scheduleDate}
+                      </div>
+                      <div>
+                        <strong>Total:</strong> {order.total}
+                      </div>
+                      <div>
+                        <strong>Order ID:</strong> #{order.orderId}
+                      </div>
+                      <div className="flex gap-2 justify-end">
+                        <button
+                          onClick={() => fetchDetailedOrder(order.orderId)}
+                          className="bg-[rgb(255,255,255)] border text-xs cursor-pointer border-[rgb(209,213,219)] rounded-lg px-4 py-1.5 hover:bg-[rgb(62,32,109)] hover:text-[rgb(255,255,255)]"
+                          disabled={isFetchingDetails}
+                        >
+                          View Order
+                        </button>
+                        <button
+                          onClick={() => router.push(`/history/invoice?orderId=${order.orderId}`)}
+                          className="bg-[rgb(255,255,255)] border text-xs cursor-pointer border-[rgb(209,213,219)] rounded-lg px-4 py-1.5 hover:bg-[rgb(62,32,109)] hover:text-[rgb(255,255,255)]"
+                          disabled={isFetchingDetails}
+                        >
+                          View Invoice
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="border-t" style={{ borderColor: 'rgb(215,215,215)' }} />
+                    <div className="hidden sm:grid grid-cols-5 gap-4 p-4 bg-[rgb(255,255,255)] text-xs lg:text-sm mt-4">
+                      <div>
+                        <span className="text-[rgb(107,114,128)]">Status:</span>
+                        <p>
+                          <span
+                            className={`inline-flex justify-center items-center font-medium px-3 py-0.5 rounded-full text-xs min-w-[100px] ${getStatusClass(
+                              order.status
+                            )}`}
+                          >
+                            {order.status}
+                          </span>
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-[rgb(107,114,128)]">Order Placed:</span>
+                        <p className="text-[rgb(0,0,0)]">{order.orderPlaced}</p>
+                      </div>
+                      <div>
+                        <span className="text-[rgb(107,114,128)]">Scheduled Time:</span>
+                        <p className="text-[rgb(0,0,0)]">{order.scheduleTime}</p>
+                      </div>
+                      <div>
+                        <span className="text-[rgb(107,114,128)]">Delivery / Pickup:</span>
+                        <p className="text-[rgb(0,0,0)]">{order.deliveryType}</p>
+                      </div>
+                    </div>
+
+                    <div className="sm:hidden p-4 bg-[rgb(255,255,255)] space-y-2 text-sm">
+                      <div>
+                        <strong>Status:</strong>
+                        <span className={`ml-2 px-2 py-0.5 rounded-full ${getStatusClass(order.status)}`}>
+                          {order.status}
+                        </span>
+                      </div>
+                      <div>
+                        <strong>Order Placed:</strong> {order.orderPlaced}
+                      </div>
+                      <div>
+                        <strong>Scheduled Time:</strong> {order.scheduleTime}
+                      </div>
+                      <div>
+                        <strong>Delivery / Pickup:</strong> {order.deliveryType}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-[70vh] text-center text-[rgb(75,85,99)] -mt-32">
+                <Image src="/images/History.jpg" alt="No
+
+ Orders" width={200} height={200} />
+                <p className="mt-4 text-sm italic">--No orders available here--</p>
+              </div>
+            )}
+          </>
         )}
       </main>
 
-      {selectedOrder && (
+      {(selectedOrder || isFetchingDetails) && (
         <div className="absolute inset-0 bg-[rgba(255,255,255,0.5)] backdrop-blur-sm flex justify-end items-start z-30">
           <div
             ref={modalContentRef}
             className="relative bg-[rgb(255,255,255)] rounded-l-xl w-full max-w-5xl h-full p-8 overflow-y-auto shadow-2xl animate-slideInRight"
           >
-            {selectedOrder.deliveryType.toLowerCase() === 'pickup' ? (
-              <PickupOrderView order={selectedOrder} onClose={() => setSelectedOrder(null)} />
-            ) : (
-              <DeliveryOrderView order={selectedOrder} onClose={() => setSelectedOrder(null)} />
+            <Loader isVisible={isFetchingDetails} />
+            {selectedOrder && !isFetchingDetails && (
+              <>
+                {selectedOrder.deliveryType.toLowerCase() === 'pickup' ? (
+                  <PickupOrderView order={selectedOrder} onClose={() => setSelectedOrder(null)} />
+                ) : (
+                  <DeliveryOrderView order={selectedOrder} onClose={() => setSelectedOrder(null)} />
+                )}
+              </>
             )}
           </div>
         </div>
@@ -617,17 +642,17 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
           <div>
             <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Pickup Person Information:</h4>
             <p className="font-semibold">{order.fullName || 'N/A'}</p>
-           <div>
-  
-  <p>
-    {order.phone1
-      ? `${order.phonecode1 || ''} ${order.phone1}`
-      : ''}
-    {order.phone2
-      ? `, ${order.phonecode2 || ''} ${order.phone2}`
-      : ''}
-  </p>
-</div>
+            <div>
+
+              <p>
+                {order.phone1
+                  ? `${order.phonecode1 || ''} ${order.phone1}`
+                  : ''}
+                {order.phone2
+                  ? `, ${order.phonecode2 || ''} ${order.phone2}`
+                  : ''}
+              </p>
+            </div>
 
           </div>
         </div>
@@ -674,9 +699,7 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
                 ))
               ) : (
                 <tr>
-                  <td colSpan={4} className="text-[rgb(75,85,99)] py-2 p-4">
-                    No family pack items available.
-                  </td>
+                 
                 </tr>
               )}
               {order.additionalItems && order.additionalItems.length > 0 && (
@@ -812,17 +835,17 @@ function DeliveryOrderView({ order, onClose }: { order: DetailedOrder, onClose: 
             </div>
           </div>
           <div>
-  <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Receiving Person Information:</h4>
-  <p className="font-semibold">{order.fullName || 'N/A'}</p>
-  <p>
-    {order.phone1
-      ? `${order.phonecode1 || ''} ${order.phone1}`
-      : ''}
-    {order.phone2
-      ? `, ${order.phonecode2 || ''} ${order.phone2}`
-      : ''}
-  </p>
-</div>
+            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Receiving Person Information:</h4>
+            <p className="font-semibold">{order.fullName || 'N/A'}</p>
+            <p>
+              {order.phone1
+                ? `${order.phonecode1 || ''} ${order.phone1}`
+                : ''}
+              {order.phone2
+                ? `, ${order.phonecode2 || ''} ${order.phone2}`
+                : ''}
+            </p>
+          </div>
 
         </div>
       </div>
@@ -868,9 +891,7 @@ function DeliveryOrderView({ order, onClose }: { order: DetailedOrder, onClose: 
                 ))
               ) : (
                 <tr>
-                  <td colSpan={4} className="text-[rgb(75,85,99)] py-2 p-4">
-                    No family pack items available.
-                  </td>
+                  
                 </tr>
               )}
               {order.additionalItems && order.additionalItems.length > 0 && (
