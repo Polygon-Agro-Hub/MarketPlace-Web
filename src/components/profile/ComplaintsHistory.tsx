@@ -9,6 +9,7 @@ import { RootState } from '@/store';
 import { fetchComplaints } from '@/services/auth-service';
 import EmptyComplaints from '../complaints/No-complaint';
 import Select, { ActionMeta, SingleValue } from 'react-select'; // Import react-select
+import Loader from '@/components/loader-spinner/Loader';
 
 // Interfaces
 interface Complaint {
@@ -51,6 +52,9 @@ const ComplaintsHistory = () => {
     }
 
     const getComplaints = async () => {
+      const startTime = Date.now();
+      const minimumLoadTime = 2500; // 2.5 seconds minimum loader time
+
       try {
         setLoading(true);
         const fetchedComplaints = await fetchComplaints({ userId, token });
@@ -60,7 +64,13 @@ const ComplaintsHistory = () => {
         const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
         setError(errorMessage);
       } finally {
-        setLoading(false);
+        // Ensure loader shows for minimum duration
+        const elapsedTime = Date.now() - startTime;
+        const remainingTime = Math.max(0, minimumLoadTime - elapsedTime);
+
+        setTimeout(() => {
+          setLoading(false);
+        }, remainingTime);
       }
     };
 
@@ -117,12 +127,13 @@ const ComplaintsHistory = () => {
     }
   };
 
+
   return (
     <div>
+      <Loader isVisible={loading} />
       <div
-        className={`relative z-10 px-4 sm:px-6 md:px-8 min-h-screen mb-10 ${
-          selectedComplaint ? 'bg-white' : 'bg-white'
-        } blur-effect`}
+        className={`relative z-10 px-4 sm:px-6 md:px-8 min-h-screen mb-10 ${selectedComplaint ? 'bg-white' : 'bg-white'
+          } blur-effect`}
       >
         <h2 className="font-medium text-[14px] text-base md:text-[18px] mb-2 mt-2">
           Complaints History
@@ -181,6 +192,7 @@ const ComplaintsHistory = () => {
                   value={filterOptions.find((option) => option.value === filter)}
                   onChange={handleFilterChange}
                   className="text-xs sm:text-sm"
+                  isSearchable={false} 
                   styles={{
                     control: (base) => ({
                       ...base,
@@ -259,13 +271,12 @@ const ComplaintsHistory = () => {
                       <div className="flex flex-col items-start sm:items-center">
                         <div className="flex items-center">
                           <span
-                            className={`min-w-[100px] sm:min-w-[120px] text-center px-2 py-1 rounded-full text-[12px] md:text-[16px] ${
-                              complaint.status === 'Closed'
+                            className={`min-w-[100px] sm:min-w-[120px] text-center px-2 py-1 rounded-full text-[12px] md:text-[16px] ${complaint.status === 'Closed'
                                 ? 'bg-[#EDE1FF] text-[#3E206D]'
                                 : complaint.status === 'Opened'
-                                ? 'bg-[#CFE1FF] text-[#3B82F6]'
-                                : 'bg-gray-200 text-gray-800'
-                            }`}
+                                  ? 'bg-[#CFE1FF] text-[#3B82F6]'
+                                  : 'bg-gray-200 text-gray-800'
+                              }`}
                           >
                             {complaint.status || 'Unknown'}
                           </span>

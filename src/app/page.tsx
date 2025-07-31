@@ -9,6 +9,7 @@ import CategoryFilter from "@/components/type-filters/CategoryFilter";
 import { getAllProduct } from "@/services/product-service";
 import TopBanner from '@/components/home/TopBanner';
 import AuthGuard from '@/components/AuthGuard';
+import { useRouter } from 'next/navigation';
 
 interface Package {
   id: number;
@@ -24,16 +25,19 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState('fruits');
-  
+
   // Modal state lifted to main component
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
   const [selectedPackageForCart, setSelectedPackageForCart] = useState<any>(null);
+  const [showLoginPopup, setShowLoginPopup] = useState(false);
 
   const cart = useSelector((state: RootState) => state.checkout) || null;
 
   const cartState = useSelector((state: RootState) => state.cart);
   const cartItemsState = useSelector((state: RootState) => state.cartItems);
   const authState = useSelector((state: RootState) => state.auth);
+
+  const router = useRouter();
 
   // Console log Redux data whenever it changes
   // useEffect(() => {
@@ -94,8 +98,72 @@ export default function Home() {
     setSelectedPackageForCart(null);
   };
 
+  const handleShowLoginPopup = () => {
+    setShowLoginPopup(true);
+  };
+
+  const handleLoginClick = () => {
+    setShowLoginPopup(false);
+    router.push('/signin');
+  };
+
+  const handleRegisterClick = () => {
+    setShowLoginPopup(false);
+    router.push('/signup');
+  };
+
+      const LoginPopup = () => {
+        if (!showLoginPopup) return null;
+
+        return (
+            <div className="fixed top-0 left-0 w-full h-full bg-black bg-black/50 flex items-center justify-center z-[9999] mb-[5%]">
+                <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4 relative">
+                    {/* Close button */}
+                    <button
+                        onClick={() => setShowLoginPopup(false)}
+                        className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 cursor-pointer"
+                    >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+
+                    {/* Header */}
+                    <div className="text-center mb-6">
+                        <h2 className="text-xl font-bold text-[#000000] mb-4">
+                            Welcome, Guest! 👋
+                        </h2>
+                        <p className="text-[#8492A3] text-base leading-relaxed">
+                            We're excited to have you here!<br />
+                            To unlock the best experience,<br />
+                            please log in or create a new account.
+                        </p>
+                    </div>
+
+                    {/* Buttons */}
+                    <div className="flex justify-center space-x-4">
+                        <button
+                            onClick={handleRegisterClick}
+                            className="py-3 px-6 max-w-32 flex-1 rounded-2xl bg-[#EDE1FF] text-[#3E206D] text-sm sm:text-base font-semibold hover:bg-[#DCC7FF] transition-colors cursor-pointer"
+                        >
+                            Register
+                        </button>
+                        <button
+                            onClick={handleLoginClick}
+                            className="py-3 px-6 max-w-32 flex-1 rounded-2xl bg-[#3E206D] text-white font-semibold hover:bg-[#2D1A4F] text-sm sm:text-base transition-colors cursor-pointer"
+                        >
+                            Login
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+
+
   return (
-  
+
     <main className="flex min-h-screen flex-col items-center justify-between">
       <div className='mt-0 my-8'>
         <TopBanner/>
@@ -105,9 +173,10 @@ export default function Home() {
       ) : error ? (
         <div className="text-red-500">{error}</div>
       ) : (
-        <PackageSlider 
-          productData={productData} 
+        <PackageSlider
+          productData={productData}
           onShowConfirmModal={handleShowConfirmModal}
+          onShowLoginPopup={handleShowLoginPopup}
         />
       )}
 
@@ -148,7 +217,8 @@ export default function Home() {
           </div>
         </div>
       )}
+      <LoginPopup />
     </main>
-  
+
   );
 }
