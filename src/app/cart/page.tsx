@@ -119,20 +119,21 @@ const Page: React.FC = () => {
     return parseFloat((baseDiscount * quantityInKg).toFixed(2));
   };
 
-  const calculatePrice = (basePrice: number, unit: 'kg' | 'g', quantity: number): number => {
-    const quantityInKg = unit === 'g' ? quantity / 1000 : quantity;
-    return parseFloat((basePrice * quantityInKg).toFixed(2));
-  };
+const calculatePrice = (basePrice: number, unit: 'kg' | 'g', quantity: number): number => {
+  const quantityInKg = unit === 'g' ? quantity / 1000 : quantity;
+  return parseFloat((basePrice * quantityInKg).toFixed(2));
+};
 
   const getDisplayDiscount = (item: CartItem): number => {
     const selectedUnit = unitSelection[item.id] || item.unit;
     return calculateDiscount(item.discount, selectedUnit, item.quantity);
   };
 
-  const getDisplayPrice = (item: CartItem): number => {
-    const selectedUnit = unitSelection[item.id] || item.unit;
-    return calculatePrice(item.price, selectedUnit, item.quantity);
-  };
+ const getDisplayPrice = (item: CartItem): number => {
+  const selectedUnit = unitSelection[item.id] || item.unit;
+  // Use normalPrice instead of price for calculations
+  return calculatePrice(item.normalPrice, selectedUnit, item.quantity);
+};
 
   // Helper function to check if cart is empty
   const isCartEmpty = (): boolean => {
@@ -598,13 +599,14 @@ const Page: React.FC = () => {
   }, [showDeliveryModal]);
 
   // Add this helper function to calculate products total for a specific item group
-  const calculateItemGroupTotal = (itemGroup: AdditionalItems): number => {
-    return itemGroup.Items.reduce((total, item) => {
-      const selectedUnit = unitSelection[item.id] || item.unit;
-      const itemTotal = calculatePrice(item.price, selectedUnit, item.quantity);
-      return total + itemTotal;
-    }, 0);
-  };
+const calculateItemGroupTotal = (itemGroup: AdditionalItems): number => {
+  return itemGroup.Items.reduce((total, item) => {
+    const selectedUnit = unitSelection[item.id] || item.unit;
+    // Use normalPrice instead of price for calculations
+    const itemTotal = calculatePrice(item.normalPrice, selectedUnit, item.quantity);
+    return total + itemTotal;
+  }, 0);
+};
 
   useEffect(() => {
     console.log('showDeliveryModal changed:', showDeliveryModal);
@@ -612,46 +614,47 @@ const Page: React.FC = () => {
 
   // Updated selector for cart summary with proper unit calculations
   const getUpdatedCartSummary = () => {
-    let totalItems = 0;
-    let productTotal = 0;
-    let totalDiscount = 0;
-    let packageTotal = 0;
+  let totalItems = 0;
+  let productTotal = 0;
+  let totalDiscount = 0;
+  let packageTotal = 0;
 
-    // Calculate package totals
-    if (cartData.packages) {
-      cartData.packages.forEach(pkg => {
-        packageTotal += pkg.price * pkg.quantity;
-        totalItems += pkg.quantity;
+  // Calculate package totals
+  if (cartData.packages) {
+    cartData.packages.forEach(pkg => {
+      packageTotal += pkg.price * pkg.quantity;
+      totalItems += pkg.quantity;
+    });
+  }
+
+  // Calculate product totals with unit conversions using normalPrice
+  if (cartData.additionalItems) {
+    cartData.additionalItems.forEach(itemGroup => {
+      itemGroup.Items.forEach(item => {
+        const selectedUnit = unitSelection[item.id] || item.unit;
+        // Use normalPrice instead of price for calculations
+        const itemPrice = calculatePrice(item.normalPrice, selectedUnit, item.quantity);
+        const itemDiscount = calculateDiscount(item.discount, selectedUnit, item.quantity);
+
+        productTotal += itemPrice;
+        totalDiscount += itemDiscount;
+        totalItems += 1; // Count each item as 1 regardless of quantity
       });
-    }
+    });
+  }
 
-    // Calculate product totals with unit conversions
-    if (cartData.additionalItems) {
-      cartData.additionalItems.forEach(itemGroup => {
-        itemGroup.Items.forEach(item => {
-          const selectedUnit = unitSelection[item.id] || item.unit;
-          const itemPrice = calculatePrice(item.price, selectedUnit, item.quantity);
-          const itemDiscount = calculateDiscount(item.discount, selectedUnit, item.quantity);
+  const grandTotal = packageTotal + productTotal;
+  const finalTotal = grandTotal - totalDiscount;
 
-          productTotal += itemPrice;
-          totalDiscount += itemDiscount;
-          totalItems += 1; // Count each item as 1 regardless of quantity
-        });
-      });
-    }
-
-    const grandTotal = packageTotal + productTotal;
-    const finalTotal = grandTotal - totalDiscount;
-
-    return {
-      totalItems,
-      packageTotal,
-      productTotal,
-      totalDiscount,
-      grandTotal,
-      finalTotal
-    };
+  return {
+    totalItems,
+    packageTotal,
+    productTotal,
+    totalDiscount,
+    grandTotal,
+    finalTotal
   };
+};
 
   const dynamicSummary = getUpdatedCartSummary();
 

@@ -197,6 +197,27 @@ export const productAddToCart = async (productData: ProductCartData, token: stri
 };
 
 
+export const checkProductInCart = async (productId: number, token: string) => {
+    try {
+        const response = await axios.post(
+            '/product/check-product',
+            { mpItemId: productId },
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+            }
+        );
+        
+        return response.data;
+    } catch (error) {
+        console.error('Error checking product in cart:', error);
+        throw error;
+    }
+};
+
+
 export const getRetaildBanners = async (): Promise<any> => {
   try {
     const response = await axios.get('/product/slides', {
