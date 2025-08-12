@@ -432,13 +432,13 @@ const cityOptions = cities.map((city) => ({
         </p>
         <div className="border-t border-[#626D76] mb-6 mt-1" />
 
-        <h2 className="font-medium text-[14px] md:text-[18px] mb-4">Billing Information</h2>
+        <h2 className="font-medium text-[14px] md:text-[18px] mb-4">Billing Name</h2>
 
         <div className="md:w-[90%]">
           <div className="flex gap-4 md:gap-8">
             <div className="w-[10%] min-w-[70px]">
               <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
-                Billing Title
+               Title
               </label>
               <CustomDropdown
                 register={register}
@@ -453,7 +453,7 @@ const cityOptions = cities.map((city) => ({
 
             <div className="w-[90%]">
               <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
-                Billing Name
+               Full Name
               </label>
               <input
                 {...register('billingName', {

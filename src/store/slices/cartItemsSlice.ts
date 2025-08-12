@@ -120,7 +120,8 @@ const calculateSummary = (
 
   additionalItems.forEach(group => {
     group.Items.forEach(item => {
-      const itemPrice = calculatePrice(item.price, item.unit, item.quantity);
+      // Use normalPrice instead of price for calculations
+      const itemPrice = calculatePrice(item.normalPrice, item.unit, item.quantity);
       const itemDiscount = calculateDiscount(item.discount, item.unit, item.quantity);
       
       productTotal += itemPrice;

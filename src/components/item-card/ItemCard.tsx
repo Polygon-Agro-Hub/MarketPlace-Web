@@ -3,12 +3,11 @@
 import Image, { StaticImageData } from 'next/image';
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next//navigation';
-import { productAddToCart } from '@/services/product-service';
+import { productAddToCart, checkProductInCart } from '@/services/product-service';
 import { useSelector } from 'react-redux';
 import { useDispatch } from 'react-redux';
 import { updateCartInfo } from '@/store/slices/authSlice';
 import { getCartInfo } from '@/services/auth-service';
-
 
 type ItemCardProps = {
     id: number;
@@ -38,7 +37,8 @@ const ItemCard = ({
     const buyerType = useAppSelector((state) => state.auth.user?.buyerType);
     const [showQuantitySelector, setShowQuantitySelector] = useState(false);
     const [showLoginPopup, setShowLoginPopup] = useState(false);
-
+    const [isInCart, setIsInCart] = useState(false);
+    const [showTooltip, setShowTooltip] = useState(false);
 
     const getInitialQuantity = () => {
         if (unitType?.toLowerCase() === 'kg') {
@@ -56,12 +56,6 @@ const ItemCard = ({
         setQuantity(initialQuantity);
         setUnit(unitType?.toLowerCase() === 'kg' ? 'kg' : 'g');
     }, [unitType, startValue, changeby]);
-    // Update quantity and unit when props change
-    useEffect(() => {
-        const initialQuantity = getInitialQuantity();
-        setQuantity(initialQuantity);
-        setUnit(unitType?.toLowerCase() === 'kg' ? 'kg' : 'g');
-    }, [unitType, startValue, changeby]);
 
     const [addedToCart, setAddedToCart] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -70,6 +64,24 @@ const ItemCard = ({
     const dispatch = useDispatch();
 
     const isImageUrl = typeof image === 'string';
+
+    // Check if product is already in cart when component mounts or when user/token changes
+    useEffect(() => {
+        const checkIfInCart = async () => {
+            if (token && user) {
+                try {
+                    const response = await checkProductInCart(id, token);
+                    setIsInCart(response.inCart);
+                } catch (error) {
+                    console.error('Error checking if product is in cart:', error);
+                }
+            } else {
+                setIsInCart(false);
+            }
+        };
+
+        checkIfInCart();
+    }, [id, token, user]);
 
     // Helper function to format price with commas
     const formatPrice = (price: number): string => {
@@ -121,6 +133,13 @@ const ItemCard = ({
             return;
         }
 
+        // If product is already in cart, show tooltip and return
+        if (isInCart) {
+            setShowTooltip(true);
+            setTimeout(() => setShowTooltip(false), 2000);
+            return;
+        }
+
         // For wholesale users, skip quantity selector
         if (buyerType === 'Wholesale') {
             try {
@@ -147,6 +166,7 @@ const ItemCard = ({
                 }
 
                 setAddedToCart(true);
+                setIsInCart(true); // Update local state
             } catch (err: any) {
                 setError(err.message);
             } finally {
@@ -196,6 +216,7 @@ const ItemCard = ({
 
             setShowQuantitySelector(false);
             setAddedToCart(true);
+            setIsInCart(true); // Update local state
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -270,7 +291,17 @@ const ItemCard = ({
         );
     };
 
+    const Tooltip = () => {
+        if (!showTooltip && !isHovering) return null;
+        if (!isInCart) return null;
 
+        return (
+            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg shadow-lg z-20 whitespace-nowrap">
+                Item is already added to cart
+                <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
+            </div>
+        );
+    };
 
     return (
         <div className="relative bg-white rounded-lg shadow-sm border border-gray-200 p-2 w-full h-[240px] flex flex-col items-center transition-all duration-300 hover:shadow-md cursor-default">
@@ -347,7 +378,7 @@ const ItemCard = ({
                 </div>
 
                 {/* Quantity selector */}
-                {token && user && showQuantitySelector && buyerType !== 'Wholesale' && (
+                {token && user && showQuantitySelector && buyerType !== 'Wholesale' && !isInCart && (
                     <div className="w-full space-y-2 mb-2 flex flex-col items-center justify-center">
                         <div className="flex justify-center">
                             <div className="flex rounded overflow-hidden gap-2 cursor-pointer">
@@ -394,7 +425,8 @@ const ItemCard = ({
                 )}
 
                 {/* Bottom button section */}
-                <div className="w-full mt-auto">
+                <div className="w-full mt-auto relative">
+                    <Tooltip />
                     {addedToCart ? (
                         <button className="w-full py-2 px-4 rounded flex items-center justify-center gap-2 text-sm md:text-base bg-[#EDE1FF] text-purple-900 border border-[#3E206D] transition-colors cursor-pointer">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -407,22 +439,27 @@ const ItemCard = ({
                             onClick={handleAddToCartClick}
                             onMouseEnter={() => setIsHovering(true)}
                             onMouseLeave={() => setIsHovering(false)}
-                            disabled={isLoading}
-                            className={`w-full py-1 px-1.5 rounded flex items-center justify-center gap-1 text-xs md:text-sm transition-colors cursor-pointer ${token && user && showQuantitySelector && buyerType !== 'Wholesale'
-                                ? "bg-purple-900 text-white hover:bg-purple-800"
-                                : "bg-gray-100 text-gray-400 hover:bg-[#3E206D] hover:text-white"
-                                } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            disabled={isLoading || isInCart}
+                            className={`w-full py-1 px-1.5 rounded flex items-center justify-center gap-1 text-xs md:text-sm transition-colors ${
+                                isInCart 
+                                    ? "bg-gray-300 text-gray-500 cursor-not-allowed" 
+                                    : token && user && showQuantitySelector && buyerType !== 'Wholesale'
+                                        ? "bg-purple-900 text-white hover:bg-purple-800 cursor-pointer"
+                                        : "bg-gray-100 text-gray-400 hover:bg-[#3E206D] hover:text-white cursor-pointer"
+                            } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
-                            {!showQuantitySelector && (
+                            {!showQuantitySelector && !isInCart && (
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                                 </svg>
                             )}
-                            {token && user && showQuantitySelector && buyerType !== 'Wholesale'
-                                ? "Add to Cart"
-                                : buyerType === 'Wholesale'
+                            {isInCart 
+                                ? "Already in Cart"
+                                : token && user && showQuantitySelector && buyerType !== 'Wholesale'
                                     ? "Add to Cart"
-                                    : (isHovering ? "I want this !" : "Add to Cart")
+                                    : buyerType === 'Wholesale'
+                                        ? "Add to Cart"
+                                        : (isHovering ? "I want this !" : "Add to Cart")
                             }
                         </button>
                     )}
@@ -430,10 +467,11 @@ const ItemCard = ({
             </div>
             <LoginPopup />
         </div>
-
     );
 };
+
 export default ItemCard;
+
 function useAppSelector<TSelected>(selector: (state: any) => TSelected): TSelected {
     return useSelector(selector);
 }
