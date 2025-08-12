@@ -148,6 +148,7 @@ const Page: React.FC = () => {
   const [loadingCities, setLoadingCities] = useState(false);
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
   const [deliveryCharge, setDeliveryCharge] = useState<number>(0); // Default charge
+  const [hasPreviousAddress, setHasPreviousAddress] = useState(true);
 
   useEffect(() => {
     // Only run on client side
@@ -162,13 +163,6 @@ const Page: React.FC = () => {
         ...prev,
         deliveryMethod: deliveryMethodFromQuery
       }));
-
-      // Set default to saved address for home delivery
-      if (deliveryMethodFromQuery === 'home') {
-        setUsePreviousAddress(true);
-        // Trigger fetch of previous address
-        handleAddressOptionChange('previous');
-      }
 
       console.log('Delivery method set from query params:', deliveryMethodFromQuery);
     }
@@ -236,11 +230,10 @@ const Page: React.FC = () => {
 
   useEffect(() => {
     // Set default to saved address if delivery method is home on initial load
-    if (formData.deliveryMethod === 'home' && searchParamsLoaded && !usePreviousAddress) {
-      setUsePreviousAddress(true);
+    if (formData.deliveryMethod === 'home' && searchParamsLoaded) {
       handleAddressOptionChange('previous');
     }
-  }, [formData.deliveryMethod, searchParamsLoaded]);
+  }, [formData.deliveryMethod, searchParamsLoaded, cities]);
 
 
   const handleCitySelect = (cityId: string, cityName: string) => {
@@ -274,7 +267,21 @@ const Page: React.FC = () => {
       try {
         const response = await getLastOrderAddress(token);
 
-        if (response && response.status) {
+        // Check if response has hasAddress field
+        if (response && response.hasAddress === false) {
+          // No previous address found - hide the saved address option
+          setHasPreviousAddress(false);
+          setUsePreviousAddress(false);
+          // Switch to new address mode
+          setFormDataLocal(prev => ({
+            ...initialFormState,
+            deliveryMethod: prev.deliveryMethod
+          }));
+          setSelectedCity(null);
+          setDeliveryCharge(0);
+        } else if (response && response.status) {
+          // Previous address found - show the saved address option
+          setHasPreviousAddress(true);
           const data = response.result;
           console.log('fetch last order address data', data);
 
@@ -308,17 +315,18 @@ const Page: React.FC = () => {
             flatNumber: data.unitNo || '',
             floorNumber: data.floorNo || '',
           }));
-        } else {
-          // Handle case where no previous address is found
-          console.log('No previous order address found, staying with saved address option but clearing form');
-          // Keep usePreviousAddress as true but don't show error popup
-          // User can still choose to enter new address manually
-          setUsePreviousAddress(true);
         }
       } catch (error: any) {
         console.error('Failed to fetch last order address:', error);
-        // Keep the saved address option selected but allow user to choose new address
-        setUsePreviousAddress(true);
+        // On error, assume no previous address and hide the option
+        setHasPreviousAddress(false);
+        setUsePreviousAddress(false);
+        setFormDataLocal(prev => ({
+          ...initialFormState,
+          deliveryMethod: prev.deliveryMethod
+        }));
+        setSelectedCity(null);
+        setDeliveryCharge(0);
       } finally {
         setFetching(false);
       }
@@ -688,20 +696,22 @@ const Page: React.FC = () => {
                 </div>
 
                 {formData.deliveryMethod === 'home' && (
-
                   <div className="flex flex-col md:flex-row ">
                     <div className="flex md:gap-8 gap-2 flex-nowrap ">
-                      <label className="flex items-center text-nowrap text-sm md:text-base cursor-pointer">
-                        <input
-                          type="radio"
-                          name="addressMode"
-                          value="previous"
-                          checked={usePreviousAddress}
-                          onChange={() => handleAddressOptionChange('previous')}
-                          className="mr-2 accent-[#3E206D] cursor-pointer"
-                        />
-                        Your Saved Address
-                      </label>
+                      {/* Only show "Your Saved Address" option if hasPreviousAddress is true */}
+                      {hasPreviousAddress && (
+                        <label className="flex items-center text-nowrap text-sm md:text-base cursor-pointer">
+                          <input
+                            type="radio"
+                            name="addressMode"
+                            value="previous"
+                            checked={usePreviousAddress}
+                            onChange={() => handleAddressOptionChange('previous')}
+                            className="mr-2 accent-[#3E206D] cursor-pointer"
+                          />
+                          Your Saved Address
+                        </label>
+                      )}
 
                       <label className="flex items-center text-nowrap text-sm md:text-base cursor-pointer">
                         <input
@@ -1002,13 +1012,13 @@ const Page: React.FC = () => {
               <div className='flex md:flex-row flex-col gap-4 mb-6'>
                 <div className="md:w-1/2 w-full">
                   <label className='block text-[#2E2E2E] font-semibold mb-4'>Date *</label>
-                    <input
-                      type="date"
-                      className='w-full border h-[39px] border-gray-300 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2 text-[#3D3D3D]'
-                      value={formData.deliveryDate}
-                      onChange={(e) => handleFieldChange('deliveryDate', e.target.value)}
-                      min={getMinDate()} // Only allows dates 3 days after today or later
-                    />
+                  <input
+                    type="date"
+                    className='w-full border h-[39px] border-gray-300 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2 text-[#3D3D3D]'
+                    value={formData.deliveryDate}
+                    onChange={(e) => handleFieldChange('deliveryDate', e.target.value)}
+                    min={getMinDate()} // Only allows dates 3 days after today or later
+                  />
                   {errors.deliveryDate && <p className="text-red-600 text-sm mt-1">{errors.deliveryDate}</p>}
                 </div>
                 <div className="md:w-1/2 w-full">
@@ -1083,8 +1093,8 @@ const Page: React.FC = () => {
                     type="submit"
                     disabled={!isFormValidState || isLoading}
                     className={`w-full font-semibold rounded-lg px-4 py-3 transition-colors ${!isFormValidState || isLoading
-                        ? 'bg-[#EBEEF2] text-[#B1BAC3] cursor-not-allowed '
-                        : 'bg-purple-800 text-white hover:bg-purple-900 cursor-pointer'
+                      ? 'bg-[#EBEEF2] text-[#B1BAC3] cursor-not-allowed '
+                      : 'bg-purple-800 text-white hover:bg-purple-900 cursor-pointer'
                       }`}
                   >
                     {isLoading ? 'Processing...' : 'Continue to Payment'}

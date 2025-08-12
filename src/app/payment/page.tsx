@@ -82,73 +82,74 @@ const Page: React.FC = () => {
     }));
   };
 
-  // 1. Updated prepareOrderPayload function
-  const prepareOrderPayload = (): OrderPayload => {
-    const calculatedSummary = cartItems.calculatedSummary;
-    const originalGrandTotal = calculatedSummary?.finalTotal || 0;
-    const discountAmount = calculatedSummary?.totalDiscount || 0;
+  // Updated prepareOrderPayload function
+const prepareOrderPayload = (): OrderPayload => {
+  const calculatedSummary = cartItems.calculatedSummary;
+  const originalGrandTotal = calculatedSummary?.finalTotal || 0;
+  const discountAmount = calculatedSummary?.totalDiscount || 0;
 
-    const couponDiscountAmount = isCouponApplied ? couponDiscount : 0;
+  const couponDiscountAmount = isCouponApplied ? couponDiscount : 0;
 
-    // Handle Free Delivery coupon type
-    const effectiveDeliveryCharge = (isCouponApplied && couponType === 'Free Delivary') ? 0 : deliveryCharge;
+  // Handle Free Delivery coupon type
+  const effectiveDeliveryCharge = (isCouponApplied && couponType === 'Free Delivary') ? 0 : deliveryCharge;
 
-    const finalGrandTotal = isCouponApplied ?
-      (originalGrandTotal - couponDiscount + effectiveDeliveryCharge) :
-      (originalGrandTotal + deliveryCharge);
+  const finalGrandTotal = isCouponApplied ?
+    (originalGrandTotal - couponDiscount + effectiveDeliveryCharge) :
+    (originalGrandTotal + deliveryCharge);
 
-    let finalCheckoutDetails = {
-      deliveryMethod: checkoutDetails.deliveryMethod || 'home',
-      title: checkoutDetails.title || '',
-      fullName: checkoutDetails.fullName || '',
-      phoneCode1: checkoutDetails.phoneCode1 || '+94',
-      phone1: checkoutDetails.phone1 || '',
-      phoneCode2: checkoutDetails.phoneCode2 || '',
-      phone2: checkoutDetails.phone2 || '',
-      buildingType: '',
-      deliveryDate: checkoutDetails.deliveryDate || '',
-      timeSlot: checkoutDetails.timeSlot || '',
-      buildingNo: '',
-      buildingName: '',
-      flatNumber: '',
-      floorNumber: '',
-      houseNo: '',
-      street: '',
-      cityName: '',
-      scheduleType: checkoutDetails.scheduleType || 'One Time',
-      centerId: null as number | null,
-      couponValue: Number(couponDiscountAmount) || 0,
-      isCoupon: isCouponApplied,
-      couponCode: isCouponApplied ? couponCode : '',
-    };
-
-    // ... rest of the function remains the same
-    if (checkoutDetails.deliveryMethod === 'home') {
-      finalCheckoutDetails.buildingType = (checkoutDetails.buildingType || 'apartment').toLowerCase();
-      finalCheckoutDetails.houseNo = checkoutDetails.houseNo || '';
-      finalCheckoutDetails.street = checkoutDetails.street || '';
-      finalCheckoutDetails.cityName = checkoutDetails.cityName || '';
-      finalCheckoutDetails.centerId = null;
-
-      if (checkoutDetails.buildingType?.toLowerCase() === 'apartment') {
-        finalCheckoutDetails.buildingNo = checkoutDetails.buildingNo || '';
-        finalCheckoutDetails.buildingName = checkoutDetails.buildingName || '';
-        finalCheckoutDetails.flatNumber = checkoutDetails.flatNumber || '';
-        finalCheckoutDetails.floorNumber = checkoutDetails.floorNumber || '';
-      }
-    } else if (checkoutDetails.deliveryMethod === 'pickup') {
-      finalCheckoutDetails.centerId = checkoutDetails.centerId || null;
-    }
-
-    return {
-      cartId: cartItems.cartId || 0,
-      checkoutDetails: finalCheckoutDetails,
-      paymentMethod,
-      discountAmount: Number(discountAmount) || 0,
-      grandTotal: Number(finalGrandTotal) || 0,
-      orderApp: 'marketplace',
-    };
+  let finalCheckoutDetails = {
+    deliveryMethod: checkoutDetails.deliveryMethod || 'home',
+    title: checkoutDetails.title || '',
+    fullName: checkoutDetails.fullName || '',
+    phoneCode1: checkoutDetails.phoneCode1 || '+94',
+    phone1: checkoutDetails.phone1 || '',
+    phoneCode2: checkoutDetails.phoneCode2 || '',
+    phone2: checkoutDetails.phone2 || '',
+    buildingType: '',
+    deliveryDate: checkoutDetails.deliveryDate || '',
+    timeSlot: checkoutDetails.timeSlot || '',
+    buildingNo: '',
+    buildingName: '',
+    flatNumber: '',
+    floorNumber: '',
+    houseNo: '',
+    street: '',
+    cityName: '',
+    scheduleType: checkoutDetails.scheduleType || 'One Time',
+    centerId: null as number | null,
+    // Updated coupon fields - send coupon value for ALL coupon types, not just free delivery
+    couponValue: isCouponApplied ? Number(couponDiscountAmount) : 0,
+    isCoupon: isCouponApplied,
+    couponCode: isCouponApplied ? couponCode : '',
   };
+
+  // ... rest of the address handling code remains the same
+  if (checkoutDetails.deliveryMethod === 'home') {
+    finalCheckoutDetails.buildingType = (checkoutDetails.buildingType || 'apartment').toLowerCase();
+    finalCheckoutDetails.houseNo = checkoutDetails.houseNo || '';
+    finalCheckoutDetails.street = checkoutDetails.street || '';
+    finalCheckoutDetails.cityName = checkoutDetails.cityName || '';
+    finalCheckoutDetails.centerId = null;
+
+    if (checkoutDetails.buildingType?.toLowerCase() === 'apartment') {
+      finalCheckoutDetails.buildingNo = checkoutDetails.buildingNo || '';
+      finalCheckoutDetails.buildingName = checkoutDetails.buildingName || '';
+      finalCheckoutDetails.flatNumber = checkoutDetails.flatNumber || '';
+      finalCheckoutDetails.floorNumber = checkoutDetails.floorNumber || '';
+    }
+  } else if (checkoutDetails.deliveryMethod === 'pickup') {
+    finalCheckoutDetails.centerId = checkoutDetails.centerId || null;
+  }
+
+  return {
+    cartId: cartItems.cartId || 0,
+    checkoutDetails: finalCheckoutDetails,
+    paymentMethod,
+    discountAmount: Number(discountAmount) || 0,
+    grandTotal: Number(finalGrandTotal) || 0,
+    orderApp: 'marketplace',
+  };
+};
 
   const formatPrice = (price: number): string => {
     // Convert to fixed decimal first, then add commas

@@ -153,25 +153,46 @@ function InvoiceView({
 
       <div className="grid grid-cols-2 gap-4 mb-6 text-sm">
         <div>
-          <p className="font-semibold">Bill To:</p>
-          <p>{`${invoice.billingInfo.title}. ${invoice.billingInfo.fullName}`}</p> {/* Added dot after title */}
-          <p>{invoice.billingInfo.email}</p> {/* Added email */}
-          <p>{`No. ${invoice.billingInfo.houseNo}`}</p>
-          <p>{invoice.billingInfo.street}</p>
-          <p>{invoice.billingInfo.city}</p>
+          <p className="font-bold">Bill To:</p>
+          <p>{`${invoice.billingInfo.title}. ${invoice.billingInfo.fullName}`}</p>
+          <p>{invoice.billingInfo.email}</p>
           <p>{invoice.billingInfo.phone}</p>
-          <p className="font-semibold mt-5">Invoice No:</p>
+          {invoice.billingInfo.buildingType === "House" ? (
+            <>
+              <p className="font-bold mt-4">House Address :</p>
+              <p><span className="font-normal" style={{ color: '#929292' }}>House No :</span> {invoice.billingInfo.houseNo},</p>
+              <p><span className="font-normal" style={{ color: '#929292' }}>Street Name :</span> {invoice.billingInfo.street},</p>
+              <p><span className="font-normal" style={{ color: '#929292' }}>City :</span> {invoice.billingInfo.city}</p>
+            </>
+          ) : invoice.billingInfo.buildingType === "Apartment" ? (
+            <>
+              <p className="font-bold mt-4">Apartment Address :</p>
+              <p><span className="font-normal" style={{ color: '#929292' }}>No :</span> {invoice.billingInfo.houseNo},</p>
+              <p><span className="font-normal" style={{ color: '#929292' }}>Name :</span> {invoice.billingInfo.street},</p>
+              <p><span className="font-normal" style={{ color: '#929292' }}>House No :</span> {invoice.billingInfo.houseNo},</p>
+              <p><span className="font-normal" style={{ color: '#929292' }}>Street Name :</span> {invoice.billingInfo.street},</p>
+              <p><span className="font-normal" style={{ color: '#929292' }}>City :</span> {invoice.billingInfo.city}</p>
+            </>
+          ) : (
+            <>
+              <p>{`No. ${invoice.billingInfo.houseNo}`}</p>
+              <p>{invoice.billingInfo.street}</p>
+              <p>{invoice.billingInfo.city}</p>
+            </>
+          )}
+          <p className="font-bold mt-5" >Invoice No:</p>
           <p>{invoice.invoiceNumber}</p>
-          <p className="font-semibold mt-5">Delivery Method:</p>
+          <p className="font-bold mt-5" >Delivery Method:</p>
           <p>{invoice.deliveryMethod}</p>
           {invoice.deliveryMethod?.toLowerCase().includes('pickup') && invoice.pickupInfo && (
             <div className="mt-3 text-sm">
-              <p className="font-semibold">Centre: {invoice.pickupInfo.centerName || 'N/A'}</p>
+              <p className="font-bold">Centre: {invoice.pickupInfo.centerName || 'N/A'}</p>
               <p>{`${invoice.pickupInfo.address?.city || 'N/A'}, ${invoice.pickupInfo.address?.district || 'N/A'}`}</p>
               <p>{`${invoice.pickupInfo.address?.province || 'N/A'}, ${invoice.pickupInfo.address?.country || 'N/A'}`}</p>
             </div>
           )}
         </div>
+
         <div className="text-left ml-49">
           <p className="font-semibold mt-5">Grand Total:</p>
           <p className="font-extrabold">{`Rs. ${parseCurrency(invoice.grandTotal).toFixed(2)}`}</p>
@@ -635,14 +656,68 @@ function InvoicePageContent() {
         {
           columns: [
             [
-              { text: 'Bill To:', bold: true, fontSize: 9, margin: [0, 8, 0, 2] },
-              { text: `${invoice.billingInfo.title}. ${invoice.billingInfo.fullName}`, fontSize: 9 }, // Added dot after title
-              { text: invoice.billingInfo.email, fontSize: 9 }, // Added email
-              { text: `No. ${invoice.billingInfo.houseNo}`, fontSize: 9 },
-              { text: invoice.billingInfo.street, fontSize: 9 },
-              { text: invoice.billingInfo.city, fontSize: 9 },
+              { text: 'Bill To:', bold: true, fontSize: 9, margin: [0, 8, 0, 2]},
+              { text: `${invoice.billingInfo.title}. ${invoice.billingInfo.fullName}`, fontSize: 9 },
+              { text: invoice.billingInfo.email, fontSize: 9 },
               { text: invoice.billingInfo.phone, fontSize: 9 },
-              { text: 'Invoice No:', bold: true, fontSize: 9, margin: [0, 8, 0, 2] },
+              ...(invoice.billingInfo.buildingType === "House" ? [
+                { text: 'House Address :', bold: true, fontSize: 9,marginTop:4 },
+                {
+                  text: [
+                    { text: 'House No : ', fontSize: 9, bold: false, color: '#929292' },
+                    { text: invoice.billingInfo.houseNo, fontSize: 9 }
+                  ]
+                },
+                {
+                  text: [
+                    { text: 'Street Name : ', fontSize: 9, bold: false, color: '#929292' },
+                    { text: invoice.billingInfo.street, fontSize: 9 }
+                  ]
+                },
+                {
+                  text: [
+                    { text: 'City : ', fontSize: 9, bold: false, color: '#929292' },
+                    { text: invoice.billingInfo.city, fontSize: 9 }
+                  ]
+                }
+              ] : invoice.billingInfo.buildingType === "Apartment" ? [
+                { text: 'Apartment Address :', bold: true, fontSize: 9,marginTop:4 },
+                {
+                  text: [
+                    { text: 'No : ', fontSize: 9, bold: false, color: '#929292' },
+                    { text: invoice.billingInfo.houseNo, fontSize: 9 }
+                  ]
+                },
+                {
+                  text: [
+                    { text: 'Name : ', fontSize: 9, bold: false, color: '#929292' },
+                    { text: invoice.billingInfo.street, fontSize: 9 }
+                  ]
+                },
+                {
+                  text: [
+                    { text: 'House No : ', fontSize: 9, bold: false, color: '#929292' },
+                    { text: invoice.billingInfo.houseNo, fontSize: 9 }
+                  ]
+                },
+                {
+                  text: [
+                    { text: 'Street Name : ', fontSize: 9, bold: false, color: '#929292' },
+                    { text: invoice.billingInfo.street, fontSize: 9 }
+                  ]
+                },
+                {
+                  text: [
+                    { text: 'City : ', fontSize: 9, bold: false, color: '#929292' },
+                    { text: invoice.billingInfo.city, fontSize: 9 }
+                  ]
+                }
+              ] : [
+                { text: `No. ${invoice.billingInfo.houseNo}`, fontSize: 9 },
+                { text: invoice.billingInfo.street, fontSize: 9 },
+                { text: invoice.billingInfo.city, fontSize: 9 }
+              ]),
+              { text: 'Invoice No:', bold: true, fontSize: 9, margin: [0, 8, 0, 2]},
               { text: invoice.invoiceNumber, fontSize: 9 },
               { text: 'Delivery Method:', bold: true, fontSize: 9, margin: [0, 8, 0, 2] },
               { text: invoice.deliveryMethod, fontSize: 9 },
@@ -653,6 +728,7 @@ function InvoicePageContent() {
               ] : [])
             ],
             [
+              // Right column remains the same...
               { text: 'Grand Total:', bold: true, fontSize: 9, margin: [105, 8, 0, 2] },
               { text: `Rs. ${parseNum(invoice.grandTotal).toFixed(2)}`, fontSize: 11, bold: true, margin: [105, 0, 0, 6] },
               { text: 'Payment Method:', bold: true, fontSize: 9, margin: [105, 6, 0, 2] },
