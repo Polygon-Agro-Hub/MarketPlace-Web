@@ -83,73 +83,73 @@ const Page: React.FC = () => {
   };
 
   // Updated prepareOrderPayload function
-const prepareOrderPayload = (): OrderPayload => {
-  const calculatedSummary = cartItems.calculatedSummary;
-  const originalGrandTotal = calculatedSummary?.finalTotal || 0;
-  const discountAmount = calculatedSummary?.totalDiscount || 0;
+  const prepareOrderPayload = (): OrderPayload => {
+    const calculatedSummary = cartItems.calculatedSummary;
+    const originalGrandTotal = calculatedSummary?.finalTotal || 0;
+    const discountAmount = calculatedSummary?.totalDiscount || 0;
 
-  const couponDiscountAmount = isCouponApplied ? couponDiscount : 0;
+    const couponDiscountAmount = isCouponApplied ? couponDiscount : 0;
 
-  // Handle Free Delivery coupon type
-  const effectiveDeliveryCharge = (isCouponApplied && couponType === 'Free Delivary') ? 0 : deliveryCharge;
+    // Handle Free Delivery coupon type
+    const effectiveDeliveryCharge = (isCouponApplied && couponType === 'Free Delivary') ? 0 : deliveryCharge;
 
-  const finalGrandTotal = isCouponApplied ?
-    (originalGrandTotal - couponDiscount + effectiveDeliveryCharge) :
-    (originalGrandTotal + deliveryCharge);
+    const finalGrandTotal = isCouponApplied ?
+      (originalGrandTotal - couponDiscount + effectiveDeliveryCharge) :
+      (originalGrandTotal + deliveryCharge);
 
-  let finalCheckoutDetails = {
-    deliveryMethod: checkoutDetails.deliveryMethod || 'home',
-    title: checkoutDetails.title || '',
-    fullName: checkoutDetails.fullName || '',
-    phoneCode1: checkoutDetails.phoneCode1 || '+94',
-    phone1: checkoutDetails.phone1 || '',
-    phoneCode2: checkoutDetails.phoneCode2 || '',
-    phone2: checkoutDetails.phone2 || '',
-    buildingType: '',
-    deliveryDate: checkoutDetails.deliveryDate || '',
-    timeSlot: checkoutDetails.timeSlot || '',
-    buildingNo: '',
-    buildingName: '',
-    flatNumber: '',
-    floorNumber: '',
-    houseNo: '',
-    street: '',
-    cityName: '',
-    scheduleType: checkoutDetails.scheduleType || 'One Time',
-    centerId: null as number | null,
-    // Updated coupon fields - send coupon value for ALL coupon types, not just free delivery
-    couponValue: isCouponApplied ? Number(couponDiscountAmount) : 0,
-    isCoupon: isCouponApplied,
-    couponCode: isCouponApplied ? couponCode : '',
-  };
+    let finalCheckoutDetails = {
+      deliveryMethod: checkoutDetails.deliveryMethod || 'home',
+      title: checkoutDetails.title || '',
+      fullName: checkoutDetails.fullName || '',
+      phoneCode1: checkoutDetails.phoneCode1 || '+94',
+      phone1: checkoutDetails.phone1 || '',
+      phoneCode2: checkoutDetails.phoneCode2 || '',
+      phone2: checkoutDetails.phone2 || '',
+      buildingType: '',
+      deliveryDate: checkoutDetails.deliveryDate || '',
+      timeSlot: checkoutDetails.timeSlot || '',
+      buildingNo: '',
+      buildingName: '',
+      flatNumber: '',
+      floorNumber: '',
+      houseNo: '',
+      street: '',
+      cityName: '',
+      scheduleType: checkoutDetails.scheduleType || 'One Time',
+      centerId: null as number | null,
+      // Updated coupon fields - send coupon value for ALL coupon types, not just free delivery
+      couponValue: isCouponApplied ? Number(couponDiscountAmount) : 0,
+      isCoupon: isCouponApplied,
+      couponCode: isCouponApplied ? couponCode : '',
+    };
 
-  // ... rest of the address handling code remains the same
-  if (checkoutDetails.deliveryMethod === 'home') {
-    finalCheckoutDetails.buildingType = (checkoutDetails.buildingType || 'apartment').toLowerCase();
-    finalCheckoutDetails.houseNo = checkoutDetails.houseNo || '';
-    finalCheckoutDetails.street = checkoutDetails.street || '';
-    finalCheckoutDetails.cityName = checkoutDetails.cityName || '';
-    finalCheckoutDetails.centerId = null;
+    // ... rest of the address handling code remains the same
+    if (checkoutDetails.deliveryMethod === 'home') {
+      finalCheckoutDetails.buildingType = (checkoutDetails.buildingType || 'apartment').toLowerCase();
+      finalCheckoutDetails.houseNo = checkoutDetails.houseNo || '';
+      finalCheckoutDetails.street = checkoutDetails.street || '';
+      finalCheckoutDetails.cityName = checkoutDetails.cityName || '';
+      finalCheckoutDetails.centerId = null;
 
-    if (checkoutDetails.buildingType?.toLowerCase() === 'apartment') {
-      finalCheckoutDetails.buildingNo = checkoutDetails.buildingNo || '';
-      finalCheckoutDetails.buildingName = checkoutDetails.buildingName || '';
-      finalCheckoutDetails.flatNumber = checkoutDetails.flatNumber || '';
-      finalCheckoutDetails.floorNumber = checkoutDetails.floorNumber || '';
+      if (checkoutDetails.buildingType?.toLowerCase() === 'apartment') {
+        finalCheckoutDetails.buildingNo = checkoutDetails.buildingNo || '';
+        finalCheckoutDetails.buildingName = checkoutDetails.buildingName || '';
+        finalCheckoutDetails.flatNumber = checkoutDetails.flatNumber || '';
+        finalCheckoutDetails.floorNumber = checkoutDetails.floorNumber || '';
+      }
+    } else if (checkoutDetails.deliveryMethod === 'pickup') {
+      finalCheckoutDetails.centerId = checkoutDetails.centerId || null;
     }
-  } else if (checkoutDetails.deliveryMethod === 'pickup') {
-    finalCheckoutDetails.centerId = checkoutDetails.centerId || null;
-  }
 
-  return {
-    cartId: cartItems.cartId || 0,
-    checkoutDetails: finalCheckoutDetails,
-    paymentMethod,
-    discountAmount: Number(discountAmount) || 0,
-    grandTotal: Number(finalGrandTotal) || 0,
-    orderApp: 'marketplace',
+    return {
+      cartId: cartItems.cartId || 0,
+      checkoutDetails: finalCheckoutDetails,
+      paymentMethod,
+      discountAmount: Number(discountAmount) || 0,
+      grandTotal: Number(finalGrandTotal) || 0,
+      orderApp: 'marketplace',
+    };
   };
-};
 
   const formatPrice = (price: number): string => {
     // Convert to fixed decimal first, then add commas
@@ -350,20 +350,20 @@ const prepareOrderPayload = (): OrderPayload => {
   };
 
   // Handle view invoice
-    const handleViewInvoice = () => {
-      setIsModalOpen(false);
-      console.log('Navigating to invoice with orderId:', orderId); // Debug log
-      
-      if (orderId) {
-        router.push(`/history/invoice/?orderId=${orderId}`);
-      } else {
-        console.error('Order ID is not available');
-        // Handle case where orderId is not available
-        setIsError(true);
-        setModalMessage('Order ID not available. Please try again.');
-        setIsModalOpen(true);
-      }
-    };
+  const handleViewInvoice = () => {
+    setIsModalOpen(false);
+    console.log('Navigating to invoice with orderId:', orderId); // Debug log
+
+    if (orderId) {
+      router.push(`/history/invoice/?orderId=${orderId}`);
+    } else {
+      console.error('Order ID is not available');
+      // Handle case where orderId is not available
+      setIsError(true);
+      setModalMessage('Order ID not available. Please try again.');
+      setIsModalOpen(true);
+    }
+  };
   // Calculate display values for OrderSummary
   const getDisplayValues = () => {
     const calculatedSummary = cartItems.calculatedSummary;
@@ -396,59 +396,58 @@ const prepareOrderPayload = (): OrderPayload => {
 
   return (
     <div className="px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5">
-     {isModalOpen && (
-      <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-        <div className="bg-white p-8 rounded-2xl text-center w-[90%] max-w-md shadow-xl">
-          {isError ? (
-            <Image
-              src={wrongImg}
-              alt="Error"
-              className="w-28 h-28 mx-auto mb-4"
-            />
-          ) : (
-            <Image
-              src={correct}
-              alt="Success"
-              className="w-28 h-28 mx-auto mb-4"
-            />
-          )}
-          
-          <h2 className="text-xl font-bold mb-2 text-gray-900">
-            {isError ? 'Error' : 'Thank you for ordering!'}
-          </h2>
-          <p className="text-gray-500 mb-6">{modalMessage}</p>
-          
-          {isError ? (
-            <button
-              onClick={handleModalClose}
-              className="px-6 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition cursor-pointer text-gray-700 font-medium"
-            >
-              Close
-            </button>
-          ) : (
-            <div className="flex gap-3 justify-center">
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+          <div className="bg-white p-8 rounded-2xl text-center w-[90%] max-w-md shadow-xl">
+            {isError ? (
+              <Image
+                src={wrongImg}
+                alt="Error"
+                className="w-28 h-28 mx-auto mb-4"
+              />
+            ) : (
+              <Image
+                src={correct}
+                alt="Success"
+                className="w-28 h-28 mx-auto mb-4"
+              />
+            )}
+
+            <h2 className="text-xl font-bold mb-2 text-gray-900">
+              {isError ? 'Error' : 'Thank you for ordering!'}
+            </h2>
+            <p className="text-gray-500 mb-6">{modalMessage}</p>
+
+            {isError ? (
               <button
                 onClick={handleModalClose}
                 className="px-6 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition cursor-pointer text-gray-700 font-medium"
               >
-                Go Back
+                Close
               </button>
+            ) : (
+              <div className="flex gap-3 justify-center">
                 <button
-                    onClick={handleViewInvoice}
-                    disabled={!orderId} // Disable if orderId is not available
-                    className={`px-6 py-2 rounded-lg transition cursor-pointer font-medium ${
-                      !orderId 
-                        ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
-                        : 'bg-[#3E206D] text-white hover:bg-[#3E206D]'
+                  onClick={handleModalClose}
+                  className="px-6 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition cursor-pointer text-gray-700 font-medium"
+                >
+                  Go Back
+                </button>
+                <button
+                  onClick={handleViewInvoice}
+                  disabled={!orderId} // Disable if orderId is not available
+                  className={`px-6 py-2 rounded-lg transition cursor-pointer font-medium ${!orderId
+                    ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                    : 'bg-[#3E206D] text-white hover:bg-[#3E206D]'
                     }`}
-                  >
-                View Invoice
-              </button>
-            </div>
-          )}
+                >
+                  View Invoice
+                </button>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-    )}
+      )}
       <TopNavigation NavArray={NavArray} />
 
       <div className="flex flex-col lg:flex-row lg:items-start gap-4 sm:gap-6 items-start">
@@ -477,40 +476,89 @@ const prepareOrderPayload = (): OrderPayload => {
                 </div>
               </div>
               {paymentMethod === 'card' && (
-                <div className="mb-5 rounded-b-lg p-10 border-t border-gray-200">
-                  <div className="mb-4">
-                    <input
-                      type="text"
-                      placeholder="Enter Card Number"
-                      value={cardDetails.cardNumber}
-                      onChange={(e) => handleCardInputChange('cardNumber', e.target.value)}
-                      className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm"
-                    />
-                  </div>
-                  <div className="mb-4">
-                    <input
-                      type="text"
-                      placeholder="Enter Name on Card"
-                      value={cardDetails.nameOnCard}
-                      onChange={(e) => handleCardInputChange('nameOnCard', e.target.value)}
-                      className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm"
-                    />
-                  </div>
-                  <div className="flex gap-4">
-                    <input
-                      type="text"
-                      placeholder="Enter Expiration Date (MM/YY)"
-                      value={cardDetails.expirationDate}
-                      onChange={(e) => handleCardInputChange('expirationDate', e.target.value)}
-                      className="w-3/5 p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Enter CVV"
-                      value={cardDetails.cvv}
-                      onChange={(e) => handleCardInputChange('cvv', e.target.value)}
-                      className="w-2/5 p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm"
-                    />
+                <div className="mb-5 rounded-b-lg p-4 sm:p-6 md:p-8 lg:p-10 border-t border-gray-200">
+                  <div className="space-y-4">
+                    <div>
+                      <input
+                        type="text"
+                        placeholder="Enter Card Number"
+                        value={cardDetails.cardNumber}
+                        onChange={(e) => {
+                          // Only allow digits and format with spaces every 4 digits
+                          const value = e.target.value.replace(/[^0-9]/g, '');
+                          const formattedValue = value.replace(/(\d{4})(?=\d)/g, '$1 ');
+                          if (value.length <= 16) {
+                            handleCardInputChange('cardNumber', formattedValue);
+                          }
+                        }}
+                        maxLength={19} // 16 digits + 3 spaces
+                        className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <input
+                        type="text"
+                        placeholder="Enter Name on Card"
+                        value={cardDetails.nameOnCard}
+                        onChange={(e) => {
+                          let value = e.target.value;
+
+                          // Block leading spaces
+                          if (value.startsWith(' ')) {
+                            value = value.trimStart();
+                          }
+
+                          // Only allow letters and spaces (no numbers or special characters)
+                          value = value.replace(/[^a-zA-Z\s]/g, '');
+
+                          // Capitalize first letter and first letter after each space
+                          value = value.replace(/\b\w/g, (char) => char.toUpperCase());
+
+                          handleCardInputChange('nameOnCard', value);
+                        }}
+                        className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm"
+                      />
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-4">
+                      <input
+                        type="text"
+                        placeholder="Enter Expiration Date (MM/YY)"
+                        value={cardDetails.expirationDate}
+                        onChange={(e) => {
+                          const inputValue = e.target.value;
+                          const value = inputValue.replace(/[^0-9/]/g, '');
+                          let formattedValue = value;
+
+                          if (value.length === 2 && !value.includes('/') && inputValue.length > cardDetails.expirationDate.length) {
+                            formattedValue = value + '/';
+                          }
+
+                          else if (value.length >= 2 && !value.includes('/') && value.length <= 4) {
+
+                            formattedValue = value;
+                          }
+
+                          if (formattedValue.length <= 5) {
+                            handleCardInputChange('expirationDate', formattedValue);
+                          }
+                        }}
+                        maxLength={5}
+                        className="w-full sm:w-3/5 p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Enter CVV"
+                        value={cardDetails.cvv}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^0-9]/g, '');
+                          if (value.length <= 4) {
+                            handleCardInputChange('cvv', value);
+                          }
+                        }}
+                        maxLength={4}
+                        className="w-full sm:w-2/5 p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm"
+                      />
+                    </div>
                   </div>
                 </div>
               )}
