@@ -64,7 +64,7 @@ const TopBanner: React.FC = () => {
         className="w-full"
         style={{
           position: "relative",
-          height: "45vh", // Reduced height on desktop
+          height: "60vh", // Reduced height on desktop
         }}
       >
         <img

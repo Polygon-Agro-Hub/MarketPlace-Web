@@ -18,13 +18,27 @@ const schema = yup.object().shape({
   title: yup.string().required('Title is required'),
   firstName: yup
     .string()
-    .matches(/^[A-Za-z]+$/, 'First name must contain only letters')
+    .transform((value) => value?.trim()) // Trim spaces
+    .matches(/^[A-Za-z]+$/, 'First name must contain only English letters')
+    .test('first-letter-capital', 'First letter must be capitalized', (value) => {
+      if (!value) return true;
+      return value[0] === value[0].toUpperCase();
+    })
     .required('First name is required'),
   lastName: yup
     .string()
-    .matches(/^[A-Za-z]+$/, 'Last name must contain only letters')
+    .transform((value) => value?.trim()) // Trim spaces
+    .matches(/^[A-Za-z]+$/, 'Last name must contain only English letters')
+    .test('first-letter-capital', 'First letter must be capitalized', (value) => {
+      if (!value) return true;
+      return value[0] === value[0].toUpperCase();
+    })
     .required('Last name is required'),
-  email: yup.string().email('Invalid email').required('Email is required'),
+  email: yup
+    .string()
+    .transform((value) => value?.trim()) // Trim spaces
+    .email('Invalid email')
+    .required('Email is required'),
   countryCode: yup.string().required('Country code is required'),
   countryCode2: yup.string().when('$buyerType', {
     is: 'Wholesale',
@@ -33,16 +47,22 @@ const schema = yup.object().shape({
   }),
   phoneNumber: yup
     .string()
-    .matches(/^[0-9]{9}$/, 'Phone number must be exactly 9 digits')
+    .transform((value) => value?.trim()) // Trim spaces
+    .matches(/^7[0-9]{8}$/, 'Please enter a valid mobile number (format: +947XXXXXXXX)')
     .required('Phone number is required'),
   phoneNumber2: yup.string().when('$buyerType', {
     is: 'Wholesale',
-    then: (schema) => schema.matches(/^[0-9]{9}$/, 'Phone number must be exactly 9 digits').required('Phone number is required'),
+    then: (schema) => schema
+      .transform((value) => value?.trim()) // Trim spaces
+      .matches(/^7[0-9]{8}$/, 'Please enter a valid mobile number (format: +947XXXXXXXX)')
+      .required('Phone number is required'),
     otherwise: (schema) => schema.notRequired(),
   }),
   companyName: yup.string().when('$buyerType', {
     is: 'Wholesale',
-    then: (schema) => schema.required('Company name is required'),
+    then: (schema) => schema
+      .transform((value) => value?.trim()) // Trim spaces
+      .required('Company name is required'),
     otherwise: (schema) => schema.notRequired(),
   }),
   currentPassword: yup.string().when('newPassword', {
@@ -66,7 +86,6 @@ const schema = yup.object().shape({
     otherwise: (schema) => schema.notRequired(),
   }),
 });
-
 type FormData = yup.InferType<typeof schema>;
 
 // Custom Dropdown Component
@@ -248,6 +267,32 @@ const PersonalDetailsForm = () => {
 
     loadProfile();
   }, [token, reset]);
+
+  const handleNameInput = (value: string): string => {
+    const cleaned = value.replace(/[^A-Za-z\s]/g, '').replace(/\s+/g, ' ').trimStart();
+
+
+    if (cleaned.length > 0) {
+      return cleaned.charAt(0).toUpperCase() + cleaned.slice(1).toLowerCase();
+    }
+    return cleaned;
+  };
+
+  const handlePhoneInput = (value: string): string => {
+
+    const cleaned = value.replace(/[^0-9]/g, '');
+
+    if (cleaned.length > 0 && !cleaned.startsWith('7')) {
+      return '7' + cleaned.slice(0, 8);
+    }
+
+    return cleaned.slice(0, 9);
+  };
+
+  const handleGeneralInput = (value: string): string => {
+
+    return value.trimStart();
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -505,7 +550,17 @@ const PersonalDetailsForm = () => {
                 <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">First Name</label>
                 <input
                   {...register('firstName')}
+                  onChange={(e) => {
+                    const formattedValue = handleNameInput(e.target.value);
+                    e.target.value = formattedValue;
+                    setValue('firstName', formattedValue, { shouldValidate: true });
+                  }}
+                  onBlur={(e) => {
+                    const trimmedValue = e.target.value.trim();
+                    setValue('firstName', trimmedValue, { shouldValidate: true });
+                  }}
                   className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm"
+                  placeholder="Enter first name"
                 />
                 <p className="text-red-500 text-xs">{errors.firstName?.message}</p>
               </div>
@@ -515,7 +570,17 @@ const PersonalDetailsForm = () => {
             <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">Last Name</label>
             <input
               {...register('lastName')}
+              onChange={(e) => {
+                const formattedValue = handleNameInput(e.target.value);
+                e.target.value = formattedValue;
+                setValue('lastName', formattedValue, { shouldValidate: true });
+              }}
+              onBlur={(e) => {
+                const trimmedValue = e.target.value.trim();
+                setValue('lastName', trimmedValue, { shouldValidate: true });
+              }}
               className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm"
+              placeholder="Enter last name"
             />
             <p className="text-red-500 text-xs">{errors.lastName?.message}</p>
           </div>
@@ -531,9 +596,15 @@ const PersonalDetailsForm = () => {
           <div className="md:w-[60%]">
             <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">Email</label>
             <input
-              type="text"
+              type="email"
               {...register('email')}
+              onChange={(e) => {
+                const trimmedValue = handleGeneralInput(e.target.value);
+                e.target.value = trimmedValue;
+                setValue('email', trimmedValue, { shouldValidate: true });
+              }}
               className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm"
+              placeholder="Enter email address"
             />
             <p className="text-red-500 text-xs">{errors.email?.message}</p>
           </div>
@@ -554,7 +625,14 @@ const PersonalDetailsForm = () => {
               <div className="w-[82%]">
                 <input
                   {...register('phoneNumber')}
+                  onChange={(e) => {
+                    const formattedValue = handlePhoneInput(e.target.value);
+                    e.target.value = formattedValue;
+                    setValue('phoneNumber', formattedValue, { shouldValidate: true });
+                  }}
                   className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm"
+                  placeholder="7XXXXXXXX"
+                  maxLength={9}
                 />
                 <p className="text-red-500 text-xs">{errors.phoneNumber?.message}</p>
               </div>
@@ -576,7 +654,13 @@ const PersonalDetailsForm = () => {
                 <input
                   type="text"
                   {...register('companyName')}
+                  onChange={(e) => {
+                    const trimmedValue = handleGeneralInput(e.target.value);
+                    e.target.value = trimmedValue;
+                    setValue('companyName', trimmedValue, { shouldValidate: true });
+                  }}
                   className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm"
+                  placeholder="Enter company name"
                 />
                 <p className="text-red-500 text-xs">{errors.companyName?.message}</p>
               </div>
@@ -597,7 +681,14 @@ const PersonalDetailsForm = () => {
                   <div className="w-[82%]">
                     <input
                       {...register('phoneNumber2')}
+                      onChange={(e) => {
+                        const formattedValue = handlePhoneInput(e.target.value);
+                        e.target.value = formattedValue;
+                        setValue('phoneNumber2', formattedValue, { shouldValidate: true });
+                      }}
                       className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm"
+                      placeholder="7XXXXXXXX"
+                      maxLength={9}
                     />
                     <p className="text-red-500 text-xs">{errors.phoneNumber2?.message}</p>
                   </div>
