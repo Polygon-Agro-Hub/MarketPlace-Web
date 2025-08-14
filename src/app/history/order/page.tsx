@@ -147,52 +147,52 @@ export default function OrderHistoryPage() {
   const [selectedOrder, setSelectedOrder] = useState<DetailedOrder | null>(null);
   const modalContentRef = useRef<HTMLDivElement>(null);
   const mainRef = useRef<HTMLElement>(null);
-const [isFetchingDetails, setIsFetchingDetails] = useState(false);
+  const [isFetchingDetails, setIsFetchingDetails] = useState(false);
   const HEADER_HEIGHT = 64;
   const FOOTER_HEIGHT = 64;
 
   useEffect(() => {
-  if (!token) {
-    console.error('Token not found in Redux store at 04:37 PM +0530, July 07, 2025');
-    setLoading(false);
-    return;
-  }
-
-  const fetchOrders = async () => {
-    try {
-      setLoading(true);
-      const data = await getOrderHistory(token);
-      console.log('API Response at 04:37 PM +0530, July 07, 2025:', data);
-
-      const orderHistory = data.orderHistory || [];
-      if (!Array.isArray(orderHistory)) {
-        console.error('orderHistory is not an array at 04:37 PM +0530, July 07, 2025:', orderHistory);
-        setOrders([]);
-        return;
-      }
-
-      const normalizedOrders: OrderSummary[] = orderHistory.map((order: any) => ({
-        orderId: order.orderId ? String(order.orderId) : 'N/A',
-        invoiceNo: order.invoiceNo ? String(order.invoiceNo) : 'N/A',
-        scheduleDate: order.scheduleDate ? formatDateTime(order.scheduleDate, 'date') : 'N/A',
-        scheduleTime: order.scheduleTime || 'N/A',
-        deliveryType: order.delivaryMethod || 'N/A',
-        total: order.fullTotal || 'N/A',
-        orderPlaced: order.createdAt ? formatDateTime(order.createdAt, 'date') : 'N/A',
-        status: order.processStatus || 'Pending',
-      }));
-
-      setOrders(normalizedOrders);
-    } catch (err) {
-      console.error('Error fetching orders at 04:37 PM +0530, July 07, 2025:', err);
-      setOrders([]);
-    } finally {
+    if (!token) {
+      console.error('Token not found in Redux store at 04:37 PM +0530, July 07, 2025');
       setLoading(false);
+      return;
     }
-  };
 
-  fetchOrders();
-}, [token]);
+    const fetchOrders = async () => {
+      try {
+        setLoading(true);
+        const data = await getOrderHistory(token);
+        console.log('API Response at 04:37 PM +0530, July 07, 2025:', data);
+
+        const orderHistory = data.orderHistory || [];
+        if (!Array.isArray(orderHistory)) {
+          console.error('orderHistory is not an array at 04:37 PM +0530, July 07, 2025:', orderHistory);
+          setOrders([]);
+          return;
+        }
+
+        const normalizedOrders: OrderSummary[] = orderHistory.map((order: any) => ({
+          orderId: order.orderId ? String(order.orderId) : 'N/A',
+          invoiceNo: order.invoiceNo ? String(order.invoiceNo) : 'N/A',
+          scheduleDate: order.scheduleDate ? formatDateTime(order.scheduleDate, 'date') : 'N/A',
+          scheduleTime: order.scheduleTime || 'N/A',
+          deliveryType: order.delivaryMethod || 'N/A',
+          total: order.fullTotal || 'N/A',
+          orderPlaced: order.createdAt ? formatDateTime(order.createdAt, 'date') : 'N/A',
+          status: order.processStatus || 'Pending',
+        }));
+
+        setOrders(normalizedOrders);
+      } catch (err) {
+        console.error('Error fetching orders at 04:37 PM +0530, July 07, 2025:', err);
+        setOrders([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrders();
+  }, [token]);
 
   useEffect(() => {
     if (selectedOrder && modalContentRef.current && mainRef.current) {
@@ -205,38 +205,38 @@ const [isFetchingDetails, setIsFetchingDetails] = useState(false);
     }
   }, [selectedOrder]);
 
-const fetchDetailedOrder = async (orderId: string) => {
-  if (!token) return;
-  try {
-    setIsFetchingDetails(true); // Start loading
-    setSelectedOrder(null);
-    const { order: orderData, packages: packagesData, additionalItems: additionalItemsData } = await getOrderDetails(token, orderId);
-    console.log('Detailed Order Response at 04:32 PM +0530, July 07, 2025:', { orderData, packagesData, additionalItemsData });
+  const fetchDetailedOrder = async (orderId: string) => {
+    if (!token) return;
+    try {
+      setIsFetchingDetails(true); // Start loading
+      setSelectedOrder(null);
+      const { order: orderData, packages: packagesData, additionalItems: additionalItemsData } = await getOrderDetails(token, orderId);
+      console.log('Detailed Order Response at 04:32 PM +0530, July 07, 2025:', { orderData, packagesData, additionalItemsData });
 
-    if (orderData.status && orderData.order) {
-      const apiOrder = orderData.order;
-      const additionalItemsDiscount = additionalItemsData.status && additionalItemsData.data
-        ? additionalItemsData.data.reduce((sum: number, item: any) => sum + parseFloat(item.discount || '0'), 0)
-        : 0;
-      const totalDiscount = parseFloat(apiOrder.discount || '0') + additionalItemsDiscount;
+      if (orderData.status && orderData.order) {
+        const apiOrder = orderData.order;
+        const additionalItemsDiscount = additionalItemsData.status && additionalItemsData.data
+          ? additionalItemsData.data.reduce((sum: number, item: any) => sum + parseFloat(item.discount || '0'), 0)
+          : 0;
+        const totalDiscount = parseFloat(apiOrder.discount || '0') + additionalItemsDiscount;
 
-      const detailedOrder: DetailedOrder = {
-        orderId: String(apiOrder.id) || 'N/A',
-        invoiceNo: String(apiOrder.invoiceNo) || 'N/A',
-        scheduleDate: apiOrder.sheduleDate ? formatDateTime(apiOrder.sheduleDate, 'date') : 'N/A',
-        scheduleTime: apiOrder.sheduleTime || 'N/A',
-        deliveryType: apiOrder.delivaryMethod || 'N/A',
-        total: apiOrder.fullTotal ? `Rs. ${parseFloat(apiOrder.fullTotal || '0').toFixed(2)}` : 'Rs. 0.00',
-        orderPlaced: apiOrder.createdAt ? formatDateTime(apiOrder.createdAt, 'date') : 'N/A',
-        status: apiOrder.processStatus || 'Pending',
-        fullName: apiOrder.fullName || 'N/A',
-        phonecode1: apiOrder.phonecode1 || '',
-        phone1: apiOrder.phone1 || '',
-        phonecode2: apiOrder.phonecode2 || '',
-        phone2: apiOrder.phone2 || '',
-        pickupInfo:
-          apiOrder.delivaryMethod?.toLowerCase() === 'pickup' && apiOrder.pickupInfo
-            ? {
+        const detailedOrder: DetailedOrder = {
+          orderId: String(apiOrder.id) || 'N/A',
+          invoiceNo: String(apiOrder.invoiceNo) || 'N/A',
+          scheduleDate: apiOrder.sheduleDate ? formatDateTime(apiOrder.sheduleDate, 'date') : 'N/A',
+          scheduleTime: apiOrder.sheduleTime || 'N/A',
+          deliveryType: apiOrder.delivaryMethod || 'N/A',
+          total: apiOrder.fullTotal ? `Rs. ${parseFloat(apiOrder.fullTotal || '0').toFixed(2)}` : 'Rs. 0.00',
+          orderPlaced: apiOrder.createdAt ? formatDateTime(apiOrder.createdAt, 'date') : 'N/A',
+          status: apiOrder.processStatus || 'Pending',
+          fullName: apiOrder.fullName || 'N/A',
+          phonecode1: apiOrder.phonecode1 || '',
+          phone1: apiOrder.phone1 || '',
+          phonecode2: apiOrder.phonecode2 || '',
+          phone2: apiOrder.phone2 || '',
+          pickupInfo:
+            apiOrder.delivaryMethod?.toLowerCase() === 'pickup' && apiOrder.pickupInfo
+              ? {
                 centerName: apiOrder.pickupInfo.centerName || 'N/A',
                 contact01: apiOrder.pickupInfo.contact01 || 'N/A',
                 fullName: apiOrder.pickupInfo.fullName || 'N/A',
@@ -248,10 +248,10 @@ const fetchDetailedOrder = async (orderId: string) => {
                 country: apiOrder.pickupInfo.address?.country || 'N/A',
                 zipCode: apiOrder.pickupInfo.address?.zipCode || 'N/A',
               }
-            : undefined,
-        deliveryInfo:
-          apiOrder.delivaryMethod?.toLowerCase() === 'delivery' && apiOrder.deliveryInfo
-            ? {
+              : undefined,
+          deliveryInfo:
+            apiOrder.delivaryMethod?.toLowerCase() === 'delivery' && apiOrder.deliveryInfo
+              ? {
                 buildingType: apiOrder.deliveryInfo.buildingType || 'N/A',
                 houseNo: apiOrder.deliveryInfo.houseNo || 'N/A',
                 street: apiOrder.deliveryInfo.streetName || 'N/A',
@@ -261,9 +261,9 @@ const fetchDetailedOrder = async (orderId: string) => {
                 flatNo: apiOrder.deliveryInfo.unitNo || 'N/A',
                 floorNo: apiOrder.deliveryInfo.floorNo || 'N/A',
               }
-            : undefined,
-        familyPackItems: packagesData.status && packagesData.data
-          ? packagesData.data.map((pack: any, index: number) => ({
+              : undefined,
+          familyPackItems: packagesData.status && packagesData.data
+            ? packagesData.data.map((pack: any, index: number) => ({
               packageId: `${pack.packageId}_${index}`,
               name: pack.displayName || 'Family Pack',
               items: pack.products?.map((item: any) => ({
@@ -275,9 +275,9 @@ const fetchDetailedOrder = async (orderId: string) => {
               })) || [],
               totalPrice: pack.productPrice || 'Rs. 0.00',
             }))
-          : [],
-        additionalItems: additionalItemsData.status && additionalItemsData.data
-          ? additionalItemsData.data.map((item: any) => ({
+            : [],
+          additionalItems: additionalItemsData.status && additionalItemsData.data
+            ? additionalItemsData.data.map((item: any) => ({
               id: item.id || 0,
               name: item.displayName || 'Unknown',
               quantity: String(item.qty || 1).padStart(2, '0'),
@@ -289,20 +289,20 @@ const fetchDetailedOrder = async (orderId: string) => {
                 ? `Rs. ${(parseFloat(item.price) * parseFloat(item.qty)).toFixed(2)}`
                 : 'Rs. 0.00',
             }))
-          : [],
-        discount: totalDiscount > 0 ? `Rs. ${totalDiscount.toFixed(2)}` : 'Rs. 0.00',
-      };
-      setSelectedOrder(detailedOrder);
+            : [],
+          discount: totalDiscount > 0 ? `Rs. ${totalDiscount.toFixed(2)}` : 'Rs. 0.00',
+        };
+        setSelectedOrder(detailedOrder);
+      }
+    } catch (err) {
+      console.error('Error fetching detailed order at 04:32 PM +0530, July 07, 2025:', err);
+      setSelectedOrder(null);
+    } finally {
+      setIsFetchingDetails(false); // Stop loading
     }
-  } catch (err) {
-    console.error('Error fetching detailed order at 04:32 PM +0530, July 07, 2025:', err);
-    setSelectedOrder(null);
-  } finally {
-    setIsFetchingDetails(false); // Stop loading
-  }
-};
+  };
 
- 
+
 
   const filteredOrders = filter === 'all' ? orders : orders.filter((order) => {
     const orderDate = new Date(order.orderPlaced !== 'N/A' ? order.orderPlaced : order.scheduleDate);
@@ -350,7 +350,7 @@ const fetchDetailedOrder = async (orderId: string) => {
     }
   };
 
-return (
+  return (
     <div className="flex flex-col min-h-screen bg-[rgb(255,255,255)] relative">
       <Loader isVisible={loading} />
       <main ref={mainRef} className="flex-1 p-6 z-10 min-h-screen">
@@ -409,9 +409,9 @@ return (
                       textAlign: 'center',
                       width: '100%',
                       color: 'rgb(31,41,55)',
-                   
 
- }),
+
+                    }),
                     dropdownIndicator: (base) => ({
                       ...base,
                       color: 'rgb(107,114,128)',
@@ -560,7 +560,7 @@ return (
         <div className="absolute inset-0 bg-[rgba(255,255,255,0.5)] backdrop-blur-sm flex justify-end items-start z-30">
           <div
             ref={modalContentRef}
-            className="relative bg-[rgb(255,255,255)] rounded-l-xl w-full max-w-5xl h-full p-8 overflow-y-auto shadow-2xl animate-slideInRight"
+            className="relative bg-[rgb(255,255,255)] sm:rounded-l-xl w-full max-w-5xl h-full sm:p-8 overflow-y-auto shadow-2xl animate-slideInRight"
           >
             <Loader isVisible={isFetchingDetails} />
             {selectedOrder && !isFetchingDetails && (
@@ -579,7 +579,6 @@ return (
   );
 }
 
-// PickupOrderView and DeliveryOrderView remain unchanged
 function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: () => void }) {
   const familyPackTotal = order.familyPackItems?.reduce(
     (sum, pack) => sum + parseFloat(pack.totalPrice.replace('Rs. ', '') || '0'),
@@ -593,7 +592,23 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
 
   return (
     <div className="w-full">
-      <div className="flex justify-between items-center mb-4">
+      {/* Mobile Header */}
+      <div className="sm:hidden bg-white border-b border-gray-200 p-4 sticky top-0 z-10">
+        <div className="flex items-center justify-between">
+          <button onClick={onClose} className="text-gray-600">
+            <span className="text-xl">←</span>
+          </button>
+          <div className="text-center flex-1">
+            <h2 className="text-lg font-semibold">Order ID : #{order.invoiceNo}</h2>
+            <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium mt-2 ${getStatusClass(order.status)}`}>
+              {order.status}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop Header - hidden on mobile */}
+      <div className="hidden sm:flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold text-[rgb(31,41,55)] flex items-center gap-5 cursor-pointer" onClick={onClose}>
           <span className="text-[rgb(107,114,128)]">⟶</span>
           <span>Order ID: #{order.invoiceNo}</span>
@@ -602,151 +617,289 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
           {order.status}
         </span>
       </div>
-      <div className="border-t border-[rgb(0,0,0)] mb-4 mt-4" />
-      <div className="grid grid-cols-4 gap-4 text-sm mb-4">
-        <div>
-          <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Order Placed:</h4>
-          <p className="font-semibold">{order.orderPlaced || 'N/A'}</p>
+
+      {/* Mobile Content */}
+      <div className="sm:hidden bg-gray-50 min-h-screen p-4">
+        {/* Order Details Grid */}
+        <div className="bg-white p-4 space-y-4 text-sm border-b border-gray-200">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <span className="text-gray-600 block">Order Placed :</span>
+              <span className="font-semibold">{order.orderPlaced || 'N/A'}</span>
+            </div>
+            <div>
+              <span className="text-gray-600 block">Scheduled Date :</span>
+              <span className="font-semibold">{order.scheduleDate || 'N/A'}</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <span className="text-gray-600 block">Scheduled Time :</span>
+              <span className="font-semibold">{order.scheduleTime || 'N/A'}</span>
+            </div>
+            <div>
+              <span className="text-gray-600 block">Delivery / Pickup :</span>
+              <span className="font-semibold">{order.deliveryType || 'N/A'}</span>
+            </div>
+          </div>
         </div>
-        <div>
-          <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Scheduled Date:</h4>
-          <p className="font-semibold">{order.scheduleDate || 'N/A'}</p>
-        </div>
-        <div>
-          <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Scheduled Time:</h4>
-          <p className="font-semibold">{order.scheduleTime || 'N/A'}</p>
-        </div>
-        <div>
-          <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Delivery / Pickup:</h4>
-          <p className="font-semibold">{order.deliveryType || 'N/A'}</p>
-        </div>
-      </div>
-      <div className="border-t border-[rgb(229,231,235)] mb-4" />
-      <div className="mb-4">
-        <h3 className="text-lg font-semibold mb-2 text-[rgb(31,41,55)]">Pickup Information</h3>
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div className="space-y-1 text-sm text-[rgb(31,41,55)]">
-            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Centre:</h4>
-            <div className="space-y-1 text-sm">
-              <div>
-                <span className="font-semibold">{order.pickupInfo?.centerName || 'N/A'}</span>
-              </div>
-              <div className="flex flex-wrap gap-2 text-sm items-center">
-                <span>{order.pickupInfo?.buildingNumber || 'N/A'}</span>
-                <span>{order.pickupInfo?.street || 'N/A'}</span>
-                <span>{order.pickupInfo?.city || 'N/A'}</span>
-                <span>{order.pickupInfo?.district || 'N/A'}</span>
+
+        {/* Pickup Information */}
+        <div className="bg-white mt-2 p-4 border-b border-gray-200">
+          <h3 className="text-lg font-semibold mb-3 text-black">Pickup Information</h3>
+          <div className="space-y-3">
+            <div>
+              <span className="text-gray-600 block text-sm">Centre :</span>
+              <div className="mt-1">
+                <span className="font-semibold text-black">{order.pickupInfo?.centerName || 'N/A'}</span>
+                <div className="text-sm text-gray-700 mt-1">
+                  {order.pickupInfo?.city || 'N/A'}, {order.pickupInfo?.district || 'N/A'}, {order.pickupInfo?.province || 'N/A'}
+                </div>
               </div>
             </div>
+            <div>
+              <span className="text-gray-600 block text-sm">Pickup Person Information :</span>
+              <div className="mt-1">
+                <span className="font-semibold text-black">{order.fullName || 'N/A'}</span>
+                <div className="text-sm text-gray-700">
+                  {order.phone1 ? `${order.phonecode1 || ''} ${order.phone1}` : ''}
+                  {order.phone2 ? `, ${order.phonecode2 || ''} ${order.phone2}` : ''}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Ordered Items */}
+        <div className="bg-white mt-2 rounded-[15px] border border-gray-200 overflow-hidden shadow-lg">
+          {/* Header */}
+          <div className="bg-[#F8F8F8] p-4 border-b border-gray-200">
+            <div className="flex flex-col space-y-2">
+              <span className="font-semibold text-black">Ordered Items</span>
+              <span className="font-semibold text-[#3E206D] text-lg">Total Price : Rs. {totalPrice}</span>
+            </div>
+          </div>
+
+          {/* Family Pack Items */}
+          {order.familyPackItems && order.familyPackItems.length > 0 && (
+            <div>
+              {order.familyPackItems.map((pack, packIndex) => (
+                <div key={packIndex} className="border-b border-gray-200 last:border-b-0">
+                  <div className="p-4">
+                    <div className="flex justify-between items-center mb-4">
+                      <span className="font-medium text-black">
+                        {pack.name} ({pack.items?.length || 0} Items)
+                      </span>
+                      <span className="font-semibold text-[#3E206D]">
+                        Rs. {parseFloat(pack.totalPrice.replace('Rs. ', '') || '0').toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="space-y-3">
+                      {pack.items.map((item, itemIndex) => (
+                        <div key={`${packIndex}-${itemIndex}`} className="flex justify-between items-center py-2">
+                          <span className="text-gray-700">{item.name}</span>
+                          <span className="text-gray-600 font-medium">{item.quantity}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Additional Items */}
+          {order.additionalItems && order.additionalItems.length > 0 && (
+            <div className="border-t border-gray-200">
+              <div className="p-4">
+                  <div className="flex flex-col space-y-2 mb-2">
+                    <span className="font-medium text-black">
+                      Additional Items ({order.additionalItems.length} Items)
+                    </span>
+                    {order.discount && order.discount !== 'Rs. 0.00' && (
+                      <div className="text-sm text-[#3E206D]">
+                        You have saved {order.discount} with us!
+                      </div>
+                    )}
+                    <span className="font-semibold text-[#3E206D]">
+                      Rs. {additionalItemsTotal}
+                    </span>
+                  </div>
+                <div className="space-y-4 mt-4">
+                  {order.additionalItems.map((item, index) => (
+                    <div key={index} className="flex items-center gap-4 py-2">
+                      <div className="w-12 h-12 flex-shrink-0">
+                        {item.image ? (
+                          <img src={item.image} alt={item.name} className="w-12 h-12 object-cover rounded" />
+                        ) : (
+                          <div className="w-12 h-12 bg-orange-200 rounded flex items-center justify-center">
+                            <span className="text-orange-600 text-xs">🥭</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-medium text-black">{item.name}</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-sm text-gray-600">{item.quantity}{item.unit}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-semibold text-black">{item.price}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Desktop Content - hidden on mobile */}
+      <div className="hidden sm:block">
+        <div className="border-t border-[rgb(0,0,0)] mb-4 mt-4" />
+        <div className="grid grid-cols-4 gap-4 text-sm mb-4">
+          <div>
+            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Order Placed:</h4>
+            <p className="font-semibold">{order.orderPlaced || 'N/A'}</p>
           </div>
           <div>
-            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Pickup Person Information:</h4>
-            <p className="font-semibold">{order.fullName || 'N/A'}</p>
-            <div>
-
-              <p>
-                {order.phone1
-                  ? `${order.phonecode1 || ''} ${order.phone1}`
-                  : ''}
-                {order.phone2
-                  ? `, ${order.phonecode2 || ''} ${order.phone2}`
-                  : ''}
-              </p>
-            </div>
-
+            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Scheduled Date:</h4>
+            <p className="font-semibold">{order.scheduleDate || 'N/A'}</p>
+          </div>
+          <div>
+            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Scheduled Time:</h4>
+            <p className="font-semibold">{order.scheduleTime || 'N/A'}</p>
+          </div>
+          <div>
+            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Delivery / Pickup:</h4>
+            <p className="font-semibold">{order.deliveryType || 'N/A'}</p>
           </div>
         </div>
-      </div>
-      <div className="border-[rgb(229,231,235)] mb-8" />
-      <div className="mb-4">
-        <div className="mb-4" style={{ border: '1px solid rgb(215,215,215)', borderRadius: '0.5rem' }}>
-          <table className="w-full text-sm">
-            <tbody>
-              <tr className="w-full border-b border-[rgb(229,231,235)]" style={{ backgroundColor: 'rgb(248,248,248)' }}>
-                <td colSpan={3} className="font-semibold text-[rgb(31,41,55)] py-2 p-4">
-                  Ordered Items
-                </td>
-                <td className="text-right font-semibold py-2 p-4" style={{ color: 'rgb(62,32,109)', fontSize: '16px' }}>
-                  Total Price: Rs. {totalPrice}
-                </td>
-              </tr>
-              {order.familyPackItems && order.familyPackItems.length > 0 ? (
-                order.familyPackItems.map((pack, packIndex) => (
-                  <React.Fragment key={packIndex}>
+        {/* Rest of desktop content remains the same */}
+        <div className="border-t border-[rgb(229,231,235)] mb-4" />
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold mb-2 text-[rgb(31,41,55)]">Pickup Information</h3>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="space-y-1 text-sm text-[rgb(31,41,55)]">
+              <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Centre:</h4>
+              <div className="space-y-1 text-sm">
+                <div>
+                  <span className="font-semibold">{order.pickupInfo?.centerName || 'N/A'}</span>
+                </div>
+                <div className="flex flex-wrap gap-2 text-sm items-center">
+                  <span>{order.pickupInfo?.buildingNumber || 'N/A'}</span>
+                  <span>{order.pickupInfo?.street || 'N/A'}</span>
+                  <span>{order.pickupInfo?.city || 'N/A'}</span>
+                  <span>{order.pickupInfo?.district || 'N/A'}</span>
+                </div>
+              </div>
+            </div>
+            <div>
+              <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Pickup Person Information:</h4>
+              <p className="font-semibold">{order.fullName || 'N/A'}</p>
+              <div>
+                <p>
+                  {order.phone1
+                    ? `${order.phonecode1 || ''} ${order.phone1}`
+                    : ''}
+                  {order.phone2
+                    ? `, ${order.phonecode2 || ''} ${order.phone2}`
+                    : ''}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="border-[rgb(229,231,235)] mb-8" />
+        <div className="mb-4">
+          <div className="mb-4" style={{ border: '1px solid rgb(215,215,215)', borderRadius: '0.5rem' }}>
+            <table className="w-full text-sm">
+              <tbody>
+                <tr className="w-full border-b border-[rgb(229,231,235)]" style={{ backgroundColor: 'rgb(248,248,248)' }}>
+                  <td colSpan={3} className="font-semibold text-[rgb(31,41,55)] py-2 p-4">
+                    Ordered Items
+                  </td>
+                  <td className="text-right font-semibold py-2 p-4" style={{ color: 'rgb(62,32,109)', fontSize: '16px' }}>
+                    Total Price: Rs. {totalPrice}
+                  </td>
+                </tr>
+                {order.familyPackItems && order.familyPackItems.length > 0 ? (
+                  order.familyPackItems.map((pack, packIndex) => (
+                    <React.Fragment key={packIndex}>
+                      <tr className="border-b border-t border-[rgb(229,231,235)]">
+                        <td colSpan={3} className="font-medium py-2 p-4">
+                          {pack.name} ({pack.items?.length || 0} items)
+                        </td>
+                        <td className="text-right font-semibold py-2 p-4" style={{ color: 'rgb(62,32,109)' }}>
+                          Rs. {parseFloat(pack.totalPrice.replace('Rs. ', '') || '0').toFixed(2)}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td colSpan={2} className="py-2">
+                          <table className="max-w-[600px] w-full p-4">
+                            <tbody>
+                              {pack.items.map((item, itemIndex) => (
+                                <tr key={`${packIndex}-${itemIndex}`} className="grid grid-cols-[1fr_1fr_1fr] gap-8 text-sm items-center py-4 ml-6">
+                                  <td>{item.name}</td>
+                                  <td>{item.quantity}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </td>
+                      </tr>
+                    </React.Fragment>
+                  ))
+                ) : (
+                  <tr></tr>
+                )}
+                {order.additionalItems && order.additionalItems.length > 0 && (
+                  <>
                     <tr className="border-b border-t border-[rgb(229,231,235)]">
                       <td colSpan={3} className="font-medium py-2 p-4">
-                        {pack.name} ({pack.items?.length || 0} items)
+                        Additional Items ({order.additionalItems.length} Items)
                       </td>
-                      <td className="text-right font-semibold py-2 p-4" style={{ color: 'rgb(62,32,109)' }}>
-                        Rs. {parseFloat(pack.totalPrice.replace('Rs. ', '') || '0').toFixed(2)}
+                      <td className="text-right font-semibold py-2 p-4">
+                        <div className="flex justify-end items-center gap-2">
+                          {order.discount && order.discount !== 'Rs. 0.00' && (
+                            <span className="text-xs font-normal" style={{ color: 'rgb(62,32,109)' }}>
+                              You have saved {order.discount} with us!
+                            </span>
+                          )}
+                          <span style={{ color: 'rgb(62,32,109)' }}>
+                            Rs. {additionalItemsTotal}
+                          </span>
+                        </div>
                       </td>
                     </tr>
                     <tr>
-                      <td colSpan={2} className="py-2">
+                      <td colSpan={4} className="py-2">
                         <table className="max-w-[600px] w-full p-4">
                           <tbody>
-                            {pack.items.map((item, itemIndex) => (
-                              <tr key={`${packIndex}-${itemIndex}`} className="grid grid-cols-[1fr_1fr_1fr] gap-8 text-sm items-center py-4 ml-6">
+                            {order.additionalItems.map((item, index) => (
+                              <tr key={index} className="grid grid-cols-[1fr_1fr_1fr_1fr] gap-4 text-sm items-center py-3">
+                                <td className="flex justify-center">
+                                  {item.image ? (
+                                    <img src={item.image} alt={item.name} className="w-20 h-10 object-cover rounded" />
+                                  ) : (
+                                    <div className="w-20 h-10 bg-gray-200 rounded flex items-center" />
+                                  )}
+                                </td>
                                 <td>{item.name}</td>
-                                <td>{item.quantity}</td>
+                                <td>{item.quantity}{item.unit}</td>
+                                <td>{item.price}</td>
                               </tr>
                             ))}
                           </tbody>
                         </table>
                       </td>
                     </tr>
-                  </React.Fragment>
-                ))
-              ) : (
-                <tr>
-                 
-                </tr>
-              )}
-              {order.additionalItems && order.additionalItems.length > 0 && (
-                <>
-                  <tr className="border-b border-t border-[rgb(229,231,235)]">
-                    <td colSpan={3} className="font-medium py-2 p-4">
-                      Additional Items ({order.additionalItems.length} Items)
-                    </td>
-                    <td className="text-right font-semibold py-2 p-4">
-                      <div className="flex justify-end items-center gap-2">
-                        {order.discount && order.discount !== 'Rs. 0.00' && (
-                          <span className="text-xs font-normal" style={{ color: 'rgb(62,32,109)' }}>
-                            You have saved {order.discount} with us!
-                          </span>
-                        )}
-                        <span style={{ color: 'rgb(62,32,109)' }}>
-                          Rs. {additionalItemsTotal}
-                        </span>
-                      </div>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td colSpan={4} className="py-2">
-                      <table className="max-w-[600px] w-full p-4">
-                        <tbody>
-                          {order.additionalItems.map((item, index) => (
-                            <tr key={index} className="grid grid-cols-[1fr_1fr_1fr_1fr] gap-4 text-sm items-center py-3">
-                              <td className="flex justify-center">
-                                {item.image ? (
-                                  <img src={item.image} alt={item.name} className="w-20 h-10 object-cover rounded" />
-                                ) : (
-                                  <div className="w-20 h-10 bg-gray-200 rounded flex items-center" />
-                                )}
-                              </td>
-                              <td>{item.name}</td>
-                              <td>{item.quantity}{item.unit}</td>
-                              <td>{item.price}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </td>
-                  </tr>
-                </>
-              )}
-            </tbody>
-          </table>
+                  </>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
@@ -766,7 +919,23 @@ function DeliveryOrderView({ order, onClose }: { order: DetailedOrder, onClose: 
 
   return (
     <div className="w-full">
-      <div className="flex justify-between items-center mb-4">
+      {/* Mobile Header */}
+      <div className="sm:hidden bg-white border-b border-gray-200 p-4 sticky top-0 z-10">
+        <div className="flex items-center justify-between">
+          <button onClick={onClose} className="text-gray-600">
+            <span className="text-xl">←</span>
+          </button>
+          <div className="text-center flex-1">
+            <h2 className="text-lg font-semibold">Order ID : #{order.invoiceNo}</h2>
+            <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium mt-2 ${getStatusClass(order.status)}`}>
+              {order.status}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop Header - hidden on mobile */}
+      <div className="hidden sm:flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold text-[rgb(31,41,55)] flex items-center gap-5 cursor-pointer" onClick={onClose}>
           <span className="text-[rgb(107,114,128)]">⟶</span>
           <span>Order ID: #{order.invoiceNo}</span>
@@ -775,173 +944,318 @@ function DeliveryOrderView({ order, onClose }: { order: DetailedOrder, onClose: 
           {order.status}
         </span>
       </div>
-      <div className="border-t border-[rgb(0,0,0)] mb-4 mt-4"></div>
-      <div className="grid grid-cols-4 gap-4 text-sm mb-4">
-        <div>
-          <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Order Placed:</h4>
-          <p className="font-semibold">{order.orderPlaced || 'N/A'}</p>
-        </div>
-        <div>
-          <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Scheduled Date:</h4>
-          <p className="font-semibold">{order.scheduleDate || 'N/A'}</p>
-        </div>
-        <div>
-          <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Scheduled Time:</h4>
-          <p className="font-semibold">{order.scheduleTime || 'N/A'}</p>
-        </div>
-        <div>
-          <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Delivery / Pickup:</h4>
-          <p className="font-semibold">{order.deliveryType || 'N/A'}</p>
-        </div>
-      </div>
-      <div className="border-t border-[rgb(229,231,235)] mb-4"></div>
-      <div className="mb-4">
-        <h3 className="text-lg font-semibold mb-2 text-[rgb(31,41,55)]">Delivery Information</h3>
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div className="space-y-1 text-sm text-[rgb(31,41,55)]">
-            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Address:</h4>
-            <div className="space-y-1 text-sm">
-              <div>
-                <span className="font-semibold">{order.deliveryInfo?.buildingType || 'N/A'}</span>
-              </div>
-              <div className="flex gap-2">
-                <span className="font-medium text-[rgb(146,146,146)]">House No:</span>
-                <span>{order.deliveryInfo?.houseNo || 'N/A'}</span>
-              </div>
-              <div className="flex gap-2">
-                <span className="font-medium text-[rgb(146,146,146)]">Street:</span>
-                <span>{order.deliveryInfo?.street || 'N/A'}</span>
-              </div>
-              <div className="flex gap-2">
-                <span className="font-medium text-[rgb(146,146,146)]">City:</span>
-                <span>{order.deliveryInfo?.city || 'N/A'}</span>
-              </div>
-              {order.deliveryInfo?.buildingType === 'Apartment' && (
-                <>
-                  <div className="flex gap-2">
-                    <span className="font-medium text-[rgb(146,146,146)]">Building No:</span>
-                    <span>{order.deliveryInfo?.buildingNo || 'N/A'}</span>
-                  </div>
-                  <div className="flex gap-2">
-                    <span className="font-medium text-[rgb(146,146,146)]">Building Name:</span>
-                    <span>{order.deliveryInfo?.buildingName || 'N/A'}</span>
-                  </div>
-                  <div className="flex gap-2">
-                    <span className="font-medium text-[rgb(146,146,146)]">Floor:</span>
-                    <span>{order.deliveryInfo?.floorNo || 'N/A'}</span>
-                  </div>
-                </>
-              )}
+
+      {/* Mobile Content */}
+      <div className="sm:hidden bg-gray-50 min-h-screen p-4">
+        {/* Order Details Grid */}
+        <div className="bg-white p-4 space-y-4 text-sm border-b border-gray-200">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <span className="text-gray-600 block">Order Placed :</span>
+              <span className="font-semibold">{order.orderPlaced || 'N/A'}</span>
+            </div>
+            <div>
+              <span className="text-gray-600 block">Scheduled Date :</span>
+              <span className="font-semibold">{order.scheduleDate || 'N/A'}</span>
             </div>
           </div>
-          <div>
-            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Receiving Person Information:</h4>
-            <p className="font-semibold">{order.fullName || 'N/A'}</p>
-            <p>
-              {order.phone1
-                ? `${order.phonecode1 || ''} ${order.phone1}`
-                : ''}
-              {order.phone2
-                ? `, ${order.phonecode2 || ''} ${order.phone2}`
-                : ''}
-            </p>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <span className="text-gray-600 block">Scheduled Time :</span>
+              <span className="font-semibold">{order.scheduleTime || 'N/A'}</span>
+            </div>
+            <div>
+              <span className="text-gray-600 block">Delivery / Pickup :</span>
+              <span className="font-semibold">{order.deliveryType || 'N/A'}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Delivery Information */}
+        <div className="bg-white mt-2 p-4 border-b border-gray-200">
+          <h3 className="text-lg font-semibold mb-3 text-black">Delivery Information</h3>
+          <div className="space-y-3">
+            <div>
+              <span className="text-gray-600 block text-sm">Address :</span>
+              <div className="mt-1">
+                <span className="font-semibold text-black">{order.deliveryInfo?.buildingType || 'N/A'}</span>
+                <div className="text-sm text-gray-700 mt-1 space-y-1">
+                  <div>House No: {order.deliveryInfo?.houseNo || 'N/A'}</div>
+                  <div>Street: {order.deliveryInfo?.street || 'N/A'}</div>
+                  <div>City: {order.deliveryInfo?.city || 'N/A'}</div>
+                  {order.deliveryInfo?.buildingType === 'Apartment' && (
+                    <>
+                      <div>Building No: {order.deliveryInfo?.buildingNo || 'N/A'}</div>
+                      <div>Building Name: {order.deliveryInfo?.buildingName || 'N/A'}</div>
+                      <div>Floor: {order.deliveryInfo?.floorNo || 'N/A'}</div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div>
+              <span className="text-gray-600 block text-sm">Receiving Person Information :</span>
+              <div className="mt-1">
+                <span className="font-semibold text-black">{order.fullName || 'N/A'}</span>
+                <div className="text-sm text-gray-700">
+                  {order.phone1 ? `${order.phonecode1 || ''} ${order.phone1}` : ''}
+                  {order.phone2 ? `, ${order.phonecode2 || ''} ${order.phone2}` : ''}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Ordered Items - Mobile */}
+        <div className="bg-white mt-2 rounded-[15px] border border-gray-200 overflow-hidden">
+          {/* Header */}
+          <div className="bg-gray-50 p-4 border-b border-gray-200">
+            <div className="flex flex-col space-y-2">
+              <span className="font-semibold text-black">Ordered Items</span>
+              <span className="font-semibold text-[#3E206D] text-lg">Total Price : Rs. {totalPrice}</span>
+            </div>
           </div>
 
+          {/* Family Pack Items */}
+          {order.familyPackItems && order.familyPackItems.length > 0 && (
+            <div>
+              {order.familyPackItems.map((pack, packIndex) => (
+                <div key={packIndex} className="border-b border-gray-200 last:border-b-0">
+                  <div className="p-4">
+                    <div className="flex justify-between items-center mb-4">
+                      <span className="font-medium text-black">
+                        {pack.name} ({pack.items?.length || 0} Items)
+                      </span>
+                      <span className="font-semibold text-[#3E206D]">
+                        Rs. {parseFloat(pack.totalPrice.replace('Rs. ', '') || '0').toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="space-y-3">
+                      {pack.items.map((item, itemIndex) => (
+                        <div key={`${packIndex}-${itemIndex}`} className="flex justify-between items-center py-2">
+                          <span className="text-gray-700">{item.name}</span>
+                          <span className="text-gray-600 font-medium">{item.quantity}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Additional Items */}
+          {order.additionalItems && order.additionalItems.length > 0 && (
+            <div className="border-t border-gray-200">
+              <div className="p-4">
+                <div className="flex flex-col space-y-2 mb-2">
+                  <span className="font-medium text-black">
+                    Additional Items ({order.additionalItems.length} Items)
+                  </span>
+                  {order.discount && order.discount !== 'Rs. 0.00' && (
+                    <div className="text-sm text-purple-700">
+                      You have saved {order.discount} with us!
+                    </div>
+                  )}
+                  <span className="font-semibold text-purple-700">
+                    Rs. {additionalItemsTotal}
+                  </span>
+                </div>
+                <div className="space-y-4 mt-4">
+                  {order.additionalItems.map((item, index) => (
+                    <div key={index} className="flex items-center gap-4 py-2">
+                      <div className="w-12 h-12 flex-shrink-0">
+                        {item.image ? (
+                          <img src={item.image} alt={item.name} className="w-12 h-12 object-cover rounded" />
+                        ) : (
+                          <div className="w-12 h-12 bg-orange-200 rounded flex items-center justify-center">
+                            <span className="text-orange-600 text-xs">🥭</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-medium text-black">{item.name}</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-sm text-gray-600">{item.quantity}{item.unit}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-semibold text-black">{item.price}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
-      <div className="border-[rgb(229,231,235)] mb-8"></div>
-      <div className="mb-4" style={{ borderColor: 'rgb(215,215,215)' }}>
-        <div className="mb-4" style={{ border: '1px solid rgb(215,215,215)', borderRadius: '0.5rem' }}>
-          <table className="w-full text-sm" style={{ borderColor: 'rgb(215,215,215)' }}>
-            <tbody>
-              <tr className="w-full border-b border-[rgb(229,231,235)]" style={{ backgroundColor: 'rgb(248,248,248)' }}>
-                <td colSpan={3} className="font-semibold text-[rgb(31,41,55)] py-2 p-4">
-                  Ordered Items
-                </td>
-                <td className="text-right font-semibold py-2 p-4" style={{ color: 'rgb(62,32,109)', fontSize: '16px' }}>
-                  Total Price: Rs. {totalPrice}
-                </td>
-              </tr>
-              {order.familyPackItems && order.familyPackItems.length > 0 ? (
-                order.familyPackItems.map((pack, packIndex) => (
-                  <React.Fragment key={packIndex}>
+
+      <div className="hidden sm:block">
+        <div className="border-t border-[rgb(0,0,0)] mb-4 mt-4"></div>
+        <div className="grid grid-cols-4 gap-4 text-sm mb-4">
+          <div>
+            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Order Placed:</h4>
+            <p className="font-semibold">{order.orderPlaced || 'N/A'}</p>
+          </div>
+          <div>
+            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Scheduled Date:</h4>
+            <p className="font-semibold">{order.scheduleDate || 'N/A'}</p>
+          </div>
+          <div>
+            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Scheduled Time:</h4>
+            <p className="font-semibold">{order.scheduleTime || 'N/A'}</p>
+          </div>
+          <div>
+            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Delivery / Pickup:</h4>
+            <p className="font-semibold">{order.deliveryType || 'N/A'}</p>
+          </div>
+        </div>
+        <div className="border-t border-[rgb(229,231,235)] mb-4"></div>
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold mb-2 text-[rgb(31,41,55)]">Delivery Information</h3>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="space-y-1 text-sm text-[rgb(31,41,55)]">
+              <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Address:</h4>
+              <div className="space-y-1 text-sm">
+                <div>
+                  <span className="font-semibold">{order.deliveryInfo?.buildingType || 'N/A'}</span>
+                </div>
+                <div className="flex gap-2">
+                  <span className="font-medium text-[rgb(146,146,146)]">House No:</span>
+                  <span>{order.deliveryInfo?.houseNo || 'N/A'}</span>
+                </div>
+                <div className="flex gap-2">
+                  <span className="font-medium text-[rgb(146,146,146)]">Street:</span>
+                  <span>{order.deliveryInfo?.street || 'N/A'}</span>
+                </div>
+                <div className="flex gap-2">
+                  <span className="font-medium text-[rgb(146,146,146)]">City:</span>
+                  <span>{order.deliveryInfo?.city || 'N/A'}</span>
+                </div>
+                {order.deliveryInfo?.buildingType === 'Apartment' && (
+                  <>
+                    <div className="flex gap-2">
+                      <span className="font-medium text-[rgb(146,146,146)]">Building No:</span>
+                      <span>{order.deliveryInfo?.buildingNo || 'N/A'}</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <span className="font-medium text-[rgb(146,146,146)]">Building Name:</span>
+                      <span>{order.deliveryInfo?.buildingName || 'N/A'}</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <span className="font-medium text-[rgb(146,146,146)]">Floor:</span>
+                      <span>{order.deliveryInfo?.floorNo || 'N/A'}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+            <div>
+              <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Receiving Person Information:</h4>
+              <p className="font-semibold">{order.fullName || 'N/A'}</p>
+              <p>
+                {order.phone1
+                  ? `${order.phonecode1 || ''} ${order.phone1}`
+                  : ''}
+                {order.phone2
+                  ? `, ${order.phonecode2 || ''} ${order.phone2}`
+                  : ''}
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="border-[rgb(229,231,235)] mb-8"></div>
+        <div className="mb-4" style={{ borderColor: 'rgb(215,215,215)' }}>
+          <div className="mb-4" style={{ border: '1px solid rgb(215,215,215)', borderRadius: '0.5rem' }}>
+            <table className="w-full text-sm" style={{ borderColor: 'rgb(215,215,215)' }}>
+              <tbody>
+                <tr className="w-full border-b border-[rgb(229,231,235)]" style={{ backgroundColor: 'rgb(248,248,248)' }}>
+                  <td colSpan={3} className="font-semibold text-[rgb(31,41,55)] py-2 p-4">
+                    Ordered Items
+                  </td>
+                  <td className="text-right font-semibold py-2 p-4" style={{ color: 'rgb(62,32,109)', fontSize: '16px' }}>
+                    Total Price: Rs. {totalPrice}
+                  </td>
+                </tr>
+                {order.familyPackItems && order.familyPackItems.length > 0 ? (
+                  order.familyPackItems.map((pack, packIndex) => (
+                    <React.Fragment key={packIndex}>
+                      <tr className="border-b border-t border-[rgb(229,231,235)]">
+                        <td colSpan={3} className="font-medium py-2 p-4">
+                          {pack.name} ({pack.items?.length || 0} Items)
+                        </td>
+                        <td className="text-right font-semibold py-2 p-4" style={{ color: 'rgb(62,32,109)' }}>
+                          Rs. {parseFloat(pack.totalPrice.replace('Rs. ', '') || '0').toFixed(2)}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td colSpan={2} className="py-2">
+                          <table className="max-w-[600px] w-full p-4">
+                            <tbody>
+                              {pack.items.map((item, itemIndex) => (
+                                <tr key={`${packIndex}-${itemIndex}`} className="grid grid-cols-[1fr_1fr_1fr] gap-8 text-sm items-center py-4 ml-6">
+                                  <td>{item.name}</td>
+                                  <td>{item.quantity}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </td>
+                      </tr>
+                    </React.Fragment>
+                  ))
+                ) : (
+                  <tr></tr>
+                )}
+                {order.additionalItems && order.additionalItems.length > 0 && (
+                  <>
                     <tr className="border-b border-t border-[rgb(229,231,235)]">
                       <td colSpan={3} className="font-medium py-2 p-4">
-                        {pack.name} ({pack.items?.length || 0} Items)
+                        Additional Items ({order.additionalItems.length} Items)
                       </td>
-                      <td className="text-right font-semibold py-2 p-4" style={{ color: 'rgb(62,32,109)' }}>
-                        Rs. {parseFloat(pack.totalPrice.replace('Rs. ', '') || '0').toFixed(2)}
+                      <td className="text-right font-semibold py-2 p-4">
+                        <div className="flex justify-end items-center gap-2">
+                          {order.discount && order.discount !== 'Rs. 0.00' && (
+                            <span className="text-xs font-normal" style={{ color: 'rgb(62,32,109)' }}>
+                              You have saved {order.discount} with us!
+                            </span>
+                          )}
+                          <span style={{ color: 'rgb(62,32,109)' }}>
+                            Rs. {additionalItemsTotal}
+                          </span>
+                        </div>
                       </td>
                     </tr>
                     <tr>
-                      <td colSpan={2} className="py-2">
+                      <td colSpan={4} className="py-2">
                         <table className="max-w-[600px] w-full p-4">
                           <tbody>
-                            {pack.items.map((item, itemIndex) => (
-                              <tr key={`${packIndex}-${itemIndex}`} className="grid grid-cols-[1fr_1fr_1fr] gap-8 text-sm items-center py-4 ml-6">
+                            {order.additionalItems.map((item, index) => (
+                              <tr key={index} className="grid grid-cols-[1fr_1fr_1fr_1fr] gap-4 text-sm items-center py-3">
+                                <td className="flex justify-center">
+                                  {item.image ? (
+                                    <img src={item.image} alt={item.name} className="w-20 h-10 object-cover rounded" />
+                                  ) : (
+                                    <div className="w-20 h-10 bg-gray-200 rounded flex items-center" />
+                                  )}
+                                </td>
                                 <td>{item.name}</td>
-                                <td>{item.quantity}</td>
+                                <td>{item.quantity}{item.unit}</td>
+                                <td>{item.price}</td>
                               </tr>
                             ))}
                           </tbody>
                         </table>
                       </td>
                     </tr>
-                  </React.Fragment>
-                ))
-              ) : (
-                <tr>
-                  
-                </tr>
-              )}
-              {order.additionalItems && order.additionalItems.length > 0 && (
-                <>
-                  <tr className="border-b border-t border-[rgb(229,231,235)]">
-                    <td colSpan={3} className="font-medium py-2 p-4">
-                      Additional Items ({order.additionalItems.length} Items)
-                    </td>
-                    <td className="text-right font-semibold py-2 p-4">
-                      <div className="flex justify-end items-center gap-2">
-                        {order.discount && order.discount !== 'Rs. 0.00' && (
-                          <span className="text-xs font-normal" style={{ color: 'rgb(62,32,109)' }}>
-                            You have saved {order.discount} with us!
-                          </span>
-                        )}
-                        <span style={{ color: 'rgb(62,32,109)' }}>
-                          Rs. {additionalItemsTotal}
-                        </span>
-                      </div>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td colSpan={4} className="py-2">
-                      <table className="max-w-[600px] w-full p-4">
-                        <tbody>
-                          {order.additionalItems.map((item, index) => (
-                            <tr key={index} className="grid grid-cols-[1fr_1fr_1fr_1fr] gap-4 text-sm items-center py-3">
-                              <td className="flex justify-center">
-                                {item.image ? (
-                                  <img src={item.image} alt={item.name} className="w-20 h-10 object-cover rounded" />
-                                ) : (
-                                  <div className="w-20 h-10 bg-gray-200 rounded flex items-center" />
-                                )}
-                              </td>
-                              <td>{item.name}</td>
-                              <td>{item.quantity}{item.unit}</td>
-                              <td>{item.price}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </td>
-                  </tr>
-                </>
-              )}
-            </tbody>
-          </table>
+                  </>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
   );
 }
-

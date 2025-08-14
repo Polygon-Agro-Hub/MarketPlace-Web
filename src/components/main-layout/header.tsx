@@ -30,21 +30,19 @@ const Header = () => {
   const [selectedBuyerType, setSelectedBuyerType] = useState('');
 
   useEffect(() => {
-    // Set client-side flag after hydration
     setIsClient(true);
-    // Add a small delay to ensure hydration is complete
     const timer = setTimeout(() => {
       setIsHydrated(true);
     }, 100);
 
     const handleResize = () => {
-      setIsMobile(window.innerWidth < 768)
+      // Updated breakpoint to match Tailwind's md breakpoint
+      setIsMobile(window.innerWidth < 768);
     };
     handleResize();
 
     window.addEventListener('resize', handleResize);
 
-    // Close desktop category menu when clicking outside
     const handleClickOutside = (event: MouseEvent) => {
       if (categoryRef.current && !categoryRef.current.contains(event.target as Node)) {
         setIsDesktopCategoryOpen(false);
@@ -133,14 +131,14 @@ const Header = () => {
 
   const handleCartClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    
+
     // Check if user is authenticated
     if (!isAuthenticated()) {
       // Redirect to signin if not authenticated
       router.push('/signin');
       return;
     }
-    
+
     // If authenticated, proceed to cart
     router.push('/cart');
   };
@@ -241,9 +239,9 @@ const Header = () => {
   return (
     <>
       {!isMobile && (
-        <div className="bg-[#2C2C2C] text-gray-300 py-2 px-7">
-          <div className="mx-auto flex justify-between items-center">
-            <span className="text-sm italic">
+        <div className="bg-[#2C2C2C] text-gray-300 py-2 px-4 sm:px-7">
+          <div className="mx-auto flex flex-col sm:flex-row justify-between items-center gap-2 sm:gap-0">
+            <span className="text-xs sm:text-sm italic text-center sm:text-left">
               Call us for any query or help +94 770 111 999
             </span>
             <div className="flex gap-2">

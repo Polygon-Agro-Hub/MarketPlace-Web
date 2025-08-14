@@ -72,7 +72,9 @@ const CustomDropdown = ({ register, name, value, onChange, options, disabled }: 
         }`}
         onClick={() => !disabled && setIsOpen(!isOpen)}
       >
-        <span>{options.find((opt) => opt.value === value)?.label || '--Select Complaint Category--'}</span>
+        <span>
+          {value && options.find((opt) => opt.value === value)?.label || '--Select Complaint Category--'}
+        </span>
         <FaAngleDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none" />
       </div>
 
@@ -142,11 +144,10 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
   const userId = user?.id;
 
   // Category options
-  const categoryOptions = [
-    { value: '', label: '--Select Complaint Category--' },
-    ...categories.map((cat) => ({ value: cat.id.toString(), label: cat.categoryEnglish })),
-  ];
-
+  const categoryOptions = categories.map((cat) => ({
+    value: cat.id.toString(),
+    label: cat.categoryEnglish
+  }));
   // Fetch categories from backend
   useEffect(() => {
     const loadCategories = async () => {
@@ -403,9 +404,8 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
             id="complaint-text"
             value={complaintText}
             onChange={(e) => setComplaintText(e.target.value)}
-            className={`border border-[#CECECE] rounded-lg p-2 w-full h-52 text-[12px] md:text-[14px] font-medium resize-none focus:ring-0 focus:border-[#3E206D] ${
-              isLoading ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
+            className={`border border-[#CECECE] rounded-lg p-2 w-full h-52 text-[12px] md:text-[14px] font-medium resize-none focus:ring-0 focus:border-[#3E206D] ${isLoading ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
             placeholder="Type here..."
             disabled={isLoading}
             aria-describedby="complaint-help"
@@ -419,9 +419,8 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
         <div className="flex flex-col lg:flex-row gap-6 mb-6">
           <div className="flex-1">
             <label
-              className={`min-h-[250px] border border-dashed border-[#CECECE] rounded-lg flex flex-col items-center justify-center text-center transition-colors ${
-                isDragging ? 'bg-gray-100' : ''
-              } ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+              className={`min-h-[250px] border border-dashed border-[#CECECE] rounded-lg flex flex-col items-center justify-center text-center transition-colors ${isDragging ? 'bg-gray-100' : ''
+                } ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
               onDragOver={handleDragOver}
               onDragEnter={handleDragEnter}
               onDragLeave={handleDragLeave}
@@ -461,9 +460,8 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
                       />
                       <button
                         onClick={() => removeImage(i, true, img.id)}
-                        className={`absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center cursor-pointer bg-[#FA0000] rounded-full text-white hover:bg-[#D00000] ${
-                          isLoading ? 'opacity-50 cursor-not-allowed' : ''
-                        }`}
+                        className={`absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center cursor-pointer bg-[#FA0000] rounded-full text-white hover:bg-[#D00000] ${isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
                         disabled={isLoading}
                       >
                         <FaTimes className="text-xs" />
@@ -484,9 +482,8 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
                       />
                       <button
                         onClick={() => removeImage(i, false)}
-                        className={`absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center cursor-pointer bg-[#FA0000] rounded-full text-white hover:bg-[#D00000] ${
-                          isLoading ? 'opacity-50 cursor-not-allowed' : ''
-                        }`}
+                        className={`absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center cursor-pointer bg-[#FA0000] rounded-full text-white hover:bg-[#D00000] ${isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
                         disabled={isLoading}
                       >
                         <FaTimes className="text-xs" />
@@ -506,9 +503,8 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
         <div className="flex justify-end gap-4 mt-10">
           <button
             type="button"
-            className={`w-[90px] h-[36px] sm:w-[110px] sm:h-[44px] text-[16px] md:text-[20px] font-medium rounded-lg text-[#757E87] bg-[#F3F4F7] hover:bg-[#e1e2e5] ${
-              isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-            }`}
+            className={`w-[90px] h-[36px] sm:w-[110px] sm:h-[44px] text-[16px] md:text-[20px] font-medium rounded-lg text-[#757E87] bg-[#F3F4F7] hover:bg-[#e1e2e5] ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+              }`}
             onClick={clearForm}
             disabled={isLoading}
           >
@@ -516,9 +512,8 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
           </button>
           <button
             type="submit"
-            className={`w-[90px] h-[36px] sm:w-[110px] sm:h-[44px] text-[16px] md:text-[20px] font-medium rounded-lg text-white bg-[#3E206D] hover:bg-[#341a5a] mb-4 ${
-              isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-            }`}
+            className={`w-[90px] h-[36px] sm:w-[110px] sm:h-[44px] text-[16px] md:text-[20px] font-medium rounded-lg text-white bg-[#3E206D] hover:bg-[#341a5a] mb-4 ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+              }`}
             onClick={sendForm}
             disabled={isLoading}
           >

@@ -331,6 +331,8 @@ const BillingDetailsForm = () => {
     return () => subscription.unsubscribe();
   }, [watch, initialFormData]);
 
+
+
   useEffect(() => {
     // Register building type as required
     register('buildingType', { required: 'Building Type is required' });
@@ -482,9 +484,23 @@ const BillingDetailsForm = () => {
     }
   };
 
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Block leading space
+    if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
+      e.preventDefault();
+    }
+  };
+
   const handleBillingNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     const isNumber = /[0-9]/.test(e.key);
     const isInvalidChar = /[0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?]/.test(e.key);
+
+    // Block leading space
+    if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
+      e.preventDefault();
+      return;
+    }
+
     if (isNumber) {
       setBillingNameError('Numbers are not allowed in Billing Name');
       setTimeout(() => setBillingNameError(''), 2000);
@@ -495,6 +511,12 @@ const BillingDetailsForm = () => {
   };
 
   const handlePhoneKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Block leading space
+    if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
+      e.preventDefault();
+      return;
+    }
+
     const invalidKeys = ['e', 'E', '+', '-', '.', ','];
     if (invalidKeys.includes(e.key)) {
       e.preventDefault();
@@ -611,6 +633,7 @@ const BillingDetailsForm = () => {
                   {...register('houseNo')}
                   className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
                   placeholder='House Number'
+                  onKeyDown={handleInputKeyDown}
                 />
                 <p className="text-red-500 text-xs">{errors.houseNo?.message}</p>
               </div>
@@ -625,6 +648,7 @@ const BillingDetailsForm = () => {
                   {...register('buildingNo')}
                   className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
                   placeholder='Building Number'
+                  onKeyDown={handleInputKeyDown}
                 />
                 <p className="text-red-500 text-xs">{errors.buildingNo?.message}</p>
               </div>
@@ -641,7 +665,9 @@ const BillingDetailsForm = () => {
                   {...register('houseStreet')}
                   className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
                   placeholder='Street Name'
+                  onKeyDown={handleInputKeyDown}
                 />
+
                 <p className="text-red-500 text-xs">{errors.houseStreet?.message}</p>
               </div>
 
@@ -673,7 +699,9 @@ const BillingDetailsForm = () => {
                     {...register('apartmentName')}
                     className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
                     placeholder='Apartment or Building Name'
+                    onKeyDown={handleInputKeyDown}
                   />
+
                   <p className="text-red-500 text-xs">{errors.apartmentName?.message}</p>
                 </div>
 
@@ -685,6 +713,7 @@ const BillingDetailsForm = () => {
                     {...register('flatNumber')}
                     className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
                     placeholder='Flat/Unit Number'
+                    onKeyDown={handleInputKeyDown}
                   />
                   <p className="text-red-500 text-xs">{errors.flatNumber?.message}</p>
                 </div>
@@ -699,6 +728,7 @@ const BillingDetailsForm = () => {
                     {...register('apartmentFloor')}
                     className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
                     placeholder='Floor Number'
+                    onKeyDown={handleInputKeyDown}
                   />
                   <p className="text-red-500 text-xs">{errors.apartmentFloor?.message}</p>
                 </div>
@@ -711,6 +741,7 @@ const BillingDetailsForm = () => {
                     {...register('apartmentHouseNo')}
                     className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
                     placeholder='House Number'
+                    onKeyDown={handleInputKeyDown}
                   />
                   <p className="text-red-500 text-xs">{errors.apartmentHouseNo?.message}</p>
                 </div>
@@ -725,6 +756,7 @@ const BillingDetailsForm = () => {
                     {...register('apartmentStreet')}
                     className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
                     placeholder='Street Name'
+                    onKeyDown={handleInputKeyDown}
                   />
                   <p className="text-red-500 text-xs">{errors.apartmentStreet?.message}</p>
                 </div>

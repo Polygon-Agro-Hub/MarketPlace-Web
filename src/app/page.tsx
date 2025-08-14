@@ -160,29 +160,32 @@ export default function Home() {
 
 
 
-  return (
-
+return (
     <main className="flex min-h-screen flex-col items-center justify-between">
-      <div className='mt-0 my-8'>
+      {/* Updated banner container - removed margin constraints */}
+      <div className="w-full">
         <TopBanner />
       </div>
+      
       {loading ? (
-        <div>Loading packages...</div>
+        <div className="flex justify-center py-8">Loading packages...</div>
       ) : error ? (
-        <div className="text-red-500">{error}</div>
+        <div className="text-red-500 text-center py-4">{error}</div>
       ) : (
-        <PackageSlider
-          productData={productData}
-          onShowConfirmModal={handleShowConfirmModal}
-          onShowLoginPopup={handleShowLoginPopup}
-        />
+        <div className="w-full px-4 sm:px-6 lg:px-8">
+          <PackageSlider
+            productData={productData}
+            onShowConfirmModal={handleShowConfirmModal}
+            onShowLoginPopup={handleShowLoginPopup}
+          />
+        </div>
       )}
 
-      <div className="w-full mb-8">
+      <div className="w-full mb-8 px-4 sm:px-6 lg:px-8">
         <CategoryFilter />
       </div>
 
-      {/* Global confirmation modal */}
+      {/* Rest of your modals remain the same */}
       {showConfirmModal && selectedPackageForCart && (
         <div className="fixed inset-0 bg-black/50 bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full mx-4">
@@ -201,7 +204,6 @@ export default function Home() {
               </button>
               <button
                 onClick={() => {
-                  // Call the add to cart function from the package data
                   if (selectedPackageForCart.handlePackageAddToCart) {
                     selectedPackageForCart.handlePackageAddToCart();
                   }
@@ -217,6 +219,5 @@ export default function Home() {
       )}
       <LoginPopup />
     </main>
-
   );
 }

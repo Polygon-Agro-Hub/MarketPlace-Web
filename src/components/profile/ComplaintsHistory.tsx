@@ -163,9 +163,9 @@ const ComplaintsHistory = () => {
                   </p>
                   <p className="text-sm">Sincerely,</p>
                   <p className="text-sm">Support Team</p>
-                  <p className="text-sm">
-                    {selectedComplaint.replyDate || 'June 16, 2025'}
-                  </p>
+                  {/* <p className="text-sm">
+                    {selectedComplaint.replyDate}
+                  </p> */}
                 </div>
                 <button
                   onClick={handleGoBack}
@@ -269,6 +269,7 @@ const ComplaintsHistory = () => {
                         <div className="text-[12px] md:text-[16px]">{complaint.date}</div>
                       </div>
                       <div className="flex flex-col items-start sm:items-center">
+                        <div className="text-[12px] md:text-[16px] text-[#626D76] font-medium">Status:</div>
                         <div className="flex items-center">
                           <span
                             className={`min-w-[100px] sm:min-w-[120px] text-center px-2 py-1 rounded-full text-[12px] md:text-[16px] ${complaint.status === 'Closed'
