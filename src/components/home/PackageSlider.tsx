@@ -18,7 +18,7 @@ interface Package {
 
 interface packagesProps {
     productData: Package[];
-    onShowConfirmModal: (packageData: any) => void; 
+    onShowConfirmModal: (packageData: any) => void;
     onShowLoginPopup: () => void;
 }
 
@@ -48,7 +48,7 @@ const PrevArrow = (props: any) => {
     );
 };
 
-const PackageSlider: React.FC<packagesProps> = ({ productData , onShowConfirmModal,onShowLoginPopup }) => {
+const PackageSlider: React.FC<packagesProps> = ({ productData, onShowConfirmModal, onShowLoginPopup }) => {
     const { isMobile } = useViewport();
     const [selectedPackageId, setSelectedPackageId] = useState<number | null>(null);
     const [packageDetails, setPackageDetails] = useState<any>(null);
@@ -71,7 +71,7 @@ const PackageSlider: React.FC<packagesProps> = ({ productData , onShowConfirmMod
 
         try {
             const res = await getPackageDetails(packageId);
-            console.log('pkg details',res)
+            console.log('pkg details', res)
             setPackageDetails(res.packageItems);
         } catch (error: any) {
             setErrorDetails(error.message || 'Failed to load package details');
@@ -152,6 +152,7 @@ const PackageSlider: React.FC<packagesProps> = ({ productData , onShowConfirmMod
                 settings: {
                     slidesToShow: 2,
                     slidesToScroll: 1,
+                    dots: false, // Hide dots on tablet and below
                 }
             },
             {
@@ -160,13 +161,63 @@ const PackageSlider: React.FC<packagesProps> = ({ productData , onShowConfirmMod
                     slidesToShow: 2,
                     slidesToScroll: 1,
                     centerMode: false,
+                    dots: false, // Hide dots on mobile
                 }
             }
         ]
     };
 
     return (
-        <div className="flex flex-col items-center w-full my-5" ref={containerRef}>
+        <div className="flex flex-col items-center w-full my-5 package-slider-container" ref={containerRef}>
+            {/* Custom CSS for dots positioning */}
+            <style jsx global>{`
+    .package-slider-container .slick-dots {
+        position: static !important;
+        bottom: auto !important;
+        margin-top: 20px !important;
+        display: flex !important;
+        justify-content: center !important;
+        list-style: none !important;
+        padding: 0 !important;
+        width: 100% !important;
+    }
+    
+    .package-slider-container .slick-dots li {
+        margin: 0 5px !important;
+        width: auto !important;
+        height: auto !important;
+    }
+    
+    .package-slider-container .slick-dots li button {
+        width: 12px !important;
+        height: 12px !important;
+        border-radius: 50% !important;
+        background-color: #D7D7D7 !important;
+        border: none !important;
+        cursor: pointer !important;
+        font-size: 0 !important;
+        outline: none !important;
+        padding: 0 !important;
+    }
+    
+    .package-slider-container .slick-dots li button:before {
+        display: none !important;
+    }
+    
+    .package-slider-container .slick-dots li.slick-active button {
+        background-color: #FF4421 !important;
+    }
+    
+    .package-slider-container .slick-slider {
+        position: relative !important;
+    }
+    
+    @media (max-width: 768px) {
+        .package-slider-container .slick-dots {
+            display: none !important; /* Hide dots on mobile and tablet */
+        }
+    }
+`}</style>
             <div className="flex items-center justify-center gap-2 w-full my-4 md:my-8 px-2 md:px-20">
                 <div className="w-1/2 border-t-2 border-[#D7D7D7]"></div>
                 <span className="bg-[#FF8F6666] text-[#FF4421] rounded-lg text-xs md:text-sm px-3 md:px-6 py-1">

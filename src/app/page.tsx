@@ -10,6 +10,8 @@ import { getAllProduct } from "@/services/product-service";
 import TopBanner from '@/components/home/TopBanner';
 import AuthGuard from '@/components/AuthGuard';
 import { useRouter } from 'next/navigation';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons';
 
 interface Package {
   id: number;
@@ -165,6 +167,22 @@ return (
       {/* Updated banner container - removed margin constraints */}
       <div className="w-full">
         <TopBanner />
+      </div>
+      
+      {/* Search bar - Mobile only */}
+      <div className="w-full px-4 sm:hidden mt-4">
+        <div className="flex-1 max-w-xl mx-auto">
+          <div className="relative  shadow-lg">
+            <input
+              type="text"
+              placeholder="Search for Product"
+              className="italic w-full py-2 px-4 rounded-[10px] text-[#3E206D] focus:outline-none bg-gray-200"
+            />
+            <button className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500">
+              <FontAwesomeIcon icon={faMagnifyingGlass} color='#3E206D'/>
+            </button>
+          </div>
+        </div>
       </div>
       
       {loading ? (

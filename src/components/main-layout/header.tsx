@@ -495,8 +495,8 @@ const Header = () => {
           <div className="absolute z-50">
             <div className="bg-[#3E206D] text-white w-64 flex flex-col">
               <div className="flex justify-between items-center border-b border-purple-800 px-6 py-4">
-                <span className="font-semibold">Menu</span>
-                <button onClick={toggleMenu} className="text-white hover:text-purple-200">
+                {/* <span className="font-semibold">Menu</span> */}
+                <button onClick={toggleMenu} className="text-white hover:text-purple-200 ml-[90%]">
                   <FontAwesomeIcon icon={faTimes} className="text-xl" />
                 </button>
               </div>

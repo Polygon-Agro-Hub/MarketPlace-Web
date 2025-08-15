@@ -166,7 +166,6 @@ function MobileFooter() {
             <p className="text-sm text-[#8492A3]">+94 77 1666 800</p>
           </div>
         </div>
-
       </div>
 
       <div className="flex justify-between mb-6 px-16">
@@ -189,36 +188,36 @@ function MobileFooter() {
         </div>
       </div>
 
-      <div className="flex justify-center space-x-6 mt-20 mb-20">
+      <div className="flex justify-center space-x-6 mb-10 px-4">
         <a href="#" className="text-blue-400 hover:text-blue-300">
-          <Image src={Linkedin} alt="LinkedIn" className='w-auto h-8 object-cover' />
+          <Image src={Linkedin} alt="LinkedIn" width={32} height={32} />
         </a>
         <a href="#" className="text-blue-400 hover:text-blue-300">
-          <Image src={Facebook} alt="Facebook" className='w-auto h-8 object-cover' />
+          <Image src={Facebook} alt="Facebook" width={32} height={32} />
         </a>
         <a href="#" className="text-blue-400 hover:text-blue-300">
-          <Image src={Youtube} alt="Youtube" className='w-auto h-8 object-cover' />
+          <Image src={Youtube} alt="Youtube" width={32} height={32} />
         </a>
         <a href="#" className="text-blue-400 hover:text-blue-300">
-          <Image src={Instagram} alt="Instagram" className='w-auto h-8 object-cover' />
+          <Image src={Instagram} alt="Instagram" width={32} height={32} />
         </a>
         <a href="#" className="text-blue-400 hover:text-blue-300">
-          <Image src={Mail} alt="Mail" className='w-auto h-8 object-cover' />
+          <Image src={Mail} alt="Mail" width={32} height={32} />
         </a>
       </div>
 
-      <div className="border-t border-[#404451] p-6 text-center">
-        <div className="flex justify-between items-center">
-          <p className="text-xs text-[#DBDBDB] mb-3">© All rights reserved by AgroWorld Pvt Ltd</p>
-          <div className="flex justify-center mb-3">
-            <Image src={Visa} alt="Visa" className='w-auto h-6 object-cover mr-2' />
-            <Image src={MasterCard} alt="MasterCard" className='w-auto h-6 object-cover' />
+      <div className="border-t border-[#404451] pt-6 pb-4 px-6">
+        <div className="flex flex-col items-center">
+          <div className="flex mb-4">
+            <Image src={Visa} alt="Visa" width={40} height={24} className="mr-2" />
+            <Image src={MasterCard} alt="MasterCard" width={40} height={24} />
           </div>
+          <p className="text-xs text-[#DBDBDB] mb-4 text-center">© All rights reserved by AgroWorld Pvt Ltd</p>
         </div>
 
-        <div className="flex justify-between space-x-4 text-xs">
-          <a href="#" className="text-[#DBDBDB] hover:text-white underline">Terms & Conditions</a>
-          <a href="#" className="text-[#DBDBDB] hover:text-white underline">Privacy Policy</a>
+        <div className="flex justify-center space-x-6">
+          <a href="#" className="text-xs text-[#DBDBDB] hover:text-white underline">Terms & Conditions</a>
+          <a href="#" className="text-xs text-[#DBDBDB] hover:text-white underline">Privacy Policy</a>
         </div>
       </div>
     </div>
