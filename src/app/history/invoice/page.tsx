@@ -115,10 +115,17 @@ function InvoiceView({
     );
   }
 
-  const parseCurrency = (value: string): number => {
+
+  function formatCurrencyWithCommas(value: string | number): string {
+    const numValue = typeof value === 'string' ? parseCurrency(value) : value;
+    return `Rs. ${numValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+
+  // Update the parseCurrency function to work with the new formatter
+  function parseCurrency(value: string): number {
     if (value === 'Rs. NaN' || !value) return 0;
-    return parseFloat(value.replace('Rs. ', '')) || 0;
-  };
+    return parseFloat(value.replace('Rs. ', '').replace(/,/g, '')) || 0;
+  }
 
   return (
     <div className="w-[794px] mx-auto p-8 bg-white" ref={invoiceRef}>
@@ -153,28 +160,49 @@ function InvoiceView({
 
       <div className="grid grid-cols-2 gap-4 mb-6 text-sm">
         <div>
-          <p className="font-semibold">Bill To:</p>
-          <p>{`${invoice.billingInfo.title}. ${invoice.billingInfo.fullName}`}</p> {/* Added dot after title */}
-          <p>{invoice.billingInfo.email}</p> {/* Added email */}
-          <p>{`No. ${invoice.billingInfo.houseNo}`}</p>
-          <p>{invoice.billingInfo.street}</p>
-          <p>{invoice.billingInfo.city}</p>
+          <p className="font-bold">Bill To:</p>
+          <p>{`${invoice.billingInfo.title}. ${invoice.billingInfo.fullName}`}</p>
+          <p>{invoice.billingInfo.email}</p>
           <p>{invoice.billingInfo.phone}</p>
-          <p className="font-semibold mt-5">Invoice No:</p>
+          {invoice.billingInfo.buildingType === "House" ? (
+            <>
+              <p className="font-bold mt-4">House Address :</p>
+              <p><span className="font-normal" style={{ color: '#929292' }}>House No :</span> {invoice.billingInfo.houseNo},</p>
+              <p><span className="font-normal" style={{ color: '#929292' }}>Street Name :</span> {invoice.billingInfo.street},</p>
+              <p><span className="font-normal" style={{ color: '#929292' }}>City :</span> {invoice.billingInfo.city}</p>
+            </>
+          ) : invoice.billingInfo.buildingType === "Apartment" ? (
+            <>
+              <p className="font-bold mt-4">Apartment Address :</p>
+              <p><span className="font-normal" style={{ color: '#929292' }}>No :</span> {invoice.billingInfo.houseNo},</p>
+              <p><span className="font-normal" style={{ color: '#929292' }}>Name :</span> {invoice.billingInfo.street},</p>
+              <p><span className="font-normal" style={{ color: '#929292' }}>House No :</span> {invoice.billingInfo.houseNo},</p>
+              <p><span className="font-normal" style={{ color: '#929292' }}>Street Name :</span> {invoice.billingInfo.street},</p>
+              <p><span className="font-normal" style={{ color: '#929292' }}>City :</span> {invoice.billingInfo.city}</p>
+            </>
+          ) : (
+            <>
+              <p>{`No. ${invoice.billingInfo.houseNo}`}</p>
+              <p>{invoice.billingInfo.street}</p>
+              <p>{invoice.billingInfo.city}</p>
+            </>
+          )}
+          <p className="font-bold mt-5" >Invoice No:</p>
           <p>{invoice.invoiceNumber}</p>
-          <p className="font-semibold mt-5">Delivery Method:</p>
+          <p className="font-bold mt-5" >Delivery Method:</p>
           <p>{invoice.deliveryMethod}</p>
           {invoice.deliveryMethod?.toLowerCase().includes('pickup') && invoice.pickupInfo && (
             <div className="mt-3 text-sm">
-              <p className="font-semibold">Centre: {invoice.pickupInfo.centerName || 'N/A'}</p>
+              <p className="font-bold">Centre: {invoice.pickupInfo.centerName || 'N/A'}</p>
               <p>{`${invoice.pickupInfo.address?.city || 'N/A'}, ${invoice.pickupInfo.address?.district || 'N/A'}`}</p>
               <p>{`${invoice.pickupInfo.address?.province || 'N/A'}, ${invoice.pickupInfo.address?.country || 'N/A'}`}</p>
             </div>
           )}
         </div>
+
         <div className="text-left ml-49">
           <p className="font-semibold mt-5">Grand Total:</p>
-          <p className="font-extrabold">{`Rs. ${parseCurrency(invoice.grandTotal).toFixed(2)}`}</p>
+          <p className="font-extrabold">{formatCurrencyWithCommas(invoice.grandTotal)}</p>
           <p className="font-semibold mt-5">Payment Method:</p>
           <p>{invoice.paymentMethod}</p>
           <p className="font-semibold mt-5">Ordered Date:</p>
@@ -191,7 +219,7 @@ function InvoiceView({
               <div key={pack.id} className="mb-4">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="font-semibold">{`${pack.name} (${pack.packageDetails?.length || 0} Items)`}</h2>
-                  <span className="font-semibold">{pack.amount}</span>
+                  <span className="font-semibold">{formatCurrencyWithCommas(pack.amount)}</span>
                 </div>
                 <div className="border-t mb-4 mt-4 border-gray-300" />
                 <div className="mb-4 border border-gray-300 rounded-lg">
@@ -236,7 +264,7 @@ function InvoiceView({
         <div className="mb-8">
           <div className="flex justify-between items-center mb-4">
             <h2 className="font-semibold">{`Additional Items (${invoice.additionalItems.length} Items)`}</h2>
-            <span className="font-semibold">{`Rs. ${parseCurrency(invoice.additionalItemsTotal).toFixed(2)}`}</span>
+            <span className="font-semibold">{formatCurrencyWithCommas(invoice.additionalItemsTotal)}</span>
           </div>
           <div className="border-t mb-4 mt-4 border-gray-300" />
           <div className="mb-4 border border-gray-300 rounded-lg">
@@ -255,9 +283,9 @@ function InvoiceView({
                   <tr key={item.id} className="border-b border-gray-200">
                     <td className="p-5 text-left">{`${index + 1}.`}</td>
                     <td className="p-3 text-left">{item.name}</td>
-                    <td className="p-3 text-left">{item.unitPrice}</td>
+                    <td className="p-3 text-left">{formatCurrencyWithCommas(item.unitPrice)}</td>
                     <td className="p-3 text-left">{`${item.quantity} ${item.unit}`}</td>
-                    <td className="p-3 text-left">{item.amount}</td>
+                    <td className="p-3 text-left">{formatCurrencyWithCommas(item.amount)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -274,36 +302,36 @@ function InvoiceView({
             {invoice.familyPackItems && invoice.familyPackItems.length > 0 && (
               <tr>
                 <td className="p-2">Total Price for Packages</td>
-                <td className="p-2 text-right">{`Rs. ${parseCurrency(invoice.familyPackTotal).toFixed(2)}`}</td>
+                <td className="p-2 text-right">{formatCurrencyWithCommas(invoice.familyPackTotal)}</td>
               </tr>
             )}
             {invoice.additionalItems && invoice.additionalItems.length > 0 && (
               <tr>
                 <td className="p-2">Additional Items</td>
-                <td className="p-2 text-right">{`Rs. ${parseCurrency(invoice.additionalItemsTotal).toFixed(2)}`}</td>
+                <td className="p-2 text-right">{formatCurrencyWithCommas(invoice.additionalItemsTotal)}</td>
               </tr>
             )}
             {!invoice.deliveryMethod?.toLowerCase().includes('pickup') && parseCurrency(invoice.deliveryFee) > 0 && (
               <tr>
                 <td className="p-2">Delivery Fee</td>
-                <td className="p-2 text-right">{`Rs. ${parseCurrency(invoice.deliveryFee).toFixed(2)}`}</td>
+                <td className="p-2 text-right">{formatCurrencyWithCommas(invoice.deliveryFee)}</td>
               </tr>
             )}
             {parseCurrency(invoice.discount) > 0 && (
               <tr>
                 <td className="p-2">Discount</td>
-                <td className="p-2 text-right ">Rs. {parseCurrency(invoice.discount).toFixed(2)}</td>
+                <td className="p-2 text-right">{formatCurrencyWithCommas(invoice.discount)}</td>
               </tr>
             )}
             {parseCurrency(invoice.couponDiscount) > 0 && (
               <tr>
                 <td className="p-2">Coupon Discount</td>
-                <td className="p-2 text-right ">Rs. {parseCurrency(invoice.couponDiscount).toFixed(2)}</td>
+                <td className="p-2 text-right">{formatCurrencyWithCommas(invoice.couponDiscount)}</td>
               </tr>
             )}
             <tr className="font-bold border-t-2 border-black">
               <td className="p-2">Grand Total</td>
-              <td className="p-2 text-right">{`Rs. ${(() => {
+              <td className="p-2 text-right">{formatCurrencyWithCommas((() => {
                 let total = 0;
                 // Add family pack total
                 if (invoice.familyPackItems && invoice.familyPackItems.length > 0) {
@@ -320,8 +348,8 @@ function InvoiceView({
                 // Subtract coupon discount
                 total -= parseCurrency(invoice.couponDiscount);
                 // Ensure minimum 0
-                return Math.max(total, 0).toFixed(2);
-              })()}`}</td>
+                return Math.max(total, 0);
+              })())}</td>
             </tr>
           </tbody>
         </table>
@@ -436,6 +464,12 @@ function InvoicePageContent() {
       return isNaN(num) ? 0 : num;
     };
 
+    // Add this new function for formatting currency with commas in PDF
+    const formatCurrencyForPDF = (value: string | number): string => {
+      const numValue = typeof value === 'string' ? parseNum(value) : value;
+      return `Rs. ${numValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    };
+
     const formatDate = (dateStr: string): string => {
       const d = new Date(dateStr);
       if (isNaN(d.getTime())) return 'N/A';
@@ -448,7 +482,7 @@ function InvoicePageContent() {
         {
           columns: [
             { text: `${pack.name} (${pack.packageDetails?.length || 0} Items)`, bold: true, fontSize: 9, margin: [0, 8, 0, 4] },
-            { text: pack.amount, bold: true, fontSize: 9, alignment: 'right', margin: [0, 8, 0, 4] }
+            { text: formatCurrencyForPDF(pack.amount), bold: true, fontSize: 9, alignment: 'right', margin: [0, 8, 0, 4] }
           ]
         },
         {
@@ -498,7 +532,7 @@ function InvoicePageContent() {
       {
         columns: [
           { text: `Additional Items (${invoice.additionalItems.length} Items)`, bold: true, fontSize: 9, margin: [0, 8, 0, 4] },
-          { text: `Rs. ${parseNum(invoice.additionalItemsTotal).toFixed(2)}`, bold: true, fontSize: 9, alignment: 'right', margin: [0, 8, 0, 4] }
+          { text: formatCurrencyForPDF(invoice.additionalItemsTotal), bold: true, fontSize: 9, alignment: 'right', margin: [0, 8, 0, 4] }
         ]
       },
       {
@@ -521,9 +555,9 @@ function InvoicePageContent() {
             ...invoice.additionalItems.map((it, i) => [
               `${i + 1}.`,
               it.name,
-              it.unitPrice,
+              formatCurrencyForPDF(it.unitPrice), // Updated to use comma formatting
               `${it.quantity} ${it.unit}`,
-              it.amount
+              formatCurrencyForPDF(it.amount) // Updated to use comma formatting
             ])
           ]
         },
@@ -554,7 +588,7 @@ function InvoicePageContent() {
       subtotal += parseNum(invoice.familyPackTotal);
       grandTotalRows.push([
         { text: 'Total Price for Packages', fontSize: 9 },
-        { text: `Rs. ${parseNum(invoice.familyPackTotal).toFixed(2)}`, fontSize: 9, alignment: 'right' }
+        { text: formatCurrencyForPDF(invoice.familyPackTotal), fontSize: 9, alignment: 'right' } // Updated
       ]);
     }
 
@@ -562,7 +596,7 @@ function InvoicePageContent() {
       subtotal += parseNum(invoice.additionalItemsTotal);
       grandTotalRows.push([
         { text: 'Additional Items', fontSize: 9 },
-        { text: `Rs. ${parseNum(invoice.additionalItemsTotal).toFixed(2)}`, fontSize: 9, alignment: 'right' }
+        { text: formatCurrencyForPDF(invoice.additionalItemsTotal), fontSize: 9, alignment: 'right' } // Updated
       ]);
     }
 
@@ -571,16 +605,15 @@ function InvoicePageContent() {
       subtotal += parseNum(invoice.deliveryFee);
       grandTotalRows.push([
         { text: 'Delivery Fee', fontSize: 9 },
-        { text: `Rs. ${parseNum(invoice.deliveryFee).toFixed(2)}`, fontSize: 9, alignment: 'right' }
+        { text: formatCurrencyForPDF(invoice.deliveryFee), fontSize: 9, alignment: 'right' } // Updated
       ]);
     }
 
     // Subtract discounts
     if (parseNum(invoice.discount) > 0) {
-      // subtotal -= parseNum(invoice.discount);
       grandTotalRows.push([
         { text: 'Discount', fontSize: 9 },
-        { text: `Rs. ${parseNum(invoice.discount).toFixed(2)}`, fontSize: 9, alignment: 'right' }
+        { text: formatCurrencyForPDF(invoice.discount), fontSize: 9, alignment: 'right' } // Updated
       ]);
     }
 
@@ -588,24 +621,15 @@ function InvoicePageContent() {
       subtotal -= parseNum(invoice.couponDiscount);
       grandTotalRows.push([
         { text: 'Coupon Discount', fontSize: 9 },
-        { text: `Rs. ${parseNum(invoice.couponDiscount).toFixed(2)}`, fontSize: 9, alignment: 'right' }
+        { text: formatCurrencyForPDF(invoice.couponDiscount), fontSize: 9, alignment: 'right' } // Updated
       ]);
     }
 
     const finalTotal = Math.max(subtotal, 0); // Ensure no negative total
     grandTotalRows.push([
       { text: 'Grand Total', bold: true, fontSize: 9 },
-      { text: `Rs. ${finalTotal.toFixed(2)}`, bold: true, fontSize: 10, alignment: 'right' }
+      { text: formatCurrencyForPDF(finalTotal), bold: true, fontSize: 10, alignment: 'right' } // Updated
     ]);
-
-
-    const parseCurrency = (value: string): number => {
-      if (value === 'Rs. NaN' || !value || value === 'N/A') return 0;
-      // Remove 'Rs. ' prefix and any commas, then parse
-      const cleanValue = value.toString().replace(/Rs\.?\s?/, '').replace(/,/g, '');
-      const parsed = parseFloat(cleanValue);
-      return isNaN(parsed) ? 0 : parsed;
-    };
 
     const docDefinition: any = {
       pageSize: 'A4',
@@ -636,12 +660,66 @@ function InvoicePageContent() {
           columns: [
             [
               { text: 'Bill To:', bold: true, fontSize: 9, margin: [0, 8, 0, 2] },
-              { text: `${invoice.billingInfo.title}. ${invoice.billingInfo.fullName}`, fontSize: 9 }, // Added dot after title
-              { text: invoice.billingInfo.email, fontSize: 9 }, // Added email
-              { text: `No. ${invoice.billingInfo.houseNo}`, fontSize: 9 },
-              { text: invoice.billingInfo.street, fontSize: 9 },
-              { text: invoice.billingInfo.city, fontSize: 9 },
+              { text: `${invoice.billingInfo.title}. ${invoice.billingInfo.fullName}`, fontSize: 9 },
+              { text: invoice.billingInfo.email, fontSize: 9 },
               { text: invoice.billingInfo.phone, fontSize: 9 },
+              ...(invoice.billingInfo.buildingType === "House" ? [
+                { text: 'House Address :', bold: true, fontSize: 9, marginTop: 4 },
+                {
+                  text: [
+                    { text: 'House No : ', fontSize: 9, bold: false, color: '#929292' },
+                    { text: invoice.billingInfo.houseNo, fontSize: 9 }
+                  ]
+                },
+                {
+                  text: [
+                    { text: 'Street Name : ', fontSize: 9, bold: false, color: '#929292' },
+                    { text: invoice.billingInfo.street, fontSize: 9 }
+                  ]
+                },
+                {
+                  text: [
+                    { text: 'City : ', fontSize: 9, bold: false, color: '#929292' },
+                    { text: invoice.billingInfo.city, fontSize: 9 }
+                  ]
+                }
+              ] : invoice.billingInfo.buildingType === "Apartment" ? [
+                { text: 'Apartment Address :', bold: true, fontSize: 9, marginTop: 4 },
+                {
+                  text: [
+                    { text: 'No : ', fontSize: 9, bold: false, color: '#929292' },
+                    { text: invoice.billingInfo.houseNo, fontSize: 9 }
+                  ]
+                },
+                {
+                  text: [
+                    { text: 'Name : ', fontSize: 9, bold: false, color: '#929292' },
+                    { text: invoice.billingInfo.street, fontSize: 9 }
+                  ]
+                },
+                {
+                  text: [
+                    { text: 'House No : ', fontSize: 9, bold: false, color: '#929292' },
+                    { text: invoice.billingInfo.houseNo, fontSize: 9 }
+                  ]
+                },
+                {
+                  text: [
+                    { text: 'Street Name : ', fontSize: 9, bold: false, color: '#929292' },
+                    { text: invoice.billingInfo.street, fontSize: 9 }
+                  ]
+                },
+                {
+                  text: [
+                    { text: 'City : ', fontSize: 9, bold: false, color: '#929292' },
+                    { text: invoice.billingInfo.city, fontSize: 9 }
+                  ]
+                }
+              ] : [
+                { text: `No. ${invoice.billingInfo.houseNo}`, fontSize: 9 },
+                { text: invoice.billingInfo.street, fontSize: 9 },
+                { text: invoice.billingInfo.city, fontSize: 9 }
+              ]),
               { text: 'Invoice No:', bold: true, fontSize: 9, margin: [0, 8, 0, 2] },
               { text: invoice.invoiceNumber, fontSize: 9 },
               { text: 'Delivery Method:', bold: true, fontSize: 9, margin: [0, 8, 0, 2] },
@@ -653,8 +731,9 @@ function InvoicePageContent() {
               ] : [])
             ],
             [
+              // Right column with comma formatting
               { text: 'Grand Total:', bold: true, fontSize: 9, margin: [105, 8, 0, 2] },
-              { text: `Rs. ${parseNum(invoice.grandTotal).toFixed(2)}`, fontSize: 11, bold: true, margin: [105, 0, 0, 6] },
+              { text: formatCurrencyForPDF(invoice.grandTotal), fontSize: 11, bold: true, margin: [105, 0, 0, 6] }, // Updated
               { text: 'Payment Method:', bold: true, fontSize: 9, margin: [105, 6, 0, 2] },
               { text: invoice.paymentMethod, fontSize: 9, margin: [105, 0, 0, 6] },
               { text: 'Ordered Date:', bold: true, fontSize: 9, margin: [105, 6, 0, 2] },

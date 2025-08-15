@@ -21,8 +21,14 @@ type FormErrors = {
   companyPhoneNumber?: string;
 };
 
+type PhoneCode = {
+  code: string;
+  dialCode: string;
+  name: string;
+};
+
 interface CustomDropdownProps {
-  options: { value: string; label: string }[];
+  options: { value: string; label: string; flag?: string }[];
   selectedValue: string;
   onSelect: (value: string) => void;
   placeholder: string;
@@ -36,13 +42,20 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
   placeholder,
   className = "",
 }) => {
+  const selectedOption = options.find(option => option.value === selectedValue);
+
   return (
     <select
       value={selectedValue}
       onChange={(e) => onSelect(e.target.value)}
-      className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 cursor-pointer border-gray-300 focus:ring-purple-500 focus:border-purple-500 ${className} ${
-        selectedValue ? "text-black" : "text-gray-500"
-      }`}
+      className={`h-10 w-full border rounded-md px-2 py-2 focus:outline-none focus:ring-1 cursor-pointer border-gray-300 focus:ring-purple-500 focus:border-purple-500 ${className} ${selectedValue ? "text-black" : "text-gray-500"}`}
+      style={{
+        backgroundImage: selectedOption?.flag ? `url("${selectedOption.flag}")` : 'none',
+        backgroundPosition: '8px center',
+        backgroundRepeat: 'no-repeat',
+        backgroundSize: '20px 15px',
+        paddingLeft: selectedOption?.flag ? '32px' : '8px'
+      }}
     >
       <option value="" disabled hidden>
         {placeholder}
@@ -59,6 +72,7 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
     </select>
   );
 };
+
 
 export default function SignupForm() {
   const router = useRouter();
@@ -93,6 +107,29 @@ export default function SignupForm() {
     companyPhoneNumber: "",
   });
 
+  const countries: PhoneCode[] = [
+    { code: 'LK', dialCode: '+94', name: 'Sri Lanka' },
+    { code: 'VN', dialCode: '+84', name: 'Vietnam' },
+    { code: 'KH', dialCode: '+855', name: 'Cambodia' },
+    { code: 'BD', dialCode: '+880', name: 'Bangladesh' },
+    { code: 'IN', dialCode: '+91', name: 'India' },
+    { code: 'NL', dialCode: '+31', name: 'Netherlands' },
+    { code: 'UK', dialCode: '+44', name: 'United Kingdom' },
+    { code: 'US', dialCode: '+1', name: 'United States' }
+  ];
+
+  const getFlagUrl = (countryCode: string): string => {
+    return `https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png`;
+  };
+
+  const countryOptions = countries.map(country => ({
+    value: country.dialCode,
+    label: `${country.dialCode} (${country.name})`,
+    flag: getFlagUrl(country.code)
+  }));
+
+
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
@@ -100,9 +137,41 @@ export default function SignupForm() {
     const checked =
       type === "checkbox" ? (e.target as HTMLInputElement).checked : undefined;
 
+    let processedValue = value;
+
+    // Block leading spaces for all input fields
+    if (type !== "checkbox" && value.startsWith(" ")) {
+      return;
+    }
+
+    // Special handling for firstName and lastName
+    if (name === "firstName" || name === "lastName") {
+      // Block numbers and special characters, allow only letters and spaces
+      const letterOnlyValue = value.replace(/[^A-Za-z\s]/g, "");
+
+      // Capitalize first letter of each word
+      processedValue = letterOnlyValue
+        .split(" ")
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(" ");
+    }
+
+    // Special handling for phone numbers - allow only digits
+    if (name === "phoneNumber" || name === "companyPhoneNumber") {
+      processedValue = value.replace(/[^\d]/g, "");
+    }
+
+    // Special handling for company name - block leading spaces but allow other characters
+    if (name === "companyName") {
+      if (value.startsWith(" ")) {
+        return;
+      }
+      processedValue = value;
+    }
+
     setFormData((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: type === "checkbox" ? checked : processedValue,
     }));
 
     if (errors[name as keyof FormErrors]) {
@@ -114,9 +183,10 @@ export default function SignupForm() {
     }
 
     if (name === "password") {
-      checkPasswordLive(value);
+      checkPasswordLive(processedValue);
     }
   };
+
 
   const checkPasswordLive = (password: string) => {
     const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{6,}$/;
@@ -124,77 +194,75 @@ export default function SignupForm() {
   };
 
   const validateForm = (): boolean => {
-  const newErrors: FormErrors = {};
+    const newErrors: FormErrors = {};
 
-  if (!formData.title) newErrors.title = "Title is required";
+    if (!formData.title) newErrors.title = "Title is required";
 
-  if (!formData.firstName) {
-    newErrors.firstName = "First name is required";
-  } else if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(formData.firstName.trim())) {
-    newErrors.firstName =
-      "First name can only contain letters and must not start or end with a space";
-  } else if (formData.firstName !== formData.firstName.trim()) {
-    newErrors.firstName = "First name cannot begin or end with a space";
-  }
-
-  if (!formData.lastName) {
-    newErrors.lastName = "Last name is required";
-  } else if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(formData.lastName.trim())) {
-    newErrors.lastName =
-      "Last name can only contain letters and must not start or end with a space";
-  } else if (formData.lastName !== formData.lastName.trim()) {
-    newErrors.lastName = "Last name cannot begin or end with a space";
-  }
-
-  if (!formData.phoneNumber) {
-    newErrors.phoneNumber = "Phone number is required";
-  } else if (!/^\d{9}$/.test(formData.phoneNumber)) {
-    newErrors.phoneNumber = "Phone number must be 9 digits";
-  }
-
-  if (!formData.email) {
-    newErrors.email = "Email is required";
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-    newErrors.email = "Please enter a valid email address";
-  }
-
-  if (!formData.password) {
-    newErrors.password = "Password is required";
-  } else if (formData.password.length < 6) {
-    newErrors.password = "Password must be at least 6 characters";
-  } else if (!/(?=.*[A-Z])/.test(formData.password)) {
-    newErrors.password = "Password must contain at least one uppercase letter";
-  } else if (!/(?=.*[0-9])/.test(formData.password)) {
-    newErrors.password = "Password must contain at least one number";
-  } else if (!/(?=.*[!@#$%^&*])/.test(formData.password)) {
-    newErrors.password = "Password must contain at least one special character";
-  }
-
-  if (!formData.confirmPassword) {
-    newErrors.confirmPassword = "Please confirm your password";
-  } else if (formData.password !== formData.confirmPassword) {
-    newErrors.confirmPassword = "Passwords do not match";
-  }
-
-  // Add company validation for business buyers
-  if (!isHome) {
-    if (!formData.companyName) {
-      newErrors.companyName = "Company name is required";
+    if (!formData.firstName) {
+      newErrors.firstName = "First name is required";
+    } else if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(formData.firstName.trim())) {
+      newErrors.firstName = "First name can only contain letters and spaces";
+    } else if (formData.firstName !== formData.firstName.trim()) {
+      newErrors.firstName = "First name cannot begin or end with a space";
     }
 
-    if (!formData.companyPhoneNumber) {
-      newErrors.companyPhoneNumber = "Company phone number is required";
-    } else if (!/^\d{9}$/.test(formData.companyPhoneNumber)) {
-      newErrors.companyPhoneNumber = "Company phone number must be 9 digits";
+    if (!formData.lastName) {
+      newErrors.lastName = "Last name is required";
+    } else if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(formData.lastName.trim())) {
+      newErrors.lastName = "Last name can only contain letters and spaces";
+    } else if (formData.lastName !== formData.lastName.trim()) {
+      newErrors.lastName = "Last name cannot begin or end with a space";
     }
-  }
 
-  if (!formData.agreeToTerms)
-    newErrors.agreeToTerms = "You must accept the terms and conditions";
+    if (!formData.phoneNumber) {
+      newErrors.phoneNumber = "Phone number is required";
+    } else if (!/^\d{9}$/.test(formData.phoneNumber)) {
+      newErrors.phoneNumber = `Please enter a valid mobile number (format: ${formData.phoneCode}7XXXXXXXX)`;
+    }
 
-  setErrors(newErrors);
-  return Object.keys(newErrors).length === 0;
-};
+    if (!formData.email) {
+      newErrors.email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = "Please enter a valid email in the format: example@domain.com";
+    }
+
+    if (!formData.password) {
+      newErrors.password = "Password is required";
+    } else if (formData.password.length < 6) {
+      newErrors.password = "Password must be at least 6 characters";
+    } else if (!/(?=.*[A-Z])/.test(formData.password)) {
+      newErrors.password = "Password must contain at least one uppercase letter";
+    } else if (!/(?=.*[0-9])/.test(formData.password)) {
+      newErrors.password = "Password must contain at least one number";
+    } else if (!/(?=.*[!@#$%^&*])/.test(formData.password)) {
+      newErrors.password = "Password must contain at least one special character";
+    }
+
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = "Please confirm your password";
+    } else if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = "Passwords do not match";
+    }
+
+    // Add company validation for business buyers
+    if (!isHome) {
+      if (!formData.companyName) {
+        newErrors.companyName = "Company name is required";
+      }
+
+      if (!formData.companyPhoneNumber) {
+        newErrors.companyPhoneNumber = "Company phone number is required";
+      } else if (!/^\d{9}$/.test(formData.companyPhoneNumber)) {
+        newErrors.companyPhoneNumber = `Please enter a valid mobile number (format: ${formData.companyPhoneCode}7XXXXXXXX)`;
+      }
+    }
+
+    if (!formData.agreeToTerms)
+      newErrors.agreeToTerms = "You must accept the terms and conditions";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -246,13 +314,13 @@ export default function SignupForm() {
     }
   };
 
-    const handleOTPVerificationSuccess = () => {
-      setShowOTPVerification(false);
-      // Clear any existing success messages before completing signup
-      setSuccess(null);
-      setShowSuccessPopup(false);
-      completeSignup();
-    };
+  const handleOTPVerificationSuccess = () => {
+    setShowOTPVerification(false);
+    // Clear any existing success messages before completing signup
+    setSuccess(null);
+    setShowSuccessPopup(false);
+    completeSignup();
+  };
 
   const handleOTPVerificationFailure = () => {
     setShowOTPVerification(false);
@@ -261,9 +329,9 @@ export default function SignupForm() {
   };
 
   const handleOTPExpired = () => {
-  setCurrentReferenceId(''); // Clear the reference ID
-  console.log('OTP expired, reference ID cleared');
-};
+    setCurrentReferenceId(''); // Clear the reference ID
+    console.log('OTP expired, reference ID cleared');
+  };
 
   const handleOTPResend = (newReferenceId: string) => {
     setOtpReferenceId(newReferenceId);
@@ -464,6 +532,26 @@ export default function SignupForm() {
                       name="firstName"
                       value={formData.firstName}
                       onChange={handleChange}
+                      onKeyPress={(e) => {
+                        // Block numbers and special characters while typing
+                        if (!/[A-Za-z\s]/.test(e.key) && e.key !== "Backspace") {
+                          e.preventDefault();
+                        }
+                      }}
+                      onPaste={(e) => {
+                        // Allow paste but filter out invalid characters
+                        e.preventDefault();
+                        const pastedText = e.clipboardData.getData('text');
+                        const filteredText = pastedText
+                          .replace(/[^A-Za-z\s]/g, "")
+                          .split(" ")
+                          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                          .join(" ");
+
+                        handleChange({
+                          target: { name: "firstName", value: filteredText }
+                        } as React.ChangeEvent<HTMLInputElement>);
+                      }}
                       placeholder="First Name"
                       className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass(
                         "firstName"
@@ -483,6 +571,26 @@ export default function SignupForm() {
                     name="lastName"
                     value={formData.lastName}
                     onChange={handleChange}
+                    onKeyPress={(e) => {
+                      // Block numbers and special characters while typing
+                      if (!/[A-Za-z\s]/.test(e.key) && e.key !== "Backspace") {
+                        e.preventDefault();
+                      }
+                    }}
+                    onPaste={(e) => {
+                      // Allow paste but filter out invalid characters
+                      e.preventDefault();
+                      const pastedText = e.clipboardData.getData('text');
+                      const filteredText = pastedText
+                        .replace(/[^A-Za-z\s]/g, "")
+                        .split(" ")
+                        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                        .join(" ");
+
+                      handleChange({
+                        target: { name: "lastName", value: filteredText }
+                      } as React.ChangeEvent<HTMLInputElement>);
+                    }}
                     placeholder="Last Name"
                     className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass(
                       "lastName"
@@ -498,22 +606,17 @@ export default function SignupForm() {
 
               <div className="flex flex-col md:flex-row md:space-x-3 space-y-4 md:space-y-0">
                 <div className="flex flex-row w-full md:w-1/2 space-x-3">
-           
-              <div className="w-23 md:w-26">
 
+                  <div className="w-23 md:w-26">
                     <CustomDropdown
-                      options={[
-                        { value: "+94", label: "+94" },
-                        { value: "+1", label: "+1" },
-                        { value: "+44", label: "+44" },
-                      ]}
+                      options={countryOptions}
                       selectedValue={formData.phoneCode}
                       onSelect={(value) =>
                         handleChange({
                           target: { name: "phoneCode", value },
                         } as React.ChangeEvent<HTMLSelectElement>)
                       }
-                      placeholder="Select code"
+                      placeholder="Code"
                       className="cursor-pointer"
                     />
                   </div>
@@ -524,11 +627,29 @@ export default function SignupForm() {
                       name="phoneNumber"
                       value={formData.phoneNumber}
                       onChange={handleChange}
+                      onKeyPress={(e) => {
+                        // Allow only digits
+                        if (!/[\d]/.test(e.key) && e.key !== "Backspace") {
+                          e.preventDefault();
+                        }
+                      }}
+                      onPaste={(e) => {
+                        // Allow paste but filter out non-digits
+                        e.preventDefault();
+                        const pastedText = e.clipboardData.getData('text');
+                        const filteredText = pastedText.replace(/[^\d]/g, "");
+
+                        handleChange({
+                          target: { name: "phoneNumber", value: filteredText }
+                        } as React.ChangeEvent<HTMLInputElement>);
+                      }}
                       placeholder="7XXXXXXXX"
                       className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass(
                         "phoneNumber"
                       )}`}
+                      maxLength={9}
                     />
+
                     {errors.phoneNumber && (
                       <p className="mt-1 text-sm text-red-600">
                         {errors.phoneNumber}
@@ -543,6 +664,12 @@ export default function SignupForm() {
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
+                    onKeyPress={(e) => {
+                      // Block leading space
+                      if (e.key === " " && formData.email.length === 0) {
+                        e.preventDefault();
+                      }
+                    }}
                     placeholder="Email"
                     className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass(
                       "email"
@@ -597,6 +724,14 @@ export default function SignupForm() {
                         e.preventDefault();
                         return false;
                       }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        return false;
+                      }}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        return false;
+                      }}
                       placeholder="Confirm Password"
                       className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass(
                         "confirmPassword"
@@ -634,7 +769,7 @@ export default function SignupForm() {
                 </div>
               )}
 
-  {!isHome && (
+              {!isHome && (
                 <div className="mt-8">
                   <div className="flex items-center mb-4">
                     <div className="text-[#3E206D] mr-4 whitespace-nowrap">
@@ -651,6 +786,12 @@ export default function SignupForm() {
                           name="companyName"
                           value={formData.companyName}
                           onChange={handleChange}
+                          onKeyPress={(e) => {
+                            // Block leading space
+                            if (e.key === " " && formData.companyName.length === 0) {
+                              e.preventDefault();
+                            }
+                          }}
                           placeholder="Company Name"
                           className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass(
                             "companyName"
@@ -666,18 +807,14 @@ export default function SignupForm() {
                       <div className="flex flex-row w-full md:w-1/2 space-x-3">
                         <div className="w-23 md:w-26">
                           <CustomDropdown
-                            options={[
-                              { value: "+94", label: "+94" },
-                              { value: "+1", label: "+1" },
-                              { value: "+44", label: "+44" },
-                            ]}
+                            options={countryOptions}
                             selectedValue={formData.companyPhoneCode}
                             onSelect={(value) =>
                               handleChange({
                                 target: { name: "companyPhoneCode", value },
                               } as React.ChangeEvent<HTMLSelectElement>)
                             }
-                            placeholder="Select code"
+                            placeholder="Code"
                             className="cursor-pointer"
                           />
                         </div>
@@ -688,10 +825,27 @@ export default function SignupForm() {
                             name="companyPhoneNumber"
                             value={formData.companyPhoneNumber}
                             onChange={handleChange}
+                            onKeyPress={(e) => {
+                              // Allow only digits
+                              if (!/[\d]/.test(e.key) && e.key !== "Backspace") {
+                                e.preventDefault();
+                              }
+                            }}
+                            onPaste={(e) => {
+                              // Allow paste but filter out non-digits
+                              e.preventDefault();
+                              const pastedText = e.clipboardData.getData('text');
+                              const filteredText = pastedText.replace(/[^\d]/g, "");
+
+                              handleChange({
+                                target: { name: "companyPhoneNumber", value: filteredText }
+                              } as React.ChangeEvent<HTMLInputElement>);
+                            }}
                             placeholder="7XXXXXXXX"
                             className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass(
                               "companyPhoneNumber"
                             )}`}
+                            maxLength={9}
                           />
                           {errors.companyPhoneNumber && (
                             <p className="mt-1 text-sm text-red-600">
@@ -713,9 +867,8 @@ export default function SignupForm() {
                     name="agreeToTerms"
                     checked={formData.agreeToTerms}
                     onChange={handleChange}
-                    className={`h-4 w-4 accent-[#318831] cursor-pointer focus:ring-purple-500 border-gray-300 rounded ${
-                      errors.agreeToTerms ? "border-red-500" : ""
-                    }`}
+                    className={`h-4 w-4 accent-[#318831] cursor-pointer focus:ring-purple-500 border-gray-300 rounded ${errors.agreeToTerms ? "border-red-500" : ""
+                      }`}
                   />
                   <label
                     htmlFor="terms"
