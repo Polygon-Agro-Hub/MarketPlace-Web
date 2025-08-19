@@ -1124,7 +1124,7 @@ const calculateItemGroupTotal = (itemGroup: AdditionalItems): number => {
 
               <div className='space-y-2 mb-4'>
                 <div className='flex justify-between text-sm sm:text-base'>
-                  <p className='text-gray-600'>Subtotal</p>
+                  <p className='text-gray-600'>Total</p>
                   <p>Rs.{formatPrice(dynamicSummary.grandTotal)}</p>
                 </div>
 
@@ -1149,7 +1149,7 @@ const calculateItemGroupTotal = (itemGroup: AdditionalItems): number => {
                 disabled={checkoutLoading || isCartEmpty() || dynamicSummary.totalItems === 0}
                 className='w-full bg-[#3E206D] text-white font-semibold rounded-lg py-3 text-sm sm:text-base hover:bg-[#2F1A5B] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
               >
-                {checkoutLoading ? 'Processing...' : 'Proceed to Checkout'}
+                {checkoutLoading ? 'Processing...' : 'Checkout Now'}
               </button>
             </div>
           </div>

@@ -50,15 +50,6 @@ export default function Home() {
   //   console.log('==========================');
   // }, [cartState, cartItemsState, authState]);
 
-  useEffect(() => {
-    console.log("NEXT_PUBLIC_BASE_PATH:", process.env.NEXT_PUBLIC_BASE_PATH);
-    console.log("NODE_ENV:", process.env.NODE_ENV);
-    console.log("NEXT_PUBLIC_API_BASE_URL:", process.env.NEXT_PUBLIC_API_BASE_URL);
-    console.log('Auth State:', authState.cart);
-
-
-  })
-
 
   useEffect(() => {
     fetchAllPackages();

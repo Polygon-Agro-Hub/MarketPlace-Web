@@ -61,6 +61,34 @@ const PackageSlider: React.FC<packagesProps> = ({ productData, onShowConfirmModa
 
     const containerRef = useRef<HTMLDivElement>(null);
     const modalRef = useRef<HTMLDivElement>(null);
+    const [showLoading, setShowLoading] = useState(false);
+
+// Update the handlePackageAddToCartSuccess function
+const handlePackageAddToCartSuccess = (message: string) => {
+    setShowLoading(true);
+    
+    // Show loading for 1.5 seconds before showing success
+    setTimeout(() => {
+        setShowLoading(false);
+        setSuccessMessage(message);
+        setShowSuccess(true);
+        handleClosePopup();
+    }, 1500);
+};
+
+
+const PurpleLoadingPopup = ({ isVisible }: { isVisible: boolean }) => {
+    if (!isVisible) return null;
+    
+    return (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+            <div className="bg-white rounded-lg p-8 flex flex-col items-center justify-center shadow-2xl">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mb-4"></div>
+            </div>
+        </div>
+    );
+};
+
 
     const handlePackageClick = async (packageId: number) => {
         if (selectedPackageId === packageId) return;
@@ -88,11 +116,7 @@ const PackageSlider: React.FC<packagesProps> = ({ productData, onShowConfirmModa
         setErrorDetails(null);
     };
 
-    const handlePackageAddToCartSuccess = (message: string) => {
-        setSuccessMessage(message);
-        setShowSuccess(true);
-        handleClosePopup();
-    };
+
 
     const handlePackageAddToCartError = (message: string) => {
         setErrorMessage(message);
@@ -271,13 +295,15 @@ const PackageSlider: React.FC<packagesProps> = ({ productData, onShowConfirmModa
                 </div>
             )}
 
-            <SuccessPopup
-                isVisible={showSuccess}
-                onClose={() => setShowSuccess(false)}
-                title={successMessage}
-                description=""
-                duration={3000}
-            />
+<PurpleLoadingPopup isVisible={showLoading} />
+
+<SuccessPopup
+    isVisible={showSuccess}
+    onClose={() => setShowSuccess(false)}
+    title={successMessage}
+    description=""
+    duration={3000}
+/>
 
             <ErrorPopup
                 isVisible={showError}

@@ -23,7 +23,7 @@ const Header = () => {
 
   const user = useSelector((state: RootState) => state.auth.user);
   const token = useSelector((state: RootState) => state.auth.token) as string | null;
-  const cartState = useSelector((state: RootState) => state.auth.cart);
+  const cartState = useSelector((state: RootState) => state.auth.cart) || { count: 0, price: 0 };
   const dispatch = useDispatch();
   const router = useRouter();
   const [showSignupModal, setShowSignupModal] = useState(false);

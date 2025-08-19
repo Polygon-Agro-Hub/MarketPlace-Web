@@ -7,6 +7,7 @@ import { getAllProduct } from "@/services/product-service";
 import TopBanner from '@/components/home/TopBanner';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons';
+import { useRouter } from 'next/navigation';
 
 interface Package {
   id: number;
@@ -23,7 +24,26 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState('fruits');
   const cart = useSelector((state: RootState) => state.checkout) || null;
-
+  const router = useRouter();
+  
+  
+   const checkBuyerTypeAndRedirect = () => {
+    if (user && user.buyerType) {
+      if (user.buyerType === 'Retail') {
+        // Already on correct page for Retail
+        return;
+      } else if (user.buyerType === 'Wholesale') {
+        router.push('/wholesale/home');
+        return;
+      }
+    }
+  };
+  
+  
+  useEffect(() => {
+    checkBuyerTypeAndRedirect();
+  }, [user, router]);
+  
   useEffect(() => {
     fetchAllPackages();
     console.log("Car:", cart);

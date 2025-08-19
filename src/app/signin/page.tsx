@@ -16,6 +16,7 @@ import ErrorPopup from '@/components/toast-messages/error-message';
 import { Lock, Mail } from 'lucide-react';
 import Link from 'next/link';
 import LoginImg from '../../../public/images/login.png'
+import Image from 'next/image';
 
 const Page = () => {
   const router = useRouter();
@@ -367,8 +368,8 @@ const Page = () => {
 
       {/* Right Panel (Image) - Hidden on small screens */}
       <div className="hidden md:flex md:w-1/2 items-center justify-center bg-[#3E206D] relative">
-        <img
-          src={LoginImg as any}
+        <Image
+          src={LoginImg}
           alt="Farmer"
           className="w-full h-full absolute inset object-cover"
         />

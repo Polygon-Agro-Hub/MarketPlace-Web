@@ -51,7 +51,7 @@ const TopBanner: React.FC = () => {
 
   if (loading) return <div className="flex justify-center py-8">Loading slides...</div>;
   if (error) return <div className="text-red-600 text-center py-4">{error}</div>;
-  if (!slides.length) return <div className="text-center py-4">No slides available.</div>;
+  if (!slides.length) return <div className="text-center py-4"></div>;
 
   const currentSlide = slides[currentIndex];
 

@@ -545,19 +545,21 @@ const Page: React.FC = () => {
                         maxLength={5}
                         className="w-full sm:w-3/5 p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm"
                       />
-                      <input
-                        type="text"
-                        placeholder="Enter CVV"
-                        value={cardDetails.cvv}
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/[^0-9]/g, '');
-                          if (value.length <= 4) {
-                            handleCardInputChange('cvv', value);
-                          }
-                        }}
-                        maxLength={4}
-                        className="w-full sm:w-2/5 p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm"
-                      />
+
+<input
+  type="text"
+  placeholder="Enter CVV"
+  value={cardDetails.cvv}
+  onChange={(e) => {
+    // Remove all non-numeric characters and limit to exactly 3 digits
+    const value = e.target.value.replace(/[^0-9]/g, '');
+    if (value.length <= 3) {
+      handleCardInputChange('cvv', value);
+    }
+  }}
+  maxLength={3}
+  className="w-full sm:w-2/5 p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm"
+/>
                     </div>
                   </div>
                 </div>
