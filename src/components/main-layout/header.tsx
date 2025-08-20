@@ -18,7 +18,7 @@ const Header = () => {
   const [isDesktopCategoryOpen, setIsDesktopCategoryOpen] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false); // New state for hydration
-  const categoryRef = useRef<HTMLDivElement | null>(null);
+  const categoryRef = useRef<HTMLDivElement | null>(null); 
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const user = useSelector((state: RootState) => state.auth.user);
