@@ -329,28 +329,31 @@ function InvoiceView({
                 <td className="p-2 text-right">{formatCurrencyWithCommas(invoice.couponDiscount)}</td>
               </tr>
             )}
-            <tr className="font-bold border-t-2 border-black">
-              <td className="p-2">Grand Total</td>
-              <td className="p-2 text-right">{formatCurrencyWithCommas((() => {
-                let total = 0;
-                // Add family pack total
-                if (invoice.familyPackItems && invoice.familyPackItems.length > 0) {
-                  total += parseCurrency(invoice.familyPackTotal);
-                }
-                // Add additional items total
-                if (invoice.additionalItems && invoice.additionalItems.length > 0) {
-                  total += parseCurrency(invoice.additionalItemsTotal);
-                }
-                // Add delivery fee (only if not pickup)
-                if (!invoice.deliveryMethod?.toLowerCase().includes('pickup')) {
-                  total += parseCurrency(invoice.deliveryFee);
-                }
-                // Subtract coupon discount
-                total -= parseCurrency(invoice.couponDiscount);
-                // Ensure minimum 0
-                return Math.max(total, 0);
-              })())}</td>
-            </tr>
+           <tr className="font-bold border-t-2 border-black">
+  <td className="p-2">Grand Total</td>
+  <td className="p-2 text-right">{formatCurrencyWithCommas((() => {
+    let total = 0;
+    // Add family pack total
+    if (invoice.familyPackItems && invoice.familyPackItems.length > 0) {
+      total += parseCurrency(invoice.familyPackTotal);
+    }
+    // Add additional items total
+    if (invoice.additionalItems && invoice.additionalItems.length > 0) {
+      total += parseCurrency(invoice.additionalItemsTotal);
+    }
+    // Add delivery fee (only if not pickup)
+    if (!invoice.deliveryMethod?.toLowerCase().includes('pickup')) {
+      total += parseCurrency(invoice.deliveryFee);
+    }
+    // Subtract discount
+    total -= parseCurrency(invoice.discount);
+    // Subtract coupon discount
+    total -= parseCurrency(invoice.couponDiscount);
+    // Ensure minimum 0
+    return Math.max(total, 0);
+  })())}</td>
+</tr>
+
           </tbody>
         </table>
       </div>
@@ -383,6 +386,7 @@ function InvoicePageContent() {
   const [pdfMakeLoaded, setPdfMakeLoaded] = useState(false);
   const [logoBase64, setLogoBase64] = useState<string | null>(null);
   const invoiceRef = useRef<HTMLDivElement>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const orderId = searchParams.get('orderId');
 
@@ -584,52 +588,53 @@ function InvoicePageContent() {
 
     // Calculate subtotal
     let subtotal = 0;
-    if (invoice.familyPackItems && invoice.familyPackItems.length > 0) {
-      subtotal += parseNum(invoice.familyPackTotal);
-      grandTotalRows.push([
-        { text: 'Total Price for Packages', fontSize: 9 },
-        { text: formatCurrencyForPDF(invoice.familyPackTotal), fontSize: 9, alignment: 'right' } // Updated
-      ]);
-    }
+if (invoice.familyPackItems && invoice.familyPackItems.length > 0) {
+  subtotal += parseNum(invoice.familyPackTotal);
+  grandTotalRows.push([
+    { text: 'Total Price for Packages', fontSize: 9 },
+    { text: formatCurrencyForPDF(invoice.familyPackTotal), fontSize: 9, alignment: 'right' }
+  ]);
+}
 
-    if (invoice.additionalItems && invoice.additionalItems.length > 0) {
-      subtotal += parseNum(invoice.additionalItemsTotal);
-      grandTotalRows.push([
-        { text: 'Additional Items', fontSize: 9 },
-        { text: formatCurrencyForPDF(invoice.additionalItemsTotal), fontSize: 9, alignment: 'right' } // Updated
-      ]);
-    }
+if (invoice.additionalItems && invoice.additionalItems.length > 0) {
+  subtotal += parseNum(invoice.additionalItemsTotal);
+  grandTotalRows.push([
+    { text: 'Additional Items', fontSize: 9 },
+    { text: formatCurrencyForPDF(invoice.additionalItemsTotal), fontSize: 9, alignment: 'right' }
+  ]);
+}
 
-    // Add delivery fee if not pickup
-    if (!invoice.deliveryMethod?.toLowerCase().includes('pickup') && parseNum(invoice.deliveryFee) > 0) {
-      subtotal += parseNum(invoice.deliveryFee);
-      grandTotalRows.push([
-        { text: 'Delivery Fee', fontSize: 9 },
-        { text: formatCurrencyForPDF(invoice.deliveryFee), fontSize: 9, alignment: 'right' } // Updated
-      ]);
-    }
+// Add delivery fee if not pickup
+if (!invoice.deliveryMethod?.toLowerCase().includes('pickup') && parseNum(invoice.deliveryFee) > 0) {
+  subtotal += parseNum(invoice.deliveryFee);
+  grandTotalRows.push([
+    { text: 'Delivery Fee', fontSize: 9 },
+    { text: formatCurrencyForPDF(invoice.deliveryFee), fontSize: 9, alignment: 'right' }
+  ]);
+}
 
-    // Subtract discounts
-    if (parseNum(invoice.discount) > 0) {
-      grandTotalRows.push([
-        { text: 'Discount', fontSize: 9 },
-        { text: formatCurrencyForPDF(invoice.discount), fontSize: 9, alignment: 'right' } // Updated
-      ]);
-    }
+// Subtract discounts
+if (parseNum(invoice.discount) > 0) {
+  subtotal -= parseNum(invoice.discount);
+  grandTotalRows.push([
+    { text: 'Discount', fontSize: 9 },
+    { text: formatCurrencyForPDF(invoice.discount), fontSize: 9, alignment: 'right' }
+  ]);
+}
 
-    if (parseNum(invoice.couponDiscount) > 0) {
-      subtotal -= parseNum(invoice.couponDiscount);
-      grandTotalRows.push([
-        { text: 'Coupon Discount', fontSize: 9 },
-        { text: formatCurrencyForPDF(invoice.couponDiscount), fontSize: 9, alignment: 'right' } // Updated
-      ]);
-    }
+if (parseNum(invoice.couponDiscount) > 0) {
+  subtotal -= parseNum(invoice.couponDiscount);
+  grandTotalRows.push([
+    { text: 'Coupon Discount', fontSize: 9 },
+    { text: formatCurrencyForPDF(invoice.couponDiscount), fontSize: 9, alignment: 'right' }
+  ]);
+}
 
-    const finalTotal = Math.max(subtotal, 0); // Ensure no negative total
-    grandTotalRows.push([
-      { text: 'Grand Total', bold: true, fontSize: 9 },
-      { text: formatCurrencyForPDF(finalTotal), bold: true, fontSize: 10, alignment: 'right' } // Updated
-    ]);
+const finalTotal = Math.max(subtotal, 0); // Ensure no negative total
+grandTotalRows.push([
+  { text: 'Grand Total', bold: true, fontSize: 9 },
+  { text: formatCurrencyForPDF(finalTotal), bold: true, fontSize: 10, alignment: 'right' }
+]);
 
     const docDefinition: any = {
       pageSize: 'A4',
@@ -824,70 +829,83 @@ function InvoicePageContent() {
     pdfMake.createPdf(docDefinition).download(`invoice_${invoice.invoiceNumber}.pdf`);
   };
 
-  const fetchInvoice = async (orderId: string): Promise<void> => {
-    if (!token) {
-      console.error('No token available');
-      setSelectedInvoice(null);
-      setLoading(false);
-      return;
-    }
+const fetchInvoice = async (orderId: string): Promise<void> => {
+  if (!token) {
+    console.error('No token available');
+    setSelectedInvoice(null);
+    setLoading(false);
+    return;
+  }
 
-    try {
-      setSelectedInvoice(null);
-      const data = await getInvoice(token, orderId);
-      console.log('Invoice Response:', data);
+  try {
+    setSelectedInvoice(null);
+    
+    const data = await getInvoice(token, orderId);
+    console.log('Invoice Response:', data);
 
-      if (data.status && data.invoice) {
-        const apiInvoice = data.invoice.invoice || data.invoice;
+    // FIXED: Handle the nested structure - data.invoice.invoice
+    if (data.status && data.invoice && data.invoice.invoice) {
+      const apiInvoice = data.invoice.invoice; // Access the nested invoice object
 
-        const invoiceData: InvoiceData = {
-          invoiceNumber: apiInvoice.invoiceNumber || 'N/A',
-          invoiceDate: apiInvoice.invoiceDate || 'N/A',
-          scheduledDate: apiInvoice.scheduledDate || 'N/A',
-          deliveryMethod: apiInvoice.deliveryMethod || 'N/A',
-          paymentMethod: apiInvoice.paymentMethod || 'N/A',
-          amountDue: parseCurrency(apiInvoice.amountDue),
-          familyPackItems: apiInvoice.familyPackItems?.map((item: any) => ({
-            id: item.id ?? 0,
-            name: item.name || 'Unknown',
-            unitPrice: parseCurrency(item.unitPrice),
-            quantity: item.quantity || '1',
-            unit: item.unit || 'units',
-            amount: parseCurrency(item.amount),
-            packageDetails: item.packageDetails?.map((detail: any) => ({
-              packageId: detail.packageId,
-              productTypeId: detail.productTypeId,
-              typeName: detail.typeName,
-              qty: detail.qty
-            })) || []
-          })) || [],
-          additionalItems: apiInvoice.additionalItems?.map((item: any) => ({
-            id: item.id ?? 0,
-            name: item.name || 'Unknown',
-            unitPrice: parseCurrency(item.unitPrice),
-            quantity: item.quantity || '1',
-            unit: item.unit || 'units',
-            amount: parseCurrency(item.amount),
-            image: item.image || undefined,
-          })) || [],
-          familyPackTotal: parseCurrency(apiInvoice.familyPackTotal),
-          additionalItemsTotal: parseCurrency(apiInvoice.additionalItemsTotal),
-          deliveryFee: parseCurrency(apiInvoice.deliveryFee),
-          discount: parseCurrency(apiInvoice.discount),
-          couponDiscount: parseCurrency(apiInvoice.couponDiscount), // Added couponDiscount
-          grandTotal: parseCurrency(apiInvoice.grandTotal),
-          billingInfo: {
-            title: apiInvoice.billingInfo?.title || 'N/A',
-            fullName: apiInvoice.billingInfo?.fullName || 'N/A',
-            email: apiInvoice.billingInfo?.email || 'N/A', // Added email
-            buildingType: apiInvoice.billingInfo?.buildingType || 'N/A',
-            houseNo: apiInvoice.billingInfo?.houseNo || 'N/A',
-            street: apiInvoice.billingInfo?.street || 'N/A',
-            city: apiInvoice.billingInfo?.city || 'N/A',
-            phone: apiInvoice.billingInfo?.phone || 'N/A',
-          },
-          pickupInfo: apiInvoice.pickupInfo
-            ? {
+      const invoiceData: InvoiceData = {
+        invoiceNumber: apiInvoice.invoiceNumber || 'N/A',
+        invoiceDate: apiInvoice.invoiceDate || 'N/A',
+        scheduledDate: apiInvoice.scheduledDate || 'N/A',
+        deliveryMethod: apiInvoice.deliveryMethod || 'N/A',
+        paymentMethod: apiInvoice.paymentMethod || 'N/A',
+        amountDue: parseCurrency(apiInvoice.amountDue),
+        
+        familyPackItems: Array.isArray(apiInvoice.familyPackItems) 
+          ? apiInvoice.familyPackItems.map((item: any) => ({
+              id: item.id ?? 0,
+              name: item.name || 'Unknown',
+              unitPrice: parseCurrency(item.unitPrice),
+              quantity: item.quantity || '1',
+              unit: item.unit || 'units',
+              amount: parseCurrency(item.amount),
+              packageDetails: Array.isArray(item.packageDetails) 
+                ? item.packageDetails.map((detail: any) => ({
+                    packageId: detail.packageId,
+                    productTypeId: detail.productTypeId,
+                    typeName: detail.typeName,
+                    qty: detail.qty
+                  })) 
+                : []
+            })) 
+          : [],
+          
+        additionalItems: Array.isArray(apiInvoice.additionalItems) 
+          ? apiInvoice.additionalItems.map((item: any) => ({
+              id: item.id ?? 0,
+              name: item.name || 'Unknown',
+              unitPrice: parseCurrency(item.unitPrice),
+              quantity: item.quantity || '1',
+              unit: item.unit || 'units',
+              amount: parseCurrency(item.amount),
+              image: item.image || undefined,
+            })) 
+          : [],
+          
+        familyPackTotal: parseCurrency(apiInvoice.familyPackTotal),
+        additionalItemsTotal: parseCurrency(apiInvoice.additionalItemsTotal),
+        deliveryFee: parseCurrency(apiInvoice.deliveryFee),
+        discount: parseCurrency(apiInvoice.discount),
+        couponDiscount: parseCurrency(apiInvoice.couponDiscount),
+        grandTotal: parseCurrency(apiInvoice.grandTotal),
+        
+        billingInfo: {
+          title: apiInvoice.billingInfo?.title || 'N/A',
+          fullName: apiInvoice.billingInfo?.fullName || 'N/A',
+          email: apiInvoice.billingInfo?.email || 'N/A',
+          buildingType: apiInvoice.billingInfo?.buildingType || 'N/A',
+          houseNo: apiInvoice.billingInfo?.houseNo || 'N/A',
+          street: apiInvoice.billingInfo?.street || 'N/A',
+          city: apiInvoice.billingInfo?.city || 'N/A',
+          phone: apiInvoice.billingInfo?.phone || 'N/A',
+        },
+        
+        pickupInfo: apiInvoice.pickupInfo
+          ? {
               centerId: apiInvoice.pickupInfo.centerId ?? undefined,
               centerName: apiInvoice.pickupInfo.centerName || 'N/A',
               contact01: apiInvoice.pickupInfo.contact01 || 'N/A',
@@ -900,43 +918,49 @@ function InvoicePageContent() {
                 zipCode: apiInvoice.pickupInfo.address?.zipCode || 'N/A',
               },
             }
-            : undefined,
-        };
+          : undefined,
+      };
 
-        setSelectedInvoice(invoiceData);
+      console.log('Processed Invoice Data:', invoiceData);
+      setSelectedInvoice(invoiceData);
 
-        if (imageLoaded && pdfMakeLoaded) {
-          setTimeout(() => {
-            if (invoiceData) {
-              generatePDF(invoiceData);
-            } else {
-              console.error('No invoice data available for PDF generation');
-              alert('Failed to generate PDF. Invoice data not available.');
-            }
-          }, 500);
-        }
-      } else {
-        console.error('Invalid invoice data received:', data);
-        setSelectedInvoice(null);
-        alert('Invalid invoice data received. Please try again.');
+      // Generate PDF automatically
+      if (imageLoaded && pdfMakeLoaded) {
+        setTimeout(() => {
+          if (invoiceData) {
+            generatePDF(invoiceData);
+          } else {
+            console.error('No invoice data available for PDF generation');
+            alert('Failed to generate PDF. Invoice data not available.');
+          }
+        }, 500);
       }
-    } catch (error) {
-      console.error('Error fetching invoice:', error);
-      setSelectedInvoice(null);
-      alert('Failed to fetch invoice. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (orderId) {
-      fetchInvoice(orderId);
     } else {
-      setLoading(false);
-      alert('No order ID provided.');
+      console.error('Invalid invoice data received:', data);
+      setSelectedInvoice(null);
+      alert('Invalid invoice data received. Please try again.');
     }
-  }, [orderId, token, imageLoaded, pdfMakeLoaded]);
+  } catch (error) {
+    console.error('Error fetching invoice:', error);
+    setSelectedInvoice(null);
+    alert('Failed to fetch invoice. Please try again.');
+  } finally {
+    setLoading(false);
+  }
+};
+
+useEffect(() => {
+
+  const orderId = searchParams.get('orderId'); 
+  
+  if (orderId) {
+    fetchInvoice(orderId);
+  } else {
+    setLoading(false);
+    alert('No order ID provided.');
+  }
+}, [token, imageLoaded, pdfMakeLoaded]);
+
 
   return (
     <div className="flex flex-col min-h-screen bg-white">

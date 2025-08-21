@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import SuccessPopup from "@/components/toast-messages/success-message";
 import ErrorPopup from "@/components/toast-messages/error-message";
 import OTPComponent from "@/components/otp-registration/OTPComponent";
+import Image from "next/image";
+import LoginImg from '../../../public/images/login.png'
 
 type FormErrors = {
   title?: string;
@@ -926,7 +928,19 @@ export default function SignupForm() {
           </div>
         </div>
 
-        <div className="hidden md:block md:w-6/11 md:min-h-screen bg-purple-900"></div>
+       <div className="hidden md:block md:w-6/11 md:min-h-screen bg-purple-900 relative overflow-hidden">
+  <div className="absolute inset-0 flex items-center justify-center">
+    <Image
+      src={LoginImg}
+      alt="MyFarm Registration"
+      fill
+      className="object-cover"
+      priority
+    />
+
+
+</div>
+</div>
       </div>
     </div>
   );

@@ -18,12 +18,12 @@ const Header = () => {
   const [isDesktopCategoryOpen, setIsDesktopCategoryOpen] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false); // New state for hydration
-  const categoryRef = useRef<HTMLDivElement | null>(null);
+  const categoryRef = useRef<HTMLDivElement | null>(null); 
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const user = useSelector((state: RootState) => state.auth.user);
   const token = useSelector((state: RootState) => state.auth.token) as string | null;
-  const cartState = useSelector((state: RootState) => state.auth.cart);
+  const cartState = useSelector((state: RootState) => state.auth.cart) || { count: 0, price: 0 };
   const dispatch = useDispatch();
   const router = useRouter();
   const [showSignupModal, setShowSignupModal] = useState(false);
@@ -495,8 +495,8 @@ const Header = () => {
           <div className="absolute z-50">
             <div className="bg-[#3E206D] text-white w-64 flex flex-col">
               <div className="flex justify-between items-center border-b border-purple-800 px-6 py-4">
-                <span className="font-semibold">Menu</span>
-                <button onClick={toggleMenu} className="text-white hover:text-purple-200">
+                {/* <span className="font-semibold">Menu</span> */}
+                <button onClick={toggleMenu} className="text-white hover:text-purple-200 ml-[90%]">
                   <FontAwesomeIcon icon={faTimes} className="text-xl" />
                 </button>
               </div>

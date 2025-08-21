@@ -163,7 +163,7 @@ export default function OrderHistoryPage() {
         setLoading(true);
         const data = await getOrderHistory(token);
         console.log('API Response at 04:37 PM +0530, July 07, 2025:', data);
-
+        ;
         const orderHistory = data.orderHistory || [];
         if (!Array.isArray(orderHistory)) {
           console.error('orderHistory is not an array at 04:37 PM +0530, July 07, 2025:', orderHistory);

@@ -236,22 +236,6 @@ const Page: React.FC = () => {
   }, [formData.deliveryMethod, searchParamsLoaded, cities]);
 
 
-  const handleCitySelect = (cityId: string, cityName: string) => {
-    const selectedCityData = cities.find(city => city.id.toString() === cityId);
-
-    if (selectedCityData) {
-      setSelectedCity(selectedCityData);
-      setFormDataLocal(prev => ({ ...prev, cityName: selectedCityData.city }));
-
-      // Set delivery charge based on selected city
-      const charge = parseFloat(selectedCityData.charge);
-      setDeliveryCharge(charge);
-
-      console.log('Selected city:', selectedCityData);
-      console.log('Delivery charge:', charge);
-    }
-  };
-
   // 5. Create city dropdown options
   const cityOptions = cities.map(city => ({
     value: city.id.toString(),
@@ -438,52 +422,57 @@ const Page: React.FC = () => {
     }
   };
 
-  const isFormValid = (): boolean => {
-    const isHomeDelivery = formData.deliveryMethod === 'home';
-    const isPickup = formData.deliveryMethod === 'pickup';
-    const isApartment = formData.buildingType === 'Apartment';
+ const isFormValid = (): boolean => {
+  const isHomeDelivery = formData.deliveryMethod === 'home';
+  const isPickup = formData.deliveryMethod === 'pickup';
+  const isApartment = formData.buildingType === 'Apartment';
 
-    // Check required fields based on delivery method
-    const requiredFields = [
-      'title',
-      'fullName',
-      'phone1',
-      'deliveryDate',
-      'timeSlot'
-    ];
+  // Check required fields based on delivery method
+  const requiredFields = [
+    'title',
+    'fullName',
+    'phone1',
+    'deliveryDate',
+    'timeSlot'
+  ];
 
-    // Add delivery method specific required fields
-    if (isPickup) {
-      requiredFields.push('centerId');
+  // Add delivery method specific required fields
+  if (isPickup) {
+    requiredFields.push('centerId');
+  }
+
+  if (isHomeDelivery) {
+    requiredFields.push('buildingType', 'houseNo', 'street', 'cityName');
+
+    // Add apartment specific required fields
+    if (isApartment) {
+      requiredFields.push('buildingName', 'buildingNo', 'flatNumber', 'floorNumber');
+    }
+  }
+
+  // Check if all required fields are filled and valid
+  for (const field of requiredFields) {
+    const value = formData[field as keyof FormData];
+
+    // Check if field is empty
+    if (field === 'centerId') {
+      if (value === null || value === undefined) return false;
+    } else {
+      if (!value || (typeof value === 'string' && !value.trim())) return false;
     }
 
-    if (isHomeDelivery) {
-      requiredFields.push('buildingType', 'houseNo', 'street', 'cityName');
+    // Check if field has validation errors
+    const error = validateField(field as keyof FormData, value, formData);
+    if (error) return false;
+  }
 
-      // Add apartment specific required fields
-      if (isApartment) {
-        requiredFields.push('buildingName', 'buildingNo', 'flatNumber', 'floorNumber');
-      }
-    }
+  // Additional check: For home delivery, ensure selectedCity is not null
+  if (isHomeDelivery && !selectedCity) {
+    return false;
+  }
 
-    // Check if all required fields are filled and valid
-    for (const field of requiredFields) {
-      const value = formData[field as keyof FormData];
-
-      // Check if field is empty
-      if (field === 'centerId') {
-        if (value === null || value === undefined) return false;
-      } else {
-        if (!value || (typeof value === 'string' && !value.trim())) return false;
-      }
-
-      // Check if field has validation errors
-      const error = validateField(field as keyof FormData, value, formData);
-      if (error) return false;
-    }
-
-    return true;
-  };
+  return true;
+};
 
   const [isFormValidState, setIsFormValidState] = useState(false);
 
@@ -492,80 +481,108 @@ const Page: React.FC = () => {
   }, [formData, errors]);
 
 
-  const validateField = (field: keyof FormData, value: string | number | null, formData: FormData): string => {
-    const trimmed = typeof value === 'string' ? value.trim() : '';
-    const isHomeDelivery = formData.deliveryMethod === 'home';
-    const isPickup = formData.deliveryMethod === 'pickup';
-    const isApartment = formData.buildingType === 'Apartment';
+  // Updated validateField function - replace the existing one
+const handleCitySelect = (cityId: string, cityName: string) => {
+  const selectedCityData = cities.find(city => city.id.toString() === cityId);
 
-    switch (field) {
-      case 'centerId':
-        return isPickup && (value === null || value === undefined) ? 'Please select a pickup center.' : '';
+  if (selectedCityData) {
+    setSelectedCity(selectedCityData);
+    setFormDataLocal(prev => ({ ...prev, cityName: selectedCityData.city }));
 
-      case 'fullName':
-        if (!trimmed) return 'Full Name is required.';
-        if (!/^[A-Za-z\s]+$/.test(trimmed)) return 'Full Name must only contain letters and spaces.';
-        return '';
+    // Set delivery charge based on selected city
+    const charge = parseFloat(selectedCityData.charge);
+    setDeliveryCharge(charge);
 
-      case 'title':
-        return !trimmed ? 'Title is required.' : '';
+    // Clear any existing cityName error
+    setErrors(prev => ({ ...prev, cityName: '' }));
 
-      case 'phone1':
-        if (!value) return 'Phone number 1 is required.';
-        if (!/^\d{9}$/.test(value.toString())) return 'Please enter a valid phone number';
-        return '';
+    console.log('Selected city:', selectedCityData);
+    console.log('Delivery charge:', charge);
+  }
+};
 
-      case 'phone2':
-        return value && !/^\d{9}$/.test(value.toString()) ? 'Please enter a valid phone number' : '';
+// Updated validateField function - ensure cityName validation
+const validateField = (field: keyof FormData, value: string | number | null, formData: FormData): string => {
+  const trimmed = typeof value === 'string' ? value.trim() : '';
+  const isHomeDelivery = formData.deliveryMethod === 'home';
+  const isPickup = formData.deliveryMethod === 'pickup';
+  const isApartment = formData.buildingType === 'Apartment';
 
-      case 'timeSlot':
-        return !trimmed ? 'Time slot is required.' : '';
+  switch (field) {
+    case 'centerId':
+      return isPickup && (value === null || value === undefined) ? 'Please select a pickup center.' : '';
 
-      case 'deliveryDate':
-        if (!value) return 'Delivery Date is required.';
+    case 'fullName':
+      if (!trimmed) return 'Full Name is required.';
+      if (!/^[A-Za-z\s]+$/.test(trimmed)) return 'Full Name must only contain letters and spaces.';
+      return '';
 
-        // Additional validation for iOS Safari
-        const selectedDate = new Date(value.toString());
-        const today = new Date();
-        const minDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 3);
+    case 'title':
+      return !trimmed ? 'Title is required.' : '';
 
-        // Reset time to avoid timezone comparison issues
-        selectedDate.setHours(0, 0, 0, 0);
-        minDate.setHours(0, 0, 0, 0);
-        today.setHours(0, 0, 0, 0);
+    case 'phone1':
+      if (!value) return 'Phone number 1 is required.';
+      if (!/^\d{9}$/.test(value.toString())) return 'Please enter a valid phone number';
+      return '';
 
-        if (selectedDate < minDate) {
-          return 'Please select a date at least 3 days from today.';
-        }
+    case 'phone2':
+      return value && !/^\d{9}$/.test(value.toString()) ? 'Please enter a valid phone number' : '';
 
-        return '';
+    case 'timeSlot':
+      return !trimmed ? 'Time slot is required.' : '';
 
+    case 'deliveryDate':
+      if (!value) return 'Delivery Date is required.';
 
-      // Address fields - conditionally required
-      case 'buildingType':
-        return isHomeDelivery && !trimmed ? 'Building type is required.' : '';
+      // Additional validation for iOS Safari
+      const selectedDate = new Date(value.toString());
+      const today = new Date();
+      const minDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 3);
 
-      case 'buildingName':
-      case 'buildingNo':
-      case 'floorNumber':
-      case 'flatNumber':
-        // Only required for apartment and home delivery
-        return isHomeDelivery && isApartment && !trimmed ?
-          `${field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} is required.` :
-          '';
+      // Reset time to avoid timezone comparison issues
+      selectedDate.setHours(0, 0, 0, 0);
+      minDate.setHours(0, 0, 0, 0);
+      today.setHours(0, 0, 0, 0);
 
-      case 'street':
-      case 'cityName':
-      case 'houseNo':
-        // Required for both house and apartment when home delivery
-        return isHomeDelivery && !trimmed ?
-          `${field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} is required.` :
-          '';
+      if (selectedDate < minDate) {
+        return 'Please select a date at least 3 days from today.';
+      }
 
-      default:
-        return '';
-    }
-  };
+      return '';
+
+    // Address fields - conditionally required
+    case 'buildingType':
+      return isHomeDelivery && !trimmed ? 'Building type is required.' : '';
+
+    case 'buildingName':
+    case 'buildingNo':
+    case 'floorNumber':
+    case 'flatNumber':
+      // Only required for apartment and home delivery
+      return isHomeDelivery && isApartment && !trimmed ?
+        `${field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} is required.` :
+        '';
+
+    case 'street':
+    case 'houseNo':
+      // Required for both house and apartment when home delivery
+      return isHomeDelivery && !trimmed ?
+        `${field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} is required.` :
+        '';
+
+    case 'cityName':
+      // Required for home delivery - ensure it's mandatory and properly validated
+      if (isHomeDelivery) {
+        if (!trimmed) return 'Nearest City is required.';
+        // Additional check: ensure selectedCity exists
+        if (!selectedCity) return 'Please select a valid city.';
+      }
+      return '';
+
+    default:
+      return '';
+  }
+};
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {} as FormErrors;
@@ -1030,7 +1047,7 @@ const Page: React.FC = () => {
                 {formData.deliveryMethod === 'pickup' ? 'Schedule Pickup' : 'Schedule Delivery'}
               </h3>
 
-              <div className='flex md:flex-row flex-col gap-4 mb-6'>
+         <div className='flex md:flex-row flex-col gap-4 mb-6'>
                 <div className="md:w-1/2 w-full">
                   <label className='block text-[#2E2E2E] font-semibold mb-4'>Date *</label>
                   <div className="relative">
@@ -1076,25 +1093,6 @@ const Page: React.FC = () => {
                         mm/dd/yyyy
                       </div>
                     )}
-                    {/* Custom calendar icon for better mobile visibility */}
-                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                      <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="text-gray-500"
-                      >
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                        <line x1="16" y1="2" x2="16" y2="6"></line>
-                        <line x1="8" y1="2" x2="8" y2="6"></line>
-                        <line x1="3" y1="10" x2="21" y2="10"></line>
-                      </svg>
-                    </div>
                   </div>
                   {errors.deliveryDate && <p className="text-red-600 text-sm mt-1">{errors.deliveryDate}</p>}
                 </div>
