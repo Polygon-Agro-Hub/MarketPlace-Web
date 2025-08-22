@@ -342,25 +342,29 @@ const Page: React.FC = () => {
 
 
   const handleCenterSelect = (centerId: string, centerName: string) => {
-    const selectedCenter = pickupCenters.find(center => center.value === centerId);
+  const selectedCenter = pickupCenters.find(center => center.value === centerId);
 
-    if (selectedCenter) {
-      const centerIdAsNumber = parseInt(centerId, 10); // Convert string to number
-      setSelectedPickupCenter({ id: centerIdAsNumber, name: centerName });
-      setFormDataLocal(prev => ({ ...prev, centerId: centerIdAsNumber }));
+  if (selectedCenter) {
+    const centerIdAsNumber = parseInt(centerId, 10);
+    setSelectedPickupCenter({ id: centerIdAsNumber, name: centerName });
+    setFormDataLocal(prev => ({ ...prev, centerId: centerIdAsNumber }));
 
-      // Update map center and zoom to selected pickup center
-      setMapCenter([selectedCenter.latitude, selectedCenter.longitude]);
-      setMapZoom(15);
+    // Clear centerId error when center is selected
+    setErrors(prev => ({ ...prev, centerId: '' }));
 
-      console.log('Selected pickup center:', {
-        id: selectedCenter.id,
-        name: selectedCenter.name,
-        latitude: selectedCenter.latitude,
-        longitude: selectedCenter.longitude,
-      });
-    }
-  };
+    // Update map center and zoom to selected pickup center
+    setMapCenter([selectedCenter.latitude, selectedCenter.longitude]);
+    setMapZoom(15);
+
+    console.log('Selected pickup center:', {
+      id: selectedCenter.id,
+      name: selectedCenter.name,
+      latitude: selectedCenter.latitude,
+      longitude: selectedCenter.longitude,
+    });
+  }
+};
+
 
   const pickupCenterOptions = pickupCenters.map(center => ({
     value: center.value,
@@ -383,44 +387,68 @@ const Page: React.FC = () => {
 
 
   const handleFieldChange = (field: keyof FormData, value: string | number) => {
-    // Update the form state
-    setFormDataLocal(prev => ({ ...prev, [field]: value }));
+  // Update the form state
+  setFormDataLocal(prev => ({ ...prev, [field]: value }));
 
-    // Validate the field with access to current form data
-    const error = validateField(field, value, formData);
-    setErrors(prev => ({ ...prev, [field]: error }));
+  // Validate the field with the updated form data
+  const updatedFormData = { ...formData, [field]: value };
+  const error = validateField(field, value, updatedFormData);
+  setErrors(prev => ({ ...prev, [field]: error }));
 
-    // Special case: if deliveryMethod changes, revalidate all address fields and centerId
-    if (field === 'deliveryMethod') {
-      // Set default to saved address for home delivery
-      if (value === 'home') {
-        setUsePreviousAddress(true);
-        // Trigger fetch of previous address
-        handleAddressOptionChange('previous');
-      } else {
-        setUsePreviousAddress(false);
-      }
+  // Special case: if deliveryMethod changes, revalidate all fields and reset relevant state
+  if (field === 'deliveryMethod') {
+    // Clear errors for all fields first
+    setErrors({
+      centerId: '',
+      deliveryMethod: '',
+      title: '',
+      fullName: '',
+      phone1: '',
+      phone2: '',
+      buildingType: '',
+      deliveryDate: '',
+      timeSlot: '',
+      phoneCode1: '',
+      phoneCode2: '',
+      buildingNo: '',
+      buildingName: '',
+      flatNumber: '',
+      floorNumber: '',
+      houseNo: '',
+      street: '',
+      cityName: '',
+      scheduleType: '',
+    });
 
-      const addressFields = [
-        'buildingType', 'buildingName', 'buildingNo',
-        'street', 'cityName', 'houseNo',
-        'floorNumber', 'flatNumber', 'centerId'
-      ];
-
-      addressFields.forEach(addressField => {
-        const fieldValue = addressField === 'centerId'
-          ? formData[addressField as keyof FormData]
-          : formData[addressField as keyof FormData];
-
-        const addressError = validateField(
-          addressField as keyof FormData,
-          fieldValue,
-          { ...formData, deliveryMethod: value as string } // Updated deliveryMethod
-        );
-        setErrors(prev => ({ ...prev, [addressField]: addressError }));
-      });
+    if (value === 'home') {
+      setUsePreviousAddress(true);
+      setSelectedPickupCenter(null); // Clear pickup center selection
+      // Trigger fetch of previous address
+      handleAddressOptionChange('previous');
+    } else if (value === 'pickup') {
+      setUsePreviousAddress(false);
+      setSelectedCity(null); // Clear city selection
+      setDeliveryCharge(0); // Reset delivery charge
+      // Reset form to initial state but keep delivery method and basic info
+      const basicInfo = {
+        title: formData.title,
+        fullName: formData.fullName,
+        phone1: formData.phone1,
+        phone2: formData.phone2,
+        phoneCode1: formData.phoneCode1,
+        phoneCode2: formData.phoneCode2,
+        deliveryDate: formData.deliveryDate,
+        timeSlot: formData.timeSlot,
+      };
+      
+      setFormDataLocal(prev => ({
+        ...initialFormState,
+        deliveryMethod: value as string,
+        ...basicInfo
+      }));
     }
-  };
+  }
+};
 
  const isFormValid = (): boolean => {
   const isHomeDelivery = formData.deliveryMethod === 'home';
@@ -510,7 +538,17 @@ const validateField = (field: keyof FormData, value: string | number | null, for
 
   switch (field) {
     case 'centerId':
-      return isPickup && (value === null || value === undefined) ? 'Please select a pickup center.' : '';
+      if (isPickup) {
+        if (value === null || value === undefined) {
+          return 'Please select a pickup center.';
+        }
+        // Additional check: ensure the value is a valid number
+        if (typeof value === 'number' && value > 0) {
+          return '';
+        }
+        return 'Please select a pickup center.';
+      }
+      return ''; // Not required for home delivery
 
     case 'fullName':
       if (!trimmed) return 'Full Name is required.';
@@ -534,12 +572,10 @@ const validateField = (field: keyof FormData, value: string | number | null, for
     case 'deliveryDate':
       if (!value) return 'Delivery Date is required.';
 
-      // Additional validation for iOS Safari
       const selectedDate = new Date(value.toString());
       const today = new Date();
       const minDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 3);
 
-      // Reset time to avoid timezone comparison issues
       selectedDate.setHours(0, 0, 0, 0);
       minDate.setHours(0, 0, 0, 0);
       today.setHours(0, 0, 0, 0);
@@ -550,7 +586,7 @@ const validateField = (field: keyof FormData, value: string | number | null, for
 
       return '';
 
-    // Address fields - conditionally required
+    // Address fields - only required for home delivery
     case 'buildingType':
       return isHomeDelivery && !trimmed ? 'Building type is required.' : '';
 
@@ -558,23 +594,19 @@ const validateField = (field: keyof FormData, value: string | number | null, for
     case 'buildingNo':
     case 'floorNumber':
     case 'flatNumber':
-      // Only required for apartment and home delivery
       return isHomeDelivery && isApartment && !trimmed ?
         `${field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} is required.` :
         '';
 
     case 'street':
     case 'houseNo':
-      // Required for both house and apartment when home delivery
       return isHomeDelivery && !trimmed ?
         `${field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} is required.` :
         '';
 
     case 'cityName':
-      // Required for home delivery - ensure it's mandatory and properly validated
       if (isHomeDelivery) {
         if (!trimmed) return 'Nearest City is required.';
-        // Additional check: ensure selectedCity exists
         if (!selectedCity) return 'Please select a valid city.';
       }
       return '';

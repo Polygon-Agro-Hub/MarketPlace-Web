@@ -130,12 +130,11 @@ const CustomDropdown = ({ register, name, value, errors, options, placeholder, o
       </div>
       {isOpen && (
         <ul className="absolute z-10 w-full bg-white border border-[#CECECE] rounded-lg mt-1">
-          <li
+          {/* <li
             className="p-2 text-xs sm:text-sm cursor-pointer hover:bg-gray-100"
             onClick={() => handleSelect('')}
           >
-            {placeholder}
-          </li>
+          </li> */}
           {options.map((option) => (
             <li
               key={option.value}

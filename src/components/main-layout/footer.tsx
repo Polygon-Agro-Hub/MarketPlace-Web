@@ -111,7 +111,7 @@ function DesktopFooter() {
 
       <div className="border-t border-[#232732] mt-6 py-3 px-7 flex justify-between items-center">
         <div className="flex">
-          <p className="text-sm text-[#DBDBDB]">© All rights reserved by AgroWorld Pvt Ltd</p>
+          <p className="text-sm text-[#DBDBDB]">© All rights reserved by Polygon Holdings (Pvt) Ltd</p>
           <div className="flex ml-5">
             <Image src={Visa} alt="Visa" className='w-auto h-6 object-cover mr-2' />
             <Image src={MasterCard} alt="MasterCard" className='w-auto h-6 object-cover' />
@@ -208,7 +208,7 @@ function MobileFooter() {
 
 <div className="border-t border-[#404451] pt-6 pb-4 px-6">
         <div className="flex justify-between items-center mb-4">
-          <p className="text-xs text-[#DBDBDB]">© All rights reserved by AgroWorld Pvt Ltd</p>
+          <p className="text-xs text-[#DBDBDB]">© All rights reserved by Polygon Holdings (Pvt) Ltd</p>
           <div className="flex">
             <Image src={Visa} alt="Visa" width={40} height={24} className="mr-2" />
             <Image src={MasterCard} alt="MasterCard" width={40} height={24} />

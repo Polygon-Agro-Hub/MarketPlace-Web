@@ -392,7 +392,7 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
           </div>
         </div>
 
-        {/* Complaint Textarea */}
+{/* Complaint Textarea */}
         <div className="mb-6">
           <label
             htmlFor="complaint-text"
@@ -403,7 +403,15 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
           <textarea
             id="complaint-text"
             value={complaintText}
-            onChange={(e) => setComplaintText(e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value;
+              // Auto-capitalize first letter
+              if (value.length === 1 && value !== value.toUpperCase()) {
+                setComplaintText(value.charAt(0).toUpperCase());
+              } else {
+                setComplaintText(value);
+              }
+            }}
             className={`border border-[#CECECE] rounded-lg p-2 w-full h-52 text-[12px] md:text-[14px] font-medium resize-none focus:ring-0 focus:border-[#3E206D] ${isLoading ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             placeholder="Type here..."
@@ -414,7 +422,6 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
             Provide a detailed description of your complaint.
           </p>
         </div>
-
         {/* Image Upload and Preview */}
         <div className="flex flex-col lg:flex-row gap-6 mb-6">
           <div className="flex-1">

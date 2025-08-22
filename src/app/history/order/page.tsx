@@ -41,6 +41,7 @@ interface PickupInfo {
   province: string;
   country: string;
   zipCode: string;
+  title:string;
 }
 
 interface DeliveryInfo {
@@ -84,6 +85,7 @@ interface DetailedOrder {
   familyPackItems?: DetailedPackage[];
   additionalItems?: DetailedItem[];
   discount?: string;
+  title:string;
 }
 
 function formatDateTime(dateTimeStr: string, type: 'date' | 'time' = 'date'): string {
@@ -230,6 +232,7 @@ export default function OrderHistoryPage() {
           orderPlaced: apiOrder.createdAt ? formatDateTime(apiOrder.createdAt, 'date') : 'N/A',
           status: apiOrder.processStatus || 'Pending',
           fullName: apiOrder.fullName || 'N/A',
+          title:apiOrder.title || 'N/A',
           phonecode1: apiOrder.phonecode1 || '',
           phone1: apiOrder.phone1 || '',
           phonecode2: apiOrder.phonecode2 || '',
@@ -247,6 +250,7 @@ export default function OrderHistoryPage() {
                 province: apiOrder.pickupInfo.address?.province || 'N/A',
                 country: apiOrder.pickupInfo.address?.country || 'N/A',
                 zipCode: apiOrder.pickupInfo.address?.zipCode || 'N/A',
+                title: apiOrder.pickupInfo.title?.title || 'N/A',
               }
               : undefined,
           deliveryInfo:
@@ -1153,7 +1157,7 @@ function DeliveryOrderView({ order, onClose }: { order: DetailedOrder, onClose: 
             </div>
             <div>
               <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Receiving Person Information:</h4>
-              <p className="font-semibold">{order.fullName || 'N/A'}</p>
+              <p className="font-semibold">{order.title || 'N/A'}{order.fullName || 'N/A'}</p>
               <p>
                 {order.phone1
                   ? `${order.phonecode1 || ''} ${order.phone1}`

@@ -127,177 +127,179 @@ function InvoiceView({
     return parseFloat(value.replace('Rs. ', '').replace(/,/g, '')) || 0;
   }
 
-  return (
-    <div className="w-[794px] mx-auto p-8 bg-white" ref={invoiceRef}>
-      <h1 className="text-2xl font-bold text-center" style={{ color: 'rgb(62,32,109)' }}>
-        <div className="flex justify-start">
-          <button onClick={onClose} className="text-[rgb(107,114,128)] cursor-pointer hover:text-[rgb(62,32,109)]">
-            <span className="text-2xl">⟵</span>
-          </button>
-        </div>
-        INVOICE
-      </h1>
+return (
+  <div className="w-full max-w-[794px] mx-auto p-4 sm:p-6 lg:p-8 bg-white" ref={invoiceRef}>
+    <h1 className="text-xl sm:text-2xl font-bold text-center" style={{ color: 'rgb(62,32,109)' }}>
+      <div className="flex justify-start mb-2 sm:mb-0">
+        <button onClick={onClose} className="text-[rgb(107,114,128)] cursor-pointer hover:text-[rgb(62,32,109)]">
+          <span className="text-xl sm:text-2xl">⟵</span>
+        </button>
+      </div>
+      INVOICE
+    </h1>
 
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <p className="text-lg font-semibold">Polygon Holdings (Pvt) Ltd</p>
-          <div className="text-sm">
-            <p>No. 614, Nawam Mawatha, Colombo 02</p>
-            <p>Contact No: +94 112 700 900</p>
-            <p>Email Address: info@polygon.lk</p>
-          </div>
-        </div>
-        <div>
-          <NextImage
-            src={Logo}
-            alt="Polygon Logo"
-            width={150}
-            height={150}
-            style={{ objectFit: 'contain' }}
-          />
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-4">
+      <div className="order-2 sm:order-1">
+        <p className="text-base sm:text-lg font-semibold">Polygon Holdings (Pvt) Ltd</p>
+        <div className="text-xs sm:text-sm">
+          <p>No. 614, Nawam Mawatha, Colombo 02</p>
+          <p>Contact No: +94 112 700 900</p>
+          <p>Email Address: info@polygon.lk</p>
         </div>
       </div>
-
-      <div className="grid grid-cols-2 gap-4 mb-6 text-sm">
-        <div>
-          <p className="font-bold">Bill To:</p>
-          <p>{`${invoice.billingInfo.title}. ${invoice.billingInfo.fullName}`}</p>
-          <p>{invoice.billingInfo.email}</p>
-          <p>{invoice.billingInfo.phone}</p>
-          {invoice.billingInfo.buildingType === "House" ? (
-            <>
-              <p className="font-bold mt-4">House Address :</p>
-              <p><span className="font-normal" style={{ color: '#929292' }}>House No :</span> {invoice.billingInfo.houseNo},</p>
-              <p><span className="font-normal" style={{ color: '#929292' }}>Street Name :</span> {invoice.billingInfo.street},</p>
-              <p><span className="font-normal" style={{ color: '#929292' }}>City :</span> {invoice.billingInfo.city}</p>
-            </>
-          ) : invoice.billingInfo.buildingType === "Apartment" ? (
-            <>
-              <p className="font-bold mt-4">Apartment Address :</p>
-              <p><span className="font-normal" style={{ color: '#929292' }}>No :</span> {invoice.billingInfo.houseNo},</p>
-              <p><span className="font-normal" style={{ color: '#929292' }}>Name :</span> {invoice.billingInfo.street},</p>
-              <p><span className="font-normal" style={{ color: '#929292' }}>House No :</span> {invoice.billingInfo.houseNo},</p>
-              <p><span className="font-normal" style={{ color: '#929292' }}>Street Name :</span> {invoice.billingInfo.street},</p>
-              <p><span className="font-normal" style={{ color: '#929292' }}>City :</span> {invoice.billingInfo.city}</p>
-            </>
-          ) : (
-            <>
-              <p>{`No. ${invoice.billingInfo.houseNo}`}</p>
-              <p>{invoice.billingInfo.street}</p>
-              <p>{invoice.billingInfo.city}</p>
-            </>
-          )}
-          <p className="font-bold mt-5" >Invoice No:</p>
-          <p>{invoice.invoiceNumber}</p>
-          <p className="font-bold mt-5" >Delivery Method:</p>
-          <p>{invoice.deliveryMethod}</p>
-          {invoice.deliveryMethod?.toLowerCase().includes('pickup') && invoice.pickupInfo && (
-            <div className="mt-3 text-sm">
-              <p className="font-bold">Centre: {invoice.pickupInfo.centerName || 'N/A'}</p>
-              <p>{`${invoice.pickupInfo.address?.city || 'N/A'}, ${invoice.pickupInfo.address?.district || 'N/A'}`}</p>
-              <p>{`${invoice.pickupInfo.address?.province || 'N/A'}, ${invoice.pickupInfo.address?.country || 'N/A'}`}</p>
-            </div>
-          )}
-        </div>
-
-        <div className="text-left ml-49">
-          <p className="font-semibold mt-5">Grand Total:</p>
-          <p className="font-extrabold">{formatCurrencyWithCommas(invoice.grandTotal)}</p>
-          <p className="font-semibold mt-5">Payment Method:</p>
-          <p>{invoice.paymentMethod}</p>
-          <p className="font-semibold mt-5">Ordered Date:</p>
-          <p>{formatDateTime(invoice.invoiceDate, 'date')}</p>
-          <p className="font-semibold mt-5">Scheduled Date:</p>
-          <p>{formatDateTime(invoice.scheduledDate, 'date')}</p>
-        </div>
+      <div className="order-1 sm:order-2 flex justify-center sm:justify-end">
+        <NextImage
+          src={Logo}
+          alt="Polygon Logo"
+          width={120}
+          height={120}
+          className="sm:w-[150px] sm:h-[150px]"
+          style={{ objectFit: 'contain' }}
+        />
       </div>
+    </div>
 
-      <div className="mb-8">
-        {invoice.familyPackItems && invoice.familyPackItems.length > 0 && (
-          <div className="mb-8">
-            {invoice.familyPackItems.map((pack, packIndex) => (
-              <div key={pack.id} className="mb-4">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="font-semibold">{`${pack.name} (${pack.packageDetails?.length || 0} Items)`}</h2>
-                  <span className="font-semibold">{formatCurrencyWithCommas(pack.amount)}</span>
-                </div>
-                <div className="border-t mb-4 mt-4 border-gray-300" />
-                <div className="mb-4 border border-gray-300 rounded-lg">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b bg-gray-100 border-gray-300">
-                        <th className="p-3 text-left">Index</th>
-                        <th className="p-3 text-left">Item Description</th>
-                        <th className="p-3 text-left">QTY</th>
-                        <th className="p-3 text-left"></th>
-                        <th className="p-3 text-left"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {pack.packageDetails && pack.packageDetails.length > 0 ? (
-                        pack.packageDetails.map((detail, index) => (
-                          <tr key={index} className="border-b border-gray-200">
-                            <td className="p-5 text-left">{`${index + 1}.`}</td>
-                            <td className="p-3 text-left">{detail.typeName}</td>
-                            <td className="p-3 text-left">{detail.qty}</td>
-                            <td className="p-3 text-left"></td>
-                            <td className="p-3 text-left"></td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td colSpan={5} className="p-3 text-center text-gray-600">
-                            No package details available.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            ))}
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6 text-xs sm:text-sm">
+      <div className="order-1">
+        <p className="font-bold">Bill To:</p>
+        <p>{`${invoice.billingInfo.title}. ${invoice.billingInfo.fullName}`}</p>
+        <p className="break-all">{invoice.billingInfo.email}</p>
+        <p>{invoice.billingInfo.phone}</p>
+        {invoice.billingInfo.buildingType === "House" ? (
+          <>
+            <p className="font-bold mt-4">House Address :</p>
+            <p><span className="font-normal" style={{ color: '#929292' }}>House No :</span> {invoice.billingInfo.houseNo},</p>
+            <p><span className="font-normal" style={{ color: '#929292' }}>Street Name :</span> {invoice.billingInfo.street},</p>
+            <p><span className="font-normal" style={{ color: '#929292' }}>City :</span> {invoice.billingInfo.city}</p>
+          </>
+        ) : invoice.billingInfo.buildingType === "Apartment" ? (
+          <>
+            <p className="font-bold mt-4">Apartment Address :</p>
+            <p><span className="font-normal" style={{ color: '#929292' }}>No :</span> {invoice.billingInfo.houseNo},</p>
+            <p><span className="font-normal" style={{ color: '#929292' }}>Name :</span> {invoice.billingInfo.street},</p>
+            <p><span className="font-normal" style={{ color: '#929292' }}>House No :</span> {invoice.billingInfo.houseNo},</p>
+            <p><span className="font-normal" style={{ color: '#929292' }}>Street Name :</span> {invoice.billingInfo.street},</p>
+            <p><span className="font-normal" style={{ color: '#929292' }}>City :</span> {invoice.billingInfo.city}</p>
+          </>
+        ) : (
+          <>
+            <p>{`No. ${invoice.billingInfo.houseNo}`}</p>
+            <p>{invoice.billingInfo.street}</p>
+            <p>{invoice.billingInfo.city}</p>
+          </>
+        )}
+        <p className="font-bold mt-5">Invoice No:</p>
+        <p>{invoice.invoiceNumber}</p>
+        <p className="font-bold mt-5">Delivery Method:</p>
+        <p>{invoice.deliveryMethod}</p>
+        {invoice.deliveryMethod?.toLowerCase().includes('pickup') && invoice.pickupInfo && (
+          <div className="mt-3 text-xs sm:text-sm">
+            <p className="font-bold">Centre: {invoice.pickupInfo.centerName || 'N/A'}</p>
+            <p>{`${invoice.pickupInfo.address?.city || 'N/A'}, ${invoice.pickupInfo.address?.district || 'N/A'}`}</p>
+            <p>{`${invoice.pickupInfo.address?.province || 'N/A'}, ${invoice.pickupInfo.address?.country || 'N/A'}`}</p>
           </div>
         )}
       </div>
 
-      {invoice.additionalItems && invoice.additionalItems.length > 0 && (
-        <div className="mb-8">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="font-semibold">{`Additional Items (${invoice.additionalItems.length} Items)`}</h2>
-            <span className="font-semibold">{formatCurrencyWithCommas(invoice.additionalItemsTotal)}</span>
-          </div>
-          <div className="border-t mb-4 mt-4 border-gray-300" />
-          <div className="mb-4 border border-gray-300 rounded-lg">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-gray-100 border-gray-300">
-                  <th className="p-3 text-left">Index</th>
-                  <th className="p-3 text-left">Item Description</th>
-                  <th className="p-3 text-left">Unit Price (Rs.)</th>
-                  <th className="p-3 text-left">QTY</th>
-                  <th className="p-3 text-left">Amount (Rs.)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {invoice.additionalItems.map((item, index) => (
-                  <tr key={item.id} className="border-b border-gray-200">
-                    <td className="p-5 text-left">{`${index + 1}.`}</td>
-                    <td className="p-3 text-left">{item.name}</td>
-                    <td className="p-3 text-left">{formatCurrencyWithCommas(item.unitPrice)}</td>
-                    <td className="p-3 text-left">{`${item.quantity} ${item.unit}`}</td>
-                    <td className="p-3 text-left">{formatCurrencyWithCommas(item.amount)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      <div className="order-2 lg:text-left lg:ml-49">
+        <p className="font-semibold mt-5 lg:mt-5">Grand Total:</p>
+        <p className="font-extrabold text-lg sm:text-xl">{formatCurrencyWithCommas(invoice.grandTotal)}</p>
+        <p className="font-semibold mt-5">Payment Method:</p>
+        <p>{invoice.paymentMethod}</p>
+        <p className="font-semibold mt-5">Ordered Date:</p>
+        <p>{formatDateTime(invoice.invoiceDate, 'date')}</p>
+        <p className="font-semibold mt-5">Scheduled Date:</p>
+        <p>{formatDateTime(invoice.scheduledDate, 'date')}</p>
+      </div>
+    </div>
+
+    <div className="mb-6 sm:mb-8">
+      {invoice.familyPackItems && invoice.familyPackItems.length > 0 && (
+        <div className="mb-6 sm:mb-8">
+          {invoice.familyPackItems.map((pack, packIndex) => (
+            <div key={pack.id} className="mb-4">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 gap-2">
+                <h2 className="font-semibold text-sm sm:text-base">{`${pack.name} (${pack.packageDetails?.length || 0} Items)`}</h2>
+                <span className="font-semibold text-lg">{formatCurrencyWithCommas(pack.amount)}</span>
+              </div>
+              <div className="border-t mb-4 mt-4 border-gray-300" />
+              <div className="mb-4 border border-gray-300 rounded-lg overflow-x-auto">
+                <table className="w-full text-xs sm:text-sm min-w-[500px] sm:min-w-0">
+                  <thead>
+                    <tr className="border-b bg-gray-100 border-gray-300">
+                      <th className="p-2 sm:p-3 text-left w-16">Index</th>
+                      <th className="p-2 sm:p-3 text-left">Item Description</th>
+                      <th className="p-2 sm:p-3 text-left w-16">QTY</th>
+                      <th className="p-2 sm:p-3 text-left w-16"></th>
+                      <th className="p-2 sm:p-3 text-left w-16"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pack.packageDetails && pack.packageDetails.length > 0 ? (
+                      pack.packageDetails.map((detail, index) => (
+                        <tr key={index} className="border-b border-gray-200">
+                          <td className="p-2 sm:p-5 text-left">{`${index + 1}.`}</td>
+                          <td className="p-2 sm:p-3 text-left">{detail.typeName}</td>
+                          <td className="p-2 sm:p-3 text-center">{detail.qty}</td>
+                          <td className="p-2 sm:p-3 text-left"></td>
+                          <td className="p-2 sm:p-3 text-left"></td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="p-2 sm:p-3 text-center text-gray-600">
+                          No package details available.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))}
         </div>
       )}
+    </div>
 
-      <div className="mb-8">
-        <h2 className="font-semibold">Grand Total for all items</h2>
+    {invoice.additionalItems && invoice.additionalItems.length > 0 && (
+      <div className="mb-6 sm:mb-8">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 gap-2">
+          <h2 className="font-semibold text-sm sm:text-base">{`Additional Items (${invoice.additionalItems.length} Items)`}</h2>
+          <span className="font-semibold text-lg">{formatCurrencyWithCommas(invoice.additionalItemsTotal)}</span>
+        </div>
         <div className="border-t mb-4 mt-4 border-gray-300" />
-        <table className="w-full text-sm" id="grandTotalTable">
+        <div className="mb-4 border border-gray-300 rounded-lg overflow-x-auto">
+          <table className="w-full text-xs sm:text-sm min-w-[600px] sm:min-w-0">
+            <thead>
+              <tr className="border-b bg-gray-100 border-gray-300">
+                <th className="p-2 sm:p-3 text-left w-16">Index</th>
+                <th className="p-2 sm:p-3 text-left">Item Description</th>
+                <th className="p-2 sm:p-3 text-left">Unit Price (Rs.)</th>
+                <th className="p-2 sm:p-3 text-left w-20">QTY</th>
+                <th className="p-2 sm:p-3 text-left">Amount (Rs.)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {invoice.additionalItems.map((item, index) => (
+                <tr key={item.id} className="border-b border-gray-200">
+                  <td className="p-2 sm:p-5 text-left">{`${index + 1}.`}</td>
+                  <td className="p-2 sm:p-3 text-left">{item.name}</td>
+                  <td className="p-2 sm:p-3 text-left">{formatCurrencyWithCommas(item.unitPrice)}</td>
+                  <td className="p-2 sm:p-3 text-left">{`${item.quantity} ${item.unit}`}</td>
+                  <td className="p-2 sm:p-3 text-left">{formatCurrencyWithCommas(item.amount)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )}
+
+    <div className="mb-6 sm:mb-8">
+      <h2 className="font-semibold text-sm sm:text-base">Grand Total for all items</h2>
+      <div className="border-t mb-4 mt-4 border-gray-300" />
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs sm:text-sm min-w-[400px] sm:min-w-0" id="grandTotalTable">
           <tbody>
             {invoice.familyPackItems && invoice.familyPackItems.length > 0 && (
               <tr>
@@ -329,51 +331,51 @@ function InvoiceView({
                 <td className="p-2 text-right">{formatCurrencyWithCommas(invoice.couponDiscount)}</td>
               </tr>
             )}
-           <tr className="font-bold border-t-2 border-black">
-  <td className="p-2">Grand Total</td>
-  <td className="p-2 text-right">{formatCurrencyWithCommas((() => {
-    let total = 0;
-    // Add family pack total
-    if (invoice.familyPackItems && invoice.familyPackItems.length > 0) {
-      total += parseCurrency(invoice.familyPackTotal);
-    }
-    // Add additional items total
-    if (invoice.additionalItems && invoice.additionalItems.length > 0) {
-      total += parseCurrency(invoice.additionalItemsTotal);
-    }
-    // Add delivery fee (only if not pickup)
-    if (!invoice.deliveryMethod?.toLowerCase().includes('pickup')) {
-      total += parseCurrency(invoice.deliveryFee);
-    }
-    // Subtract discount
-    total -= parseCurrency(invoice.discount);
-    // Subtract coupon discount
-    total -= parseCurrency(invoice.couponDiscount);
-    // Ensure minimum 0
-    return Math.max(total, 0);
-  })())}</td>
-</tr>
-
+            <tr className="font-bold border-t-2 border-black">
+              <td className="p-2">Grand Total</td>
+              <td className="p-2 text-right">{formatCurrencyWithCommas((() => {
+                let total = 0;
+                // Add family pack total
+                if (invoice.familyPackItems && invoice.familyPackItems.length > 0) {
+                  total += parseCurrency(invoice.familyPackTotal);
+                }
+                // Add additional items total
+                if (invoice.additionalItems && invoice.additionalItems.length > 0) {
+                  total += parseCurrency(invoice.additionalItemsTotal);
+                }
+                // Add delivery fee (only if not pickup)
+                if (!invoice.deliveryMethod?.toLowerCase().includes('pickup')) {
+                  total += parseCurrency(invoice.deliveryFee);
+                }
+                // Subtract discount
+                total -= parseCurrency(invoice.discount);
+                // Subtract coupon discount
+                total -= parseCurrency(invoice.couponDiscount);
+                // Ensure minimum 0
+                return Math.max(total, 0);
+              })())}</td>
+            </tr>
           </tbody>
         </table>
       </div>
-
-      <div className="text-sm">
-        <p className="mb-2 font-bold">Remarks:</p>
-        <p className="mb-2">Kindly inspect all goods at the time of delivery to ensure accuracy and condition.</p>
-        <p className="mb-2">Polygon does not accept returns under any circumstances.</p>
-        <p className="mb-2">Please contact our customer service team within 24 hours of delivery.</p>
-        <p className="mb-2">For any assistance, feel free to contact our customer service team.</p>
-        <p className="font-semibold text-center italic mt-9">Thank you for shopping with us!</p>
-        <p className="text-center italic mt-3">
-          WE WILL SEND YOU MORE OFFERS, LOWEST PRICED VEGGIES FROM US
-        </p>
-        <p className="text-center italic mt-10 text-gray-400">
-          -THIS IS A COMPUTER GENERATED INVOICE, THUS NO SIGNATURE REQUIRED-
-        </p>
-      </div>
     </div>
-  );
+
+    <div className="text-xs sm:text-sm">
+      <p className="mb-2 font-bold">Remarks:</p>
+      <p className="mb-2">Kindly inspect all goods at the time of delivery to ensure accuracy and condition.</p>
+      <p className="mb-2">Polygon does not accept returns under any circumstances.</p>
+      <p className="mb-2">Please contact our customer service team within 24 hours of delivery.</p>
+      <p className="mb-2">For any assistance, feel free to contact our customer service team.</p>
+      <p className="font-semibold text-center italic mt-6 sm:mt-9">Thank you for shopping with us!</p>
+      <p className="text-center italic mt-3">
+        WE WILL SEND YOU MORE OFFERS, LOWEST PRICED VEGGIES FROM US
+      </p>
+      <p className="text-center italic mt-6 sm:mt-10 text-gray-400 text-xs">
+        -THIS IS A COMPUTER GENERATED INVOICE, THUS NO SIGNATURE REQUIRED-
+      </p>
+    </div>
+  </div>
+);
 }
 
 function InvoicePageContent() {
