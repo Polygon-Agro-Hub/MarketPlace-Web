@@ -610,11 +610,16 @@ export interface CouponValidationResponse {
   type?: string;
 }
 
-export const validateCoupon = async (couponCode: string, token: string): Promise<CouponValidationResponse> => {
+export const validateCoupon = async (
+  couponCode: string, 
+  token: string, 
+  deliveryMethod: string
+): Promise<CouponValidationResponse> => {
   try {
     const response = await axios.post('/retail-order/check-coupon-avalability', 
       { 
-        coupon: couponCode 
+        coupon: couponCode,
+        deliveryMethod: deliveryMethod
       },
       {
         headers: {

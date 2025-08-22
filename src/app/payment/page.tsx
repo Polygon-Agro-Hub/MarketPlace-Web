@@ -162,7 +162,7 @@ const Page: React.FC = () => {
     return `${formattedInteger}.${decimalPart}`;
   };
 
-  const handleApplyCoupon = async () => {
+ const handleApplyCoupon = async () => {
     if (!couponCode.trim()) return;
 
     setCouponValidationLoading(true);
@@ -173,7 +173,10 @@ const Page: React.FC = () => {
         throw new Error('Please log in to apply coupon');
       }
 
-      const response = await validateCoupon(couponCode.trim(), token);
+      // Get deliveryMethod from Redux state
+      const deliveryMethod = checkoutDetails.deliveryMethod || 'home';
+      
+      const response = await validateCoupon(couponCode.trim(), token, deliveryMethod);
 
       if (response.status) {
         setIsCouponApplied(true);
@@ -196,7 +199,6 @@ const Page: React.FC = () => {
       setCouponValidationLoading(false);
     }
   };
-
 
 
   const validateCartData = (): { isValid: boolean; error?: string } => {
