@@ -265,7 +265,7 @@ const Page = () => {
         {/* Email Login Form */}
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="relative">
-            <input
+           <input
               type="text"
               name="email"
               placeholder="Email / Phone Number (e.g. +947XXXXXXXX)"
@@ -273,7 +273,9 @@ const Page = () => {
                 }`}
               value={email}
               onChange={(e) => {
-                setEmail(e.target.value);
+                // Automatically trim leading spaces
+                const trimmedValue = e.target.value.replace(/^\s+/, '');
+                setEmail(trimmedValue);
                 setEmailError('');
               }}
             />
@@ -283,7 +285,7 @@ const Page = () => {
             {emailError && <p className="text-sm text-red-600 mt-1">{emailError}</p>}
           </div>
           <div className="relative">
-            <input
+           <input
               type={showPassword ? 'text' : 'password'}
               name="password"
               placeholder="Password"
@@ -291,7 +293,9 @@ const Page = () => {
                 }`}
               value={password}
               onChange={(e) => {
-                setPassword(e.target.value);
+                // Automatically trim leading spaces
+                const trimmedValue = e.target.value.replace(/^\s+/, '');
+                setPassword(trimmedValue);
                 setPasswordError('');
               }}
             />
