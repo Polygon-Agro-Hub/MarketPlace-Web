@@ -1,33 +1,47 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import Link from 'next/link'
 import { faAngleDown, faMagnifyingGlass, faBagShopping, faBars, faUser, faClockRotateLeft, faTimes } from '@fortawesome/free-solid-svg-icons'
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useState, useRef, useCallback } from 'react'
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
 import { useDispatch } from 'react-redux';
 import { logout } from '../../store/slices/authSlice';
 import { clearCart } from '@/store/slices/cartSlice';
-import ExitImg from '../../../public/icons/Exit.png';
 import { useRouter } from 'next/navigation'
 import { LogOut } from 'lucide-react';
+import { setSearchTerm, clearSearch } from '../../store/slices/searchSlice';
 
-const Header = () => {
+
+interface HeaderProps {
+  onSearch?: (searchTerm: string) => void;
+  searchValue?: string;
+}
+
+const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isCategoryExpanded, setIsCategoryExpanded] = useState(false);
   const [isDesktopCategoryOpen, setIsDesktopCategoryOpen] = useState(false);
   const [isClient, setIsClient] = useState(false);
-  const [isHydrated, setIsHydrated] = useState(false); // New state for hydration
+  const [isHydrated, setIsHydrated] = useState(false);
   const categoryRef = useRef<HTMLDivElement | null>(null); 
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const user = useSelector((state: RootState) => state.auth.user);
   const token = useSelector((state: RootState) => state.auth.token) as string | null;
   const cartState = useSelector((state: RootState) => state.auth.cart) || { count: 0, price: 0 };
-  const dispatch = useDispatch();
   const router = useRouter();
   const [showSignupModal, setShowSignupModal] = useState(false);
   const [selectedBuyerType, setSelectedBuyerType] = useState('');
+  
+  const dispatch = useDispatch();
+  const searchTerm = useSelector((state: RootState) => state.search.searchTerm);
+  const [localSearchInput, setLocalSearchInput] = useState('');
+  
+    useEffect(() => {
+    setLocalSearchInput(searchTerm);
+  }, [searchTerm]);
+
 
   useEffect(() => {
     setIsClient(true);
@@ -36,7 +50,6 @@ const Header = () => {
     }, 100);
 
     const handleResize = () => {
-      // Updated breakpoint to match Tailwind's md breakpoint
       setIsMobile(window.innerWidth < 768);
     };
     handleResize();
@@ -62,6 +75,26 @@ const Header = () => {
     setIsMenuOpen(!isMenuOpen);
   }
 
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setLocalSearchInput(e.target.value);
+  };
+
+  const handleSearchSubmit = useCallback((e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmedSearch = localSearchInput.trim();
+    console.log('Search submitted:', trimmedSearch);
+    dispatch(setSearchTerm(trimmedSearch));
+    
+    if (onSearch) {
+      onSearch(trimmedSearch);
+    }
+  }, [localSearchInput, dispatch, onSearch]);
+
+  const handleSearchKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSearchSubmit(e as any);
+    }
+  };
   const formatPrice = (price: number): string => {
     // Convert to fixed decimal first, then add commas
     const fixedPrice = Number(price).toFixed(2);
@@ -121,6 +154,7 @@ const Header = () => {
       router.push('/');
     }
   };
+  
 
   const handleMobileCategoryClick = (e: React.MouseEvent, buyerType: string) => {
     e.preventDefault();
@@ -292,19 +326,27 @@ const Header = () => {
           )}
 
           {!isMobile && (
-            <div className="flex-1 max-w-xl mx-4">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search for Product"
-                  className="italic w-full py-2 px-4 rounded-[10px] text-gray-800 focus:outline-none bg-white"
-                />
-                <button className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500">
-                  <FontAwesomeIcon icon={faMagnifyingGlass} />
-                </button>
-              </div>
+        <div className="flex-1 max-w-xl mx-4">
+          <form onSubmit={handleSearchSubmit}>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search for Product"
+                value={localSearchInput}
+                onChange={handleSearchChange}
+                onKeyPress={handleSearchKeyPress}
+                className="italic w-full py-2 px-4 rounded-[10px] text-gray-800 focus:outline-none bg-white"
+              />
+              <button 
+                type="submit"
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              >
+                <FontAwesomeIcon icon={faMagnifyingGlass} />
+              </button>
             </div>
-          )}
+          </form>
+        </div>
+      )}
 
           <div onClick={handleCartClick} className="cursor-pointer">
             <div className="flex items-center space-x-4 bg-[#502496] px-8 py-2 rounded-full">
@@ -338,6 +380,157 @@ const Header = () => {
         </div>
 
         <style jsx>{`
+          /* Extra Small Mobile Devices: 320px - 374px */
+          @media screen and (min-width: 320px) and (max-width: 374px) {
+            header {
+              padding: 8px 10px !important;
+            }
+            header > div {
+              gap: 4px;
+            }
+            header .text-2xl {
+              font-size: 14px !important;
+            }
+            header .bg-\\[\\#502496\\] {
+              padding: 4px 8px !important;
+              gap: 3px !important;
+            }
+            header .bg-\\[\\#502496\\] svg {
+              font-size: 12px !important;
+            }
+            header .bg-\\[\\#502496\\] .text-sm {
+              font-size: 8px !important;
+            }
+            header .w-9 {
+              width: 22px !important;
+              height: 22px !important;
+            }
+            header .text-1xl {
+              font-size: 9px !important;
+            }
+            header .text-2xl.fa-bars {
+              font-size: 16px !important;
+            }
+          }
+
+          /* Small Mobile Devices: 375px - 424px (iPhone SE, iPhone 12 Mini) */
+          @media screen and (min-width: 375px) and (max-width: 424px) {
+            header {
+              padding: 10px 12px !important;
+            }
+            header > div {
+              gap: 5px;
+            }
+            header .text-2xl {
+              font-size: 16px !important;
+            }
+            header .bg-\\[\\#502496\\] {
+              padding: 5px 10px !important;
+              gap: 4px !important;
+            }
+            header .bg-\\[\\#502496\\] svg {
+              font-size: 14px !important;
+            }
+            header .bg-\\[\\#502496\\] .text-sm {
+              font-size: 9px !important;
+            }
+            header .w-9 {
+              width: 24px !important;
+              height: 24px !important;
+            }
+            header .text-1xl {
+              font-size: 10px !important;
+            }
+            header .text-2xl.fa-bars {
+              font-size: 18px !important;
+            }
+          }
+
+          /* Standard Mobile Devices: 425px - 480px (iPhone 12, iPhone 13) */
+          @media screen and (min-width: 425px) and (max-width: 480px) {
+            header {
+              padding: 12px 14px !important;
+            }
+            header > div {
+              gap: 6px;
+            }
+            header .text-2xl {
+              font-size: 18px !important;
+            }
+            header .bg-\\[\\#502496\\] {
+              padding: 6px 12px !important;
+              gap: 5px !important;
+            }
+            header .bg-\\[\\#502496\\] svg {
+              font-size: 16px !important;
+            }
+            header .bg-\\[\\#502496\\] .text-sm {
+              font-size: 10px !important;
+            }
+            header .w-9 {
+              width: 26px !important;
+              height: 26px !important;
+            }
+            header .text-1xl {
+              font-size: 11px !important;
+            }
+            header .text-2xl.fa-bars {
+              font-size: 20px !important;
+            }
+          }
+
+          /* Small tablets: 481px - 767px */
+          @media screen and (min-width: 481px) and (max-width: 767px) {
+            header {
+              padding: 14px 16px !important;
+            }
+            header > div {
+              gap: 8px;
+            }
+            header .text-2xl {
+              font-size: 20px !important;
+            }
+            header nav {
+              gap: 12px !important;
+            }
+            header nav a,
+            header nav button {
+              font-size: 13px !important;
+            }
+            header .flex-1 {
+              max-width: 200px !important;
+              margin: 0 8px !important;
+            }
+            header input {
+              padding: 6px 12px !important;
+              font-size: 12px !important;
+            }
+            header .bg-\\[\\#502496\\] {
+              padding: 6px 14px !important;
+              gap: 6px !important;
+            }
+            header .bg-\\[\\#502496\\] svg {
+              font-size: 18px !important;
+            }
+            header .bg-\\[\\#502496\\] .text-sm {
+              font-size: 11px !important;
+            }
+            header .text-4xl {
+              font-size: 20px !important;
+            }
+            header .w-9 {
+              width: 28px !important;
+              height: 28px !important;
+            }
+            header .text-1xl {
+              font-size: 12px !important;
+            }
+            header .text-2xl.fa-bars {
+              font-size: 22px !important;
+            }
+          }
+
+          /* Medium tablets (portrait): 768px - 1024px */
           @media screen and (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
             header {
               padding: 12px 16px !important;
@@ -385,6 +578,7 @@ const Header = () => {
             }
           }
 
+          /* Medium tablets (landscape): 768px - 1024px */
           @media screen and (min-width: 768px) and (max-width: 1024px) and (orientation: landscape) {
             header {
               padding: 16px 20px !important;
@@ -429,54 +623,6 @@ const Header = () => {
             }
           }
 
-          /* Small tablets: 481px - 767px */
-          @media screen and (min-width: 481px) and (max-width: 767px) {
-            header {
-              padding: 10px 12px !important;
-            }
-            header > div {
-              gap: 6px;
-            }
-            header .text-2xl {
-              font-size: 16px !important;
-            }
-            header nav {
-              gap: 8px !important;
-            }
-            header nav a,
-            header nav button {
-              font-size: 13px !important;
-            }
-            header .flex-1 {
-              max-width: 200px !important;
-              margin: 0 6px !important;
-            }
-            header input {
-              padding: 5px 10px !important;
-              font-size: 12px !important;
-            }
-            header .bg-\\[\\#502496\\] {
-              padding: 5px 10px !important;
-              gap: 4px !important;
-            }
-            header .bg-\\[\\#502496\\] svg {
-              font-size: 14px !important;
-            }
-            header .bg-\\[\\#502496\\] .text-sm {
-              font-size: 10px !important;
-            }
-            header .text-4xl {
-              font-size: 18px !important;
-            }
-            header .w-9 {
-              width: 26px !important;
-              height: 26px !important;
-            }
-            header .text-1xl {
-              font-size: 11px !important;
-            }
-          }
-
           /* Large tablets/small desktops: 1025px - 1200px */
           @media screen and (min-width: 1025px) and (max-width: 1200px) {
             header .flex-1 {
@@ -486,14 +632,51 @@ const Header = () => {
               padding: 8px 20px !important;
             }
           }
+
+          /* Mobile Menu Responsive Styles */
+          @media screen and (max-width: 374px) {
+            .mobile-menu-container {
+              width: 100vw !important;
+            }
+            .mobile-menu-content {
+              width: 100% !important;
+            }
+            .mobile-menu-content nav a,
+            .mobile-menu-content nav button {
+              padding: 12px 16px !important;
+              font-size: 14px !important;
+            }
+          }
+
+          @media screen and (min-width: 375px) and (max-width: 424px) {
+            .mobile-menu-container {
+              width: 280px !important;
+            }
+            .mobile-menu-content nav a,
+            .mobile-menu-content nav button {
+              padding: 14px 18px !important;
+              font-size: 15px !important;
+            }
+          }
+
+          @media screen and (min-width: 425px) and (max-width: 767px) {
+            .mobile-menu-container {
+              width: 300px !important;
+            }
+            .mobile-menu-content nav a,
+            .mobile-menu-content nav button {
+              padding: 16px 20px !important;
+              font-size: 16px !important;
+            }
+          }
         `}</style>
       </header>
 
       {/* Mobile Menu */}
       {isMobile && isMenuOpen && (
-        <div className='relative flex w-full justify-end'>
+        <div className='relative flex w-full justify-end mobile-menu-container'>
           <div className="absolute z-50">
-            <div className="bg-[#3E206D] text-white w-64 flex flex-col">
+            <div className="bg-[#3E206D] text-white w-64 flex flex-col mobile-menu-content">
               <div className="flex justify-between items-center border-b border-purple-800 px-6 py-4">
                 {/* <span className="font-semibold">Menu</span> */}
                 <button onClick={toggleMenu} className="text-white hover:text-purple-200 ml-[90%]">
@@ -595,4 +778,7 @@ const Header = () => {
   )
 }
 
+
 export default Header
+
+

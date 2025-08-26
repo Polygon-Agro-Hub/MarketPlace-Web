@@ -1,14 +1,13 @@
 'use client';
-
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store';
+import { setSearchTerm } from '@/store/slices/searchSlice';
 import { useEffect, useState } from 'react';
 import Loading from '@/components/loadings/loading';
 import PackageSlider from "@/components/home/PackageSlider";
 import CategoryFilter from "@/components/type-filters/CategoryFilter";
 import { getAllProduct } from "@/services/product-service";
 import TopBanner from '@/components/home/TopBanner';
-import AuthGuard from '@/components/AuthGuard';
 import { useRouter } from 'next/navigation';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons';
@@ -21,50 +20,85 @@ interface Package {
 }
 
 export default function Home() {
-  const [data, setData] = useState<{ message: string } | null>(null);
+  // Redux state
+  const dispatch = useDispatch();
+  const searchTerm = useSelector((state: RootState) => state.search.searchTerm);
+  const isSearchActive = useSelector((state: RootState) => state.search.isSearchActive);
   const user = useSelector((state: RootState) => state.auth.user) || null;
-  const [productData, setProductData] = useState<Package[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState('fruits');
-
-  // Modal state lifted to main component
-  const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
-  const [selectedPackageForCart, setSelectedPackageForCart] = useState<any>(null);
-  const [showLoginPopup, setShowLoginPopup] = useState(false);
-
   const cart = useSelector((state: RootState) => state.checkout) || null;
-
   const cartState = useSelector((state: RootState) => state.cart);
   const cartItemsState = useSelector((state: RootState) => state.cartItems);
   const authState = useSelector((state: RootState) => state.auth);
 
+  // Local state
+  const [data, setData] = useState<{ message: string } | null>(null);
+  const [productData, setProductData] = useState<Package[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState('fruits');
+  const [localSearchInput, setLocalSearchInput] = useState('');
+
+  // Modal state
+  const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
+  const [selectedPackageForCart, setSelectedPackageForCart] = useState<any>(null);
+  const [showLoginPopup, setShowLoginPopup] = useState(false);
+
   const router = useRouter();
 
-  // Console log Redux data whenever it changes
-  // useEffect(() => {
-  //   console.log('=== REDUX STATE UPDATE ===');
-  //   // console.log('Cart State:', cartState);
-  //   // console.log('Cart Items State:', cartItemsState);
-  //   console.log('Auth State:', authState);
-  //   console.log('==========================');
-  // }, [cartState, cartItemsState, authState]);
+  // Initialize mobile input with Redux search term
+  useEffect(() => {
+    setLocalSearchInput(searchTerm);
+  }, [searchTerm]);
 
-
+  // Initial data fetch
   useEffect(() => {
     fetchAllPackages();
-    console.log("Car:", cart);
-
+    console.log("Cart:", cart);
   }, []);
 
+  // Fetch products when search term changes
+  useEffect(() => {
+    fetchAllPackages(searchTerm);
+  }, [searchTerm]);
+
+  // Log category changes
   useEffect(() => {
     console.log(`Category changed to: ${selectedCategory}`);
   }, [selectedCategory]);
 
-  async function fetchAllPackages() {
+  // Console log Redux data whenever it changes
+  useEffect(() => {
+    console.log('=== REDUX STATE UPDATE ===');
+    console.log('Auth State:', authState);
+    console.log('Search Term:', searchTerm);
+    console.log('Search Active:', isSearchActive);
+    console.log('==========================');
+  }, [cartState, cartItemsState, authState, searchTerm, isSearchActive]);
+
+  // Mobile search handlers
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setLocalSearchInput(e.target.value);
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmedSearch = localSearchInput.trim();
+    console.log('Mobile search submitted:', trimmedSearch);
+    dispatch(setSearchTerm(trimmedSearch));
+  };
+
+  const handleSearchKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSearchSubmit(e as any);
+    }
+  };
+
+  // Fetch packages function
+  async function fetchAllPackages(search?: string) {
     try {
       setLoading(true);
-      const response = await getAllProduct() as any;
+      console.log('Fetching packages with search term:', search);
+      const response = await getAllProduct(search) as any;
       if (response && response.product) {
         setProductData(response.product);
       } else {
@@ -103,79 +137,100 @@ export default function Home() {
     router.push('/signup');
   };
 
-      const LoginPopup = () => {
-        if (!showLoginPopup) return null;
+  // Login popup component
+  const LoginPopup = () => {
+    if (!showLoginPopup) return null;
 
-        return (
-            <div className="fixed top-0 left-0 w-full h-full bg-black bg-black/50 flex items-center justify-center z-[9999] mb-[5%]">
-                <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4 relative">
-                    {/* Close button */}
-                    <button
-                        onClick={() => setShowLoginPopup(false)}
-                        className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 cursor-pointer"
-                    >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
+    return (
+      <div className="fixed top-0 left-0 w-full h-full bg-black bg-black/50 flex items-center justify-center z-[9999] mb-[5%]">
+        <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4 relative">
+          {/* Close button */}
+          <button
+            onClick={() => setShowLoginPopup(false)}
+            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 cursor-pointer"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
 
-                    {/* Header */}
-                    <div className="text-center mb-6">
-                        <h2 className="text-xl font-bold text-[#000000] mb-4">
-                            Welcome, Guest! 👋
-                        </h2>
-                        <p className="text-[#8492A3] text-base leading-relaxed">
-                            We're excited to have you here!<br />
-                            To unlock the best experience,<br />
-                            please log in or create a new account.
-                        </p>
-                    </div>
+          {/* Header */}
+          <div className="text-center mb-6">
+            <h2 className="text-xl font-bold text-[#000000] mb-4">
+              Welcome, Guest!
+            </h2>
+            <p className="text-[#8492A3] text-base leading-relaxed">
+              We're excited to have you here!<br />
+              To unlock the best experience,<br />
+              please log in or create a new account.
+            </p>
+          </div>
 
-                    {/* Buttons */}
-                    <div className="flex justify-center space-x-4">
-                        <button
-                            onClick={handleRegisterClick}
-                            className="py-3 px-6 max-w-32 flex-1 rounded-2xl bg-[#EDE1FF] text-[#3E206D] text-sm sm:text-base font-semibold hover:bg-[#DCC7FF] transition-colors cursor-pointer"
-                        >
-                            Register
-                        </button>
-                        <button
-                            onClick={handleLoginClick}
-                            className="py-3 px-6 max-w-32 flex-1 rounded-2xl bg-[#3E206D] text-white font-semibold hover:bg-[#2D1A4F] text-sm sm:text-base transition-colors cursor-pointer"
-                        >
-                            Login
-                        </button>
-                    </div>
-                </div>
-            </div>
-        );
-    };
-
-
-
-return (
-    <main className="flex min-h-screen flex-col items-center justify-between">
-      {/* Updated banner container - removed margin constraints */}
-      <div className="w-full">
-        <TopBanner />
-      </div>
-      
-      {/* Search bar - Mobile only */}
-      <div className="w-full px-4 sm:hidden mt-4">
-        <div className="flex-1 max-w-xl mx-auto">
-          <div className="relative  shadow-lg">
-            <input
-              type="text"
-              placeholder="Search for Product"
-              className="italic w-full py-2 px-4 rounded-[10px] text-[#3E206D] focus:outline-none bg-gray-200"
-            />
-            <button className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500">
-              <FontAwesomeIcon icon={faMagnifyingGlass} color='#3E206D'/>
+          {/* Buttons */}
+          <div className="flex justify-center space-x-4">
+            <button
+              onClick={handleRegisterClick}
+              className="py-3 px-6 max-w-32 flex-1 rounded-2xl bg-[#EDE1FF] text-[#3E206D] text-sm sm:text-base font-semibold hover:bg-[#DCC7FF] transition-colors cursor-pointer"
+            >
+              Register
+            </button>
+            <button
+              onClick={handleLoginClick}
+              className="py-3 px-6 max-w-32 flex-1 rounded-2xl bg-[#3E206D] text-white font-semibold hover:bg-[#2D1A4F] text-sm sm:text-base transition-colors cursor-pointer"
+            >
+              Login
             </button>
           </div>
         </div>
       </div>
+    );
+  };
+
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-between">
+      {/* Top banner - hide when search is active */}
+      {!isSearchActive && (
+        <div className="w-full">
+          <TopBanner />
+        </div>
+      )}
       
+      {/* Mobile search bar */}
+      <div className="w-full px-4 sm:hidden mt-4">
+        <div className="flex-1 max-w-xl mx-auto">
+          <form onSubmit={handleSearchSubmit}>
+            <div className="relative shadow-lg">
+              <input
+                type="text"
+                placeholder="Search for Product"
+                value={localSearchInput}
+                onChange={handleSearchChange}
+                onKeyPress={handleSearchKeyPress}
+                className="italic w-full py-2 px-4 rounded-[10px] text-[#3E206D] focus:outline-none bg-gray-200"
+              />
+              <button 
+                type="submit"
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-[#3E206D]"
+              >
+                <FontAwesomeIcon icon={faMagnifyingGlass} color='#3E206D'/>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+      
+      {/* Search indicator on mobile */}
+      {isSearchActive && (
+        <div className="w-full px-4 sm:hidden mt-2">
+          <div className="text-center">
+            <p className="text-sm text-gray-600">
+              Searching for: "{searchTerm}"
+            </p>
+          </div>
+        </div>
+      )}
+      
+      {/* Package slider section */}
       {loading ? (
         <div className="flex justify-center py-8">Loading packages...</div>
       ) : error ? (
@@ -190,11 +245,12 @@ return (
         </div>
       )}
 
+      {/* Category filter section */}
       <div className="w-full mb-8 px-4 sm:px-6 lg:px-8">
         <CategoryFilter />
       </div>
 
-      {/* Rest of your modals remain the same */}
+      {/* Package add to cart confirmation modal */}
       {showConfirmModal && selectedPackageForCart && (
         <div className="fixed inset-0 bg-black/50 bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full mx-4">
@@ -226,6 +282,8 @@ return (
           </div>
         </div>
       )}
+
+      {/* Login popup modal */}
       <LoginPopup />
     </main>
   );

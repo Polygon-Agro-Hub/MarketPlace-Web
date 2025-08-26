@@ -907,18 +907,23 @@ const calculateItemGroupTotal = (itemGroup: AdditionalItems): number => {
                                     disabled={isRemoving}
                                   />
                                 </td>
-                                <td className="px-4 py-4">
-                                  <div className="flex items-center gap-3">
-                                    <img
-                                      src={item.image}
-                                      alt={item.name}
-                                      className="w-12 h-12 rounded-lg object-cover "
-                                    />
-                                    <span className="text-sm font-medium text-gray-900">
-                                      {item.name}
-                                    </span>
-                                  </div>
-                                </td>
+<td className="px-4 py-4">
+  <div className="flex items-center gap-3">
+    <div className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden">
+      <img
+        src={item.image}
+        alt={item.name}
+        className="w-full h-full object-contain"
+        onError={(e) => {
+          e.currentTarget.src = '/placeholder-image.jpg'; // Add a fallback image
+        }}
+      />
+    </div>
+    <span className="text-sm font-medium text-gray-900">
+      {item.name}
+    </span>
+  </div>
+</td>
                                 <td className="px-4 py-4">
                                   <div className="flex gap-1 justify-center">
                                     {(['kg', 'g'] as const).map(unit => (

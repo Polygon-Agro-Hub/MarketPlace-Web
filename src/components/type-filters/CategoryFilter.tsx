@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/store';
 import CategoryTile from './CategoryTile';
 import Vegetables from '../../../public/images/Vegetables.png';
 import Fruits from '../../../public/images/Fruits.png';
@@ -38,7 +40,14 @@ interface Category {
     itemCount: number;
 }
 
-export default function CategoryFilter() {
+// Remove the searchTerm prop since we'll use Redux
+interface CategoryFilterProps {}
+
+export default function CategoryFilter({}: CategoryFilterProps) {
+    // Get search term from Redux instead of props
+    const searchTerm = useSelector((state: RootState) => state.search.searchTerm);
+    const isSearchActive = useSelector((state: RootState) => state.search.isSearchActive);
+    
     const [selectedCategory, setSelectedCategory] = useState('Vegetables');
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(false);
@@ -104,15 +113,16 @@ export default function CategoryFilter() {
         fetchCategoryCounts();
     }, []);
 
+    // Updated useEffect that properly listens to Redux search term changes
     useEffect(() => {
         const fetchProducts = async () => {
             setLoading(true);
             setError(null);
 
             try {
-                console.log(selectedCategory);
+                console.log('Fetching products with:', { selectedCategory, searchTerm });
                 
-                const response = await getProductsByCategory(selectedCategory);
+                const response = await getProductsByCategory(selectedCategory, searchTerm || undefined);
                 setProducts(response.products);
             } catch (err) {
                 console.error('Error fetching products:', err);
@@ -124,7 +134,7 @@ export default function CategoryFilter() {
         };
 
         fetchProducts();
-    }, [selectedCategory]);
+    }, [selectedCategory, searchTerm]); // Now properly listens to Redux searchTerm
 
     function handleCategorySelect(id: string): void {
         setSelectedCategory(id);
@@ -140,6 +150,15 @@ export default function CategoryFilter() {
                     </span>
                     <div className="w-1/2 border-t-2 border-[#D7D7D7]"></div>
                 </div>
+
+                {/* Show search indicator if search is active */}
+                {isSearchActive && (
+                    <div className="text-center mb-4">
+                        <p className="text-sm text-gray-600">
+                            Searching for "{searchTerm}" in {selectedCategory}
+                        </p>
+                    </div>
+                )}
 
                 {countsLoading ? (
                     <div className="flex justify-center items-center py-4">
@@ -189,7 +208,12 @@ export default function CategoryFilter() {
                             ))
                         ) : (
                             <div className="col-span-full text-center py-10">
-                                <p className="text-gray-500">No products found in this category.</p>
+                                <p className="text-gray-500">
+                                    {isSearchActive 
+                                        ? `No products found for "${searchTerm}" in ${selectedCategory}.`
+                                        : 'No products found in this category.'
+                                    }
+                                </p>
                             </div>
                         )}
                     </div>
