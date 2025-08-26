@@ -10,6 +10,7 @@ import { clearCart } from '@/store/slices/cartSlice';
 import { useRouter } from 'next/navigation'
 import { LogOut } from 'lucide-react';
 import { setSearchTerm, clearSearch } from '../../store/slices/searchSlice';
+import { X } from 'lucide-react';
 
 
 interface HeaderProps {
@@ -37,6 +38,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
   const dispatch = useDispatch();
   const searchTerm = useSelector((state: RootState) => state.search.searchTerm);
   const [localSearchInput, setLocalSearchInput] = useState('');
+  const isSearchActive = useSelector((state: RootState) => state.search.isSearchActive);
   
     useEffect(() => {
     setLocalSearchInput(searchTerm);
@@ -95,6 +97,12 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
       handleSearchSubmit(e as any);
     }
   };
+  
+  const handleResetSearch = () => {
+  setLocalSearchInput('');
+  dispatch(setSearchTerm(''));
+  console.log('Header search reset');
+};
   const formatPrice = (price: number): string => {
     // Convert to fixed decimal first, then add commas
     const fixedPrice = Number(price).toFixed(2);
@@ -325,28 +333,38 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
             </nav>
           )}
 
-          {!isMobile && (
-        <div className="flex-1 max-w-xl mx-4">
-          <form onSubmit={handleSearchSubmit}>
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search for Product"
-                value={localSearchInput}
-                onChange={handleSearchChange}
-                onKeyPress={handleSearchKeyPress}
-                className="italic w-full py-2 px-4 rounded-[10px] text-gray-800 focus:outline-none bg-white"
-              />
-              <button 
-                type="submit"
-                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-              >
-                <FontAwesomeIcon icon={faMagnifyingGlass} />
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+{!isMobile && (
+  <div className="flex-1 max-w-xl mx-4">
+    <form onSubmit={handleSearchSubmit}>
+      <div className="relative">
+        <input
+          type="text"
+          placeholder="Search for Product"
+          value={localSearchInput}
+          onChange={handleSearchChange}
+          onKeyPress={handleSearchKeyPress}
+          className="italic w-full py-2 px-4 rounded-[10px] text-gray-800 focus:outline-none bg-white"
+        />
+        {isSearchActive && searchTerm ? (
+          <button 
+            type="button"
+            onClick={handleResetSearch}
+            className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
+          >
+            <X size={16} />
+          </button>
+        ) : (
+          <button 
+            type="submit"
+            className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+          >
+            <FontAwesomeIcon icon={faMagnifyingGlass} />
+          </button>
+        )}
+      </div>
+    </form>
+  </div>
+)}
 
           <div onClick={handleCartClick} className="cursor-pointer">
             <div className="flex items-center space-x-4 bg-[#502496] px-8 py-2 rounded-full">

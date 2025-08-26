@@ -11,6 +11,7 @@ import TopBanner from '@/components/home/TopBanner';
 import { useRouter } from 'next/navigation';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons';
+import { X } from 'lucide-react';
 
 interface Package {
   id: number;
@@ -91,6 +92,13 @@ export default function Home() {
     if (e.key === 'Enter') {
       handleSearchSubmit(e as any);
     }
+  };
+
+  // Reset search function
+  const handleResetSearch = () => {
+    setLocalSearchInput('');
+    dispatch(setSearchTerm(''));
+    console.log('Search reset');
   };
 
   // Fetch packages function
@@ -208,12 +216,22 @@ export default function Home() {
                 onKeyPress={handleSearchKeyPress}
                 className="italic w-full py-2 px-4 rounded-[10px] text-[#3E206D] focus:outline-none bg-gray-200"
               />
-              <button 
-                type="submit"
-                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-[#3E206D]"
-              >
-                <FontAwesomeIcon icon={faMagnifyingGlass} color='#3E206D'/>
-              </button>
+              {isSearchActive && searchTerm ? (
+                <button 
+                  type="button"
+                  onClick={handleResetSearch}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-[#3E206D] transition-colors"
+                >
+                  <X size={16} color='#3E206D' />
+                </button>
+              ) : (
+                <button 
+                  type="submit"
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-[#3E206D]"
+                >
+                  <FontAwesomeIcon icon={faMagnifyingGlass} color='#3E206D'/>
+                </button>
+              )}
             </div>
           </form>
         </div>
