@@ -10,6 +10,8 @@ import ItemCard from '../../components/item-card/ItemCard';
 import { getProductsByCategory } from '@/services/product-service';
 import { getCategoryCounts } from '@/services/product-service';
 import { StaticImageData } from 'next/image';
+import { useDispatch } from 'react-redux';
+import { setCategoryResults } from '@/store/slices/searchSlice';
 
 interface Product {
     id: number;
@@ -54,6 +56,7 @@ export default function CategoryFilter({}: CategoryFilterProps) {
     const [error, setError] = useState<string | null>(null);
     const [categories, setCategories] = useState<Category[]>([]);
     const [countsLoading, setCountsLoading] = useState(true);
+    const dispatch = useDispatch();
 
     const defaultCategories = [
         {
@@ -114,27 +117,33 @@ export default function CategoryFilter({}: CategoryFilterProps) {
     }, []);
 
     // Updated useEffect that properly listens to Redux search term changes
-    useEffect(() => {
-        const fetchProducts = async () => {
-            setLoading(true);
-            setError(null);
+        useEffect(() => {
+            const fetchProducts = async () => {
+                setLoading(true);
+                setError(null);
 
-            try {
-                console.log('Fetching products with:', { selectedCategory, searchTerm });
-                
-                const response = await getProductsByCategory(selectedCategory, searchTerm || undefined);
-                setProducts(response.products);
-            } catch (err) {
-                console.error('Error fetching products:', err);
-                setError('Failed to load products. Please try again.');
-                setProducts([]);
-            } finally {
-                setLoading(false);
-            }
-        };
+                try {
+                    console.log('Fetching products with:', { selectedCategory, searchTerm });
+                    
+                    const response = await getProductsByCategory(selectedCategory, searchTerm || undefined);
+                    setProducts(response.products);
+                    
+                    // Update category results state based on products length
+                    dispatch(setCategoryResults(response.products.length > 0));
+                } catch (err) {
+                    console.error('Error fetching products:', err);
+                    setError('Failed to load products. Please try again.');
+                    setProducts([]);
+                    
+                    // Update category results state for error
+                    dispatch(setCategoryResults(false));
+                } finally {
+                    setLoading(false);
+                }
+            };
 
-        fetchProducts();
-    }, [selectedCategory, searchTerm]); // Now properly listens to Redux searchTerm
+            fetchProducts();
+        }, [selectedCategory, searchTerm, dispatch]);
 
     function handleCategorySelect(id: string): void {
         setSelectedCategory(id);

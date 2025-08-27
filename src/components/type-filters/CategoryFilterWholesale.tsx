@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { RootState } from '@/store';
+import { setCategoryResults } from '@/store/slices/searchSlice';
 import CategoryTile from './CategoryTile';
 import Vegetables from '../../../public/images/Vegetables.png';
 import Fruits from '../../../public/images/Fruits.png';
@@ -39,6 +42,11 @@ interface Category {
 }
 
 export default function CategoryFilterWholesale() {
+    // Get search term from Redux
+    const searchTerm = useSelector((state: RootState) => state.search.searchTerm);
+    const isSearchActive = useSelector((state: RootState) => state.search.isSearchActive);
+    const dispatch = useDispatch();
+    
     const [selectedCategory, setSelectedCategory] = useState('Vegetables');
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(false);
@@ -94,7 +102,7 @@ export default function CategoryFilterWholesale() {
                     setCategories(updatedCategories);
                 }
             } catch (err) {
-                console.error('Error fetching category counts:', err);
+                console.error('Error fetching wholesale category counts:', err);
                 setCategories(defaultCategories);
             } finally {
                 setCountsLoading(false);
@@ -104,27 +112,36 @@ export default function CategoryFilterWholesale() {
         fetchCategoryCounts();
     }, []);
 
+    // Updated useEffect that properly listens to Redux search term changes
     useEffect(() => {
         const fetchProducts = async () => {
             setLoading(true);
             setError(null);
 
             try {
-                console.log(selectedCategory);
+                console.log('Fetching wholesale products with:', { selectedCategory, searchTerm });
                 
-                const response = await getProductsByCategoryWholesale(selectedCategory);
+                // Note: You'll need to update the getProductsByCategoryWholesale function
+                // to accept a search parameter similar to getProductsByCategory
+                const response = await getProductsByCategoryWholesale(selectedCategory, searchTerm || undefined);
                 setProducts(response.products);
+                
+                // Update category results state based on products length
+                dispatch(setCategoryResults(response.products.length > 0));
             } catch (err) {
-                console.error('Error fetching products:', err);
-                setError('Failed to load products. Please try again.');
+                console.error('Error fetching wholesale products:', err);
+                setError('Failed to load wholesale products. Please try again.');
                 setProducts([]);
+                
+                // Update category results state for error
+                dispatch(setCategoryResults(false));
             } finally {
                 setLoading(false);
             }
         };
 
         fetchProducts();
-    }, [selectedCategory]);
+    }, [selectedCategory, searchTerm, dispatch]);
 
     function handleCategorySelect(id: string): void {
         setSelectedCategory(id);
@@ -136,10 +153,19 @@ export default function CategoryFilterWholesale() {
                 <div className="flex items-center justify-center gap-2 w-full my-4 md:my-8 px-2 md:px-20">
                     <div className="w-1/2 border-t-2 border-[#D7D7D7]"></div>
                     <span className="bg-[#FF8F6666] text-[#FF4421] rounded-lg text-xs md:text-sm px-3 md:px-6 py-1">
-                        Types
+                        Wholesale Types
                     </span>
                     <div className="w-1/2 border-t-2 border-[#D7D7D7]"></div>
                 </div>
+
+                {/* Show search indicator if search is active */}
+                {isSearchActive && (
+                    <div className="text-center mb-4">
+                        <p className="text-sm text-gray-600">
+                            Searching wholesale for "{searchTerm}" in {selectedCategory}
+                        </p>
+                    </div>
+                )}
 
                 {countsLoading ? (
                     <div className="flex justify-center items-center py-4">
@@ -189,7 +215,12 @@ export default function CategoryFilterWholesale() {
                             ))
                         ) : (
                             <div className="col-span-full text-center py-10">
-                                <p className="text-gray-500">No products found in this category.</p>
+                                <p className="text-gray-500">
+                                    {isSearchActive 
+                                        ? `No wholesale products found for "${searchTerm}" in ${selectedCategory}.`
+                                        : 'No wholesale products found in this category.'
+                                    }
+                                </p>
                             </div>
                         )}
                     </div>

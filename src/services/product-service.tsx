@@ -311,33 +311,42 @@ export interface ProductCartData {
 
 //whole sale api calls
 
-export const getProductsByCategoryWholesale = async (category: string): Promise<ProductResponse> => {
+export const getProductsByCategoryWholesale = async (category: string, search?: string): Promise<any> => {
   try {
+    const params: { category: string; search?: string } = { category };
+    if (search && search.trim()) {
+      params.search = search.trim();
+    }
+
+    console.log('Service: Fetching wholesale products by category with params:', params);
+
     const response = await axios.get('/product/wholesale', {
-      params: { category },
+      params,
       headers: {
         'Content-Type': 'application/json',
       },
     });
 
-    console.log('products',response.data)
+    console.log('Service: Wholesale products response:', response.data);
 
     if (response.status >= 200 && response.status < 300) {
       return response.data;
     } else {
-      throw new Error(response.data?.message || 'Failed to fetch products by category');
+      throw new Error(response.data?.message || 'Failed to fetch wholesale products by category');
     }
   } catch (error: any) {
+    console.error('Service: Error in getProductsByCategoryWholesale:', error);
+    
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
         error.response.data?.error ||
-        `Failed with status ${error.response.status}`
+        `Failed to fetch wholesale products with status ${error.response.status}`
       );
     } else if (error.request) {
       throw new Error('No response received from server. Please check your network connection.');
     } else {
-      throw new Error(error.message || 'An error occurred while fetching products by category');
+      throw new Error(error.message || 'An error occurred while fetching wholesale products by category');
     }
   }
 };

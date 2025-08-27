@@ -1,7 +1,7 @@
 'use client';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store';
-import { setSearchTerm } from '@/store/slices/searchSlice';
+import { setSearchTerm, setPackageResults } from '@/store/slices/searchSlice';
 import { useEffect, useState } from 'react';
 import Loading from '@/components/loadings/loading';
 import PackageSlider from "@/components/home/PackageSlider";
@@ -12,6 +12,8 @@ import { useRouter } from 'next/navigation';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons';
 import { X } from 'lucide-react';
+import { useRef } from 'react';
+import animationData from '../../public/noResults.json';
 
 interface Package {
   id: number;
@@ -30,6 +32,8 @@ export default function Home() {
   const cartState = useSelector((state: RootState) => state.cart);
   const cartItemsState = useSelector((state: RootState) => state.cartItems);
   const authState = useSelector((state: RootState) => state.auth);
+  const hasPackageResults = useSelector((state: RootState) => state.search.hasPackageResults);
+  const hasCategoryResults = useSelector((state: RootState) => state.search.hasCategoryResults);
 
   // Local state
   const [data, setData] = useState<{ message: string } | null>(null);
@@ -102,23 +106,29 @@ export default function Home() {
   };
 
   // Fetch packages function
-  async function fetchAllPackages(search?: string) {
-    try {
-      setLoading(true);
-      console.log('Fetching packages with search term:', search);
-      const response = await getAllProduct(search) as any;
-      if (response && response.product) {
-        setProductData(response.product);
-      } else {
-        setError('No products found');
-      }
-    } catch (error) {
-      console.error('Error fetching packages:', error);
-      setError('Failed to fetch packages');
-    } finally {
-      setLoading(false);
+ async function fetchAllPackages(search?: string) {
+  try {
+    setLoading(true);
+    console.log('Fetching packages with search term:', search);
+    const response = await getAllProduct(search) as any;
+    if (response && response.product) {
+      setProductData(response.product);
+      // Update package results state
+      dispatch(setPackageResults(response.product.length > 0));
+    } else {
+      setError('No products found');
+      // Update package results state for no products
+      dispatch(setPackageResults(false));
     }
+  } catch (error) {
+    console.error('Error fetching packages:', error);
+    setError('Failed to fetch packages');
+    // Update package results state for error
+    dispatch(setPackageResults(false));
+  } finally {
+    setLoading(false);
   }
+}
 
   // Modal handlers
   const handleShowConfirmModal = (packageData: any) => {
@@ -144,6 +154,71 @@ export default function Home() {
     setShowLoginPopup(false);
     router.push('/signup');
   };
+  
+const NoSearchResults = () => {
+  const animationContainer = useRef<HTMLDivElement>(null);
+  const isLoadedRef = useRef(false);
+
+  useEffect(() => {
+    let animationInstance: any = null;
+
+    const loadAnimation = async () => {
+      try {
+        // Prevent double loading
+        if (isLoadedRef.current || !animationContainer.current) return;
+        
+        isLoadedRef.current = true;
+        
+        const lottie = await import('lottie-web');
+        
+        animationInstance = lottie.default.loadAnimation({
+          container: animationContainer.current,
+          renderer: 'svg',
+          loop: true,
+          autoplay: true,
+          animationData: animationData,
+        });
+      } catch (error) {
+        console.error('Error loading Lottie animation:', error);
+        isLoadedRef.current = false;
+      }
+    };
+
+    loadAnimation();
+
+    return () => {
+      if (animationInstance) {
+        animationInstance.destroy();
+      }
+      isLoadedRef.current = false;
+    };
+  }, []);
+  return (
+    <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
+      <div className="flex flex-col items-center justify-center text-center">
+        {/* Lottie Animation Container */}
+        <div className="w-32 h-32 mb-4 flex items-center justify-center">
+          <div 
+            ref={animationContainer}
+            className="w-full h-full"
+          />
+        </div>
+        <h3 className="text-xl font-semibold text-gray-600 mb-2">
+          No Results Found
+        </h3>
+        <p className="text-gray-500 mb-4">
+          Sorry, we couldn't find any products matching "{searchTerm}"
+        </p>
+        <button
+          onClick={handleResetSearch}
+          className="px-6 py-2 bg-[#3E206D] text-white rounded-lg hover:bg-[#2D1850] transition-colors"
+        >
+          Clear Search
+        </button>
+      </div>
+    </div>
+  );
+};
 
   // Login popup component
   const LoginPopup = () => {
@@ -194,115 +269,127 @@ export default function Home() {
     );
   };
 
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-between">
-      {/* Top banner - hide when search is active */}
-      {!isSearchActive && (
-        <div className="w-full">
-          <TopBanner />
+return (
+  <main className="flex min-h-screen flex-col items-center justify-between">
+    {/* Top banner - hide when search is active */}
+    {!isSearchActive && (
+      <div className="w-full">
+        <TopBanner />
+      </div>
+    )}
+    
+    {/* Mobile search bar */}
+    <div className="w-full px-4 sm:hidden mt-4">
+      <div className="flex-1 max-w-xl mx-auto">
+        <form onSubmit={handleSearchSubmit}>
+          <div className="relative shadow-lg">
+            <input
+              type="text"
+              placeholder="Search for Product"
+              value={localSearchInput}
+              onChange={handleSearchChange}
+              onKeyPress={handleSearchKeyPress}
+              className="italic w-full py-2 px-4 rounded-[10px] text-[#3E206D] focus:outline-none bg-gray-200"
+            />
+            {isSearchActive && searchTerm ? (
+              <button 
+                type="button"
+                onClick={handleResetSearch}
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-[#3E206D] transition-colors"
+              >
+                <X size={16} color='#3E206D' />
+              </button>
+            ) : (
+              <button 
+                type="submit"
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-[#3E206D]"
+              >
+                <FontAwesomeIcon icon={faMagnifyingGlass} color='#3E206D'/>
+              </button>
+            )}
+          </div>
+        </form>
+      </div>
+    </div>
+    
+    {/* Search indicator on mobile */}
+    {isSearchActive && (
+      <div className="w-full px-4 sm:hidden mt-2">
+        <div className="text-center">
+          <p className="text-sm text-gray-600">
+            Searching for: "{searchTerm}"
+          </p>
         </div>
-      )}
-      
-      {/* Mobile search bar */}
-      <div className="w-full px-4 sm:hidden mt-4">
-        <div className="flex-1 max-w-xl mx-auto">
-          <form onSubmit={handleSearchSubmit}>
-            <div className="relative shadow-lg">
-              <input
-                type="text"
-                placeholder="Search for Product"
-                value={localSearchInput}
-                onChange={handleSearchChange}
-                onKeyPress={handleSearchKeyPress}
-                className="italic w-full py-2 px-4 rounded-[10px] text-[#3E206D] focus:outline-none bg-gray-200"
+      </div>
+    )}
+    
+    {/* Conditional rendering based on search results */}
+    {isSearchActive && !hasPackageResults && !hasCategoryResults ? (
+      // Show no results animation when both have no data
+      <NoSearchResults />
+    ) : (
+      <>
+        {/* Package slider section - show only if has results or not searching */}
+        {(!isSearchActive || hasPackageResults) && (
+          loading ? (
+            <div className="flex justify-center py-8">Loading packages...</div>
+          ) : error ? (
+            <div className="text-red-500 text-center py-4">{error}</div>
+          ) : (
+            <div className="w-full px-4 sm:px-6 lg:px-8">
+              <PackageSlider
+                productData={productData}
+                onShowConfirmModal={handleShowConfirmModal}
+                onShowLoginPopup={handleShowLoginPopup}
               />
-              {isSearchActive && searchTerm ? (
-                <button 
-                  type="button"
-                  onClick={handleResetSearch}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-[#3E206D] transition-colors"
-                >
-                  <X size={16} color='#3E206D' />
-                </button>
-              ) : (
-                <button 
-                  type="submit"
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-[#3E206D]"
-                >
-                  <FontAwesomeIcon icon={faMagnifyingGlass} color='#3E206D'/>
-                </button>
-              )}
             </div>
-          </form>
-        </div>
-      </div>
-      
-      {/* Search indicator on mobile */}
-      {isSearchActive && (
-        <div className="w-full px-4 sm:hidden mt-2">
-          <div className="text-center">
-            <p className="text-sm text-gray-600">
-              Searching for: "{searchTerm}"
-            </p>
+          )
+        )}
+
+        {/* Category filter section - show only if has results or not searching */}
+        {(!isSearchActive || hasCategoryResults) && (
+          <div className="w-full mb-8 px-4 sm:px-6 lg:px-8">
+            <CategoryFilter />
+          </div>
+        )}
+      </>
+    )}
+
+    {/* Package add to cart confirmation modal */}
+    {showConfirmModal && selectedPackageForCart && (
+      <div className="fixed inset-0 bg-black/50 bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full mx-4">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">
+            Confirm Add to Cart
+          </h3>
+          <p className="text-gray-600 mb-6">
+            Are you sure you want to add "{selectedPackageForCart.packageItem.displayName}" to your cart?
+          </p>
+          <div className="flex justify-end space-x-3">
+            <button
+              onClick={handleCloseConfirmModal}
+              className="px-6 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                if (selectedPackageForCart.handlePackageAddToCart) {
+                  selectedPackageForCart.handlePackageAddToCart();
+                }
+                handleCloseConfirmModal();
+              }}
+              className="px-6 py-2 bg-[#3E206D] text-white rounded hover:bg-[#2D1850] transition-colors cursor-pointer"
+            >
+              Add to Cart
+            </button>
           </div>
         </div>
-      )}
-      
-      {/* Package slider section */}
-      {loading ? (
-        <div className="flex justify-center py-8">Loading packages...</div>
-      ) : error ? (
-        <div className="text-red-500 text-center py-4">{error}</div>
-      ) : (
-        <div className="w-full px-4 sm:px-6 lg:px-8">
-          <PackageSlider
-            productData={productData}
-            onShowConfirmModal={handleShowConfirmModal}
-            onShowLoginPopup={handleShowLoginPopup}
-          />
-        </div>
-      )}
-
-      {/* Category filter section */}
-      <div className="w-full mb-8 px-4 sm:px-6 lg:px-8">
-        <CategoryFilter />
       </div>
+    )}
 
-      {/* Package add to cart confirmation modal */}
-      {showConfirmModal && selectedPackageForCart && (
-        <div className="fixed inset-0 bg-black/50 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">
-              Confirm Add to Cart
-            </h3>
-            <p className="text-gray-600 mb-6">
-              Are you sure you want to add "{selectedPackageForCart.packageItem.displayName}" to your cart?
-            </p>
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={handleCloseConfirmModal}
-                className="px-6 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  if (selectedPackageForCart.handlePackageAddToCart) {
-                    selectedPackageForCart.handlePackageAddToCart();
-                  }
-                  handleCloseConfirmModal();
-                }}
-                className="px-6 py-2 bg-[#3E206D] text-white rounded hover:bg-[#2D1850] transition-colors cursor-pointer"
-              >
-                Add to Cart
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Login popup modal */}
-      <LoginPopup />
-    </main>
-  );
+    {/* Login popup modal */}
+    <LoginPopup />
+  </main>
+);
 }
