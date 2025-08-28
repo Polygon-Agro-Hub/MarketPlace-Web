@@ -7,6 +7,15 @@
   --foreground: #171717; */
 }
 
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+};
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -49,4 +58,6 @@ body {
   .scrollbar::-webkit-scrollbar-thumb:hover {
     background: #ffffff; /* Slightly brighter on hover */
   }
+  
 }
+

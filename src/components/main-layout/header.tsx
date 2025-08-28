@@ -13,6 +13,7 @@ import { setSearchTerm, clearSearch } from '../../store/slices/searchSlice';
 import { X } from 'lucide-react';
 
 
+
 interface HeaderProps {
   onSearch?: (searchTerm: string) => void;
   searchValue?: string;

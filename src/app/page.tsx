@@ -105,31 +105,50 @@ export default function Home() {
     console.log('Search reset');
   };
 
-  // Fetch packages function
- async function fetchAllPackages(search?: string) {
-  try {
-    setLoading(true);
-    console.log('Fetching packages with search term:', search);
-    const response = await getAllProduct(search) as any;
-    if (response && response.product) {
-      setProductData(response.product);
-      // Update package results state
-      dispatch(setPackageResults(response.product.length > 0));
-    } else {
-      setError('No products found');
-      // Update package results state for no products
-      dispatch(setPackageResults(false));
-    }
-  } catch (error) {
-    console.error('Error fetching packages:', error);
-    setError('Failed to fetch packages');
-    // Update package results state for error
-    dispatch(setPackageResults(false));
-  } finally {
-    setLoading(false);
-  }
-}
+  // Update the useEffect for initial data fetch
+  useEffect(() => {
+    const initializeData = async () => {
+      try {
+        await fetchAllPackages();
+        // Add a small delay to show the skeleton for better UX
+        setTimeout(() => {
+          setLoading(false);
+        }, 2000);
+      } catch (error) {
+        setLoading(false);
+      }
+    };
 
+    initializeData();
+    console.log("Cart:", cart);
+  }, []);
+
+  // Update the fetchAllPackages function
+  async function fetchAllPackages(search?: string) {
+    try {
+      // Only show loading on subsequent searches, not initial load
+      if (search !== undefined) {
+        setLoading(true);
+      }
+      console.log('Fetching packages with search term:', search);
+      const response = await getAllProduct(search) as any;
+      if (response && response.product) {
+        setProductData(response.product);
+        dispatch(setPackageResults(response.product.length > 0));
+      } else {
+        setError('No products found');
+        dispatch(setPackageResults(false));
+      }
+    } catch (error) {
+      console.error('Error fetching packages:', error);
+      setError('Failed to fetch packages');
+      dispatch(setPackageResults(false));
+    } finally {
+      if (search !== undefined) {
+        setLoading(false);
+      }
+    }
+  }
   // Modal handlers
   const handleShowConfirmModal = (packageData: any) => {
     setSelectedPackageForCart(packageData);
@@ -154,72 +173,95 @@ export default function Home() {
     setShowLoginPopup(false);
     router.push('/signup');
   };
-  
-const NoSearchResults = () => {
-  const animationContainer = useRef<HTMLDivElement>(null);
-  const isLoadedRef = useRef(false);
 
-  useEffect(() => {
-    let animationInstance: any = null;
+  const NoSearchResults = () => {
+    const animationContainer = useRef<HTMLDivElement>(null);
+    const isLoadedRef = useRef(false);
 
-    const loadAnimation = async () => {
-      try {
-        // Prevent double loading
-        if (isLoadedRef.current || !animationContainer.current) return;
-        
-        isLoadedRef.current = true;
-        
-        const lottie = await import('lottie-web');
-        
-        animationInstance = lottie.default.loadAnimation({
-          container: animationContainer.current,
-          renderer: 'svg',
-          loop: true,
-          autoplay: true,
-          animationData: animationData,
-        });
-      } catch (error) {
-        console.error('Error loading Lottie animation:', error);
+    useEffect(() => {
+      let animationInstance: any = null;
+
+      const loadAnimation = async () => {
+        try {
+          // Prevent double loading
+          if (isLoadedRef.current || !animationContainer.current) return;
+
+          // Clear any existing content first
+          animationContainer.current.innerHTML = '';
+          isLoadedRef.current = true;
+
+          const lottie = await import('lottie-web');
+
+          animationInstance = lottie.default.loadAnimation({
+            container: animationContainer.current,
+            renderer: 'svg',
+            loop: true,
+            autoplay: true,
+            animationData: animationData,
+          });
+
+          // Additional cleanup of duplicate elements after animation loads
+          setTimeout(() => {
+            if (animationContainer.current) {
+              const svgElements = animationContainer.current.querySelectorAll('svg');
+              if (svgElements.length > 1) {
+                // Keep only the first SVG element
+                for (let i = 1; i < svgElements.length; i++) {
+                  svgElements[i].remove();
+                }
+              }
+            }
+          }, 100);
+        } catch (error) {
+          console.error('Error loading Lottie animation:', error);
+          isLoadedRef.current = false;
+        }
+      };
+
+      loadAnimation();
+
+      return () => {
+        if (animationInstance) {
+          animationInstance.destroy();
+        }
+        if (animationContainer.current) {
+          animationContainer.current.innerHTML = '';
+        }
         isLoadedRef.current = false;
-      }
-    };
+      };
+    }, []);
 
-    loadAnimation();
-
-    return () => {
-      if (animationInstance) {
-        animationInstance.destroy();
-      }
-      isLoadedRef.current = false;
-    };
-  }, []);
-  return (
-    <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex flex-col items-center justify-center text-center">
-        {/* Lottie Animation Container */}
-        <div className="w-32 h-32 mb-4 flex items-center justify-center">
-          <div 
-            ref={animationContainer}
-            className="w-full h-full"
-          />
+    return (
+      <div className="w-full flex items-center justify-center px-4 sm:px-6 lg:px-8 py-8 mt-8">
+        <div className="flex flex-col items-center justify-center text-center max-w-md w-full">
+          {/* Lottie Animation Container - isolated and controlled */}
+          <div className="w-48 h-48 mb-4 flex items-center justify-center">
+            <div
+              ref={animationContainer}
+              className="w-full h-full"
+              style={{
+                maxWidth: '200px',
+                maxHeight: '200px',
+                overflow: 'hidden'
+              }}
+            />
+          </div>
+          <h3 className="text-xl font-semibold text-gray-600 mb-2">
+            No Results Found
+          </h3>
+          <p className="text-gray-500 mb-4">
+            Sorry, we couldn't find any products matching "{searchTerm}"
+          </p>
+          <button
+            onClick={handleResetSearch}
+            className="px-6 py-2 bg-[#3E206D] text-white rounded-lg hover:bg-[#2D1850] transition-colors"
+          >
+            Clear Search
+          </button>
         </div>
-        <h3 className="text-xl font-semibold text-gray-600 mb-2">
-          No Results Found
-        </h3>
-        <p className="text-gray-500 mb-4">
-          Sorry, we couldn't find any products matching "{searchTerm}"
-        </p>
-        <button
-          onClick={handleResetSearch}
-          className="px-6 py-2 bg-[#3E206D] text-white rounded-lg hover:bg-[#2D1850] transition-colors"
-        >
-          Clear Search
-        </button>
       </div>
-    </div>
-  );
-};
-
+    );
+  };
   // Login popup component
   const LoginPopup = () => {
     if (!showLoginPopup) return null;
@@ -269,127 +311,270 @@ const NoSearchResults = () => {
     );
   };
 
-return (
-  <main className="flex min-h-screen flex-col items-center justify-between">
-    {/* Top banner - hide when search is active */}
-    {!isSearchActive && (
-      <div className="w-full">
-        <TopBanner />
-      </div>
-    )}
-    
-    {/* Mobile search bar */}
-    <div className="w-full px-4 sm:hidden mt-4">
-      <div className="flex-1 max-w-xl mx-auto">
-        <form onSubmit={handleSearchSubmit}>
-          <div className="relative shadow-lg">
-            <input
-              type="text"
-              placeholder="Search for Product"
-              value={localSearchInput}
-              onChange={handleSearchChange}
-              onKeyPress={handleSearchKeyPress}
-              className="italic w-full py-2 px-4 rounded-[10px] text-[#3E206D] focus:outline-none bg-gray-200"
-            />
-            {isSearchActive && searchTerm ? (
-              <button 
-                type="button"
-                onClick={handleResetSearch}
-                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-[#3E206D] transition-colors"
-              >
-                <X size={16} color='#3E206D' />
-              </button>
+  const HomeSkeleton = ({ isSearchActive = false }) => {
+    return (
+      <main className="flex min-h-screen flex-col bg-gray-50 mb-[10%]">
+        {/* Top banner skeleton - hide when search is active */}
+        {!isSearchActive && (
+          <div className="w-full h-[500px] bg-gray-200 animate-pulse relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"></div>
+            <div className="flex flex-col items-center justify-center h-full px-8 text-center">
+              {/* Main content skeleton */}
+              <div className="space-y-6 z-10">
+                <div className="h-16 bg-gray-300 rounded-lg w-80 animate-pulse"></div>
+                <div className="h-8 bg-gray-200 rounded-lg w-64 animate-pulse"></div>
+                {/* Timer skeleton */}
+                <div className="flex space-x-6 items-center justify-center mt-12">
+                  <div className="flex flex-col items-center">
+                    <div className="h-12 w-12 bg-gray-300 rounded animate-pulse"></div>
+                    <div className="h-4 w-10 bg-gray-200 rounded mt-2 animate-pulse"></div>
+                  </div>
+                  <div className="h-8 w-3 bg-gray-300 animate-pulse"></div>
+                  <div className="flex flex-col items-center">
+                    <div className="h-12 w-12 bg-gray-300 rounded animate-pulse"></div>
+                    <div className="h-4 w-12 bg-gray-200 rounded mt-2 animate-pulse"></div>
+                  </div>
+                  <div className="h-8 w-3 bg-gray-300 animate-pulse"></div>
+                  <div className="flex flex-col items-center">
+                    <div className="h-12 w-12 bg-gray-300 rounded animate-pulse"></div>
+                    <div className="h-4 w-14 bg-gray-200 rounded mt-2 animate-pulse"></div>
+                  </div>
+                  <div className="h-8 w-3 bg-gray-300 animate-pulse"></div>
+                  <div className="flex flex-col items-center">
+                    <div className="h-12 w-12 bg-gray-300 rounded animate-pulse"></div>
+                    <div className="h-4 w-14 bg-gray-200 rounded mt-2 animate-pulse"></div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Carousel dots skeleton */}
+              <div className="flex space-x-3 mt-12">
+                <div className="w-3 h-3 bg-gray-400 rounded-full animate-pulse"></div>
+                <div className="w-3 h-3 bg-gray-300 rounded-full animate-pulse"></div>
+                <div className="w-3 h-3 bg-gray-300 rounded-full animate-pulse"></div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Mobile search bar skeleton */}
+        <div className={`w-full px-4 sm:hidden ${isSearchActive ? 'mt-4' : 'mt-4'}`}>
+          <div className="flex-1 max-w-xl mx-auto">
+            <div className="relative shadow-lg">
+              <div className="h-10 bg-gray-200 rounded-[10px] animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+
+        {/* Content container with controlled spacing */}
+        <div className={`flex-1 ${isSearchActive ? 'mt-6' : 'mt-6'} px-4 sm:px-6 lg:px-8`}>
+          <div className="space-y-8">
+            {/* Package slider skeleton section */}
+            <div className="w-full">
+              {/* Section label skeleton */}
+              <div className="flex justify-center mb-8">
+                <div className="h-10 w-24 bg-gray-200 rounded-full animate-pulse"></div>
+              </div>
+
+              {/* Package cards horizontal slider skeleton */}
+              <div className="relative max-w-6xl mx-auto">
+                {/* Navigation arrows skeleton */}
+                <div className="absolute left-0 top-1/2 transform -translate-y-1/2 z-10 -ml-6">
+                  <div className="w-12 h-12 bg-gray-300 rounded-full animate-pulse shadow-md"></div>
+                </div>
+                <div className="absolute right-0 top-1/2 transform -translate-y-1/2 z-10 -mr-6">
+                  <div className="w-12 h-12 bg-gray-300 rounded-full animate-pulse shadow-md"></div>
+                </div>
+
+                {/* Package cards */}
+                <div className="flex justify-center space-x-8 overflow-hidden px-16">
+                  {[...Array(3)].map((_, index) => (
+                    <div key={index} className="bg-white rounded-3xl border-2 border-gray-200 overflow-hidden animate-pulse flex-shrink-0 w-80 h-96 shadow-sm">
+                      <div className="p-8 text-center h-full flex flex-col justify-center">
+                        {/* Package icon skeleton */}
+                        <div className="w-32 h-32 bg-gray-200 rounded-2xl mx-auto mb-8 animate-pulse relative">
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer rounded-2xl"></div>
+                        </div>
+                        {/* Package title skeleton */}
+                        <div className="h-8 bg-gray-300 rounded-lg w-3/4 mx-auto mb-4 animate-pulse"></div>
+                        {/* Package price skeleton */}
+                        <div className="h-6 bg-gray-200 rounded-lg w-1/2 mx-auto animate-pulse"></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Category filter skeleton section */}
+            <div className="w-full">
+              {/* Section label skeleton */}
+              <div className="flex justify-center mb-6">
+                <div className="h-8 w-16 bg-gray-200 rounded-full animate-pulse"></div>
+              </div>
+
+              {/* Category cards grid skeleton */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 mb-8">
+                {[...Array(4)].map((_, index) => (
+                  <div key={index} className="bg-white rounded-2xl shadow-md overflow-hidden animate-pulse">
+                    <div className="aspect-square bg-gray-200 relative">
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer"></div>
+                      {/* Category icon placeholder */}
+                      <div className="absolute bottom-4 right-4 w-8 h-8 bg-gray-300 rounded-full"></div>
+                    </div>
+                    <div className="p-4 text-center">
+                      <div className="h-5 bg-gray-300 rounded w-3/4 mx-auto mb-2"></div>
+                      <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Individual product cards skeleton */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+                {[...Array(4)].map((_, index) => (
+                  <div key={index} className="bg-white rounded-2xl shadow-md overflow-hidden animate-pulse relative">
+                    {/* Discount badge skeleton */}
+                    {index % 2 === 0 && (
+                      <div className="absolute top-2 left-2 z-10">
+                        <div className="w-8 h-12 bg-gray-300 rounded-r-full animate-pulse"></div>
+                      </div>
+                    )}
+                    <div className="aspect-square bg-gray-200 relative">
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer"></div>
+                    </div>
+                    <div className="p-4 text-center">
+                      <div className="h-5 bg-gray-300 rounded w-3/4 mx-auto mb-2"></div>
+                      <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto mb-3"></div>
+                      <div className="h-8 bg-gray-300 rounded-full w-full animate-pulse"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    );
+  };
+
+
+  return (
+    <>
+      {loading ? (
+        <HomeSkeleton isSearchActive={isSearchActive} />
+      ) : (
+        <main className="flex min-h-screen flex-col">
+          {/* Top banner - hide when search is active */}
+          {!isSearchActive && (
+            <div className="w-full">
+              <TopBanner />
+            </div>
+          )}
+
+          {/* Mobile search bar */}
+          <div className={`w-full px-4 sm:hidden ${isSearchActive ? 'mt-4' : 'mt-4'}`}>
+            <div className="flex-1 max-w-xl mx-auto">
+              <form onSubmit={handleSearchSubmit}>
+                <div className="relative shadow-lg">
+                  <input
+                    type="text"
+                    placeholder="Search for Product"
+                    value={localSearchInput}
+                    onChange={handleSearchChange}
+                    onKeyPress={handleSearchKeyPress}
+                    className="italic w-full py-2 px-4 rounded-[10px] text-[#3E206D] focus:outline-none bg-gray-200"
+                  />
+                  {isSearchActive && searchTerm ? (
+                    <button
+                      type="button"
+                      onClick={handleResetSearch}
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-[#3E206D] transition-colors"
+                    >
+                      <X size={16} color='#3E206D' />
+                    </button>
+                  ) : (
+                    <button
+                      type="submit"
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-[#3E206D]"
+                    >
+                      <FontAwesomeIcon icon={faMagnifyingGlass} color='#3E206D' />
+                    </button>
+                  )}
+                </div>
+              </form>
+            </div>
+          </div>
+
+          {/* Content container with controlled spacing */}
+          <div className={`flex-1 ${isSearchActive ? 'mt-6' : 'mt-0'}`}>
+            {/* Conditional rendering based on search results */}
+            {isSearchActive && !hasPackageResults && !hasCategoryResults ? (
+              <NoSearchResults />
             ) : (
-              <button 
-                type="submit"
-                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-[#3E206D]"
-              >
-                <FontAwesomeIcon icon={faMagnifyingGlass} color='#3E206D'/>
-              </button>
+              <div className="space-y-6">
+                {/* Package slider section - show only if has results or not searching */}
+                {(!isSearchActive || hasPackageResults) && (
+                  error ? (
+                    <div className="text-red-500 text-center py-4">{error}</div>
+                  ) : (
+                    <div className="w-full px-4 sm:px-3 lg:px-8">
+                      <PackageSlider
+                        productData={productData}
+                        onShowConfirmModal={handleShowConfirmModal}
+                        onShowLoginPopup={handleShowLoginPopup}
+                      />
+                    </div>
+                  )
+                )}
+
+                {/* Category filter section - show only if has results or not searching */}
+                {(!isSearchActive || hasCategoryResults) && (
+                  <div className="w-full px-4 sm:px-6 lg:px-8">
+                    <CategoryFilter />
+                  </div>
+                )}
+              </div>
             )}
           </div>
-        </form>
-      </div>
-    </div>
-    
-    {/* Search indicator on mobile */}
-    {isSearchActive && (
-      <div className="w-full px-4 sm:hidden mt-2">
-        <div className="text-center">
-          <p className="text-sm text-gray-600">
-            Searching for: "{searchTerm}"
-          </p>
-        </div>
-      </div>
-    )}
-    
-    {/* Conditional rendering based on search results */}
-    {isSearchActive && !hasPackageResults && !hasCategoryResults ? (
-      // Show no results animation when both have no data
-      <NoSearchResults />
-    ) : (
-      <>
-        {/* Package slider section - show only if has results or not searching */}
-        {(!isSearchActive || hasPackageResults) && (
-          loading ? (
-            <div className="flex justify-center py-8">Loading packages...</div>
-          ) : error ? (
-            <div className="text-red-500 text-center py-4">{error}</div>
-          ) : (
-            <div className="w-full px-4 sm:px-6 lg:px-8">
-              <PackageSlider
-                productData={productData}
-                onShowConfirmModal={handleShowConfirmModal}
-                onShowLoginPopup={handleShowLoginPopup}
-              />
+
+          {/* Package add to cart confirmation modal */}
+          {showConfirmModal && selectedPackageForCart && (
+            <div className="fixed inset-0 bg-black/50 bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full mx-4">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                  Confirm Add to Cart
+                </h3>
+                <p className="text-gray-600 mb-6">
+                  Are you sure you want to add "{selectedPackageForCart.packageItem.displayName}" to your cart?
+                </p>
+                <div className="flex justify-end space-x-3">
+                  <button
+                    onClick={handleCloseConfirmModal}
+                    className="px-6 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (selectedPackageForCart.handlePackageAddToCart) {
+                        selectedPackageForCart.handlePackageAddToCart();
+                      }
+                      handleCloseConfirmModal();
+                    }}
+                    className="px-6 py-2 bg-[#3E206D] text-white rounded hover:bg-[#2D1850] transition-colors cursor-pointer"
+                  >
+                    Add to Cart
+                  </button>
+                </div>
+              </div>
             </div>
-          )
-        )}
+          )}
 
-        {/* Category filter section - show only if has results or not searching */}
-        {(!isSearchActive || hasCategoryResults) && (
-          <div className="w-full mb-8 px-4 sm:px-6 lg:px-8">
-            <CategoryFilter />
-          </div>
-        )}
-      </>
-    )}
-
-    {/* Package add to cart confirmation modal */}
-    {showConfirmModal && selectedPackageForCart && (
-      <div className="fixed inset-0 bg-black/50 bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full mx-4">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">
-            Confirm Add to Cart
-          </h3>
-          <p className="text-gray-600 mb-6">
-            Are you sure you want to add "{selectedPackageForCart.packageItem.displayName}" to your cart?
-          </p>
-          <div className="flex justify-end space-x-3">
-            <button
-              onClick={handleCloseConfirmModal}
-              className="px-6 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={() => {
-                if (selectedPackageForCart.handlePackageAddToCart) {
-                  selectedPackageForCart.handlePackageAddToCart();
-                }
-                handleCloseConfirmModal();
-              }}
-              className="px-6 py-2 bg-[#3E206D] text-white rounded hover:bg-[#2D1850] transition-colors cursor-pointer"
-            >
-              Add to Cart
-            </button>
-          </div>
-        </div>
-      </div>
-    )}
-
-    {/* Login popup modal */}
-    <LoginPopup />
-  </main>
-);
+          {/* Login popup modal */}
+          <LoginPopup />
+        </main>
+      )}
+    </>
+  );
 }

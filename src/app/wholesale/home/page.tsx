@@ -137,71 +137,94 @@ export default function Home() {
     }
   }
 
-  const NoSearchResults = () => {
-    const animationContainer = useRef<HTMLDivElement>(null);
-    const isLoadedRef = useRef(false);
+ const NoSearchResults = () => {
+  const animationContainer = useRef<HTMLDivElement>(null);
+  const isLoadedRef = useRef(false);
 
-    useEffect(() => {
-      let animationInstance: any = null;
+  useEffect(() => {
+    let animationInstance: any = null;
 
-      const loadAnimation = async () => {
-        try {
-          // Prevent double loading
-          if (isLoadedRef.current || !animationContainer.current) return;
-          
-          isLoadedRef.current = true;
-          
-          const lottie = await import('lottie-web');
-          
-          animationInstance = lottie.default.loadAnimation({
-            container: animationContainer.current,
-            renderer: 'svg',
-            loop: true,
-            autoplay: true,
-            animationData: animationData,
-          });
-        } catch (error) {
-          console.error('Error loading Lottie animation:', error);
-          isLoadedRef.current = false;
-        }
-      };
+    const loadAnimation = async () => {
+      try {
+        // Prevent double loading
+        if (isLoadedRef.current || !animationContainer.current) return;
 
-      loadAnimation();
+        // Clear any existing content first
+        animationContainer.current.innerHTML = '';
+        isLoadedRef.current = true;
 
-      return () => {
-        if (animationInstance) {
-          animationInstance.destroy();
-        }
+        const lottie = await import('lottie-web');
+
+        animationInstance = lottie.default.loadAnimation({
+          container: animationContainer.current,
+          renderer: 'svg',
+          loop: true,
+          autoplay: true,
+          animationData: animationData,
+        });
+
+        // Additional cleanup of duplicate elements after animation loads
+        setTimeout(() => {
+          if (animationContainer.current) {
+            const svgElements = animationContainer.current.querySelectorAll('svg');
+            if (svgElements.length > 1) {
+              // Keep only the first SVG element
+              for (let i = 1; i < svgElements.length; i++) {
+                svgElements[i].remove();
+              }
+            }
+          }
+        }, 100);
+      } catch (error) {
+        console.error('Error loading Lottie animation:', error);
         isLoadedRef.current = false;
-      };
-    }, []);
+      }
+    };
 
-    return (
-      <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col items-center justify-center text-center">
-          {/* Lottie Animation Container */}
-          <div className="w-32 h-32 mb-4 flex items-center justify-center">
-            <div 
-              ref={animationContainer}
-              className="w-full h-full"
-            />
-          </div>
-          <h3 className="text-xl font-semibold text-gray-600 mb-2">
-            No Results Found
-          </h3>
-          <p className="text-gray-500 mb-4">
-            Sorry, we couldn't find any wholesale products matching "{searchTerm}"
-          </p>
-          <button
-            onClick={handleResetSearch}
-            className="px-6 py-2 bg-[#3E206D] text-white rounded-lg hover:bg-[#2D1850] transition-colors"
-          >
-            Clear Search
-          </button>
+    loadAnimation();
+
+    return () => {
+      if (animationInstance) {
+        animationInstance.destroy();
+      }
+      if (animationContainer.current) {
+        animationContainer.current.innerHTML = '';
+      }
+      isLoadedRef.current = false;
+    };
+  }, []);
+
+  return (
+    <div className="min-h-screen w-full flex items-center justify-center px-4 sm:px-6 lg:px-8 py-8">
+      <div className="flex flex-col items-center justify-center text-center max-w-md w-full">
+        {/* Lottie Animation Container - isolated and controlled */}
+        <div className="w-48 h-48 mb-4 flex items-center justify-center">
+          <div
+            ref={animationContainer}
+            className="w-full h-full"
+            style={{ 
+              maxWidth: '200px',
+              maxHeight: '200px',
+              overflow: 'hidden'
+            }}
+          />
         </div>
+        <h3 className="text-xl font-semibold text-gray-600 mb-2">
+          No Results Found
+        </h3>
+        <p className="text-gray-500 mb-4">
+          Sorry, we couldn't find any products matching "{searchTerm}"
+        </p>
+        <button
+          onClick={handleResetSearch}
+          className="px-6 py-2 bg-[#3E206D] text-white rounded-lg hover:bg-[#2D1850] transition-colors"
+        >
+          Clear Search
+        </button>
       </div>
-    );
-  };
+    </div>
+  );
+};
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-between">

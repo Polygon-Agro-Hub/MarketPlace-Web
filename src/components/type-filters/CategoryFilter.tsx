@@ -116,34 +116,33 @@ export default function CategoryFilter({}: CategoryFilterProps) {
         fetchCategoryCounts();
     }, []);
 
-    // Updated useEffect that properly listens to Redux search term changes
-        useEffect(() => {
-            const fetchProducts = async () => {
-                setLoading(true);
-                setError(null);
+useEffect(() => {
+    const fetchProducts = async () => {
+        setLoading(true);
+        setError(null);
 
-                try {
-                    console.log('Fetching products with:', { selectedCategory, searchTerm });
-                    
-                    const response = await getProductsByCategory(selectedCategory, searchTerm || undefined);
-                    setProducts(response.products);
-                    
-                    // Update category results state based on products length
-                    dispatch(setCategoryResults(response.products.length > 0));
-                } catch (err) {
-                    console.error('Error fetching products:', err);
-                    setError('Failed to load products. Please try again.');
-                    setProducts([]);
-                    
-                    // Update category results state for error
-                    dispatch(setCategoryResults(false));
-                } finally {
-                    setLoading(false);
-                }
-            };
+        try {
+            console.log('Fetching products with:', { selectedCategory, searchTerm });
+            
+            const response = await getProductsByCategory(selectedCategory, searchTerm || undefined);
+            setProducts(response.products);
+            
+            // Always update category results state, regardless of results
+            dispatch(setCategoryResults(response.products.length > 0));
+        } catch (err) {
+            console.error('Error fetching products:', err);
+            setError('Failed to load products. Please try again.');
+            setProducts([]);
+            
+            // Set to false on error
+            dispatch(setCategoryResults(false));
+        } finally {
+            setLoading(false);
+        }
+    };
 
-            fetchProducts();
-        }, [selectedCategory, searchTerm, dispatch]);
+    fetchProducts();
+}, [selectedCategory, searchTerm, dispatch]);
 
     function handleCategorySelect(id: string): void {
         setSelectedCategory(id);
@@ -152,41 +151,48 @@ export default function CategoryFilter({}: CategoryFilterProps) {
     return (
         <div className='mx-auto w-full'>
             <div className='flex flex-col'>
-                <div className="flex items-center justify-center gap-2 w-full my-4 md:my-8 px-2 md:px-20">
-                    <div className="w-1/2 border-t-2 border-[#D7D7D7]"></div>
-                    <span className="bg-[#FF8F6666] text-[#FF4421] rounded-lg text-xs md:text-sm px-3 md:px-6 py-1">
-                        Types
-                    </span>
-                    <div className="w-1/2 border-t-2 border-[#D7D7D7]"></div>
-                </div>
+                {/* Only show the Types section and category tiles when not searching */}
+              
+                        <div className="flex items-center justify-center gap-2 w-full my-4 md:my-8 px-2 md:px-20">
+                            <div className="w-1/2 border-t-2 border-[#D7D7D7]"></div>
+                            <span className="bg-[#FF8F6666] text-[#FF4421] rounded-lg text-xs md:text-sm px-3 md:px-6 py-1">
+                                Types
+                            </span>
+                            <div className="w-1/2 border-t-2 border-[#D7D7D7]"></div>
+                        </div>
+                        
+            {!isSearchActive && (
+                    <>
+
+                        {countsLoading ? (
+                            <div className="flex justify-center items-center py-4">
+                                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#3E206D]"></div>
+                            </div>
+                        ) : (
+                            <div className='grid grid-cols-4'>
+                                {categories.map((category) => (
+                                    <div key={category.id} className="aspect-[4/5] md:aspect-square">
+                                        <CategoryTile
+                                            id={category.id}
+                                            name={category.name}
+                                            imageUrl={category.imageUrl}
+                                            itemCount={category.itemCount}
+                                            isSelected={selectedCategory === category.id}
+                                            onSelect={handleCategorySelect}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </>
+                )}
 
                 {/* Show search indicator if search is active */}
                 {isSearchActive && (
                     <div className="text-center mb-4">
                         <p className="text-sm text-gray-600">
-                            Searching for "{searchTerm}" in {selectedCategory}
+                            Searching for "{searchTerm}" 
                         </p>
-                    </div>
-                )}
-
-                {countsLoading ? (
-                    <div className="flex justify-center items-center py-4">
-                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#3E206D]"></div>
-                    </div>
-                ) : (
-                    <div className='grid grid-cols-4'>
-                        {categories.map((category) => (
-                            <div key={category.id} className="aspect-[4/5] md:aspect-square">
-                                <CategoryTile
-                                    id={category.id}
-                                    name={category.name}
-                                    imageUrl={category.imageUrl}
-                                    itemCount={category.itemCount}
-                                    isSelected={selectedCategory === category.id}
-                                    onSelect={handleCategorySelect}
-                                />
-                            </div>
-                        ))}
                     </div>
                 )}
             </div>
