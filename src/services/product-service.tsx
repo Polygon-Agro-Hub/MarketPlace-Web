@@ -1,33 +1,40 @@
 import axios from '@/lib/axios';
 
-export const getAllProduct = async (): Promise<Package> => {
+export const getAllProduct = async (search?: string): Promise<any> => {
   try {
+    const params: { search?: string } = {};
+    if (search && search.trim()) {
+      params.search = search.trim();
+    }
+
+    console.log('Service: Making API call with params:', params);
+
     const response = await axios.get('/product/all-product', {
+      params,
       headers: {
         'Content-Type': 'application/json',
       },
     });
 
     if (response.status >= 200 && response.status < 300) {
+      console.log('Service: API response received:', response.data);
       return response.data;
     } else {
-      throw new Error(response.data?.message || 'Login failed');
+      throw new Error(response.data?.message || 'Failed to fetch products');
     }
   } catch (error: any) {
-
+    console.error('Service: Error in getAllProduct:', error);
+    
     if (error.response) {
-
       throw new Error(
         error.response.data?.message ||
         error.response.data?.error ||
-        `Login failed with status ${error.response.status}`
+        `Failed to fetch products with status ${error.response.status}`
       );
     } else if (error.request) {
-
       throw new Error('No response received from server. Please check your network connection.');
     } else {
-
-      throw new Error(error.message || 'An error occurred during login');
+      throw new Error(error.message || 'An error occurred while fetching products');
     }
   }
 };
@@ -96,34 +103,45 @@ export const packageAddToCart = async (formData: number, token: string | null): 
   }
 };
 
-export const getProductsByCategory = async (category: string): Promise<ProductResponse> => {
+export const getProductsByCategory = async (category: string, search?: string): Promise<any> => {
   try {
+    const params: { category: string; search?: string } = { category };
+    if (search && search.trim()) {
+      params.search = search.trim();
+    }
+
+    console.log('Service: Fetching products by category with params:', params);
+
     const response = await axios.get('/product/by-category', {
-      params: { category },
+      params,
       headers: {
         'Content-Type': 'application/json',
       },
     });
 
     if (response.status >= 200 && response.status < 300) {
+      console.log('Service: Category products response:', response.data);
       return response.data;
     } else {
-      throw new Error(response.data?.message || 'Failed to fetch products by category');
+      throw new Error(response.data?.message || 'Failed to fetch category products');
     }
   } catch (error: any) {
+    console.error('Service: Error in getProductsByCategory:', error);
+    
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
         error.response.data?.error ||
-        `Failed with status ${error.response.status}`
+        `Failed to fetch category products with status ${error.response.status}`
       );
     } else if (error.request) {
       throw new Error('No response received from server. Please check your network connection.');
     } else {
-      throw new Error(error.message || 'An error occurred while fetching products by category');
+      throw new Error(error.message || 'An error occurred while fetching category products');
     }
   }
 };
+
 
 export const getCategoryCounts = async (): Promise<any> => {
   try {
@@ -293,33 +311,42 @@ export interface ProductCartData {
 
 //whole sale api calls
 
-export const getProductsByCategoryWholesale = async (category: string): Promise<ProductResponse> => {
+export const getProductsByCategoryWholesale = async (category: string, search?: string): Promise<any> => {
   try {
+    const params: { category: string; search?: string } = { category };
+    if (search && search.trim()) {
+      params.search = search.trim();
+    }
+
+    console.log('Service: Fetching wholesale products by category with params:', params);
+
     const response = await axios.get('/product/wholesale', {
-      params: { category },
+      params,
       headers: {
         'Content-Type': 'application/json',
       },
     });
 
-    console.log('products',response.data)
+    console.log('Service: Wholesale products response:', response.data);
 
     if (response.status >= 200 && response.status < 300) {
       return response.data;
     } else {
-      throw new Error(response.data?.message || 'Failed to fetch products by category');
+      throw new Error(response.data?.message || 'Failed to fetch wholesale products by category');
     }
   } catch (error: any) {
+    console.error('Service: Error in getProductsByCategoryWholesale:', error);
+    
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
         error.response.data?.error ||
-        `Failed with status ${error.response.status}`
+        `Failed to fetch wholesale products with status ${error.response.status}`
       );
     } else if (error.request) {
       throw new Error('No response received from server. Please check your network connection.');
     } else {
-      throw new Error(error.message || 'An error occurred while fetching products by category');
+      throw new Error(error.message || 'An error occurred while fetching wholesale products by category');
     }
   }
 };
@@ -553,6 +580,35 @@ export const getMarketplaceSuggestionsProfile = async (token: string): Promise<a
       throw new Error('No response received from server');
     } else {
       throw new Error(error.message || 'An error occurred while fetching marketplace suggestions');
+    }
+  }
+};
+
+export const searchProductsAndPackages = async (searchTerm: string, token: string): Promise<any> => {
+  try {
+    const response = await axios.get(`/product/search?search=${encodeURIComponent(searchTerm)}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (response.status >= 200 && response.status < 300) {
+      return response.data;
+    } else {
+      throw new Error(response.data?.message || 'Failed to search products and packages');
+    }
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(
+        error.response.data?.message ||
+        error.response.data?.error ||
+        `Failed with status ${error.response.status}`
+      );
+    } else if (error.request) {
+      throw new Error('No response received from server');
+    } else {
+      throw new Error(error.message || 'An error occurred while searching products and packages');
     }
   }
 };

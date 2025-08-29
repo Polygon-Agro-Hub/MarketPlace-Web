@@ -7,6 +7,7 @@ import { combineReducers } from 'redux';
 import checkoutReducer from './slices/checkoutSlice';
 import cartReducer from './slices/cartSlice'
 import cartItemsReducer  from './slices/cartItemsSlice'
+import searchReducer from './slices/searchSlice';
 
 const persistConfig = {
   key: 'root',
@@ -19,6 +20,7 @@ const rootReducer = combineReducers({
   checkout: checkoutReducer,
   cart: cartReducer,
   cartItems: cartItemsReducer,
+  search: searchReducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

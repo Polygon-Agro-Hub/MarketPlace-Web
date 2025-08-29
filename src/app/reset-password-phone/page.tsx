@@ -6,6 +6,7 @@ import Image from 'next/image';
 import wrongImg from '../../../public/images/wrong.png'
 import resetImg from '../../../public/images/reset.png'
 import CorrectImg from '../../../public/images/correct.png'
+import { Eye, EyeOff } from 'lucide-react';
 
 
 const Page = () => {
@@ -16,6 +17,8 @@ const Page = () => {
   const [isError, setIsError] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Get phone number from localStorage on component mount
   useEffect(() => {
@@ -95,27 +98,41 @@ const Page = () => {
               Updating password for: {phoneNumber.substring(0, 3)}****{phoneNumber.slice(-3)}
             </p>
 
-            <div className="mb-4">
-              <input
-                type="password"
-                placeholder="Enter New Password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
-                required
-              />
-            </div>
+           <div className="mb-4 relative">
+  <input
+    type={showNewPassword ? "text" : "password"}
+    placeholder="Enter New Password"
+    value={newPassword}
+    onChange={(e) => setNewPassword(e.target.value)}
+    className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
+    required
+  />
+  <button
+    type="button"
+    onClick={() => setShowNewPassword(!showNewPassword)}
+    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+  >
+    {showNewPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+  </button>
+</div>
 
-            <div className="mb-4">
-              <input
-                type="password"
-                placeholder="Re-enter New Password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
-                required
-              />
-            </div>
+<div className="mb-4 relative">
+  <input
+    type={showConfirmPassword ? "text" : "password"}
+    placeholder="Re-enter New Password"
+    value={confirmPassword}
+    onChange={(e) => setConfirmPassword(e.target.value)}
+    className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
+    required
+  />
+  <button
+    type="button"
+    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+  >
+    {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+  </button>
+</div>
 
             <p className="text-left text-sm text-gray-500 mb-6">
               <span className="font-semibold text-red-500">*</span> Your password must contain a minimum of 6 characters with 1 Uppercase, Number & Special character.

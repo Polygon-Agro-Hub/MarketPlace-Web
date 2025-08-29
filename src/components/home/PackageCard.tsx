@@ -34,6 +34,7 @@ interface PackageProps {
   errorDetails?: string | null;
   onShowConfirmModal: (packageData: any) => void;
   onShowLoginPopup: () => void;
+  isSingleCardMobile?: boolean;
 }
 
 const PackageCard: React.FC<PackageProps> = ({
@@ -47,7 +48,8 @@ const PackageCard: React.FC<PackageProps> = ({
   isLoadingDetails,
   errorDetails,
   onShowConfirmModal,
-  onShowLoginPopup
+  onShowLoginPopup,
+  isSingleCardMobile = false
 }) => {
   const { isMobile } = useViewport();
   const dispatch = useDispatch(); // Add this
@@ -126,13 +128,33 @@ const PackageCard: React.FC<PackageProps> = ({
     return `${formattedInteger}.${decimalPart}`;
   };
 
+  // Dynamic height classes based on isSingleCardMobile prop
+  const getCardHeight = () => {
+    if (isSingleCardMobile) {
+      return 'h-[400px] md:h-[320px] lg:h-[360px]'; // Taller in mobile when single card
+    }
+    return 'h-[220px] md:h-[320px] lg:h-[360px]'; // Normal height
+  };
 
+  const getSelectedCardHeight = () => {
+    if (isSingleCardMobile) {
+      return 'h-[500px] md:h-[400px] lg:h-[450px]'; // Taller in mobile when single card
+    }
+    return 'h-[380px] md:h-[400px] lg:h-[450px]'; // Normal height
+  };
+
+  const getScrollAreaHeight = () => {
+    if (isSingleCardMobile) {
+      return 'h-[280px] md:h-[200px] lg:h-[250px]'; // Taller scroll area in mobile when single card
+    }
+    return 'h-[200px] md:h-[200px] lg:h-[250px]'; // Normal scroll area height
+  };
 
   return (
     <div className="w-full h-full">
       {!isSelected ? (
         <div
-          className="flex flex-col items-center justify-between w-full h-[220px] md:h-[320px] lg:h-[360px] border border-[#D7D7D7] rounded-lg shadow-lg py-4 px-2 hover:shadow-xl transition-shadow duration-300 cursor-pointer"
+          className={`flex flex-col items-center justify-between w-full ${getCardHeight()} border border-[#D7D7D7] rounded-lg shadow-lg py-4 px-2 hover:shadow-xl transition-shadow duration-300 cursor-pointer`}
           onClick={() => onPackageClick(packageItem.id)}
         >
           <div className="w-full flex-shrink-0">
@@ -153,11 +175,9 @@ const PackageCard: React.FC<PackageProps> = ({
         </div>
       ) : (
         <div
-          className="w-full h-[380px] md:h-[400px] lg:h-[450px] bg-[#3E206D] rounded-2xl shadow-lg relative md:max-w-[360px] lg:max-w-[400px] min-w-[280px] border border-gray-200 text-white flex flex-col"
+          className={`w-full ${getSelectedCardHeight()} bg-[#3E206D] rounded-2xl shadow-lg relative md:max-w-[360px] lg:max-w-[400px] min-w-[280px] border border-gray-200 text-white flex flex-col`}
           data-package-popup={packageItem.id}
         >
-
-
           <div className="p-4 h-full flex flex-col flex-grow mt-1">
             <div className="flex flex-row w-full justify-between mb-4">
               <div className="flex items-start justify-start mr-4">
@@ -180,7 +200,7 @@ const PackageCard: React.FC<PackageProps> = ({
               </div>
             </div>
 
-          <div className="px-8 pt-2 overflow-y-auto h-[200px] md:h-[200px] lg:h-[250px] scrollbar mb-4">
+            <div className={`px-8 pt-2 overflow-y-auto ${getScrollAreaHeight()} scrollbar mb-4`}>
               {isLoadingDetails ? (
                 <div className="text-center py-8 text-white">Loading products...</div>
               ) : errorDetails ? (
