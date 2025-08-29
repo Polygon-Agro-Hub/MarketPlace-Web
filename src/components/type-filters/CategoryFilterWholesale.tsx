@@ -6,7 +6,7 @@ import CategoryTile from './CategoryTile';
 import Vegetables from '../../../public/images/Vegetables.png';
 import Fruits from '../../../public/images/Fruits.png';
 import Grains from '../../../public/images/Grains.png';
-import Mushrooms from '../../../public/images/Mushrooms.png';
+import Spices from '../../../public/images/Spices.png';
 import ItemCard from '../../components/item-card/ItemCard';
 import { getProductsByCategoryWholesale } from '@/services/product-service';
 import { getCategoryCountsWholesale } from '@/services/product-service';
@@ -62,21 +62,21 @@ export default function CategoryFilterWholesale() {
             itemCount: 0
         },
         {
-            id: 'Fruit',
-            name: 'Fruit',
+            id: 'Fruits',
+            name: 'Fruits',
             imageUrl: Fruits,
             itemCount: 0
         },
         {
-            id: 'Grain',
-            name: 'Grain',
+            id: 'Cereals',
+            name: 'Cereals',
             imageUrl: Grains,
             itemCount: 0
         },
         {
-            id: 'Mushrooms',
-            name: 'Mushrooms',
-            imageUrl: Mushrooms,
+            id: 'Spices',
+            name: 'Spices',
+            imageUrl: Spices,
             itemCount: 0
         }
     ];
@@ -121,8 +121,6 @@ export default function CategoryFilterWholesale() {
             try {
                 console.log('Fetching wholesale products with:', { selectedCategory, searchTerm });
                 
-                // Note: You'll need to update the getProductsByCategoryWholesale function
-                // to accept a search parameter similar to getProductsByCategory
                 const response = await getProductsByCategoryWholesale(selectedCategory, searchTerm || undefined);
                 setProducts(response.products);
                 
@@ -167,25 +165,29 @@ export default function CategoryFilterWholesale() {
                     </div>
                 )}
 
-                {countsLoading ? (
-                    <div className="flex justify-center items-center py-4">
-                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#3E206D]"></div>
-                    </div>
-                ) : (
-                    <div className='grid grid-cols-4'>
-                        {categories.map((category) => (
-                            <div key={category.id} className="aspect-[4/5] md:aspect-square">
-                                <CategoryTile
-                                    id={category.id}
-                                    name={category.name}
-                                    imageUrl={category.imageUrl}
-                                    itemCount={category.itemCount}
-                                    isSelected={selectedCategory === category.id}
-                                    onSelect={handleCategorySelect}
-                                />
+                {!isSearchActive && (
+                    <>
+                        {countsLoading ? (
+                            <div className="flex justify-center items-center py-4">
+                                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#3E206D]"></div>
                             </div>
-                        ))}
-                    </div>
+                        ) : (
+                            <div className='grid grid-cols-4'>
+                                {categories.map((category) => (
+                                    <div key={category.id} className="aspect-[4/5] md:aspect-square">
+                                        <CategoryTile
+                                            id={category.id}
+                                            name={category.name}
+                                            imageUrl={category.imageUrl}
+                                            itemCount={category.itemCount}
+                                            isSelected={selectedCategory === category.id}
+                                            onSelect={handleCategorySelect}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
 

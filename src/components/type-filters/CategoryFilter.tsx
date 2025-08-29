@@ -5,7 +5,7 @@ import CategoryTile from './CategoryTile';
 import Vegetables from '../../../public/images/Vegetables.png';
 import Fruits from '../../../public/images/Fruits.png';
 import Grains from '../../../public/images/Grains.png';
-import Mushrooms from '../../../public/images/Mushrooms.png';
+import Spices from '../../../public/images/Spices.png';
 import ItemCard from '../../components/item-card/ItemCard';
 import { getProductsByCategory } from '@/services/product-service';
 import { getCategoryCounts } from '@/services/product-service';
@@ -66,21 +66,21 @@ export default function CategoryFilter({}: CategoryFilterProps) {
             itemCount: 0
         },
         {
-            id: 'Fruit',
-            name: 'Fruit',
+            id: 'Fruits',
+            name: 'Fruits',
             imageUrl: Fruits,
             itemCount: 0
         },
         {
-            id: 'Grain',
-            name: 'Grain',
+            id: 'Cereals',
+            name: 'Cereals',
             imageUrl: Grains,
             itemCount: 0
         },
         {
-            id: 'Mushrooms',
-            name: 'Mushrooms',
-            imageUrl: Mushrooms,
+            id: 'Spices',
+            name: 'Spices',
+            imageUrl: Spices,
             itemCount: 0
         }
     ];
@@ -93,13 +93,41 @@ export default function CategoryFilter({}: CategoryFilterProps) {
 
                 if (response.status && response.counts) {
                     const updatedCategories = defaultCategories.map(cat => {
-                        const apiCategory = response.counts.find(
-                            (apiCat: any) => apiCat.category.toLowerCase() === cat.name.toLowerCase()
-                        );
+                        // Handle category mapping for count display
+                        let totalCount = 0;
+                        
+                        if (cat.id === 'Vegetables') {
+                            // Sum counts for Vegetables and Mushrooms
+                            const vegetablesCount = response.counts.find(
+                                (apiCat: any) => apiCat.category.toLowerCase() === 'vegetables'
+                            )?.itemCount || 0;
+                            const mushroomsCount = response.counts.find(
+                                (apiCat: any) => apiCat.category.toLowerCase() === 'mushrooms'
+                            )?.itemCount || 0;
+                            totalCount = vegetablesCount + mushroomsCount;
+                        } else if (cat.id === 'Cereals') {
+                            // Sum counts for Cereals, Legumes, and Pulses
+                            const cerealsCount = response.counts.find(
+                                (apiCat: any) => apiCat.category.toLowerCase() === 'cereals'
+                            )?.itemCount || 0;
+                            const legumesCount = response.counts.find(
+                                (apiCat: any) => apiCat.category.toLowerCase() === 'legumes'
+                            )?.itemCount || 0;
+                            const pulsesCount = response.counts.find(
+                                (apiCat: any) => apiCat.category.toLowerCase() === 'pulses'
+                            )?.itemCount || 0;
+                            totalCount = cerealsCount + legumesCount + pulsesCount;
+                        } else {
+                            // For Fruits and Spices, use direct mapping
+                            const apiCategory = response.counts.find(
+                                (apiCat: any) => apiCat.category.toLowerCase() === cat.name.toLowerCase()
+                            );
+                            totalCount = apiCategory ? apiCategory.itemCount : 0;
+                        }
 
                         return {
                             ...cat,
-                            itemCount: apiCategory ? apiCategory.itemCount : 0
+                            itemCount: totalCount
                         };
                     });
 
