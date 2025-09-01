@@ -9,6 +9,8 @@ import {
   deleteExcludedItems
 } from '@/services/product-service';
 import Loader from '@/components/loader-spinner/Loader'; // Import the Loader component
+import Image from 'next/image';
+import noComplaints from '../../../public/icons/no complaints.png';
 
 interface Item {
   displayName: string;
@@ -252,8 +254,8 @@ const ViewMyList = () => {
 
       {!loading && !error && items.length === 0 && (
         <div className="flex flex-col items-center justify-center py-8 sm:py-10">
-          <img
-            src="/icons/no complaints.png"
+          <Image
+            src={noComplaints}
             alt="No excluded items"
             className="w-32 sm:w-48 h-32 sm:h-48 mb-3 sm:mb-4 object-contain"
           />

@@ -280,6 +280,42 @@ export const signup = async (payload: SignupPayload): Promise<SignupResponse> =>
 };
 
 
+export const verifyUserDetails = async (email: string, phoneNumber: string, phoneCode: string) => {
+  try {
+    console.log('Verifying user details:', { email, phoneNumber, phoneCode });
+
+    const response = await axios.post('/auth/verify-user-details', {
+      email,
+      phoneNumber,
+      phoneCode
+    }, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const resData = response.data;
+
+    if (resData.status === true) {
+      return resData;
+    } else {
+      throw new Error(resData.message || 'User verification failed on server.');
+    }
+  } catch (error: any) {
+    if (error.response) {
+      const resData = error.response.data;
+      throw new Error(
+        resData?.message || resData?.error || `Verification failed with status ${error.response.status}`
+      );
+    } else if (error.request) {
+      throw new Error('No response received from server. Please check your network connection.');
+    } else {
+      throw new Error(error.message || 'An error occurred during verification.');
+    }
+  }
+};
+
+
 export const sendResetEmail = async (email: string): Promise<{ message: string }> => {
   try {
     const response = await axios.post('/auth/forgot-password', { email });

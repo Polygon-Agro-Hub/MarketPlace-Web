@@ -353,12 +353,6 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
         description={successMessage}
         duration={3000}
       />
-      <CancelSuccessPopup
-        isVisible={showCancelSuccessPopup}
-        onClose={() => setShowCancelSuccessPopup(false)}
-        title="Form cleared successfully!"
-        duration={3000}
-      />
 
       <h2 className="font-medium text-base text-[14px] md:text-[18px] mb-2 mt-2">
         {complaint?.id ? 'Update Complaint' : 'Report a Complaint'}

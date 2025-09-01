@@ -10,6 +10,8 @@ import { fetchComplaints } from '@/services/auth-service';
 import EmptyComplaints from '../complaints/No-complaint';
 import Select, { ActionMeta, SingleValue } from 'react-select'; // Import react-select
 import Loader from '@/components/loader-spinner/Loader';
+import Image from 'next/image';
+import noComplaints from '../../../public/icons/no complaints.png';
 
 // Interfaces
 interface Complaint {

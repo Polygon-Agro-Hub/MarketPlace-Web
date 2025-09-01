@@ -2,7 +2,7 @@
 
 import Image, { StaticImageData } from 'next/image';
 import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next//navigation';
+import { useRouter } from 'next/navigation';
 import { productAddToCart, checkProductInCart } from '@/services/product-service';
 import { useSelector } from 'react-redux';
 import { useDispatch } from 'react-redux';
@@ -17,8 +17,8 @@ type ItemCardProps = {
     image: string | StaticImageData;
     discount?: number | null;
     unitType?: string;
-    startValue?: any;
-    changeby?: number;
+    startValue?: string | number;
+    changeby?: string | number;
 };
 
 const ItemCard = ({
@@ -28,9 +28,9 @@ const ItemCard = ({
     currentPrice,
     image,
     discount = null,
-    unitType = 'Kg',
-    startValue = 1,
-    changeby = 1,
+    unitType = 'g',
+    startValue = "1",
+    changeby = "1",
 }: ItemCardProps) => {
     const router = useRouter();
     const { token, user } = useAppSelector((state) => state.auth);
@@ -41,10 +41,12 @@ const ItemCard = ({
     const [showTooltip, setShowTooltip] = useState(false);
 
     const getInitialQuantity = () => {
+        const parsedStartValue = typeof startValue === 'string' ? parseFloat(startValue) : startValue;
+        
         if (unitType?.toLowerCase() === 'kg') {
-            return startValue * 1000;
+            return parsedStartValue * 1000; // Convert kg to grams for internal storage
         }
-        return startValue;
+        return parsedStartValue;
     };
 
     const [quantity, setQuantity] = useState(getInitialQuantity());
@@ -93,18 +95,22 @@ const ItemCard = ({
 
     // Get minimum quantity based on unit and startValue
     const getMinQuantity = () => {
+        const parsedStartValue = typeof startValue === 'string' ? parseFloat(startValue) : startValue;
+        
         if (unitType?.toLowerCase() === 'kg') {
-            return startValue * 1000; // Convert to grams
+            return parsedStartValue * 1000; // Convert to grams
         }
-        return startValue;
+        return parsedStartValue;
     };
 
     // Get increment value based on unit and changeby
     const getIncrementValue = () => {
+        const parsedChangeby = typeof changeby === 'string' ? parseFloat(changeby) : changeby;
+        
         if (unitType?.toLowerCase() === 'kg') {
-            return changeby * 1000; // Convert to grams
+            return parsedChangeby * 1000; // Convert to grams
         }
-        return changeby;
+        return parsedChangeby;
     };
 
     // Display quantity based on selected unit
@@ -152,7 +158,7 @@ const ItemCard = ({
                 const productData = {
                     mpItemId: id,
                     quantityType: normalizedQuantityType as 'kg' | 'g', // Type assertion for API compatibility
-                    quantity: startValue // Use the fetched startValue
+                    quantity: typeof startValue === 'string' ? parseFloat(startValue) : startValue // Parse startValue
                 };
 
                 await productAddToCart(productData, token);
@@ -366,7 +372,6 @@ const ItemCard = ({
                 <h3 className="text-xs md:text-sm lg:text-base font-medium text-gray-800 text-center mb-0.5">{name}</h3>
 
                 {/* Price section */}
-                {/* Price section */}
                 <div className="flex flex-col items-center space-y-0.5 mb-1 md:mb-2">
                     {originalPrice && originalPrice > currentPrice ? (
                         <>
@@ -442,10 +447,10 @@ const ItemCard = ({
                             onMouseLeave={() => setIsHovering(false)}
                             disabled={isLoading || isInCart}
                             className={`w-full py-1 px-1.5 rounded flex items-center justify-center gap-1 text-xs md:text-sm transition-colors ${isInCart
-                                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                                    ? "bg-[#EDE1FF] text-gray-500 cursor-not-allowed"
                                     : token && user && showQuantitySelector && buyerType !== 'Wholesale'
                                         ? "bg-purple-900 text-white hover:bg-purple-800 cursor-pointer"
-                                        : "bg-gray-100 text-gray-400 hover:bg-[#3E206D] hover:text-white cursor-pointer"
+                                        : "bg-[#EDE1FF] text-gray-400 hover:bg-[#3E206D] hover:text-white cursor-pointer"
                                 } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                             {!showQuantitySelector && !isInCart && (
