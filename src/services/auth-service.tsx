@@ -82,6 +82,24 @@ interface Profile {
   profileImageURL?: string;
 }
 
+interface Profile {
+  companyName: string;
+  buyerType?: string;
+  title: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneCode: string;
+  phoneNumber: string;
+  phoneCode2: string;
+  phoneNumber2: string;
+  companyPhoneCode: string;  // Add this
+  companyPhone: string;      // Add this
+  image?: string;
+  profileImageURL?: string;
+}
+
+// Updated ApiProfile interface
 interface ApiProfile {
   title: string;
   firstName: string;
@@ -89,22 +107,17 @@ interface ApiProfile {
   email: string;
   phoneCode: string;
   phoneNumber: string;
-   phoneCode2: string;
+  phoneCode2: string;
   phoneNumber2: string;
+  companyPhoneCode: string;  // Add this
+  companyPhone: string;      // Add this
   image?: string;
   profileImageURL?: string;
- companyName?: string; // Optional
-  buyerType?: string | '' ; // Optional
+  companyName?: string;
+  buyerType?: string | '';
 }
 
 export interface BillingAddress {
-  title: string;
-  firstName: string;
-  lastName: string;
-  phoneCode: string;
-  phoneNumber: string;
-  phoneCode2?: string; // Add optional field
-  phoneNumber2?: string; // Add optional field
   houseNo?: string;
   buildingNo?: string;
   buildingName?: string;
@@ -112,6 +125,11 @@ export interface BillingAddress {
   floorNo?: string | null;
   streetName?: string;
   city?: string;
+  title?: string;
+  firstName?: string;
+  lastName?: string;
+  phoneCode?: string;
+  phoneNumber?: string;
 }
 
 export interface BillingDetails {
@@ -124,8 +142,8 @@ export interface BillingDetails {
   phoneNumber: string;
   buildingType: string;
   address: BillingAddress;
-  phoneCode2?: string | null; // Added to match JSON
-  phoneNumber2?: string | null; // Added to match JSON
+  phoneCode2?: string | null; 
+  phoneNumber2?: string | null;
 }
 
 interface FetchComplaintsPayload {
@@ -146,9 +164,11 @@ interface UpdateProfilePayload {
     email: string;
     phoneCode: string;
     phoneNumber: string;
-    phoneCode2: string;
-    phoneNumber2: string;
-    companyName: string;
+    phoneCode2?: string;
+    phoneNumber2?: string;
+    companyName?: string;
+    companyPhoneCode?: string;  // Add this
+    companyPhone?: string;      // Add this
   };
   profilePic: File | null;
 }
@@ -169,7 +189,6 @@ interface SaveBillingDetailsPayload {
   data: BillingDetails;
 }
 
-// Generic ApiResponse interface
 interface ApiResponse<T = any> {
   status: boolean;
   data: T;
@@ -584,11 +603,13 @@ export const fetchProfile = async (payload: FetchProfilePayload): Promise<Profil
           phoneNumber: resData.data.phoneNumber || '',
           phoneCode2: resData.data.phoneCode2 || '+94',
           phoneNumber2: resData.data.phoneNumber2 || '',
+          companyPhoneCode: resData.data.companyPhoneCode || '+94',  // Add this
+          companyPhone: resData.data.companyPhone || '',             // Add this
           image: resData.data.image,
           profileImageURL: resData.data.profileImageURL,
           title: resData.data.title || '',
           companyName: resData.data.companyName || '',
-          buyerType: resData.data.buyerType || '', // Include buyerType
+          buyerType: resData.data.buyerType || '',
         };
       } else {
         throw new Error(resData.message || 'Invalid response format');
@@ -638,6 +659,15 @@ export const updateProfile = async (payload: UpdateProfilePayload): Promise<void
     
     if (payload.data.companyName) {
       formData.append('companyName', payload.data.companyName);
+    }
+
+    // Add company phone fields
+    if (payload.data.companyPhoneCode) {
+      formData.append('companyPhoneCode', payload.data.companyPhoneCode);
+    }
+    
+    if (payload.data.companyPhone) {
+      formData.append('companyPhone', payload.data.companyPhone);
     }
 
     // Profile picture - only append if provided
@@ -892,6 +922,12 @@ export const fetchComplaints = async (payload: FetchComplaintsPayload): Promise<
 
 export const submitComplaint = async (payload: ComplaintPayload): Promise<ComplaintResponse> => {
   try {
+    console.log('Starting complaint submission:', {
+      userId: payload.userId,
+      complaintId: payload.complaintId,
+      imageCount: payload.images?.length || 0
+    });
+
     if (!payload.userId || !payload.token) {
       throw new Error('You are not authenticated. Please log in first.');
     }
@@ -903,57 +939,106 @@ export const submitComplaint = async (payload: ComplaintPayload): Promise<Compla
     const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
     const maxFileSize = 5 * 1024 * 1024;
 
-    for (const image of payload.images) {
-      if (!allowedMimeTypes.includes(image.type)) {
-        throw new Error(`Unsupported file type for ${image.name}.`);
-      }
-      if (image.size > maxFileSize) {
-        throw new Error(`File ${image.name} exceeds 5MB limit.`);
+    // Validate images if they exist
+    if (payload.images && payload.images.length > 0) {
+      for (const image of payload.images) {
+        if (!allowedMimeTypes.includes(image.type)) {
+          throw new Error(`Unsupported file type for ${image.name}.`);
+        }
+        if (image.size > maxFileSize) {
+          throw new Error(`File ${image.name} exceeds 5MB limit.`);
+        }
       }
     }
 
     const formData = new FormData();
     formData.append('complaintCategoryId', payload.complaintCategoryId.toString());
     formData.append('complaint', payload.complaint);
-    payload.images.forEach((image) => formData.append('images', image));
+    
+    // Only append images if they exist
+    if (payload.images && payload.images.length > 0) {
+      payload.images.forEach((image) => formData.append('images', image));
+    }
+    
     if (payload.imagesToDelete?.length) {
       formData.append('imagesToDelete', JSON.stringify(payload.imagesToDelete));
     }
 
+    // Updated URL to match your backend endpoint
     const url = payload.complaintId
-      ? `/auth/update/${payload.userId}/${payload.complaintId}`
-      : `/auth/submit/${payload.userId}`;
+      ? `/auth/complaints/update/${payload.complaintId}` // Updated path
+      : `/auth/submit`;                                    
+
+    console.log('Making request to:', url);
 
     const response = await axios({
       method: payload.complaintId ? 'PUT' : 'POST',
       url,
       headers: {
         Authorization: `Bearer ${payload.token}`,
+        // Don't set Content-Type - let browser handle it for FormData
       },
       data: formData,
+      timeout: 60000, // 60 seconds timeout for file uploads
+      validateStatus: function (status) {
+        // Consider 2xx and 3xx as success, handle 4xx and 5xx in catch
+        return status >= 200 && status < 400;
+      }
     });
 
-    if (response.status >= 200 && response.status < 300 && response.data?.status) {
+    console.log('Response received:', {
+      status: response.status,
+      data: response.data
+    });
+
+    if (response.data?.status) {
       return response.data;
     } else {
       throw new Error(response.data?.message || 'Complaint submission failed on server.');
     }
+
   } catch (error: any) {
+    console.error('Complaint submission error:', error);
+
+    // Handle axios timeout
+    if (error.code === 'ECONNABORTED') {
+      throw new Error('Request timeout. The server is taking too long to respond. Please try again.');
+    }
+
+    // Handle network errors
+    if (error.code === 'NETWORK_ERROR' || error.message?.includes('Network Error')) {
+      throw new Error('Network connection failed. Please check your internet connection and try again.');
+    }
+
     if (error.response) {
+      // Server responded with an error status
+      console.error('Server error response:', {
+        status: error.response.status,
+        data: error.response.data,
+        headers: error.response.headers
+      });
+
       const contentType = error.response.headers['content-type'];
       if (!contentType?.includes('application/json')) {
-        console.error('Non-JSON server response:', error.response.data);
-        throw new Error('Unexpected server response. Expected JSON but received non-JSON.');
+        console.error('Non-JSON server response received');
+        throw new Error(`Server returned an unexpected response format. Status: ${error.response.status}`);
       }
 
-      throw new Error(
-        error.response.data?.message ||
-        error.response.data?.error ||
-        `Complaint submission failed with status ${error.response.status}`
-      );
+      // Extract error message from response
+      const errorMessage = error.response.data?.message || 
+                          error.response.data?.error || 
+                          `Server error with status ${error.response.status}`;
+      
+      throw new Error(errorMessage);
+
     } else if (error.request) {
-      throw new Error('No response received from server. Please check your network connection.');
+      // Request was made but no response received
+      console.error('No response received from server:', error.request);
+      throw new Error('No response received from server. Please check your network connection and try again.');
+      
     } else {
+      // Something else happened in setting up the request
+      console.error('Request setup error:', error.message);
       throw new Error(error.message || 'An error occurred during complaint submission.');
     }
   }

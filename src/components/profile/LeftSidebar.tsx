@@ -78,6 +78,14 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
     setComplaintSubmenuOpen(false);
     onComplaintIconClick(false);
   };
+  
+  const handleBackClick = () => {
+  if (buyerType === 'Wholesale') {
+    router.push('/wholesale/home');
+  } else {
+    router.push('/');
+  }
+};
 
   const isActive = (menu: string) => selectedMenu === menu;
   const isComplaintSectionActive = ['complaints', 'reportComplaint', 'ComplaintHistory'].includes(selectedMenu);
@@ -89,7 +97,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
         <div className="items-center gap-4 mb-4 hidden md:flex">
           <div
             className="w-[44px] h-[42px] border border-[#D4D8DC] cursor-pointer rounded-[10px] flex items-center justify-center bg-white ml-4"
-            onClick={() => router.push('/')}
+            onClick={ handleBackClick}
           >
             <FaAngleLeft />
           </div>

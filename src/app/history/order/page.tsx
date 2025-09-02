@@ -41,7 +41,7 @@ interface PickupInfo {
   province: string;
   country: string;
   zipCode: string;
-  title:string;
+  title: string;
 }
 
 interface DeliveryInfo {
@@ -85,7 +85,7 @@ interface DetailedOrder {
   familyPackItems?: DetailedPackage[];
   additionalItems?: DetailedItem[];
   discount?: string;
-  title:string;
+  title: string;
 }
 
 function formatDateTime(dateTimeStr: string, type: 'date' | 'time' = 'date'): string {
@@ -232,7 +232,7 @@ export default function OrderHistoryPage() {
           orderPlaced: apiOrder.createdAt ? formatDateTime(apiOrder.createdAt, 'date') : 'N/A',
           status: apiOrder.processStatus || 'Pending',
           fullName: apiOrder.fullName || 'N/A',
-          title:apiOrder.title || 'N/A',
+          title: apiOrder.title || 'N/A',
           phonecode1: apiOrder.phonecode1 || '',
           phone1: apiOrder.phone1 || '',
           phonecode2: apiOrder.phonecode2 || '',
@@ -716,19 +716,19 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
           {order.additionalItems && order.additionalItems.length > 0 && (
             <div className="border-t border-gray-200">
               <div className="p-4">
-                  <div className="flex flex-col space-y-2 mb-2">
-                    <span className="font-medium text-black">
-                      Additional Items ({order.additionalItems.length} Items)
-                    </span>
-                    {order.discount && order.discount !== 'Rs. 0.00' && (
-                      <div className="text-sm text-[#3E206D]">
-                        You have saved {order.discount} with us!
-                      </div>
-                    )}
-                    <span className="font-semibold text-[#3E206D]">
-                      Rs. {additionalItemsTotal}
-                    </span>
-                  </div>
+                <div className="flex flex-col space-y-2 mb-2">
+                  <span className="font-medium text-black">
+                    Additional Items ({order.additionalItems.length} Items)
+                  </span>
+                  {order.discount && order.discount !== 'Rs. 0.00' && (
+                    <div className="text-sm text-[#3E206D]">
+                      You have saved {order.discount} with us!
+                    </div>
+                  )}
+                  <span className="font-semibold text-[#3E206D]">
+                    Rs. {additionalItemsTotal}
+                  </span>
+                </div>
                 <div className="space-y-4 mt-4">
                   {order.additionalItems.map((item, index) => (
                     <div key={index} className="flex items-center gap-4 py-2">
@@ -879,28 +879,41 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
                     </tr>
                     <tr>
                       <td colSpan={4} className="py-2">
-                        <table className="max-w-[600px] w-full p-4">
-                          <tbody>
+                        <div className="p-4">
+                          <div className="space-y-4">
                             {order.additionalItems.map((item, index) => (
-                              <tr key={index} className="grid grid-cols-[1fr_1fr_1fr_1fr] gap-4 text-sm items-center py-3">
-                                <td className="flex justify-center">
+                              <div key={index} className="flex items-center gap-6 py-3">
+                                <div className="w-12 h-12 flex-shrink-0">
                                   {item.image ? (
-                                    <img src={item.image} alt={item.name} className="w-20 h-10 object-cover rounded" />
+                                    <img
+                                      src={item.image}
+                                      alt={item.name}
+                                      className="w-full h-full object-cover rounded"
+                                    />
                                   ) : (
-                                    <div className="w-20 h-10 bg-gray-200 rounded flex items-center" />
+                                    <div className="w-full h-full bg-gray-200 rounded flex items-center justify-center">
+                                      <span className="text-gray-500 text-xs">No Image</span>
+                                    </div>
                                   )}
-                                </td>
-                                <td>{item.name}</td>
-                                <td>{item.quantity}{item.unit}</td>
-                                <td>{item.price}</td>
-                              </tr>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-medium text-gray-900 truncate">{item.name}</div>
+                                </div>
+                                <div className="text-center min-w-[80px]">
+                                  <div className="text-sm text-gray-600">{item.quantity}{item.unit}</div>
+                                </div>
+                                <div className="text-right min-w-[80px]">
+                                  <div className="font-semibold text-gray-900">{item.price}</div>
+                                </div>
+                              </div>
                             ))}
-                          </tbody>
-                        </table>
+                          </div>
+                        </div>
                       </td>
                     </tr>
                   </>
                 )}
+
               </tbody>
             </table>
           </div>
@@ -1233,24 +1246,36 @@ function DeliveryOrderView({ order, onClose }: { order: DetailedOrder, onClose: 
                     </tr>
                     <tr>
                       <td colSpan={4} className="py-2">
-                        <table className="max-w-[600px] w-full p-4">
-                          <tbody>
+                        <div className="p-4">
+                          <div className="space-y-4">
                             {order.additionalItems.map((item, index) => (
-                              <tr key={index} className="grid grid-cols-[1fr_1fr_1fr_1fr] gap-4 text-sm items-center py-3">
-                                <td className="flex justify-center">
+                              <div key={index} className="flex items-center gap-6 py-3">
+                                <div className="w-12 h-12 flex-shrink-0">
                                   {item.image ? (
-                                    <img src={item.image} alt={item.name} className="w-20 h-10 object-cover rounded" />
+                                    <img
+                                      src={item.image}
+                                      alt={item.name}
+                                      className="w-full h-full object-cover rounded"
+                                    />
                                   ) : (
-                                    <div className="w-20 h-10 bg-gray-200 rounded flex items-center" />
+                                    <div className="w-full h-full bg-gray-200 rounded flex items-center justify-center">
+                                      <span className="text-gray-500 text-xs">No Image</span>
+                                    </div>
                                   )}
-                                </td>
-                                <td>{item.name}</td>
-                                <td>{item.quantity}{item.unit}</td>
-                                <td>{item.price}</td>
-                              </tr>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-medium text-gray-900 truncate">{item.name}</div>
+                                </div>
+                                <div className="text-center min-w-[80px]">
+                                  <div className="text-sm text-gray-600">{item.quantity}{item.unit}</div>
+                                </div>
+                                <div className="text-right min-w-[80px]">
+                                  <div className="font-semibold text-gray-900">{item.price}</div>
+                                </div>
+                              </div>
                             ))}
-                          </tbody>
-                        </table>
+                          </div>
+                        </div>
                       </td>
                     </tr>
                   </>

@@ -52,9 +52,14 @@ const authSlice = createSlice({
       state.user = null;
       state.cart = initialStateCart;
     },
+    updateUser: (state, action: PayloadAction<Partial<UserData>>) => {
+      if (state.user) {
+        state.user = { ...state.user, ...action.payload };
+      }
+    },
   },
 });
 
-export const { setCredentials, updateCartInfo, logout } = authSlice.actions;
+export const { setCredentials, updateCartInfo, logout, updateUser } = authSlice.actions;
 
 export default authSlice.reducer;
