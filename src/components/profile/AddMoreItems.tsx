@@ -213,7 +213,7 @@ const AddMoreItems = () => {
               )}
             </button>
             <span
-              className={`text-sm md:text-[20px] font-medium ${
+              className={`text-sm md:text-[16px] font-medium ${
                 isExcluded ? 'text-gray-400' : 'text-black'
               }`}
             >

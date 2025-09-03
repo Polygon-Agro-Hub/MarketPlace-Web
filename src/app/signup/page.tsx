@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, FormEvent } from "react";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
-import { sendOTPInSignup, signup } from "@/services/auth-service";
+import { sendOTPInSignup, signup, verifyUserDetails } from "@/services/auth-service";
 import { useRouter } from "next/navigation";
 import SuccessPopup from "@/components/toast-messages/success-message";
 import ErrorPopup from "@/components/toast-messages/error-message";
@@ -276,6 +276,10 @@ export default function SignupForm() {
     setLoading(true);
 
     try {
+
+      await verifyUserDetails(formData.email, formData.phoneNumber, formData.phoneCode);
+
+      // If verification passes, proceed with OTP sending
       const res = await sendOTPInSignup(formData.phoneNumber, formData.phoneCode);
       setSuccess(`OTP code has been sent to ${formData.phoneCode}${formData.phoneNumber}`);
       setShowSuccessPopup(true);
@@ -286,7 +290,19 @@ export default function SignupForm() {
         setShowOTPVerification(true);
       }
     } catch (err: any) {
-      const errorMessage = err.message || "Failed to send OTP. Please try again.";
+      let errorMessage = "An error occurred. Please try again.";
+
+      // Handle specific verification errors
+      if (err.message) {
+        errorMessage = err.message;
+      } else if (err.type === "email_exists") {
+        errorMessage = "This email address is already registered. Please use a different email or try logging in.";
+      } else if (err.type === "phone_exists") {
+        errorMessage = "This phone number is already registered. Please use a different phone number or try logging in.";
+      } else {
+        errorMessage = err.message || "Failed to process request. Please try again.";
+      }
+
       setErrorMessage(errorMessage);
       setShowErrorPopup(true);
     } finally {
@@ -928,19 +944,19 @@ export default function SignupForm() {
           </div>
         </div>
 
-       <div className="hidden md:block md:w-6/11 md:min-h-screen bg-purple-900 relative overflow-hidden">
-  <div className="absolute inset-0 flex items-center justify-center">
-    <Image
-      src={LoginImg}
-      alt="MyFarm Registration"
-      fill
-      className="object-cover"
-      priority
-    />
+        <div className="hidden md:block md:w-6/11 md:min-h-screen bg-purple-900 relative overflow-hidden">
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Image
+              src={LoginImg}
+              alt="MyFarm Registration"
+              fill
+              className="object-cover"
+              priority
+            />
 
 
-</div>
-</div>
+          </div>
+        </div>
       </div>
     </div>
   );

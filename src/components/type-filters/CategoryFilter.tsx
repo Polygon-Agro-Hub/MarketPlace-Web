@@ -43,13 +43,13 @@ interface Category {
 }
 
 // Remove the searchTerm prop since we'll use Redux
-interface CategoryFilterProps {}
+interface CategoryFilterProps { }
 
-export default function CategoryFilter({}: CategoryFilterProps) {
+export default function CategoryFilter({ }: CategoryFilterProps) {
     // Get search term from Redux instead of props
     const searchTerm = useSelector((state: RootState) => state.search.searchTerm);
     const isSearchActive = useSelector((state: RootState) => state.search.isSearchActive);
-    
+
     const [selectedCategory, setSelectedCategory] = useState('Vegetables');
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(false);
@@ -95,7 +95,7 @@ export default function CategoryFilter({}: CategoryFilterProps) {
                     const updatedCategories = defaultCategories.map(cat => {
                         // Handle category mapping for count display
                         let totalCount = 0;
-                        
+
                         if (cat.id === 'Vegetables') {
                             // Sum counts for Vegetables and Mushrooms
                             const vegetablesCount = response.counts.find(
@@ -144,33 +144,33 @@ export default function CategoryFilter({}: CategoryFilterProps) {
         fetchCategoryCounts();
     }, []);
 
-useEffect(() => {
-    const fetchProducts = async () => {
-        setLoading(true);
-        setError(null);
+    useEffect(() => {
+        const fetchProducts = async () => {
+            setLoading(true);
+            setError(null);
 
-        try {
-            console.log('Fetching products with:', { selectedCategory, searchTerm });
-            
-            const response = await getProductsByCategory(selectedCategory, searchTerm || undefined);
-            setProducts(response.products);
-            
-            // Always update category results state, regardless of results
-            dispatch(setCategoryResults(response.products.length > 0));
-        } catch (err) {
-            console.error('Error fetching products:', err);
-            setError('Failed to load products. Please try again.');
-            setProducts([]);
-            
-            // Set to false on error
-            dispatch(setCategoryResults(false));
-        } finally {
-            setLoading(false);
-        }
-    };
+            try {
+                console.log('Fetching products with:', { selectedCategory, searchTerm });
 
-    fetchProducts();
-}, [selectedCategory, searchTerm, dispatch]);
+                const response = await getProductsByCategory(selectedCategory, searchTerm || undefined);
+                setProducts(response.products);
+
+                // Always update category results state, regardless of results
+                dispatch(setCategoryResults(response.products.length > 0));
+            } catch (err) {
+                console.error('Error fetching products:', err);
+                setError('Failed to load products. Please try again.');
+                setProducts([]);
+
+                // Set to false on error
+                dispatch(setCategoryResults(false));
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchProducts();
+    }, [selectedCategory, searchTerm, dispatch]);
 
     function handleCategorySelect(id: string): void {
         setSelectedCategory(id);
@@ -180,16 +180,16 @@ useEffect(() => {
         <div className='mx-auto w-full'>
             <div className='flex flex-col'>
                 {/* Only show the Types section and category tiles when not searching */}
-              
-                        <div className="flex items-center justify-center gap-2 w-full my-4 md:my-8 px-2 md:px-20">
-                            <div className="w-1/2 border-t-2 border-[#D7D7D7]"></div>
-                            <span className="bg-[#FF8F6666] text-[#FF4421] rounded-lg text-xs md:text-sm px-3 md:px-6 py-1">
-                                Types
-                            </span>
-                            <div className="w-1/2 border-t-2 border-[#D7D7D7]"></div>
-                        </div>
-                        
-            {!isSearchActive && (
+
+                <div className="flex items-center justify-center gap-2 w-full my-4 md:my-8 px-2 md:px-20">
+                    <div className="w-1/2 border-t-2 border-[#D7D7D7]"></div>
+                    <span className="bg-[#FF8F6666] text-[#FF4421] rounded-lg text-xs md:text-sm px-3 md:px-6 py-1">
+                        Types
+                    </span>
+                    <div className="w-1/2 border-t-2 border-[#D7D7D7]"></div>
+                </div>
+
+                {!isSearchActive && (
                     <>
 
                         {countsLoading ? (
@@ -219,7 +219,7 @@ useEffect(() => {
                 {isSearchActive && (
                     <div className="text-center mb-4">
                         <p className="text-sm text-gray-600">
-                            Searching for "{searchTerm}" 
+                            Searching for "{searchTerm}"
                         </p>
                     </div>
                 )}
@@ -246,13 +246,16 @@ useEffect(() => {
                                         currentPrice={product.discountedPrice}
                                         image={product.image}
                                         discount={product.discount}
+                                        unitType={product.unitType}
+                                        startValue={product.startValue}
+                                        changeby={product.changeby}
                                     />
                                 </div>
                             ))
                         ) : (
                             <div className="col-span-full text-center py-10">
                                 <p className="text-gray-500">
-                                    {isSearchActive 
+                                    {isSearchActive
                                         ? `No products found for "${searchTerm}" in ${selectedCategory}.`
                                         : 'No products found in this category.'
                                     }

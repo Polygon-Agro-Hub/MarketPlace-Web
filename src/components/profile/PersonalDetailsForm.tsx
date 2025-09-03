@@ -6,19 +6,20 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { FaUserCircle, FaAngleDown } from 'react-icons/fa';
 import { FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store';
 import SuccessPopup from '@/components/toast-messages/success-message';
 import ErrorPopup from '@/components/toast-messages/error-message';
 import Loader from '@/components/loader-spinner/Loader';
 import { fetchProfile, updateProfile, updatePassword } from '@/services/auth-service';
+import { updateUser } from '@/store/slices/authSlice';
 
 // Yup schema
 const schema = yup.object().shape({
   title: yup.string().required('Title is required'),
   firstName: yup
     .string()
-    .transform((value) => value?.trim()) // Trim spaces
+    .transform((value) => value?.trim())
     .matches(/^[A-Za-z]+$/, 'First name must contain only English letters')
     .test('first-letter-capital', 'First letter must be capitalized', (value) => {
       if (!value) return true;
@@ -27,7 +28,7 @@ const schema = yup.object().shape({
     .required('First name is required'),
   lastName: yup
     .string()
-    .transform((value) => value?.trim()) // Trim spaces
+    .transform((value) => value?.trim())
     .matches(/^[A-Za-z]+$/, 'Last name must contain only English letters')
     .test('first-letter-capital', 'First letter must be capitalized', (value) => {
       if (!value) return true;
@@ -36,7 +37,7 @@ const schema = yup.object().shape({
     .required('Last name is required'),
   email: yup
     .string()
-    .transform((value) => value?.trim()) // Trim spaces
+    .transform((value) => value?.trim())
     .email('Invalid email')
     .required('Email is required'),
   countryCode: yup.string().required('Country code is required'),
@@ -47,13 +48,13 @@ const schema = yup.object().shape({
   }),
   phoneNumber: yup
     .string()
-    .transform((value) => value?.trim()) // Trim spaces
+    .transform((value) => value?.trim())
     .matches(/^7[0-9]{8}$/, 'Please enter a valid mobile number (format: +947XXXXXXXX)')
     .required('Phone number is required'),
   phoneNumber2: yup.string().when('$buyerType', {
     is: 'Wholesale',
     then: (schema) => schema
-      .transform((value) => value?.trim()) // Trim spaces
+      .transform((value) => value?.trim())
       .matches(/^7[0-9]{8}$/, 'Please enter a valid mobile number (format: +947XXXXXXXX)')
       .required('Phone number is required'),
     otherwise: (schema) => schema.notRequired(),
@@ -61,8 +62,22 @@ const schema = yup.object().shape({
   companyName: yup.string().when('$buyerType', {
     is: 'Wholesale',
     then: (schema) => schema
-      .transform((value) => value?.trim()) // Trim spaces
+      .transform((value) => value?.trim())
       .required('Company name is required'),
+    otherwise: (schema) => schema.notRequired(),
+  }),
+  // Add companyPhoneCode validation
+  companyPhoneCode: yup.string().when('$buyerType', {
+    is: 'Wholesale',
+    then: (schema) => schema.required('Company phone code is required'),
+    otherwise: (schema) => schema.notRequired(),
+  }),
+  companyPhone: yup.string().when('$buyerType', {
+    is: 'Wholesale',
+    then: (schema) => schema
+      .transform((value) => value?.trim())
+      .matches(/^7[0-9]{8}$/, 'Please enter a valid company phone number (format: +947XXXXXXXX)')
+      .required('Company phone number is required'),
     otherwise: (schema) => schema.notRequired(),
   }),
   currentPassword: yup.string().when('newPassword', {
@@ -194,6 +209,7 @@ const PersonalDetailsForm = () => {
   const [originalData, setOriginalData] = useState<any>(null);
   const [originalProfilePic, setOriginalProfilePic] = useState<string | null>(null);
   const [buyerType, setBuyerType] = useState<string>('');
+  const dispatch = useDispatch();
 
   const {
     register,
@@ -215,6 +231,8 @@ const PersonalDetailsForm = () => {
       phoneNumber: '',
       phoneNumber2: '',
       companyName: '',
+      companyPhoneCode: '',
+      companyPhone: '',
       currentPassword: undefined,
       newPassword: undefined,
       confirmPassword: undefined,
@@ -224,6 +242,7 @@ const PersonalDetailsForm = () => {
   const titleValue = watch('title');
   const countryCodeValue = watch('countryCode');
   const countryCode2Value = watch('countryCode2');
+  const companyPhoneCodeValue = watch('companyPhoneCode');
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -246,6 +265,8 @@ const PersonalDetailsForm = () => {
           countryCode2: data.phoneCode2 || '',
           phoneNumber2: data.phoneNumber2 || '',
           companyName: data.companyName || '',
+          companyPhoneCode: data.companyPhoneCode || '',
+          companyPhone: data.companyPhone || '',
           currentPassword: undefined,
           newPassword: undefined,
           confirmPassword: undefined,
@@ -351,6 +372,13 @@ const PersonalDetailsForm = () => {
         if (formValues.companyName) {
           profileData.companyName = formValues.companyName;
         }
+        // Add company phone fields
+        if (formValues.companyPhoneCode) {
+          profileData.companyPhoneCode = formValues.companyPhoneCode;
+        }
+        if (formValues.companyPhone) {
+          profileData.companyPhone = formValues.companyPhone;
+        }
       }
 
       await updateProfile({
@@ -380,6 +408,14 @@ const PersonalDetailsForm = () => {
       const updatedData = await fetchProfile({ token });
       setBuyerType(updatedData.buyerType || '');
 
+      // Update Redux state with new user data (especially the image)
+      dispatch(updateUser({
+        firstName: updatedData.firstName,
+        lastName: updatedData.lastName,
+        email: updatedData.email,
+        image: updatedData.profileImageURL || updatedData.image || null
+      }));
+
       const newFormData = {
         title: updatedData.title || '',
         firstName: updatedData.firstName || '',
@@ -390,6 +426,8 @@ const PersonalDetailsForm = () => {
         countryCode2: updatedData.phoneCode2 || '',
         phoneNumber2: updatedData.phoneNumber2 || '',
         companyName: updatedData.companyName || '',
+        companyPhoneCode: updatedData.companyPhoneCode || '',
+        companyPhone: updatedData.companyPhone || '',
         currentPassword: undefined,
         newPassword: undefined,
         confirmPassword: undefined,
@@ -422,6 +460,7 @@ const PersonalDetailsForm = () => {
     }
   };
 
+
   const handleCancel = () => {
     setIsLoading(true);
 
@@ -440,6 +479,8 @@ const PersonalDetailsForm = () => {
         phoneNumber: '',
         phoneNumber2: '',
         companyName: '',
+        companyPhoneCode: '', // Add this
+        companyPhone: '',     // Add this
         currentPassword: undefined,
         newPassword: undefined,
         confirmPassword: undefined,
@@ -647,6 +688,8 @@ const PersonalDetailsForm = () => {
             <p className="text-[12px] md:text-[16px] text-[#626D76] mb-6">
               Manage your company account email address for the invoices.
             </p>
+
+            {/* Company Name */}
             <div className="flex flex-col md:flex-row gap-8 mb-6">
               <div className="md:w-[60%]">
                 <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">Name</label>
@@ -663,37 +706,40 @@ const PersonalDetailsForm = () => {
                 />
                 <p className="text-red-500 text-xs">{errors.companyName?.message}</p>
               </div>
+
+              {/* Company Phone */}
               <div className="md:w-[56%]">
-                <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">Phone Number</label>
+                <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">Company Phone Number</label>
                 <div className="flex gap-4">
                   <div className="relative w-[30%] md:w-[15%]">
                     <CustomDropdown
                       register={register}
-                      name="countryCode2"
-                      value={countryCode2Value as any}
+                      name="companyPhoneCode"
+                      value={companyPhoneCodeValue as any}
                       errors={errors}
                       options={phoneCodeOptions}
                       placeholder="Select Code"
-                      onChange={(value) => setValue('countryCode2', value, { shouldValidate: true })}
+                      onChange={(value) => setValue('companyPhoneCode', value, { shouldValidate: true })}
                     />
                   </div>
                   <div className="w-[82%]">
                     <input
-                      {...register('phoneNumber2')}
+                      {...register('companyPhone')}
                       onChange={(e) => {
                         const formattedValue = handlePhoneInput(e.target.value);
                         e.target.value = formattedValue;
-                        setValue('phoneNumber2', formattedValue, { shouldValidate: true });
+                        setValue('companyPhone', formattedValue, { shouldValidate: true });
                       }}
                       className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm"
                       placeholder="7XXXXXXXX"
                       maxLength={9}
                     />
-                    <p className="text-red-500 text-xs">{errors.phoneNumber2?.message}</p>
+                    <p className="text-red-500 text-xs">{errors.companyPhone?.message}</p>
                   </div>
                 </div>
               </div>
             </div>
+
           </>
         )}
 
@@ -757,7 +803,7 @@ const PersonalDetailsForm = () => {
           </div>
         </div>
 
-        <div className="flex justify-end gap-4 mt-10 mb-5">
+        <div className="flex justify-end  mt-10 p-4 ">
           <div className="flex gap-4">
             <button
               type="button"

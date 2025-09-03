@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation'
 import { LogOut } from 'lucide-react';
 import { setSearchTerm, clearSearch } from '../../store/slices/searchSlice';
 import { X } from 'lucide-react';
+import { fetchProfile } from '@/services/auth-service';
 
 
 
@@ -26,7 +27,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
   const [isDesktopCategoryOpen, setIsDesktopCategoryOpen] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
-  const categoryRef = useRef<HTMLDivElement | null>(null); 
+  const categoryRef = useRef<HTMLDivElement | null>(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const user = useSelector((state: RootState) => state.auth.user);
@@ -35,16 +36,16 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
   const router = useRouter();
   const [showSignupModal, setShowSignupModal] = useState(false);
   const [selectedBuyerType, setSelectedBuyerType] = useState('');
-  
+
   const dispatch = useDispatch();
   const searchTerm = useSelector((state: RootState) => state.search.searchTerm);
   const [localSearchInput, setLocalSearchInput] = useState('');
   const isSearchActive = useSelector((state: RootState) => state.search.isSearchActive);
-  
-    useEffect(() => {
+  const profileImage = useSelector((state: RootState) => state.auth.user?.image || null);
+
+  useEffect(() => {
     setLocalSearchInput(searchTerm);
   }, [searchTerm]);
-
 
   useEffect(() => {
     setIsClient(true);
@@ -87,7 +88,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
     const trimmedSearch = localSearchInput.trim();
     console.log('Search submitted:', trimmedSearch);
     dispatch(setSearchTerm(trimmedSearch));
-    
+
     if (onSearch) {
       onSearch(trimmedSearch);
     }
@@ -98,12 +99,12 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
       handleSearchSubmit(e as any);
     }
   };
-  
+
   const handleResetSearch = () => {
-  setLocalSearchInput('');
-  dispatch(setSearchTerm(''));
-  console.log('Header search reset');
-};
+    setLocalSearchInput('');
+    dispatch(setSearchTerm(''));
+    console.log('Header search reset');
+  };
   const formatPrice = (price: number): string => {
     // Convert to fixed decimal first, then add commas
     const fixedPrice = Number(price).toFixed(2);
@@ -163,7 +164,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
       router.push('/');
     }
   };
-  
+
 
   const handleMobileCategoryClick = (e: React.MouseEvent, buyerType: string) => {
     e.preventDefault();
@@ -334,38 +335,38 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
             </nav>
           )}
 
-{!isMobile && (
-  <div className="flex-1 max-w-xl mx-4">
-    <form onSubmit={handleSearchSubmit}>
-      <div className="relative">
-        <input
-          type="text"
-          placeholder="Search for Product"
-          value={localSearchInput}
-          onChange={handleSearchChange}
-          onKeyPress={handleSearchKeyPress}
-          className="italic w-full py-2 px-4 rounded-[10px] text-gray-800 focus:outline-none bg-white"
-        />
-        {isSearchActive && searchTerm ? (
-          <button 
-            type="button"
-            onClick={handleResetSearch}
-            className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
-          >
-            <X size={16} />
-          </button>
-        ) : (
-          <button 
-            type="submit"
-            className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-          >
-            <FontAwesomeIcon icon={faMagnifyingGlass} />
-          </button>
-        )}
-      </div>
-    </form>
-  </div>
-)}
+          {!isMobile && (
+            <div className="flex-1 max-w-xl mx-4">
+              <form onSubmit={handleSearchSubmit}>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search for Product"
+                    value={localSearchInput}
+                    onChange={handleSearchChange}
+                    onKeyPress={handleSearchKeyPress}
+                    className="italic w-full py-2 px-4 rounded-[10px] text-gray-800 focus:outline-none bg-white"
+                  />
+                  {isSearchActive && searchTerm ? (
+                    <button
+                      type="button"
+                      onClick={handleResetSearch}
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
+                    >
+                      <X size={16} />
+                    </button>
+                  ) : (
+                    <button
+                      type="submit"
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    >
+                      <FontAwesomeIcon icon={faMagnifyingGlass} />
+                    </button>
+                  )}
+                </div>
+              </form>
+            </div>
+          )}
 
           <div onClick={handleCartClick} className="cursor-pointer">
             <div className="flex items-center space-x-4 bg-[#502496] px-8 py-2 rounded-full">
@@ -386,8 +387,16 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
           )}
 
           {isAuthenticated() && (
-            <Link className='border-2 w-9 h-9 flex justify-center items-center rounded-full' href="/account">
-              <FontAwesomeIcon className='text-1xl' icon={faUser} />
+            <Link className='border-2 w-12 h-12 flex justify-center items-center rounded-full overflow-hidden' href="/account">
+              {profileImage ? (
+                <img
+                  src={profileImage}
+                  alt="Profile"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <FontAwesomeIcon className='text-1xl' icon={faUser} />
+              )}
             </Link>
           )}
 

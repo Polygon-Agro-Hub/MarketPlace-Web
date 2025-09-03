@@ -48,12 +48,13 @@ export default function Home() {
   }, [searchTerm]);
 
   const checkBuyerTypeAndRedirect = () => {
+    console.log('Checking buyer type for user:', user?.buyerType);
     if (user && user.buyerType) {
       if (user.buyerType === 'Retail') {
         router.push('/');
         return;
       } else if (user.buyerType === 'Wholesale') {
-        // Already on correct page for Wholesale
+       router.push('/wholesale/home')
         return;
       }
     }

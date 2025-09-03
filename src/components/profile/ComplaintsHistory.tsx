@@ -10,6 +10,8 @@ import { fetchComplaints } from '@/services/auth-service';
 import EmptyComplaints from '../complaints/No-complaint';
 import Select, { ActionMeta, SingleValue } from 'react-select'; // Import react-select
 import Loader from '@/components/loader-spinner/Loader';
+import Image from 'next/image';
+import noComplaints from '../../../public/icons/no complaints.png';
 
 // Interfaces
 interface Complaint {
@@ -132,7 +134,7 @@ const ComplaintsHistory = () => {
     <div>
       <Loader isVisible={loading} />
       <div
-        className={`relative z-10 px-4 sm:px-6 md:px-8 min-h-screen mb-10 ${selectedComplaint ? 'bg-white' : 'bg-white'
+        className={`relative z-10 px-4 sm:px-6 md:px-8 min-h-screen p-3 ${selectedComplaint ? 'bg-white' : 'bg-white'
           } blur-effect`}
       >
         <h2 className="font-medium text-[14px] text-base md:text-[18px] mb-2 mt-2">
