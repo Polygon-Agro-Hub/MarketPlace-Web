@@ -107,6 +107,9 @@ function InvoiceView({
   onClose: () => void;
   invoiceRef: React.RefObject<HTMLDivElement>;
 }) {
+  const user = useSelector((state: RootState) => state.auth.user);
+  const buyerType = user?.buyerType || 'Retail';
+
   if (!invoice) {
     return (
       <div className="flex flex-col items-center justify-center h-[70vh] text-center text-[rgb(75,85,99)]">
@@ -127,255 +130,257 @@ function InvoiceView({
     return parseFloat(value.replace('Rs. ', '').replace(/,/g, '')) || 0;
   }
 
-return (
-  <div className="w-full max-w-[794px] mx-auto p-4 sm:p-6 lg:p-8 bg-white" ref={invoiceRef}>
-    <h1 className="text-xl sm:text-2xl font-bold text-center" style={{ color: 'rgb(62,32,109)' }}>
-      <div className="flex justify-start mb-2 sm:mb-0">
-        <button onClick={onClose} className="text-[rgb(107,114,128)] cursor-pointer hover:text-[rgb(62,32,109)]">
-          <span className="text-xl sm:text-2xl">⟵</span>
-        </button>
-      </div>
-      INVOICE
-    </h1>
+  return (
+    <div className="w-full max-w-[794px] mx-auto p-4 sm:p-6 lg:p-8 bg-white" ref={invoiceRef}>
+      <h1 className="text-xl sm:text-2xl font-bold text-center" style={{ color: 'rgb(62,32,109)' }}>
+        <div className="flex justify-start mb-2 sm:mb-0">
+          <button onClick={onClose} className="text-[rgb(107,114,128)] cursor-pointer hover:text-[rgb(62,32,109)]">
+            <span className="text-xl sm:text-2xl">⟵</span>
+          </button>
+        </div>
+        INVOICE
+      </h1>
 
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-4">
-      <div className="order-2 sm:order-1">
-        <p className="text-base sm:text-lg font-semibold">Polygon Holdings (Pvt) Ltd</p>
-        <div className="text-xs sm:text-sm">
-          <p>No. 614, Nawam Mawatha, Colombo 02</p>
-          <p>Contact No: +94 112 700 900</p>
-          <p>Email Address: info@polygon.lk</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-4">
+        <div className="order-2 sm:order-1">
+          <p className="text-base sm:text-lg font-semibold">Polygon Holdings (Pvt) Ltd</p>
+          <div className="text-xs sm:text-sm">
+            <p>No. 614, Nawam Mawatha, Colombo 02</p>
+            <p>Contact No: +94 112 700 900</p>
+            <p>Email Address: info@polygon.lk</p>
+          </div>
+        </div>
+        <div className="order-1 sm:order-2 flex justify-center sm:justify-end">
+          <NextImage
+            src={Logo}
+            alt="Polygon Logo"
+            width={120}
+            height={120}
+            className="sm:w-[150px] sm:h-[150px]"
+            style={{ objectFit: 'contain' }}
+          />
         </div>
       </div>
-      <div className="order-1 sm:order-2 flex justify-center sm:justify-end">
-        <NextImage
-          src={Logo}
-          alt="Polygon Logo"
-          width={120}
-          height={120}
-          className="sm:w-[150px] sm:h-[150px]"
-          style={{ objectFit: 'contain' }}
-        />
-      </div>
-    </div>
 
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6 text-xs sm:text-sm">
-      <div className="order-1">
-        <p className="font-bold">Bill To:</p>
-        <p>{`${invoice.billingInfo.title}. ${invoice.billingInfo.fullName}`}</p>
-        <p className="break-all">{invoice.billingInfo.email}</p>
-        <p>{invoice.billingInfo.phone}</p>
-        {invoice.billingInfo.buildingType === "House" ? (
-          <>
-            <p className="font-bold mt-4">House Address :</p>
-            <p><span className="font-normal" style={{ color: '#929292' }}>House No :</span> {invoice.billingInfo.houseNo},</p>
-            <p><span className="font-normal" style={{ color: '#929292' }}>Street Name :</span> {invoice.billingInfo.street},</p>
-            <p><span className="font-normal" style={{ color: '#929292' }}>City :</span> {invoice.billingInfo.city}</p>
-          </>
-        ) : invoice.billingInfo.buildingType === "Apartment" ? (
-          <>
-            <p className="font-bold mt-4">Apartment Address :</p>
-            <p><span className="font-normal" style={{ color: '#929292' }}>No :</span> {invoice.billingInfo.houseNo},</p>
-            <p><span className="font-normal" style={{ color: '#929292' }}>Name :</span> {invoice.billingInfo.street},</p>
-            <p><span className="font-normal" style={{ color: '#929292' }}>House No :</span> {invoice.billingInfo.houseNo},</p>
-            <p><span className="font-normal" style={{ color: '#929292' }}>Street Name :</span> {invoice.billingInfo.street},</p>
-            <p><span className="font-normal" style={{ color: '#929292' }}>City :</span> {invoice.billingInfo.city}</p>
-          </>
-        ) : (
-          <>
-            <p>{`No. ${invoice.billingInfo.houseNo}`}</p>
-            <p>{invoice.billingInfo.street}</p>
-            <p>{invoice.billingInfo.city}</p>
-          </>
-        )}
-        <p className="font-bold mt-5">Invoice No:</p>
-        <p>{invoice.invoiceNumber}</p>
-        <p className="font-bold mt-5">Delivery Method:</p>
-        <p>{invoice.deliveryMethod}</p>
-        {invoice.deliveryMethod?.toLowerCase().includes('pickup') && invoice.pickupInfo && (
-          <div className="mt-3 text-xs sm:text-sm">
-            <p className="font-bold">Centre: {invoice.pickupInfo.centerName || 'N/A'}</p>
-            <p>{`${invoice.pickupInfo.address?.city || 'N/A'}, ${invoice.pickupInfo.address?.district || 'N/A'}`}</p>
-            <p>{`${invoice.pickupInfo.address?.province || 'N/A'}, ${invoice.pickupInfo.address?.country || 'N/A'}`}</p>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6 text-xs sm:text-sm">
+        <div className="order-1">
+          <p className="font-bold">Bill To:</p>
+          <p>{`${invoice.billingInfo.title}. ${invoice.billingInfo.fullName}`}</p>
+          <p className="break-all">{invoice.billingInfo.email}</p>
+          <p>{invoice.billingInfo.phone}</p>
+          {invoice.billingInfo.buildingType === "House" ? (
+            <>
+              <p className="font-bold mt-4">House Address :</p>
+              <p><span className="font-normal" style={{ color: '#929292' }}>House No :</span> {invoice.billingInfo.houseNo},</p>
+              <p><span className="font-normal" style={{ color: '#929292' }}>Street Name :</span> {invoice.billingInfo.street},</p>
+              <p><span className="font-normal" style={{ color: '#929292' }}>City :</span> {invoice.billingInfo.city}</p>
+            </>
+          ) : invoice.billingInfo.buildingType === "Apartment" ? (
+            <>
+              <p className="font-bold mt-4">Apartment Address :</p>
+              <p><span className="font-normal" style={{ color: '#929292' }}>No :</span> {invoice.billingInfo.houseNo},</p>
+              <p><span className="font-normal" style={{ color: '#929292' }}>Name :</span> {invoice.billingInfo.street},</p>
+              <p><span className="font-normal" style={{ color: '#929292' }}>House No :</span> {invoice.billingInfo.houseNo},</p>
+              <p><span className="font-normal" style={{ color: '#929292' }}>Street Name :</span> {invoice.billingInfo.street},</p>
+              <p><span className="font-normal" style={{ color: '#929292' }}>City :</span> {invoice.billingInfo.city}</p>
+            </>
+          ) : (
+            <>
+              <p>{`No. ${invoice.billingInfo.houseNo}`}</p>
+              <p>{invoice.billingInfo.street}</p>
+              <p>{invoice.billingInfo.city}</p>
+            </>
+          )}
+          <p className="font-bold mt-5">Invoice No:</p>
+          <p>{invoice.invoiceNumber}</p>
+          <p className="font-bold mt-5">Delivery Method:</p>
+          <p>{invoice.deliveryMethod}</p>
+          {invoice.deliveryMethod?.toLowerCase().includes('pickup') && invoice.pickupInfo && (
+            <div className="mt-3 text-xs sm:text-sm">
+              <p className="font-bold">Centre: {invoice.pickupInfo.centerName || 'N/A'}</p>
+              <p>{`${invoice.pickupInfo.address?.city || 'N/A'}, ${invoice.pickupInfo.address?.district || 'N/A'}`}</p>
+              <p>{`${invoice.pickupInfo.address?.province || 'N/A'}, ${invoice.pickupInfo.address?.country || 'N/A'}`}</p>
+            </div>
+          )}
+        </div>
+
+        <div className="order-2 lg:text-left lg:ml-49">
+          <p className="font-semibold mt-5 lg:mt-5">Grand Total:</p>
+          <p className="font-extrabold text-lg sm:text-xl">{formatCurrencyWithCommas(invoice.grandTotal)}</p>
+          <p className="font-semibold mt-5">Payment Method:</p>
+          <p>{invoice.paymentMethod}</p>
+          <p className="font-semibold mt-5">Ordered Date:</p>
+          <p>{formatDateTime(invoice.invoiceDate, 'date')}</p>
+          <p className="font-semibold mt-5">Scheduled Date:</p>
+          <p>{formatDateTime(invoice.scheduledDate, 'date')}</p>
+        </div>
+      </div>
+
+      <div className="mb-6 sm:mb-8">
+        {invoice.familyPackItems && invoice.familyPackItems.length > 0 && (
+          <div className="mb-6 sm:mb-8">
+            {invoice.familyPackItems.map((pack, packIndex) => (
+              <div key={pack.id} className="mb-4">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 gap-2">
+                  <h2 className="font-semibold text-sm sm:text-base">{`${pack.name} (${pack.packageDetails?.length || 0} Items)`}</h2>
+                  <span className="font-semibold text-lg">{formatCurrencyWithCommas(pack.amount)}</span>
+                </div>
+                <div className="border-t mb-4 mt-4 border-gray-300" />
+                <div className="mb-4 border border-gray-300 rounded-lg overflow-x-auto">
+                  <table className="w-full text-xs sm:text-sm min-w-[500px] sm:min-w-0">
+                    <thead>
+                      <tr className="border-b bg-gray-100 border-gray-300">
+                        <th className="p-2 sm:p-3 text-left w-16">Index</th>
+                        <th className="p-2 sm:p-3 text-left">Item Description</th>
+                        <th className="p-2 sm:p-3 text-left w-16">QTY</th>
+                        <th className="p-2 sm:p-3 text-left w-16"></th>
+                        <th className="p-2 sm:p-3 text-left w-16"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pack.packageDetails && pack.packageDetails.length > 0 ? (
+                        pack.packageDetails.map((detail, index) => (
+                          <tr key={index} className="border-b border-gray-200">
+                            <td className="p-2 sm:p-5 text-left">{`${index + 1}.`}</td>
+                            <td className="p-2 sm:p-3 text-left">{detail.typeName}</td>
+                            <td className="p-2 sm:p-3 text-center">{detail.qty}</td>
+                            <td className="p-2 sm:p-3 text-left"></td>
+                            <td className="p-2 sm:p-3 text-left"></td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={5} className="p-2 sm:p-3 text-center text-gray-600">
+                            No package details available.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
 
-      <div className="order-2 lg:text-left lg:ml-49">
-        <p className="font-semibold mt-5 lg:mt-5">Grand Total:</p>
-        <p className="font-extrabold text-lg sm:text-xl">{formatCurrencyWithCommas(invoice.grandTotal)}</p>
-        <p className="font-semibold mt-5">Payment Method:</p>
-        <p>{invoice.paymentMethod}</p>
-        <p className="font-semibold mt-5">Ordered Date:</p>
-        <p>{formatDateTime(invoice.invoiceDate, 'date')}</p>
-        <p className="font-semibold mt-5">Scheduled Date:</p>
-        <p>{formatDateTime(invoice.scheduledDate, 'date')}</p>
-      </div>
-    </div>
-
-    <div className="mb-6 sm:mb-8">
-      {invoice.familyPackItems && invoice.familyPackItems.length > 0 && (
+      {invoice.additionalItems && invoice.additionalItems.length > 0 && (
         <div className="mb-6 sm:mb-8">
-          {invoice.familyPackItems.map((pack, packIndex) => (
-            <div key={pack.id} className="mb-4">
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 gap-2">
-                <h2 className="font-semibold text-sm sm:text-base">{`${pack.name} (${pack.packageDetails?.length || 0} Items)`}</h2>
-                <span className="font-semibold text-lg">{formatCurrencyWithCommas(pack.amount)}</span>
-              </div>
-              <div className="border-t mb-4 mt-4 border-gray-300" />
-              <div className="mb-4 border border-gray-300 rounded-lg overflow-x-auto">
-                <table className="w-full text-xs sm:text-sm min-w-[500px] sm:min-w-0">
-                  <thead>
-                    <tr className="border-b bg-gray-100 border-gray-300">
-                      <th className="p-2 sm:p-3 text-left w-16">Index</th>
-                      <th className="p-2 sm:p-3 text-left">Item Description</th>
-                      <th className="p-2 sm:p-3 text-left w-16">QTY</th>
-                      <th className="p-2 sm:p-3 text-left w-16"></th>
-                      <th className="p-2 sm:p-3 text-left w-16"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pack.packageDetails && pack.packageDetails.length > 0 ? (
-                      pack.packageDetails.map((detail, index) => (
-                        <tr key={index} className="border-b border-gray-200">
-                          <td className="p-2 sm:p-5 text-left">{`${index + 1}.`}</td>
-                          <td className="p-2 sm:p-3 text-left">{detail.typeName}</td>
-                          <td className="p-2 sm:p-3 text-center">{detail.qty}</td>
-                          <td className="p-2 sm:p-3 text-left"></td>
-                          <td className="p-2 sm:p-3 text-left"></td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={5} className="p-2 sm:p-3 text-center text-gray-600">
-                          No package details available.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ))}
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 gap-2">
+            <h2 className="font-semibold text-sm sm:text-base">
+              {`${buyerType === 'Wholesale' ? 'Selected Items' : 'Additional Items'} (${invoice.additionalItems.length} Items)`}
+            </h2>
+            <span className="font-semibold text-lg">{formatCurrencyWithCommas(invoice.additionalItemsTotal)}</span>
+          </div>
+          <div className="border-t mb-4 mt-4 border-gray-300" />
+          <div className="mb-4 border border-gray-300 rounded-lg overflow-x-auto">
+            <table className="w-full text-xs sm:text-sm min-w-[600px] sm:min-w-0">
+              <thead>
+                <tr className="border-b bg-gray-100 border-gray-300">
+                  <th className="p-2 sm:p-3 text-left w-16">Index</th>
+                  <th className="p-2 sm:p-3 text-left">Item Description</th>
+                  <th className="p-2 sm:p-3 text-left">Unit Price (Rs.)</th>
+                  <th className="p-2 sm:p-3 text-left w-20">QTY</th>
+                  <th className="p-2 sm:p-3 text-left">Amount (Rs.)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {invoice.additionalItems.map((item, index) => (
+                  <tr key={item.id} className="border-b border-gray-200">
+                    <td className="p-2 sm:p-5 text-left">{`${index + 1}.`}</td>
+                    <td className="p-2 sm:p-3 text-left">{item.name}</td>
+                    <td className="p-2 sm:p-3 text-left">{formatCurrencyWithCommas(item.unitPrice)}</td>
+                    <td className="p-2 sm:p-3 text-left">{`${item.quantity} ${item.unit}`}</td>
+                    <td className="p-2 sm:p-3 text-left">{formatCurrencyWithCommas(item.amount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
-    </div>
 
-    {invoice.additionalItems && invoice.additionalItems.length > 0 && (
       <div className="mb-6 sm:mb-8">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 gap-2">
-          <h2 className="font-semibold text-sm sm:text-base">{`Additional Items (${invoice.additionalItems.length} Items)`}</h2>
-          <span className="font-semibold text-lg">{formatCurrencyWithCommas(invoice.additionalItemsTotal)}</span>
-        </div>
+        <h2 className="font-semibold text-sm sm:text-base">Grand Total for all items</h2>
         <div className="border-t mb-4 mt-4 border-gray-300" />
-        <div className="mb-4 border border-gray-300 rounded-lg overflow-x-auto">
-          <table className="w-full text-xs sm:text-sm min-w-[600px] sm:min-w-0">
-            <thead>
-              <tr className="border-b bg-gray-100 border-gray-300">
-                <th className="p-2 sm:p-3 text-left w-16">Index</th>
-                <th className="p-2 sm:p-3 text-left">Item Description</th>
-                <th className="p-2 sm:p-3 text-left">Unit Price (Rs.)</th>
-                <th className="p-2 sm:p-3 text-left w-20">QTY</th>
-                <th className="p-2 sm:p-3 text-left">Amount (Rs.)</th>
-              </tr>
-            </thead>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs sm:text-sm min-w-[400px] sm:min-w-0" id="grandTotalTable">
             <tbody>
-              {invoice.additionalItems.map((item, index) => (
-                <tr key={item.id} className="border-b border-gray-200">
-                  <td className="p-2 sm:p-5 text-left">{`${index + 1}.`}</td>
-                  <td className="p-2 sm:p-3 text-left">{item.name}</td>
-                  <td className="p-2 sm:p-3 text-left">{formatCurrencyWithCommas(item.unitPrice)}</td>
-                  <td className="p-2 sm:p-3 text-left">{`${item.quantity} ${item.unit}`}</td>
-                  <td className="p-2 sm:p-3 text-left">{formatCurrencyWithCommas(item.amount)}</td>
+              {invoice.familyPackItems && invoice.familyPackItems.length > 0 && (
+                <tr>
+                  <td className="p-2">Total Price for Packages</td>
+                  <td className="p-2 text-right">{formatCurrencyWithCommas(invoice.familyPackTotal)}</td>
                 </tr>
-              ))}
+              )}
+              {invoice.additionalItems && invoice.additionalItems.length > 0 && (
+                <tr>
+                  <td className="p-2">{buyerType === 'Wholesale' ? 'Selected Items' : 'Additional Items'}</td>
+                  <td className="p-2 text-right">{formatCurrencyWithCommas(invoice.additionalItemsTotal)}</td>
+                </tr>
+              )}
+              {!invoice.deliveryMethod?.toLowerCase().includes('pickup') && parseCurrency(invoice.deliveryFee) > 0 && (
+                <tr>
+                  <td className="p-2">Delivery Fee</td>
+                  <td className="p-2 text-right">{formatCurrencyWithCommas(invoice.deliveryFee)}</td>
+                </tr>
+              )}
+              {parseCurrency(invoice.discount) > 0 && (
+                <tr>
+                  <td className="p-2">Discount</td>
+                  <td className="p-2 text-right">{formatCurrencyWithCommas(invoice.discount)}</td>
+                </tr>
+              )}
+              {parseCurrency(invoice.couponDiscount) > 0 && (
+                <tr>
+                  <td className="p-2">Coupon Discount</td>
+                  <td className="p-2 text-right">{formatCurrencyWithCommas(invoice.couponDiscount)}</td>
+                </tr>
+              )}
+              <tr className="font-bold border-t-2 border-black">
+                <td className="p-2">Grand Total</td>
+                <td className="p-2 text-right">{formatCurrencyWithCommas((() => {
+                  let total = 0;
+                  // Add family pack total
+                  if (invoice.familyPackItems && invoice.familyPackItems.length > 0) {
+                    total += parseCurrency(invoice.familyPackTotal);
+                  }
+                  // Add additional items total
+                  if (invoice.additionalItems && invoice.additionalItems.length > 0) {
+                    total += parseCurrency(invoice.additionalItemsTotal);
+                  }
+                  // Add delivery fee (only if not pickup)
+                  if (!invoice.deliveryMethod?.toLowerCase().includes('pickup')) {
+                    total += parseCurrency(invoice.deliveryFee);
+                  }
+                  // Subtract discount
+                  total -= parseCurrency(invoice.discount);
+                  // Subtract coupon discount
+                  total -= parseCurrency(invoice.couponDiscount);
+                  // Ensure minimum 0
+                  return Math.max(total, 0);
+                })())}</td>
+              </tr>
             </tbody>
           </table>
         </div>
       </div>
-    )}
 
-    <div className="mb-6 sm:mb-8">
-      <h2 className="font-semibold text-sm sm:text-base">Grand Total for all items</h2>
-      <div className="border-t mb-4 mt-4 border-gray-300" />
-      <div className="overflow-x-auto">
-        <table className="w-full text-xs sm:text-sm min-w-[400px] sm:min-w-0" id="grandTotalTable">
-          <tbody>
-            {invoice.familyPackItems && invoice.familyPackItems.length > 0 && (
-              <tr>
-                <td className="p-2">Total Price for Packages</td>
-                <td className="p-2 text-right">{formatCurrencyWithCommas(invoice.familyPackTotal)}</td>
-              </tr>
-            )}
-            {invoice.additionalItems && invoice.additionalItems.length > 0 && (
-              <tr>
-                <td className="p-2">Additional Items</td>
-                <td className="p-2 text-right">{formatCurrencyWithCommas(invoice.additionalItemsTotal)}</td>
-              </tr>
-            )}
-            {!invoice.deliveryMethod?.toLowerCase().includes('pickup') && parseCurrency(invoice.deliveryFee) > 0 && (
-              <tr>
-                <td className="p-2">Delivery Fee</td>
-                <td className="p-2 text-right">{formatCurrencyWithCommas(invoice.deliveryFee)}</td>
-              </tr>
-            )}
-            {parseCurrency(invoice.discount) > 0 && (
-              <tr>
-                <td className="p-2">Discount</td>
-                <td className="p-2 text-right">{formatCurrencyWithCommas(invoice.discount)}</td>
-              </tr>
-            )}
-            {parseCurrency(invoice.couponDiscount) > 0 && (
-              <tr>
-                <td className="p-2">Coupon Discount</td>
-                <td className="p-2 text-right">{formatCurrencyWithCommas(invoice.couponDiscount)}</td>
-              </tr>
-            )}
-            <tr className="font-bold border-t-2 border-black">
-              <td className="p-2">Grand Total</td>
-              <td className="p-2 text-right">{formatCurrencyWithCommas((() => {
-                let total = 0;
-                // Add family pack total
-                if (invoice.familyPackItems && invoice.familyPackItems.length > 0) {
-                  total += parseCurrency(invoice.familyPackTotal);
-                }
-                // Add additional items total
-                if (invoice.additionalItems && invoice.additionalItems.length > 0) {
-                  total += parseCurrency(invoice.additionalItemsTotal);
-                }
-                // Add delivery fee (only if not pickup)
-                if (!invoice.deliveryMethod?.toLowerCase().includes('pickup')) {
-                  total += parseCurrency(invoice.deliveryFee);
-                }
-                // Subtract discount
-                total -= parseCurrency(invoice.discount);
-                // Subtract coupon discount
-                total -= parseCurrency(invoice.couponDiscount);
-                // Ensure minimum 0
-                return Math.max(total, 0);
-              })())}</td>
-            </tr>
-          </tbody>
-        </table>
+      <div className="text-xs sm:text-sm">
+        <p className="mb-2 font-bold">Remarks:</p>
+        <p className="mb-2">Kindly inspect all goods at the time of delivery to ensure accuracy and condition.</p>
+        <p className="mb-2">Polygon does not accept returns under any circumstances.</p>
+        <p className="mb-2">Please contact our customer service team within 24 hours of delivery.</p>
+        <p className="mb-2">For any assistance, feel free to contact our customer service team.</p>
+        <p className="font-semibold text-center italic mt-6 sm:mt-9">Thank you for shopping with us!</p>
+        <p className="text-center italic mt-3">
+          WE WILL SEND YOU MORE OFFERS, LOWEST PRICED VEGGIES FROM US
+        </p>
+        <p className="text-center italic mt-6 sm:mt-10 text-gray-400 text-xs">
+          -THIS IS A COMPUTER GENERATED INVOICE, THUS NO SIGNATURE REQUIRED-
+        </p>
       </div>
     </div>
-
-    <div className="text-xs sm:text-sm">
-      <p className="mb-2 font-bold">Remarks:</p>
-      <p className="mb-2">Kindly inspect all goods at the time of delivery to ensure accuracy and condition.</p>
-      <p className="mb-2">Polygon does not accept returns under any circumstances.</p>
-      <p className="mb-2">Please contact our customer service team within 24 hours of delivery.</p>
-      <p className="mb-2">For any assistance, feel free to contact our customer service team.</p>
-      <p className="font-semibold text-center italic mt-6 sm:mt-9">Thank you for shopping with us!</p>
-      <p className="text-center italic mt-3">
-        WE WILL SEND YOU MORE OFFERS, LOWEST PRICED VEGGIES FROM US
-      </p>
-      <p className="text-center italic mt-6 sm:mt-10 text-gray-400 text-xs">
-        -THIS IS A COMPUTER GENERATED INVOICE, THUS NO SIGNATURE REQUIRED-
-      </p>
-    </div>
-  </div>
-);
+  );
 }
 
 function InvoicePageContent() {
@@ -389,6 +394,8 @@ function InvoicePageContent() {
   const [logoBase64, setLogoBase64] = useState<string | null>(null);
   const invoiceRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
+  const user = useSelector((state: RootState) => state.auth.user);
+  const buyerType = user?.buyerType || 'Retail'
 
   const orderId = searchParams.get('orderId');
 
@@ -461,7 +468,10 @@ function InvoicePageContent() {
     loadScripts();
   }, []);
 
-  const generatePDF = (invoice: InvoiceData) => {
+  const generatePDF = (invoice: InvoiceData, buyerType: string) => {
+
+    console.log('buyerType in generatePDF:', buyerType);
+
     const parseNum = (value: string): number => {
       if (typeof value === 'number') return value;
       if (!value) return 0;
@@ -537,7 +547,12 @@ function InvoicePageContent() {
     const additionalItemsSection = invoice.additionalItems && invoice.additionalItems.length > 0 ? [
       {
         columns: [
-          { text: `Additional Items (${invoice.additionalItems.length} Items)`, bold: true, fontSize: 9, margin: [0, 8, 0, 4] },
+          {
+            text: `${buyerType === 'Wholesale' ? 'Selected Items' : 'Additional Items'} (${invoice.additionalItems.length} Items)`,
+            bold: true,
+            fontSize: 9,
+            margin: [0, 8, 0, 4]
+          },
           { text: formatCurrencyForPDF(invoice.additionalItemsTotal), bold: true, fontSize: 9, alignment: 'right', margin: [0, 8, 0, 4] }
         ]
       },
@@ -590,53 +605,53 @@ function InvoicePageContent() {
 
     // Calculate subtotal
     let subtotal = 0;
-if (invoice.familyPackItems && invoice.familyPackItems.length > 0) {
-  subtotal += parseNum(invoice.familyPackTotal);
-  grandTotalRows.push([
-    { text: 'Total Price for Packages', fontSize: 9 },
-    { text: formatCurrencyForPDF(invoice.familyPackTotal), fontSize: 9, alignment: 'right' }
-  ]);
-}
+    if (invoice.familyPackItems && invoice.familyPackItems.length > 0) {
+      subtotal += parseNum(invoice.familyPackTotal);
+      grandTotalRows.push([
+        { text: 'Total Price for Packages', fontSize: 9 },
+        { text: formatCurrencyForPDF(invoice.familyPackTotal), fontSize: 9, alignment: 'right' }
+      ]);
+    }
 
-if (invoice.additionalItems && invoice.additionalItems.length > 0) {
-  subtotal += parseNum(invoice.additionalItemsTotal);
-  grandTotalRows.push([
-    { text: 'Additional Items', fontSize: 9 },
-    { text: formatCurrencyForPDF(invoice.additionalItemsTotal), fontSize: 9, alignment: 'right' }
-  ]);
-}
+    if (invoice.additionalItems && invoice.additionalItems.length > 0) {
+      subtotal += parseNum(invoice.additionalItemsTotal);
+      grandTotalRows.push([
+        { text: buyerType === 'Wholesale' ? 'Selected Items' : 'Additional Items', fontSize: 9 },
+        { text: formatCurrencyForPDF(invoice.additionalItemsTotal), fontSize: 9, alignment: 'right' }
+      ]);
+    }
 
-// Add delivery fee if not pickup
-if (!invoice.deliveryMethod?.toLowerCase().includes('pickup') && parseNum(invoice.deliveryFee) > 0) {
-  subtotal += parseNum(invoice.deliveryFee);
-  grandTotalRows.push([
-    { text: 'Delivery Fee', fontSize: 9 },
-    { text: formatCurrencyForPDF(invoice.deliveryFee), fontSize: 9, alignment: 'right' }
-  ]);
-}
+    // Add delivery fee if not pickup
+    if (!invoice.deliveryMethod?.toLowerCase().includes('pickup') && parseNum(invoice.deliveryFee) > 0) {
+      subtotal += parseNum(invoice.deliveryFee);
+      grandTotalRows.push([
+        { text: 'Delivery Fee', fontSize: 9 },
+        { text: formatCurrencyForPDF(invoice.deliveryFee), fontSize: 9, alignment: 'right' }
+      ]);
+    }
 
-// Subtract discounts
-if (parseNum(invoice.discount) > 0) {
-  subtotal -= parseNum(invoice.discount);
-  grandTotalRows.push([
-    { text: 'Discount', fontSize: 9 },
-    { text: formatCurrencyForPDF(invoice.discount), fontSize: 9, alignment: 'right' }
-  ]);
-}
+    // Subtract discounts
+    if (parseNum(invoice.discount) > 0) {
+      subtotal -= parseNum(invoice.discount);
+      grandTotalRows.push([
+        { text: 'Discount', fontSize: 9 },
+        { text: formatCurrencyForPDF(invoice.discount), fontSize: 9, alignment: 'right' }
+      ]);
+    }
 
-if (parseNum(invoice.couponDiscount) > 0) {
-  subtotal -= parseNum(invoice.couponDiscount);
-  grandTotalRows.push([
-    { text: 'Coupon Discount', fontSize: 9 },
-    { text: formatCurrencyForPDF(invoice.couponDiscount), fontSize: 9, alignment: 'right' }
-  ]);
-}
+    if (parseNum(invoice.couponDiscount) > 0) {
+      subtotal -= parseNum(invoice.couponDiscount);
+      grandTotalRows.push([
+        { text: 'Coupon Discount', fontSize: 9 },
+        { text: formatCurrencyForPDF(invoice.couponDiscount), fontSize: 9, alignment: 'right' }
+      ]);
+    }
 
-const finalTotal = Math.max(subtotal, 0); // Ensure no negative total
-grandTotalRows.push([
-  { text: 'Grand Total', bold: true, fontSize: 9 },
-  { text: formatCurrencyForPDF(finalTotal), bold: true, fontSize: 10, alignment: 'right' }
-]);
+    const finalTotal = Math.max(subtotal, 0); // Ensure no negative total
+    grandTotalRows.push([
+      { text: 'Grand Total', bold: true, fontSize: 9 },
+      { text: formatCurrencyForPDF(finalTotal), bold: true, fontSize: 10, alignment: 'right' }
+    ]);
 
     const docDefinition: any = {
       pageSize: 'A4',
@@ -831,53 +846,53 @@ grandTotalRows.push([
     pdfMake.createPdf(docDefinition).download(`invoice_${invoice.invoiceNumber}.pdf`);
   };
 
-const fetchInvoice = async (orderId: string): Promise<void> => {
-  if (!token) {
-    console.error('No token available');
-    setSelectedInvoice(null);
-    setLoading(false);
-    return;
-  }
+  const fetchInvoice = async (orderId: string): Promise<void> => {
+    if (!token) {
+      console.error('No token available');
+      setSelectedInvoice(null);
+      setLoading(false);
+      return;
+    }
 
-  try {
-    setSelectedInvoice(null);
-    
-    const data = await getInvoice(token, orderId);
-    console.log('Invoice Response:', data);
+    try {
+      setSelectedInvoice(null);
 
-    // FIXED: Handle the nested structure - data.invoice.invoice
-    if (data.status && data.invoice && data.invoice.invoice) {
-      const apiInvoice = data.invoice.invoice; // Access the nested invoice object
+      const data = await getInvoice(token, orderId);
+      console.log('Invoice Response:', data);
 
-      const invoiceData: InvoiceData = {
-        invoiceNumber: apiInvoice.invoiceNumber || 'N/A',
-        invoiceDate: apiInvoice.invoiceDate || 'N/A',
-        scheduledDate: apiInvoice.scheduledDate || 'N/A',
-        deliveryMethod: apiInvoice.deliveryMethod || 'N/A',
-        paymentMethod: apiInvoice.paymentMethod || 'N/A',
-        amountDue: parseCurrency(apiInvoice.amountDue),
-        
-        familyPackItems: Array.isArray(apiInvoice.familyPackItems) 
-          ? apiInvoice.familyPackItems.map((item: any) => ({
+      // FIXED: Handle the nested structure - data.invoice.invoice
+      if (data.status && data.invoice && data.invoice.invoice) {
+        const apiInvoice = data.invoice.invoice; // Access the nested invoice object
+
+        const invoiceData: InvoiceData = {
+          invoiceNumber: apiInvoice.invoiceNumber || 'N/A',
+          invoiceDate: apiInvoice.invoiceDate || 'N/A',
+          scheduledDate: apiInvoice.scheduledDate || 'N/A',
+          deliveryMethod: apiInvoice.deliveryMethod || 'N/A',
+          paymentMethod: apiInvoice.paymentMethod || 'N/A',
+          amountDue: parseCurrency(apiInvoice.amountDue),
+
+          familyPackItems: Array.isArray(apiInvoice.familyPackItems)
+            ? apiInvoice.familyPackItems.map((item: any) => ({
               id: item.id ?? 0,
               name: item.name || 'Unknown',
               unitPrice: parseCurrency(item.unitPrice),
               quantity: item.quantity || '1',
               unit: item.unit || 'units',
               amount: parseCurrency(item.amount),
-              packageDetails: Array.isArray(item.packageDetails) 
+              packageDetails: Array.isArray(item.packageDetails)
                 ? item.packageDetails.map((detail: any) => ({
-                    packageId: detail.packageId,
-                    productTypeId: detail.productTypeId,
-                    typeName: detail.typeName,
-                    qty: detail.qty
-                  })) 
+                  packageId: detail.packageId,
+                  productTypeId: detail.productTypeId,
+                  typeName: detail.typeName,
+                  qty: detail.qty
+                }))
                 : []
-            })) 
-          : [],
-          
-        additionalItems: Array.isArray(apiInvoice.additionalItems) 
-          ? apiInvoice.additionalItems.map((item: any) => ({
+            }))
+            : [],
+
+          additionalItems: Array.isArray(apiInvoice.additionalItems)
+            ? apiInvoice.additionalItems.map((item: any) => ({
               id: item.id ?? 0,
               name: item.name || 'Unknown',
               unitPrice: parseCurrency(item.unitPrice),
@@ -885,29 +900,29 @@ const fetchInvoice = async (orderId: string): Promise<void> => {
               unit: item.unit || 'units',
               amount: parseCurrency(item.amount),
               image: item.image || undefined,
-            })) 
-          : [],
-          
-        familyPackTotal: parseCurrency(apiInvoice.familyPackTotal),
-        additionalItemsTotal: parseCurrency(apiInvoice.additionalItemsTotal),
-        deliveryFee: parseCurrency(apiInvoice.deliveryFee),
-        discount: parseCurrency(apiInvoice.discount),
-        couponDiscount: parseCurrency(apiInvoice.couponDiscount),
-        grandTotal: parseCurrency(apiInvoice.grandTotal),
-        
-        billingInfo: {
-          title: apiInvoice.billingInfo?.title || 'N/A',
-          fullName: apiInvoice.billingInfo?.fullName || 'N/A',
-          email: apiInvoice.billingInfo?.email || 'N/A',
-          buildingType: apiInvoice.billingInfo?.buildingType || 'N/A',
-          houseNo: apiInvoice.billingInfo?.houseNo || 'N/A',
-          street: apiInvoice.billingInfo?.street || 'N/A',
-          city: apiInvoice.billingInfo?.city || 'N/A',
-          phone: apiInvoice.billingInfo?.phone || 'N/A',
-        },
-        
-        pickupInfo: apiInvoice.pickupInfo
-          ? {
+            }))
+            : [],
+
+          familyPackTotal: parseCurrency(apiInvoice.familyPackTotal),
+          additionalItemsTotal: parseCurrency(apiInvoice.additionalItemsTotal),
+          deliveryFee: parseCurrency(apiInvoice.deliveryFee),
+          discount: parseCurrency(apiInvoice.discount),
+          couponDiscount: parseCurrency(apiInvoice.couponDiscount),
+          grandTotal: parseCurrency(apiInvoice.grandTotal),
+
+          billingInfo: {
+            title: apiInvoice.billingInfo?.title || 'N/A',
+            fullName: apiInvoice.billingInfo?.fullName || 'N/A',
+            email: apiInvoice.billingInfo?.email || 'N/A',
+            buildingType: apiInvoice.billingInfo?.buildingType || 'N/A',
+            houseNo: apiInvoice.billingInfo?.houseNo || 'N/A',
+            street: apiInvoice.billingInfo?.street || 'N/A',
+            city: apiInvoice.billingInfo?.city || 'N/A',
+            phone: apiInvoice.billingInfo?.phone || 'N/A',
+          },
+
+          pickupInfo: apiInvoice.pickupInfo
+            ? {
               centerId: apiInvoice.pickupInfo.centerId ?? undefined,
               centerName: apiInvoice.pickupInfo.centerName || 'N/A',
               contact01: apiInvoice.pickupInfo.contact01 || 'N/A',
@@ -920,48 +935,49 @@ const fetchInvoice = async (orderId: string): Promise<void> => {
                 zipCode: apiInvoice.pickupInfo.address?.zipCode || 'N/A',
               },
             }
-          : undefined,
-      };
+            : undefined,
+        };
 
-      console.log('Processed Invoice Data:', invoiceData);
-      setSelectedInvoice(invoiceData);
+        console.log('Processed Invoice Data:', invoiceData);
+        setSelectedInvoice(invoiceData);
 
-      // Generate PDF automatically
-      if (imageLoaded && pdfMakeLoaded) {
-        setTimeout(() => {
-          if (invoiceData) {
-            generatePDF(invoiceData);
-          } else {
-            console.error('No invoice data available for PDF generation');
-            alert('Failed to generate PDF. Invoice data not available.');
-          }
-        }, 500);
+        // Generate PDF automatically
+        // Generate PDF automatically
+        if (imageLoaded && pdfMakeLoaded) {
+          setTimeout(() => {
+            if (invoiceData) {
+              generatePDF(invoiceData, buyerType);
+            } else {
+              console.error('No invoice data available for PDF generation');
+              alert('Failed to generate PDF. Invoice data not available.');
+            }
+          }, 500);
+        }
+      } else {
+        console.error('Invalid invoice data received:', data);
+        setSelectedInvoice(null);
+        alert('Invalid invoice data received. Please try again.');
       }
-    } else {
-      console.error('Invalid invoice data received:', data);
+    } catch (error) {
+      console.error('Error fetching invoice:', error);
       setSelectedInvoice(null);
-      alert('Invalid invoice data received. Please try again.');
+      alert('Failed to fetch invoice. Please try again.');
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error('Error fetching invoice:', error);
-    setSelectedInvoice(null);
-    alert('Failed to fetch invoice. Please try again.');
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
-useEffect(() => {
+  useEffect(() => {
 
-  const orderId = searchParams.get('orderId'); 
-  
-  if (orderId) {
-    fetchInvoice(orderId);
-  } else {
-    setLoading(false);
-    alert('No order ID provided.');
-  }
-}, [token, imageLoaded, pdfMakeLoaded]);
+    const orderId = searchParams.get('orderId');
+
+    if (orderId) {
+      fetchInvoice(orderId);
+    } else {
+      setLoading(false);
+      alert('No order ID provided.');
+    }
+  }, [token, imageLoaded, pdfMakeLoaded]);
 
 
   return (

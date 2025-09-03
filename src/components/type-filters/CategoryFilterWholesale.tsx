@@ -212,6 +212,9 @@ export default function CategoryFilterWholesale() {
                                         currentPrice={product.discountedPrice}
                                         image={product.image}
                                         discount={product.discount}
+                                        startValue={product.startValue}
+                                        changeby={product.changeby}
+                                        unitType={product.unitType}
                                     />
                                 </div>
                             ))

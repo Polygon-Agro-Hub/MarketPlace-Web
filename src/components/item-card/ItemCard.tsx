@@ -42,7 +42,7 @@ const ItemCard = ({
 
     const getInitialQuantity = () => {
         const parsedStartValue = typeof startValue === 'string' ? parseFloat(startValue) : startValue;
-        
+
         if (unitType?.toLowerCase() === 'kg') {
             return parsedStartValue * 1000; // Convert kg to grams for internal storage
         }
@@ -96,7 +96,7 @@ const ItemCard = ({
     // Get minimum quantity based on unit and startValue
     const getMinQuantity = () => {
         const parsedStartValue = typeof startValue === 'string' ? parseFloat(startValue) : startValue;
-        
+
         if (unitType?.toLowerCase() === 'kg') {
             return parsedStartValue * 1000; // Convert to grams
         }
@@ -106,7 +106,7 @@ const ItemCard = ({
     // Get increment value based on unit and changeby
     const getIncrementValue = () => {
         const parsedChangeby = typeof changeby === 'string' ? parseFloat(changeby) : changeby;
-        
+
         if (unitType?.toLowerCase() === 'kg') {
             return parsedChangeby * 1000; // Convert to grams
         }
@@ -157,9 +157,11 @@ const ItemCard = ({
 
                 const productData = {
                     mpItemId: id,
-                    quantityType: normalizedQuantityType as 'kg' | 'g', // Type assertion for API compatibility
-                    quantity: typeof startValue === 'string' ? parseFloat(startValue) : startValue // Parse startValue
+                    quantityType: unitType as 'kg' | 'g', 
+                    quantity: typeof startValue === 'string' ? parseFloat(startValue) : startValue 
                 };
+                
+                console.log('Adding to cart with data:', productData);
 
                 await productAddToCart(productData, token);
 
@@ -447,10 +449,10 @@ const ItemCard = ({
                             onMouseLeave={() => setIsHovering(false)}
                             disabled={isLoading || isInCart}
                             className={`w-full py-1 px-1.5 rounded flex items-center justify-center gap-1 text-xs md:text-sm transition-colors ${isInCart
-                                    ? "bg-[#EDE1FF] text-gray-500 cursor-not-allowed"
-                                    : token && user && showQuantitySelector && buyerType !== 'Wholesale'
-                                        ? "bg-purple-900 text-white hover:bg-purple-800 cursor-pointer"
-                                        : "bg-[#EDE1FF] text-gray-400 hover:bg-[#3E206D] hover:text-white cursor-pointer"
+                                ? "bg-[#EDE1FF] text-gray-500 cursor-not-allowed"
+                                : token && user && showQuantitySelector && buyerType !== 'Wholesale'
+                                    ? "bg-purple-900 text-white hover:bg-purple-800 cursor-pointer"
+                                    : "bg-[#EDE1FF] text-gray-400 hover:bg-[#3E206D] hover:text-white cursor-pointer"
                                 } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                             {!showQuantitySelector && !isInCart && (
