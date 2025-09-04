@@ -491,7 +491,7 @@ export const sendOTPInSignup = async (
     // Default options
     const {
       message = `Your OTP for verification is: {{code}}`,
-      source = "AgroWorld"
+      source = "PolygonAgro"
     } = options || {};
 
     // Step 2: Send OTP

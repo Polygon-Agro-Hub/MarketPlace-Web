@@ -109,6 +109,7 @@ const Page: React.FC = () => {
   const [showDeliveryModal, setShowDeliveryModal] = useState(false);
   const [selectedDeliveryMethod, setSelectedDeliveryMethod] = useState<'pickup' | 'delivery' | null>(null);
   const [tooltipStates, setTooltipStates] = useState<Record<number, boolean>>({});
+  const buyerType = useSelector((state: RootState) => state.auth.user?.buyerType);
 
 
   const dispatch = useDispatch();
@@ -116,24 +117,25 @@ const Page: React.FC = () => {
 
   const calculateDiscount = (baseDiscount: number, unit: 'kg' | 'g', quantity: number): number => {
     const quantityInKg = unit === 'g' ? quantity / 1000 : quantity;
-    return parseFloat((baseDiscount * quantityInKg).toFixed(2));
+    return parseFloat((baseDiscount * quantityInKg).toFixed(3));
   };
 
-const calculatePrice = (basePrice: number, unit: 'kg' | 'g', quantity: number): number => {
-  const quantityInKg = unit === 'g' ? quantity / 1000 : quantity;
-  return parseFloat((basePrice * quantityInKg).toFixed(2));
-};
+  const calculatePrice = (basePrice: number, unit: 'kg' | 'g', quantity: number): number => {
+    const quantityInKg = unit === 'g' ? quantity / 1000 : quantity;
+    return parseFloat((basePrice * quantityInKg).toFixed(3));
+  };
+
 
   const getDisplayDiscount = (item: CartItem): number => {
     const selectedUnit = unitSelection[item.id] || item.unit;
     return calculateDiscount(item.discount, selectedUnit, item.quantity);
   };
 
- const getDisplayPrice = (item: CartItem): number => {
-  const selectedUnit = unitSelection[item.id] || item.unit;
-  // Use normalPrice instead of price for calculations
-  return calculatePrice(item.normalPrice, selectedUnit, item.quantity);
-};
+  const getDisplayPrice = (item: CartItem): number => {
+    const selectedUnit = unitSelection[item.id] || item.unit;
+    // Use normalPrice instead of price for calculations
+    return calculatePrice(item.normalPrice, selectedUnit, item.quantity);
+  };
 
   // Helper function to check if cart is empty
   const isCartEmpty = (): boolean => {
@@ -192,14 +194,14 @@ const calculatePrice = (basePrice: number, unit: 'kg' | 'g', quantity: number): 
     const currentUnit = unitSelection[itemId] || currentItem.unit;
     let newQuantity = currentItem.quantity;
 
-    // Convert quantity based on unit change with proper precision handling
+    // Convert quantity based on unit change with 3 decimal precision
     if (currentUnit !== newUnit) {
       if (currentUnit === 'kg' && newUnit === 'g') {
         // Convert kg to g: multiply by 1000
-        newQuantity = parseFloat((currentItem.quantity * 1000).toFixed(2));
+        newQuantity = parseFloat((currentItem.quantity * 1000).toFixed(3));
       } else if (currentUnit === 'g' && newUnit === 'kg') {
         // Convert g to kg: divide by 1000
-        newQuantity = parseFloat((currentItem.quantity / 1000).toFixed(2));
+        newQuantity = parseFloat((currentItem.quantity / 1000).toFixed(3));
       }
     }
 
@@ -223,6 +225,7 @@ const calculatePrice = (basePrice: number, unit: 'kg' | 'g', quantity: number): 
       return [...prev, { productId: itemId, newQuantity }];
     });
   };
+
 
 
   // Updated formatPrice function to handle decimal precision
@@ -256,27 +259,27 @@ const calculatePrice = (basePrice: number, unit: 'kg' | 'g', quantity: number): 
     const currentQuantity = currentItem.quantity;
     const selectedUnit = unitSelection[productId] || currentItem.unit;
 
-    // Get changeby value based on selected unit with proper precision
+    // Get changeby value based on selected unit with 3 decimal precision
     let changeBy = currentItem.changeby || 1;
     let startValue = currentItem.startValue || 1;
 
     // If unit is grams but changeby is for kg, convert it
     if (selectedUnit === 'g' && currentItem.unit === 'kg') {
-      changeBy = parseFloat((changeBy * 1000).toFixed(2));
-      startValue = parseFloat((startValue * 1000).toFixed(2));
+      changeBy = parseFloat((changeBy * 1000).toFixed(3));
+      startValue = parseFloat((startValue * 1000).toFixed(3));
     } else if (selectedUnit === 'kg' && currentItem.unit === 'g') {
-      changeBy = parseFloat((changeBy / 1000).toFixed(2));
-      startValue = parseFloat((startValue / 1000).toFixed(2));
+      changeBy = parseFloat((changeBy / 1000).toFixed(3));
+      startValue = parseFloat((startValue / 1000).toFixed(3));
     }
 
-    // Calculate new quantity using changeby value with proper precision
+    // Calculate new quantity using changeby value with 3 decimal precision
     let newQuantity: number;
     if (delta > 0) {
       // Increment by changeby value
-      newQuantity = parseFloat((currentQuantity + (changeBy * delta)).toFixed(2));
+      newQuantity = parseFloat((currentQuantity + (changeBy * delta)).toFixed(3));
     } else {
       // Check if decrement would go below startValue
-      const potentialNewQuantity = parseFloat((currentQuantity + (changeBy * delta)).toFixed(2));
+      const potentialNewQuantity = parseFloat((currentQuantity + (changeBy * delta)).toFixed(3));
 
       if (potentialNewQuantity < startValue) {
         // Show tooltip when trying to go below minimum
@@ -582,7 +585,11 @@ const calculatePrice = (basePrice: number, unit: 'kg' | 'g', quantity: number): 
   };
 
   const handleContinueShopping = () => {
-    router.push('/');
+    if (buyerType === 'Wholesale') {
+      router.push('/wholesale/home');
+    } else {
+      router.push('/');
+    }
   };
 
   const handleDeliveryMethodSelect = (method: any) => {
@@ -599,14 +606,14 @@ const calculatePrice = (basePrice: number, unit: 'kg' | 'g', quantity: number): 
   }, [showDeliveryModal]);
 
   // Add this helper function to calculate products total for a specific item group
-const calculateItemGroupTotal = (itemGroup: AdditionalItems): number => {
-  return itemGroup.Items.reduce((total, item) => {
-    const selectedUnit = unitSelection[item.id] || item.unit;
-    // Use normalPrice instead of price for calculations
-    const itemTotal = calculatePrice(item.normalPrice, selectedUnit, item.quantity);
-    return total + itemTotal;
-  }, 0);
-};
+  const calculateItemGroupTotal = (itemGroup: AdditionalItems): number => {
+    return itemGroup.Items.reduce((total, item) => {
+      const selectedUnit = unitSelection[item.id] || item.unit;
+      // Use normalPrice instead of price for calculations
+      const itemTotal = calculatePrice(item.normalPrice, selectedUnit, item.quantity);
+      return total + itemTotal;
+    }, 0);
+  };
 
   useEffect(() => {
     console.log('showDeliveryModal changed:', showDeliveryModal);
@@ -614,47 +621,47 @@ const calculateItemGroupTotal = (itemGroup: AdditionalItems): number => {
 
   // Updated selector for cart summary with proper unit calculations
   const getUpdatedCartSummary = () => {
-  let totalItems = 0;
-  let productTotal = 0;
-  let totalDiscount = 0;
-  let packageTotal = 0;
+    let totalItems = 0;
+    let productTotal = 0;
+    let totalDiscount = 0;
+    let packageTotal = 0;
 
-  // Calculate package totals
-  if (cartData.packages) {
-    cartData.packages.forEach(pkg => {
-      packageTotal += pkg.price * pkg.quantity;
-      totalItems += pkg.quantity;
-    });
-  }
-
-  // Calculate product totals with unit conversions using normalPrice
-  if (cartData.additionalItems) {
-    cartData.additionalItems.forEach(itemGroup => {
-      itemGroup.Items.forEach(item => {
-        const selectedUnit = unitSelection[item.id] || item.unit;
-        // Use normalPrice instead of price for calculations
-        const itemPrice = calculatePrice(item.normalPrice, selectedUnit, item.quantity);
-        const itemDiscount = calculateDiscount(item.discount, selectedUnit, item.quantity);
-
-        productTotal += itemPrice;
-        totalDiscount += itemDiscount;
-        totalItems += 1; // Count each item as 1 regardless of quantity
+    // Calculate package totals
+    if (cartData.packages) {
+      cartData.packages.forEach(pkg => {
+        packageTotal += pkg.price * pkg.quantity;
+        totalItems += pkg.quantity;
       });
-    });
-  }
+    }
 
-  const grandTotal = packageTotal + productTotal;
-  const finalTotal = grandTotal - totalDiscount;
+    // Calculate product totals with unit conversions using normalPrice
+    if (cartData.additionalItems) {
+      cartData.additionalItems.forEach(itemGroup => {
+        itemGroup.Items.forEach(item => {
+          const selectedUnit = unitSelection[item.id] || item.unit;
+          // Use normalPrice instead of price for calculations
+          const itemPrice = calculatePrice(item.normalPrice, selectedUnit, item.quantity);
+          const itemDiscount = calculateDiscount(item.discount, selectedUnit, item.quantity);
 
-  return {
-    totalItems,
-    packageTotal,
-    productTotal,
-    totalDiscount,
-    grandTotal,
-    finalTotal
+          productTotal += itemPrice;
+          totalDiscount += itemDiscount;
+          totalItems += 1; // Count each item as 1 regardless of quantity
+        });
+      });
+    }
+
+    const grandTotal = packageTotal + productTotal;
+    const finalTotal = grandTotal - totalDiscount;
+
+    return {
+      totalItems,
+      packageTotal,
+      productTotal,
+      totalDiscount,
+      grandTotal,
+      finalTotal
+    };
   };
-};
 
   const dynamicSummary = getUpdatedCartSummary();
 
@@ -770,7 +777,7 @@ const calculateItemGroupTotal = (itemGroup: AdditionalItems): number => {
               onClick={() => setShowDeliveryModal(false)}
               className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors duration-200 border border-white  p-1 hover:border-gray-300 cursor-pointer"
             >
-              <X size={15}  />
+              <X size={15} />
             </button>
             <h2 className="text-white text-2xl font-semibold text-center mb-8">
               Select a method
@@ -907,23 +914,23 @@ const calculateItemGroupTotal = (itemGroup: AdditionalItems): number => {
                                     disabled={isRemoving}
                                   />
                                 </td>
-<td className="px-4 py-4">
-  <div className="flex items-center gap-3">
-    <div className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden">
-      <img
-        src={item.image}
-        alt={item.name}
-        className="w-full h-full object-contain"
-        onError={(e) => {
-          e.currentTarget.src = '/placeholder-image.jpg'; // Add a fallback image
-        }}
-      />
-    </div>
-    <span className="text-sm font-medium text-gray-900">
-      {item.name}
-    </span>
-  </div>
-</td>
+                                <td className="px-4 py-4">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden">
+                                      <img
+                                        src={item.image}
+                                        alt={item.name}
+                                        className="w-full h-full object-contain"
+                                        onError={(e) => {
+                                          e.currentTarget.src = '/placeholder-image.jpg'; // Add a fallback image
+                                        }}
+                                      />
+                                    </div>
+                                    <span className="text-sm font-medium text-gray-900">
+                                      {item.name}
+                                    </span>
+                                  </div>
+                                </td>
                                 <td className="px-4 py-4">
                                   <div className="flex gap-1 justify-center">
                                     {(['kg', 'g'] as const).map(unit => (
@@ -932,8 +939,8 @@ const calculateItemGroupTotal = (itemGroup: AdditionalItems): number => {
                                         onClick={() => handleUnitChange(item.id, unit)}
                                         disabled={isRemoving}
                                         className={`px-3 py-1 text-sm rounded-md border transition-colors cursor-pointer ${selectedUnit === unit
-                                            ? 'bg-purple-100 text-purple-700 border-purple-300 font-medium'
-                                            : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                                          ? 'bg-purple-100 text-purple-700 border-purple-300 font-medium'
+                                          : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
                                           } disabled:opacity-50 disabled:cursor-not-allowed`}
                                       >
                                         {unit}
@@ -961,12 +968,12 @@ const calculateItemGroupTotal = (itemGroup: AdditionalItems): number => {
                                               let startValue = item.startValue || 1;
 
                                               if (selectedUnit === 'g' && item.unit === 'kg') {
-                                                startValue = parseFloat((startValue * 1000).toFixed(2));
+                                                startValue = parseFloat((startValue * 1000).toFixed(3));
                                               } else if (selectedUnit === 'kg' && item.unit === 'g') {
-                                                startValue = parseFloat((startValue / 1000).toFixed(2));
+                                                startValue = parseFloat((startValue / 1000).toFixed(3));
                                               }
 
-                                              return parseFloat(startValue.toFixed(2));
+                                              return parseFloat(startValue.toFixed(3));
                                             })()} {unitSelection[item.id] || item.unit}
 
                                             {/* Tooltip arrow */}
@@ -977,7 +984,7 @@ const calculateItemGroupTotal = (itemGroup: AdditionalItems): number => {
                                     </div>
 
                                     <span className="text-sm font-medium flex-1 text-center">
-                                      {parseFloat(item.quantity.toFixed(2))}
+                                      {parseFloat(item.quantity.toFixed(3))}
                                     </span>
 
                                     <button
@@ -1118,8 +1125,8 @@ const calculateItemGroupTotal = (itemGroup: AdditionalItems): number => {
 
               {couponMessage && (
                 <div className={`mt-2 text-sm p-2 rounded ${couponMessage.type === 'success'
-                    ? 'bg-green-100 text-green-800 border border-green-200'
-                    : 'bg-red-100 text-red-800 border border-red-200'
+                  ? 'bg-green-100 text-green-800 border border-green-200'
+                  : 'bg-red-100 text-red-800 border border-red-200'
                   }`}>
                   {couponMessage.text}
                 </div>
