@@ -24,8 +24,8 @@ import {
 } from '@/store/slices/cartItemsSlice';
 import { useRouter } from 'next/navigation';
 import empty from '../../../public/empty.jpg'
-import pickup from '../../../public/pickup.png'
-import delivery from '../../../public/deliver.png'
+import pickup from '../../../public/IP.png'
+import delivery from '../../../public/HMI.png'
 import summary from '../../../public/summary.png'
 import Image from 'next/image'
 import { updateCartInfo } from '@/store/slices/authSlice';
@@ -793,7 +793,7 @@ const Page: React.FC = () => {
                   <Image
                     src={pickup}
                     alt="Store Pickup"
-                    className="w-24 h-24 object-contain"
+                    className="w-28 h-28 object-contain"
                   />
                 </div>
                 <div className="text-center">
@@ -811,7 +811,7 @@ const Page: React.FC = () => {
                   <Image
                     src={delivery}
                     alt="Home Delivery"
-                    className="w-24 h-24 object-contain"
+                    className="w-28 h-28 object-contain"
                   />
                 </div>
                 <div className="text-center">

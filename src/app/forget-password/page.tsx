@@ -115,7 +115,7 @@ const Page = () => {
 
   const validateEmail = (email: string) => {
     if (!email.trim()) {
-      return 'This field is required';
+      return 'Email is required';
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
@@ -127,7 +127,7 @@ const Page = () => {
 
   const validatePhoneNumber = (phone: string) => {
     if (!phone.trim()) {
-      return 'This field is required';
+      return 'Valid Mobile Number is required';
     }
 
     const cleanedPhone = phone.replace(/\s+/g, "");
@@ -455,16 +455,14 @@ const Page = () => {
             {/* 7. Update the main button */}
             <button
               onClick={handleReset}
-              className={`w-full py-2 md:py-3 text-white rounded-md transition-colors mb-4 text-sm md:text-base ${(resetMethod === 'email' && (isEmailSent || isSendingEmail)) ||
-                  (resetMethod === 'sms' && (isOTPSent || isSendingOTP)) ||
-                  (resetMethod === 'email' ? !email : !phoneNumber)
-                  ? 'bg-[#CEBAF4] text-[#3E206D] cursor-not-allowed'
-                  : 'bg-purple-800 hover:bg-purple-900 cursor-pointer'
+              className={`w-full py-2 md:py-3 text-white rounded-md transition-colors mb-4 text-sm md:text-base ${(resetMethod === 'email' && isSendingEmail) ||
+                (resetMethod === 'sms' && isSendingOTP)
+                ? 'bg-[#CEBAF4] text-[#3E206D] cursor-not-allowed'
+                : 'bg-purple-800 hover:bg-purple-900 cursor-pointer'
                 }`}
               disabled={
-                (resetMethod === 'email' && (isEmailSent || isSendingEmail)) ||
-                (resetMethod === 'sms' && (isOTPSent || isSendingOTP)) ||
-                (resetMethod === 'email' ? !email : !phoneNumber)
+                (resetMethod === 'email' && isSendingEmail) ||
+                (resetMethod === 'sms' && isSendingOTP)
               }
             >
               {getSendButtonText()}

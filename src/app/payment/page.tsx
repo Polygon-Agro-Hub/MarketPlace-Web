@@ -162,7 +162,7 @@ const Page: React.FC = () => {
     return `${formattedInteger}.${decimalPart}`;
   };
 
- const handleApplyCoupon = async () => {
+  const handleApplyCoupon = async () => {
     if (!couponCode.trim()) return;
 
     setCouponValidationLoading(true);
@@ -175,7 +175,7 @@ const Page: React.FC = () => {
 
       // Get deliveryMethod from Redux state
       const deliveryMethod = checkoutDetails.deliveryMethod || 'home';
-      
+
       const response = await validateCoupon(couponCode.trim(), token, deliveryMethod);
 
       if (response.status) {
@@ -402,17 +402,95 @@ const Page: React.FC = () => {
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
           <div className="bg-white p-8 rounded-2xl text-center w-[90%] max-w-md shadow-xl">
             {isError ? (
-              <Image
-                src={wrongImg}
-                alt="Error"
-                className="w-28 h-28 mx-auto mb-4"
-              />
+              /* Error Icon with Animation */
+              <div className="flex justify-center mb-4">
+                <div className="relative w-28 h-28">
+                  {/* Animated Circle Background */}
+                  <div
+                    className="absolute inset-0 rounded-full bg-red-500 transition-all duration-700 ease-out scale-100 opacity-100"
+                    style={{
+                      transformOrigin: 'center',
+                      animationDelay: '0.2s'
+                    }}
+                  />
+
+                  {/* Animated X Icon */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <svg
+                      className="w-16 h-16 text-white"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <path
+                        className="opacity-100 transition-all duration-700 ease-out"
+                        d="M18 6L6 18M6 6L18 18"
+                        stroke="currentColor"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        style={{
+                          strokeDasharray: '24',
+                          strokeDashoffset: '0',
+                          transitionDelay: '0.6s'
+                        }}
+                      />
+                    </svg>
+                  </div>
+
+                  {/* Pulse Animation */}
+                  <div
+                    className="absolute inset-0 rounded-full bg-red-500 scale-125 opacity-0 transition-all duration-1000"
+                    style={{
+                      animationDelay: '0.8s'
+                    }}
+                  />
+                </div>
+              </div>
             ) : (
-              <Image
-                src={correct}
-                alt="Success"
-                className="w-28 h-28 mx-auto mb-4"
-              />
+              /* Success Icon with Animation */
+              <div className="flex justify-center mb-4">
+                <div className="relative w-28 h-28">
+                  {/* Animated Circle */}
+                  <div
+                    className="absolute inset-0 rounded-full border-4 border-purple-500 scale-100 opacity-100 transition-all duration-700 ease-out"
+                    style={{
+                      transformOrigin: 'center',
+                      animationDelay: '0.2s'
+                    }}
+                  />
+
+                  {/* Animated Checkmark */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <svg
+                      className="w-14 h-14 text-[#8746ff]"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <path
+                        className="opacity-100 transition-all duration-700 ease-out"
+                        d="M20 6L9 17L4 12"
+                        stroke="currentColor"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        style={{
+                          strokeDasharray: '20',
+                          strokeDashoffset: '0',
+                          transitionDelay: '0.6s'
+                        }}
+                      />
+                    </svg>
+                  </div>
+
+                  {/* Pulse Animation */}
+                  <div
+                    className="absolute inset-0 rounded-full bg-[#8746ff] scale-125 opacity-0 transition-all duration-1000"
+                    style={{
+                      animationDelay: '0.8s'
+                    }}
+                  />
+                </div>
+              </div>
             )}
 
             <h2 className="text-xl font-bold mb-2 text-gray-900">
@@ -437,7 +515,7 @@ const Page: React.FC = () => {
                 </button>
                 <button
                   onClick={handleViewInvoice}
-                  disabled={!orderId} // Disable if orderId is not available
+                  disabled={!orderId}
                   className={`px-6 py-2 rounded-lg transition cursor-pointer font-medium ${!orderId
                     ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
                     : 'bg-[#3E206D] text-white hover:bg-[#3E206D]'
@@ -548,20 +626,20 @@ const Page: React.FC = () => {
                         className="w-full sm:w-3/5 p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm"
                       />
 
-<input
-  type="text"
-  placeholder="Enter CVV"
-  value={cardDetails.cvv}
-  onChange={(e) => {
-    // Remove all non-numeric characters and limit to exactly 3 digits
-    const value = e.target.value.replace(/[^0-9]/g, '');
-    if (value.length <= 3) {
-      handleCardInputChange('cvv', value);
-    }
-  }}
-  maxLength={3}
-  className="w-full sm:w-2/5 p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm"
-/>
+                      <input
+                        type="text"
+                        placeholder="Enter CVV"
+                        value={cardDetails.cvv}
+                        onChange={(e) => {
+                          // Remove all non-numeric characters and limit to exactly 3 digits
+                          const value = e.target.value.replace(/[^0-9]/g, '');
+                          if (value.length <= 3) {
+                            handleCardInputChange('cvv', value);
+                          }
+                        }}
+                        maxLength={3}
+                        className="w-full sm:w-2/5 p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm"
+                      />
                     </div>
                   </div>
                 </div>

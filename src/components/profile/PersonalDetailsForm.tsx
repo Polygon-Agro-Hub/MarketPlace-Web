@@ -536,7 +536,7 @@ const PersonalDetailsForm = () => {
       </div>
 
       <form className="px-2 md:px-10 bg-white">
-        <h2 className="font-medium text-[14px] text-base md:text-[18px] mb-2 mt-2">Account</h2>
+        <h2 className="font-medium text-[14px] text-base md:text-[18px] mb-2 p-2">Account</h2>
         <p className="text-xs md:text-sm lg:text-[16px] text-[#626D76] mb-2 whitespace-nowrap">
           Real-time information and activities of your property.
         </p>
