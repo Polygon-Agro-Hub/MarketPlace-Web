@@ -491,14 +491,14 @@ export default function Home() {
                       onClick={handleResetSearch}
                       className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-[#3E206D] transition-colors"
                     >
-                      <X size={16} color='#3E206D' />
+                      <X size={16} color='#3E206D' className='cursor-pointer'/>
                     </button>
                   ) : (
                     <button
                       type="submit"
                       className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-[#3E206D]"
                     >
-                      <FontAwesomeIcon icon={faMagnifyingGlass} color='#3E206D' />
+                      <FontAwesomeIcon icon={faMagnifyingGlass} color='#3E206D' className='cursor-pointer' />
                     </button>
                   )}
                 </div>

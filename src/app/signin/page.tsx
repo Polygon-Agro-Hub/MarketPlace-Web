@@ -54,7 +54,6 @@ const Page = () => {
     } else {
       const emailInput = email.trim();
 
-
       if (emailInput.includes('@')) {
         // Email validation
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput)) {
@@ -91,6 +90,7 @@ const Page = () => {
 
       setShowSuccessPopup(true);
       console.log('token details', data.userData, data.token, data.cart);
+      console.log('firstTimeUser status:', data.userData.firstTimeUser);
 
       // Store token and credentials
       if (data.token) {
@@ -114,10 +114,17 @@ const Page = () => {
 
         console.log('rememberedEmail', email)
 
+        // Updated routing logic based on firstTimeUser and buyerType
         if (data.userData.buyerType === 'Retail') {
-          router.push('/'); // Redirect to home page
+          // For retail users, check if it's their first time
+          if (data.userData.firstTimeUser === 0) {
+            router.push('/exclude/exclude'); // First-time retail user goes to exclude page
+          } else {
+            router.push('/'); // Returning retail user goes to home
+          }
         } else if (data.userData.buyerType === 'Wholesale') {
-          router.push('/wholesale/home'); // Redirect to wholesale page
+          // Wholesale users always go to wholesale home (no exclude list needed)
+          router.push('/wholesale/home');
         }
       }
     } catch (err: any) {
@@ -125,15 +132,28 @@ const Page = () => {
 
       const message = err.message;
 
-      if (message === 'Wrong password.') {
+      if (message === 'Wrong password.' || message === 'Incorrect password.') {
+        // Password is wrong - highlight password field
         setPasswordError('Incorrect password. Please try again!');
-        setEmailError('');
-      } else if (message === 'User not found.' || message === 'Invalid buyer type.') {
-        // Treat invalid buyer type as "User not found"
-        setPasswordError('');
-        setEmailError('');
+        setEmailError(''); // Clear email error
+      } else if (message === 'User not found.' || message === 'User not found or invalid account type.' || message === 'Invalid buyer type.') {
+        // User not found - highlight email/phone field
+        setEmailError('User not found. Please check your email/phone number!');
+        setPasswordError(''); // Clear password error
+      } else if (message === 'Invalid email or phone number format.') {
+        // Invalid format - highlight email/phone field
+        setEmailError('Invalid email or phone number format!');
+        setPasswordError(''); // Clear password error
+      } else if (message === 'Account found but no password is set. Please contact support to set up your password.') {
+        // No password set - highlight email/phone field (account issue)
+        setEmailError('Account found but no password is set. Please contact support!');
+        setPasswordError(''); // Clear password error
+      } else if (message === 'This account is not authorized for marketplace access.') {
+        // Not authorized - highlight email/phone field
+        setEmailError('This account is not authorized for marketplace access!');
+        setPasswordError(''); // Clear password error
       } else {
-        // Generic error
+ 
         setEmailError('');
         setPasswordError('');
       }
@@ -265,7 +285,7 @@ const Page = () => {
         {/* Email Login Form */}
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="relative">
-           <input
+            <input
               type="text"
               name="email"
               placeholder="Email / Phone Number (e.g. +947XXXXXXXX)"
@@ -285,7 +305,7 @@ const Page = () => {
             {emailError && <p className="text-sm text-red-600 mt-1">{emailError}</p>}
           </div>
           <div className="relative">
-           <input
+            <input
               type={showPassword ? 'text' : 'password'}
               name="password"
               placeholder="Password"

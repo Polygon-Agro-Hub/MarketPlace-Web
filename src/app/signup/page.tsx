@@ -37,6 +37,14 @@ interface CustomDropdownProps {
   className?: string;
 }
 
+interface CustomDropdownProps {
+  options: { value: string; label: string; flag?: string }[];
+  selectedValue: string;
+  onSelect: (value: string) => void;
+  placeholder: string;
+  className?: string;
+}
+
 const CustomDropdown: React.FC<CustomDropdownProps> = ({
   options,
   selectedValue,
@@ -44,37 +52,82 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
   placeholder,
   className = "",
 }) => {
+  const [isOpen, setIsOpen] = useState(false);
   const selectedOption = options.find(option => option.value === selectedValue);
 
   return (
-    <select
-      value={selectedValue}
-      onChange={(e) => onSelect(e.target.value)}
-      className={`h-10 w-full border rounded-md px-2 py-2 focus:outline-none focus:ring-1 cursor-pointer border-gray-300 focus:ring-purple-500 focus:border-purple-500 ${className} ${selectedValue ? "text-black" : "text-gray-500"}`}
-      style={{
-        backgroundImage: selectedOption?.flag ? `url("${selectedOption.flag}")` : 'none',
-        backgroundPosition: '8px center',
-        backgroundRepeat: 'no-repeat',
-        backgroundSize: '20px 15px',
-        paddingLeft: selectedOption?.flag ? '32px' : '8px'
-      }}
-    >
-      <option value="" disabled hidden>
-        {placeholder}
-      </option>
-      {options.map((option) => (
-        <option
-          key={option.value}
-          value={option.value}
-          className="cursor-pointer"
+    <div className="relative">
+      {/* Display Button */}
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={`h-10 w-full border rounded-md px-2 py-2 focus:outline-none focus:ring-1 cursor-pointer border-gray-300 focus:ring-purple-500 focus:border-purple-500 ${className} ${selectedValue ? "text-black" : "text-gray-500"} flex items-center justify-between bg-white`}
+      >
+        <div className="flex items-center gap-2">
+          {selectedOption?.flag && (
+            <img 
+              src={selectedOption.flag} 
+              alt="" 
+              className="w-5 h-4 object-cover"
+            />
+          )}
+          <span className="truncate">
+            {selectedOption ? selectedOption.label : placeholder}
+          </span>
+        </div>
+        <svg
+          className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
         >
-          {option.label}
-        </option>
-      ))}
-    </select>
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {/* Dropdown Options */}
+      {isOpen && (
+        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
+          {!selectedValue && (
+            <div className="px-3 py-2 text-gray-500 text-sm">
+              {placeholder}
+            </div>
+          )}
+          {options.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => {
+                onSelect(option.value);
+                setIsOpen(false);
+              }}
+              className={`w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center gap-2 ${
+                selectedValue === option.value ? 'bg-purple-50 text-purple-700' : 'text-gray-900'
+              }`}
+            >
+              {option.flag && (
+                <img 
+                  src={option.flag} 
+                  alt="" 
+                  className="w-5 h-4 object-cover flex-shrink-0"
+                />
+              )}
+              <span className="truncate">{option.value}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Click outside to close */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 z-40" 
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+    </div>
   );
 };
-
 
 export default function SignupForm() {
   const router = useRouter();
@@ -126,7 +179,7 @@ export default function SignupForm() {
 
   const countryOptions = countries.map(country => ({
     value: country.dialCode,
-    label: `${country.dialCode} (${country.name})`,
+    label: `${country.dialCode}`,
     flag: getFlagUrl(country.code)
   }));
 

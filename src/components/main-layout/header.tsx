@@ -353,14 +353,14 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
                       onClick={handleResetSearch}
                       className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
                     >
-                      <X size={16} />
+                      <X size={16} className='cursor-pointer' />
                     </button>
                   ) : (
                     <button
                       type="submit"
                       className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
                     >
-                      <FontAwesomeIcon icon={faMagnifyingGlass} />
+                      <FontAwesomeIcon icon={faMagnifyingGlass} className='cursor-pointer' />
                     </button>
                   )}
                 </div>

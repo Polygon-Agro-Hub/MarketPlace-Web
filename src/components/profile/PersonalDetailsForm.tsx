@@ -87,10 +87,16 @@ const schema = yup.object().shape({
   }),
   newPassword: yup
     .string()
-    .min(6, 'New password must be at least 6 characters')
-    .matches(/[A-Z]/, 'Password must contain at least one uppercase letter')
-    .matches(/[0-9]/, 'Password must contain at least one number')
-    .matches(/[!@#$%^&*]/, 'Password must contain at least one special character')
+    .test('password-requirements', 'Password must contain a minimum of 6 characters with 1 Uppercase, Numbers & Special Characters', function (value) {
+      if (!value) return true; // Allow empty (not required)
+
+      const hasMinLength = value.length >= 6;
+      const hasUppercase = /[A-Z]/.test(value);
+      const hasNumber = /[0-9]/.test(value);
+      const hasSpecialChar = /[!@#$%^&*]/.test(value);
+
+      return hasMinLength && hasUppercase && hasNumber && hasSpecialChar;
+    })
     .notRequired(),
   confirmPassword: yup.string().when('newPassword', {
     is: (val: string | undefined) => val && val.length > 0,
@@ -530,7 +536,7 @@ const PersonalDetailsForm = () => {
       </div>
 
       <form className="px-2 md:px-10 bg-white">
-        <h2 className="font-medium text-[14px] text-base md:text-[18px] mb-2 mt-2">Account</h2>
+        <h2 className="font-medium text-[14px] text-base md:text-[18px] mb-2 p-2">Account</h2>
         <p className="text-xs md:text-sm lg:text-[16px] text-[#626D76] mb-2 whitespace-nowrap">
           Real-time information and activities of your property.
         </p>
@@ -779,6 +785,10 @@ const PersonalDetailsForm = () => {
                 {showNewPassword ? <FiEye className="text-gray-500" /> : <FiEyeOff className="text-gray-500" />}
               </div>
             </div>
+            {/* Password validation message */}
+            <p className="text-[#626D76] text-[10px] md:text-xs mt-1">
+              Your password must contain a minimum of 6 characters with 1 Uppercase, Numbers & Special Characters
+            </p>
             <p className="text-red-500 text-xs">{errors.newPassword?.message}</p>
           </div>
 
