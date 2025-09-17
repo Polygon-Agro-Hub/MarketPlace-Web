@@ -817,7 +817,7 @@ const PersonalDetailsForm = () => {
           <div className="flex gap-4">
             <button
               type="button"
-              className={`px-6 py-2.5 text-[16px] md:text-[20px] font-medium rounded-lg text-[#757E87] bg-[#F3F4F7] hover:bg-[#e1e2e5] cursor-pointer leading-none ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`px-6 py-2.5 text-[12px] md:text-[16px] font-medium rounded-lg text-[#757E87] bg-[#F3F4F7] hover:bg-[#e1e2e5] cursor-pointer leading-none ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
               onClick={handleCancel}
               disabled={isLoading}
             >
@@ -826,7 +826,7 @@ const PersonalDetailsForm = () => {
 
             <button
               type="submit"
-              className={`px-6 py-2.5 text-[16px] md:text-[20px] font-medium rounded-lg text-white bg-[#3E206D] hover:bg-[#341a5a] cursor-pointer leading-none ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`px-6 py-2.5 text-[12px] md:text-[16px] font-medium rounded-lg text-white bg-[#3E206D] hover:bg-[#341a5a] cursor-pointer leading-none ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
               onClick={handleProfileUpdate}
               disabled={isLoading}
             >

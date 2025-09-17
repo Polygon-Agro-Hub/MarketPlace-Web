@@ -342,28 +342,28 @@ const Page: React.FC = () => {
 
 
   const handleCenterSelect = (centerId: string, centerName: string) => {
-  const selectedCenter = pickupCenters.find(center => center.value === centerId);
+    const selectedCenter = pickupCenters.find(center => center.value === centerId);
 
-  if (selectedCenter) {
-    const centerIdAsNumber = parseInt(centerId, 10);
-    setSelectedPickupCenter({ id: centerIdAsNumber, name: centerName });
-    setFormDataLocal(prev => ({ ...prev, centerId: centerIdAsNumber }));
+    if (selectedCenter) {
+      const centerIdAsNumber = parseInt(centerId, 10);
+      setSelectedPickupCenter({ id: centerIdAsNumber, name: centerName });
+      setFormDataLocal(prev => ({ ...prev, centerId: centerIdAsNumber }));
 
-    // Clear centerId error when center is selected
-    setErrors(prev => ({ ...prev, centerId: '' }));
+      // Clear centerId error when center is selected
+      setErrors(prev => ({ ...prev, centerId: '' }));
 
-    // Update map center and zoom to selected pickup center
-    setMapCenter([selectedCenter.latitude, selectedCenter.longitude]);
-    setMapZoom(15);
+      // Update map center and zoom to selected pickup center
+      setMapCenter([selectedCenter.latitude, selectedCenter.longitude]);
+      setMapZoom(15);
 
-    console.log('Selected pickup center:', {
-      id: selectedCenter.id,
-      name: selectedCenter.name,
-      latitude: selectedCenter.latitude,
-      longitude: selectedCenter.longitude,
-    });
-  }
-};
+      console.log('Selected pickup center:', {
+        id: selectedCenter.id,
+        name: selectedCenter.name,
+        latitude: selectedCenter.latitude,
+        longitude: selectedCenter.longitude,
+      });
+    }
+  };
 
 
   const pickupCenterOptions = pickupCenters.map(center => ({
@@ -387,120 +387,120 @@ const Page: React.FC = () => {
 
 
   const handleFieldChange = (field: keyof FormData, value: string | number) => {
-  // Update the form state
-  setFormDataLocal(prev => ({ ...prev, [field]: value }));
+    // Update the form state
+    setFormDataLocal(prev => ({ ...prev, [field]: value }));
 
-  // Validate the field with the updated form data
-  const updatedFormData = { ...formData, [field]: value };
-  const error = validateField(field, value, updatedFormData);
-  setErrors(prev => ({ ...prev, [field]: error }));
+    // Validate the field with the updated form data
+    const updatedFormData = { ...formData, [field]: value };
+    const error = validateField(field, value, updatedFormData);
+    setErrors(prev => ({ ...prev, [field]: error }));
 
-  // Special case: if deliveryMethod changes, revalidate all fields and reset relevant state
-  if (field === 'deliveryMethod') {
-    // Clear errors for all fields first
-    setErrors({
-      centerId: '',
-      deliveryMethod: '',
-      title: '',
-      fullName: '',
-      phone1: '',
-      phone2: '',
-      buildingType: '',
-      deliveryDate: '',
-      timeSlot: '',
-      phoneCode1: '',
-      phoneCode2: '',
-      buildingNo: '',
-      buildingName: '',
-      flatNumber: '',
-      floorNumber: '',
-      houseNo: '',
-      street: '',
-      cityName: '',
-      scheduleType: '',
-    });
+    // Special case: if deliveryMethod changes, revalidate all fields and reset relevant state
+    if (field === 'deliveryMethod') {
+      // Clear errors for all fields first
+      setErrors({
+        centerId: '',
+        deliveryMethod: '',
+        title: '',
+        fullName: '',
+        phone1: '',
+        phone2: '',
+        buildingType: '',
+        deliveryDate: '',
+        timeSlot: '',
+        phoneCode1: '',
+        phoneCode2: '',
+        buildingNo: '',
+        buildingName: '',
+        flatNumber: '',
+        floorNumber: '',
+        houseNo: '',
+        street: '',
+        cityName: '',
+        scheduleType: '',
+      });
 
-    if (value === 'home') {
-      setUsePreviousAddress(true);
-      setSelectedPickupCenter(null); // Clear pickup center selection
-      // Trigger fetch of previous address
-      handleAddressOptionChange('previous');
-    } else if (value === 'pickup') {
-      setUsePreviousAddress(false);
-      setSelectedCity(null); // Clear city selection
-      setDeliveryCharge(0); // Reset delivery charge
-      // Reset form to initial state but keep delivery method and basic info
-      const basicInfo = {
-        title: formData.title,
-        fullName: formData.fullName,
-        phone1: formData.phone1,
-        phone2: formData.phone2,
-        phoneCode1: formData.phoneCode1,
-        phoneCode2: formData.phoneCode2,
-        deliveryDate: formData.deliveryDate,
-        timeSlot: formData.timeSlot,
-      };
-      
-      setFormDataLocal(prev => ({
-        ...initialFormState,
-        deliveryMethod: value as string,
-        ...basicInfo
-      }));
+      if (value === 'home') {
+        setUsePreviousAddress(true);
+        setSelectedPickupCenter(null); // Clear pickup center selection
+        // Trigger fetch of previous address
+        handleAddressOptionChange('previous');
+      } else if (value === 'pickup') {
+        setUsePreviousAddress(false);
+        setSelectedCity(null); // Clear city selection
+        setDeliveryCharge(0); // Reset delivery charge
+        // Reset form to initial state but keep delivery method and basic info
+        const basicInfo = {
+          title: formData.title,
+          fullName: formData.fullName,
+          phone1: formData.phone1,
+          phone2: formData.phone2,
+          phoneCode1: formData.phoneCode1,
+          phoneCode2: formData.phoneCode2,
+          deliveryDate: formData.deliveryDate,
+          timeSlot: formData.timeSlot,
+        };
+
+        setFormDataLocal(prev => ({
+          ...initialFormState,
+          deliveryMethod: value as string,
+          ...basicInfo
+        }));
+      }
     }
-  }
-};
+  };
 
- const isFormValid = (): boolean => {
-  const isHomeDelivery = formData.deliveryMethod === 'home';
-  const isPickup = formData.deliveryMethod === 'pickup';
-  const isApartment = formData.buildingType === 'Apartment';
+  const isFormValid = (): boolean => {
+    const isHomeDelivery = formData.deliveryMethod === 'home';
+    const isPickup = formData.deliveryMethod === 'pickup';
+    const isApartment = formData.buildingType === 'Apartment';
 
-  // Check required fields based on delivery method
-  const requiredFields = [
-    'title',
-    'fullName',
-    'phone1',
-    'deliveryDate',
-    'timeSlot'
-  ];
+    // Check required fields based on delivery method
+    const requiredFields = [
+      'title',
+      'fullName',
+      'phone1',
+      'deliveryDate',
+      'timeSlot'
+    ];
 
-  // Add delivery method specific required fields
-  if (isPickup) {
-    requiredFields.push('centerId');
-  }
-
-  if (isHomeDelivery) {
-    requiredFields.push('buildingType', 'houseNo', 'street', 'cityName');
-
-    // Add apartment specific required fields
-    if (isApartment) {
-      requiredFields.push('buildingName', 'buildingNo', 'flatNumber', 'floorNumber');
-    }
-  }
-
-  // Check if all required fields are filled and valid
-  for (const field of requiredFields) {
-    const value = formData[field as keyof FormData];
-
-    // Check if field is empty
-    if (field === 'centerId') {
-      if (value === null || value === undefined) return false;
-    } else {
-      if (!value || (typeof value === 'string' && !value.trim())) return false;
+    // Add delivery method specific required fields
+    if (isPickup) {
+      requiredFields.push('centerId');
     }
 
-    // Check if field has validation errors
-    const error = validateField(field as keyof FormData, value, formData);
-    if (error) return false;
-  }
+    if (isHomeDelivery) {
+      requiredFields.push('buildingType', 'houseNo', 'street', 'cityName');
 
-  // Additional check: For home delivery, ensure selectedCity is not null
-  if (isHomeDelivery && !selectedCity) {
-    return false;
-  }
+      // Add apartment specific required fields
+      if (isApartment) {
+        requiredFields.push('buildingName', 'buildingNo', 'flatNumber', 'floorNumber');
+      }
+    }
 
-  return true;
-};
+    // Check if all required fields are filled and valid
+    for (const field of requiredFields) {
+      const value = formData[field as keyof FormData];
+
+      // Check if field is empty
+      if (field === 'centerId') {
+        if (value === null || value === undefined) return false;
+      } else {
+        if (!value || (typeof value === 'string' && !value.trim())) return false;
+      }
+
+      // Check if field has validation errors
+      const error = validateField(field as keyof FormData, value, formData);
+      if (error) return false;
+    }
+
+    // Additional check: For home delivery, ensure selectedCity is not null
+    if (isHomeDelivery && !selectedCity) {
+      return false;
+    }
+
+    return true;
+  };
 
   const [isFormValidState, setIsFormValidState] = useState(false);
 
@@ -510,111 +510,116 @@ const Page: React.FC = () => {
 
 
   // Updated validateField function - replace the existing one
-const handleCitySelect = (cityId: string, cityName: string) => {
-  const selectedCityData = cities.find(city => city.id.toString() === cityId);
+  const handleCitySelect = (cityId: string, cityName: string) => {
+    const selectedCityData = cities.find(city => city.id.toString() === cityId);
 
-  if (selectedCityData) {
-    setSelectedCity(selectedCityData);
-    setFormDataLocal(prev => ({ ...prev, cityName: selectedCityData.city }));
+    if (selectedCityData) {
+      setSelectedCity(selectedCityData);
+      setFormDataLocal(prev => ({ ...prev, cityName: selectedCityData.city }));
 
-    // Set delivery charge based on selected city
-    const charge = parseFloat(selectedCityData.charge);
-    setDeliveryCharge(charge);
+      // Set delivery charge based on selected city
+      const charge = parseFloat(selectedCityData.charge);
+      setDeliveryCharge(charge);
 
-    // Clear any existing cityName error
-    setErrors(prev => ({ ...prev, cityName: '' }));
+      // Clear any existing cityName error
+      setErrors(prev => ({ ...prev, cityName: '' }));
 
-    console.log('Selected city:', selectedCityData);
-    console.log('Delivery charge:', charge);
-  }
-};
+      console.log('Selected city:', selectedCityData);
+      console.log('Delivery charge:', charge);
+    }
+  };
 
-// Updated validateField function - ensure cityName validation
-const validateField = (field: keyof FormData, value: string | number | null, formData: FormData): string => {
-  const trimmed = typeof value === 'string' ? value.trim() : '';
-  const isHomeDelivery = formData.deliveryMethod === 'home';
-  const isPickup = formData.deliveryMethod === 'pickup';
-  const isApartment = formData.buildingType === 'Apartment';
+  // Updated validateField function - ensure cityName validation
+  const validateField = (field: keyof FormData, value: string | number | null, formData: FormData): string => {
+    const trimmed = typeof value === 'string' ? value.trim() : '';
+    const isHomeDelivery = formData.deliveryMethod === 'home';
+    const isPickup = formData.deliveryMethod === 'pickup';
+    const isApartment = formData.buildingType === 'Apartment';
 
-  switch (field) {
-    case 'centerId':
-      if (isPickup) {
-        if (value === null || value === undefined) {
+    switch (field) {
+      case 'centerId':
+        if (isPickup) {
+          if (value === null || value === undefined) {
+            return 'Please select a pickup center.';
+          }
+          // Additional check: ensure the value is a valid number
+          if (typeof value === 'number' && value > 0) {
+            return '';
+          }
           return 'Please select a pickup center.';
         }
-        // Additional check: ensure the value is a valid number
-        if (typeof value === 'number' && value > 0) {
-          return '';
+        return ''; // Not required for home delivery
+
+      case 'fullName':
+        if (!trimmed) return 'Full Name is required.';
+        if (!/^[A-Za-z\s]+$/.test(trimmed)) return 'Full Name must only contain letters and spaces.';
+        return '';
+
+      case 'title':
+        return !trimmed ? 'Title is required.' : '';
+
+      case 'phone1':
+        if (!value) return 'Phone number 1 is required.';
+        if (!/^\d{9}$/.test(value.toString())) return 'Please enter a valid mobile number (format: +947XXXXXXXX)';
+        return '';
+
+      case 'phone2':
+        return value && !/^\d{9}$/.test(value.toString()) ? 'Please enter a valid mobile number (format: +947XXXXXXXX)' : '';
+
+      case 'timeSlot':
+        return !trimmed ? 'Time slot is required.' : '';
+
+      case 'deliveryDate':
+        if (!value) return 'Delivery Date is required.';
+
+        const selectedDate = new Date(value.toString());
+        const today = new Date();
+        const minDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 3);
+
+        selectedDate.setHours(0, 0, 0, 0);
+        minDate.setHours(0, 0, 0, 0);
+        today.setHours(0, 0, 0, 0);
+
+        if (selectedDate < minDate) {
+          return 'Please select a date at least 3 days from today.';
         }
-        return 'Please select a pickup center.';
-      }
-      return ''; // Not required for home delivery
 
-    case 'fullName':
-      if (!trimmed) return 'Full Name is required.';
-      if (!/^[A-Za-z\s]+$/.test(trimmed)) return 'Full Name must only contain letters and spaces.';
-      return '';
+        return '';
 
-    case 'title':
-      return !trimmed ? 'Title is required.' : '';
+      // Address fields - only required for home delivery
+      case 'buildingType':
+        return isHomeDelivery && !trimmed ? 'Building type is required.' : '';
 
-    case 'phone1':
-      if (!value) return 'Phone number 1 is required.';
-      if (!/^\d{9}$/.test(value.toString())) return 'Please enter a valid phone number';
-      return '';
+      case 'buildingName':
+      case 'buildingNo':
+      case 'floorNumber':
+      case 'flatNumber':
+        return isHomeDelivery && isApartment && !trimmed ?
+          `${field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} is required.` :
+          '';
 
-    case 'phone2':
-      return value && !/^\d{9}$/.test(value.toString()) ? 'Please enter a valid phone number' : '';
+      case 'street':
+      case 'houseNo':
+        return isHomeDelivery && !trimmed ?
+          `${field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} is required.` :
+          '';
 
-    case 'timeSlot':
-      return !trimmed ? 'Time slot is required.' : '';
+      case 'cityName':
+        if (isHomeDelivery) {
+          if (!trimmed) return 'Nearest City is required.';
+          if (!selectedCity) return 'Please select a valid city.';
+        }
+        return '';
 
-    case 'deliveryDate':
-      if (!value) return 'Delivery Date is required.';
+      default:
+        return '';
+    }
+  };
 
-      const selectedDate = new Date(value.toString());
-      const today = new Date();
-      const minDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 3);
-
-      selectedDate.setHours(0, 0, 0, 0);
-      minDate.setHours(0, 0, 0, 0);
-      today.setHours(0, 0, 0, 0);
-
-      if (selectedDate < minDate) {
-        return 'Please select a date at least 3 days from today.';
-      }
-
-      return '';
-
-    // Address fields - only required for home delivery
-    case 'buildingType':
-      return isHomeDelivery && !trimmed ? 'Building type is required.' : '';
-
-    case 'buildingName':
-    case 'buildingNo':
-    case 'floorNumber':
-    case 'flatNumber':
-      return isHomeDelivery && isApartment && !trimmed ?
-        `${field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} is required.` :
-        '';
-
-    case 'street':
-    case 'houseNo':
-      return isHomeDelivery && !trimmed ?
-        `${field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} is required.` :
-        '';
-
-    case 'cityName':
-      if (isHomeDelivery) {
-        if (!trimmed) return 'Nearest City is required.';
-        if (!selectedCity) return 'Please select a valid city.';
-      }
-      return '';
-
-    default:
-      return '';
-  }
-};
+  const capitalizeFirstLetter = (value: string): string => {
+    if (!value) return value;
+    return value.charAt(0).toUpperCase() + value.slice(1);
+  };
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {} as FormErrors;
@@ -873,10 +878,13 @@ const validateField = (field: keyof FormData, value: string | number | null, for
                   <label htmlFor="fullName" className='block font-semibold mb-1 text-[#2E2E2E]'>Full name *</label>
                   <input
                     type="text"
-                    className='w-full border-2 border-[#F2F4F7] bg-[#F9FAFB] h-[39px] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-3 text-base'
+                    className='w-full border-2 border-[#F2F4F7] bg-[#F9FAFB] h-[39px] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-3 text-base capitalize'
                     placeholder='Enter your full name'
                     value={formData.fullName}
-                    onChange={(e) => handleFieldChange('fullName', e.target.value)}
+                    onChange={(e) => {
+                      const capitalizedValue = capitalizeFirstLetter(e.target.value);
+                      handleFieldChange('fullName', capitalizedValue);
+                    }}
                   />
                   {errors.fullName && <p className="text-red-600 text-sm mt-1">{errors.fullName}</p>}
                 </div>
@@ -1040,14 +1048,16 @@ const validateField = (field: keyof FormData, value: string | number | null, for
                     <label className="block font-semibold text-[#2E2E2E] mb-1">Street Name *</label>
                     <input
                       value={formData.street}
-                      onChange={(e) => handleFieldChange('street', e.target.value)}
+                      onChange={(e) => {
+                        const capitalizedValue = capitalizeFirstLetter(e.target.value);
+                        handleFieldChange('street', capitalizedValue);
+                      }}
                       type="text"
                       placeholder="Enter Street Name"
-                      className="w-full px-4 py-2 border-2 h-[39px] border-[#F2F4F7] bg-[#F9FAFB] rounded-lg  placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                      className="w-full px-4 py-2 border-2 h-[39px] border-[#F2F4F7] bg-[#F9FAFB] rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600 capitalize"
                     />
                     {errors.street && <p className="text-red-600 text-sm mt-1">{errors.street}</p>}
                   </div>
-
                   {/* City */}
                   <div className="w-full md:w-1/2 px-2 mb-4">
                     <label className="block font-semibold text-[#2E2E2E] mb-1">Nearest City *</label>
@@ -1079,7 +1089,7 @@ const validateField = (field: keyof FormData, value: string | number | null, for
                 {formData.deliveryMethod === 'pickup' ? 'Schedule Pickup' : 'Schedule Delivery'}
               </h3>
 
-         <div className='flex md:flex-row flex-col gap-4 mb-6'>
+              <div className='flex md:flex-row flex-col gap-4 mb-6'>
                 <div className="md:w-1/2 w-full">
                   <label className='block text-[#2E2E2E] font-semibold mb-4'>Date *</label>
                   <div className="relative">

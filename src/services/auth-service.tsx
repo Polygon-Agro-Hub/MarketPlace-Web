@@ -415,7 +415,7 @@ export const sendOTP = async (
     const {
       checkPhoneExists = true,
       message = `Your OTP for verification is: {{code}}`,
-      source = "AgroWorld"
+      source = "PolygonAgro"
     } = options || {};
 
     // Step 1: Optionally check if phone number exists
