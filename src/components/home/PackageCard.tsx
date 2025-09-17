@@ -7,6 +7,7 @@ import { useSelector, useDispatch } from 'react-redux'; // Add useDispatch
 import { RootState } from '@/store';
 import { updateCartInfo } from '@/store/slices/authSlice'; // Add this import
 import { useRouter } from 'next/navigation';
+import vegebox from '../../../public/Vegetables_Box.png';
 
 interface PackageItem {
   id: number;
@@ -183,7 +184,7 @@ const PackageCard: React.FC<PackageProps> = ({
               <div className="flex items-start justify-start mr-4">
                 <div className="rounded-3xl bg-[#654D8A] px-2 pb-2 pt-1.5">
                   <Image
-                    src="/Vegetables_Box.png"
+                    src={vegebox}
                     alt="Vegetables box icon"
                     width={22}
                     height={22}

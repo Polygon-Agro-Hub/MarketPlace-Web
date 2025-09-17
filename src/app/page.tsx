@@ -483,7 +483,7 @@ export default function Home() {
                     value={localSearchInput}
                     onChange={handleSearchChange}
                     onKeyPress={handleSearchKeyPress}
-                    className="italic w-full py-2 px-4 rounded-[10px] text-[#3E206D] focus:outline-none bg-gray-200"
+                    className="italic w-full py-2 px-4 rounded-[10px] text-[#3E206D] focus:outline-none bg-[#EFE4FF]"
                   />
                   {isSearchActive && searchTerm ? (
                     <button
