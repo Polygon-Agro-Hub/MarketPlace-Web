@@ -441,12 +441,12 @@ function InvoicePageContent() {
         const img = new (window as any).Image() as HTMLImageElement;
         console.log('----------------------------------------');
         
-        console.log(`${window.location.origin}/POLYGON%20ORIGINAL%20LOGO.png`);
+        console.log(`${window.location.origin}/market/POLYGON%20ORIGINAL%20LOGO.png`);
         console.log('----------------------------------------');
 
         // img.src = Logo;
         
-        img.src = `${window.location.origin}/POLYGON%20ORIGINAL%20LOGO.png`;
+        img.src = `${window.location.origin}/market/POLYGON%20ORIGINAL%20LOGO.png`;
         img.crossOrigin = 'anonymous';
         img.onload = () => {
           const canvas = document.createElement('canvas');
