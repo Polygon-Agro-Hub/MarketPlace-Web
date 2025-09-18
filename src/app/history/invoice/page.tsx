@@ -439,7 +439,10 @@ function InvoicePageContent() {
 
         // Load logo image as base64 - FIXED: Use HTMLImageElement explicitly
         const img = new (window as any).Image() as HTMLImageElement;
-        img.src = '/POLYGON ORIGINAL LOGO.png';
+        console.log(`${window.location.origin}/POLYGON ORIGINAL LOGO.png`);
+        // img.src = '/POLYGON ORIGINAL LOGO.png';
+        
+        img.src = `${window.location.origin}/POLYGON ORIGINAL LOGO.png`;
         img.crossOrigin = 'anonymous';
         img.onload = () => {
           const canvas = document.createElement('canvas');
