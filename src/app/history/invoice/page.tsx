@@ -446,7 +446,7 @@ function InvoicePageContent() {
 
         // img.src = Logo;
         
-        img.src = `${window.location.origin}/POLYGON%20ORIGINAL%20LOGO.png`;
+        img.src = `${window.location.origin}/markket/POLYGON%20ORIGINAL%20LOGO.png`;
         img.crossOrigin = 'anonymous';
         img.onload = () => {
           const canvas = document.createElement('canvas');
