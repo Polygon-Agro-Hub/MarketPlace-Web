@@ -843,7 +843,7 @@ function InvoicePageContent() {
       }
     };
 
-    pdfMake.createPdf(docDefinition).download(`invoice_${invoice.invoiceNumber}.pdf`);
+    pdfMake.createPdf(docDefinition).download(`Invoice_${invoice.invoiceNumber}.pdf`);
   };
 
   const fetchInvoice = async (orderId: string): Promise<void> => {

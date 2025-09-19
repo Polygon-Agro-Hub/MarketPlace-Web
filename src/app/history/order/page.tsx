@@ -480,7 +480,7 @@ export default function OrderHistoryPage() {
                         <strong>Total:</strong> {order.total}
                       </div>
                       <div>
-                        <strong>Order ID:</strong> #{order.orderId}
+                        <strong>Order ID:</strong> #{order.invoiceNo}
                       </div>
                       <div className="flex gap-2 justify-end">
                         <button
@@ -664,7 +664,7 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
             <div>
               <span className="text-gray-600 block text-sm">Pickup Person Information :</span>
               <div className="mt-1">
-                <span className="font-semibold text-black">{order.fullName || 'N/A'}</span>
+                <span className="font-semibold text-black">{order.title || 'N/A'}. {order.fullName || 'N/A'}</span>
                 <div className="text-sm text-gray-700">
                   {order.phone1 ? `${order.phonecode1 || ''} ${order.phone1}` : ''}
                   {order.phone2 ? `, ${order.phonecode2 || ''} ${order.phone2}` : ''}
@@ -801,7 +801,7 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
             </div>
             <div>
               <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Pickup Person Information:</h4>
-              <p className="font-semibold">{order.fullName || 'N/A'}</p>
+              <p className="font-semibold">{order.title || 'N/A'}. {order.fullName || 'N/A'}</p>
               <div>
                 <p>
                   {order.phone1

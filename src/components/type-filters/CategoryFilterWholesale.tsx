@@ -46,7 +46,7 @@ export default function CategoryFilterWholesale() {
     const searchTerm = useSelector((state: RootState) => state.search.searchTerm);
     const isSearchActive = useSelector((state: RootState) => state.search.isSearchActive);
     const dispatch = useDispatch();
-    
+
     const [selectedCategory, setSelectedCategory] = useState('Vegetables');
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(false);
@@ -120,17 +120,17 @@ export default function CategoryFilterWholesale() {
 
             try {
                 console.log('Fetching wholesale products with:', { selectedCategory, searchTerm });
-                
+
                 const response = await getProductsByCategoryWholesale(selectedCategory, searchTerm || undefined);
                 setProducts(response.products);
-                
+
                 // Update category results state based on products length
                 dispatch(setCategoryResults(response.products.length > 0));
             } catch (err) {
                 console.error('Error fetching wholesale products:', err);
                 setError('Failed to load wholesale products. Please try again.');
                 setProducts([]);
-                
+
                 // Update category results state for error
                 dispatch(setCategoryResults(false));
             } finally {
@@ -149,11 +149,11 @@ export default function CategoryFilterWholesale() {
         <div className='mx-auto w-full'>
             <div className='flex flex-col'>
                 <div className="flex items-center justify-center gap-2 w-full my-4 md:my-8 px-2 md:px-20">
-                    <div className="w-1/2 border-t-2 border-[#D7D7D7]"></div>
-                    <span className="bg-[#FF8F6666] text-[#FF4421] rounded-lg text-xs md:text-sm px-3 md:px-6 py-1">
+                    <div className="flex-1 border-t-2 border-[#D7D7D7]"></div>
+                    <span className="bg-[#FF8F6666] text-[#FF4421] rounded-lg text-xs md:text-sm px-3 md:px-6 py-1 whitespace-nowrap">
                         Wholesale Types
                     </span>
-                    <div className="w-1/2 border-t-2 border-[#D7D7D7]"></div>
+                    <div className="flex-1 border-t-2 border-[#D7D7D7]"></div>
                 </div>
 
                 {/* Show search indicator if search is active */}
@@ -221,7 +221,7 @@ export default function CategoryFilterWholesale() {
                         ) : (
                             <div className="col-span-full text-center py-10">
                                 <p className="text-gray-500">
-                                    {isSearchActive 
+                                    {isSearchActive
                                         ? `No wholesale products found for "${searchTerm}" in ${selectedCategory}.`
                                         : 'No wholesale products found in this category.'
                                     }

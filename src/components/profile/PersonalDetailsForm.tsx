@@ -14,79 +14,70 @@ import Loader from '@/components/loader-spinner/Loader';
 import { fetchProfile, updateProfile, updatePassword } from '@/services/auth-service';
 import { updateUser } from '@/store/slices/authSlice';
 
-// Yup schema
 const schema = yup.object().shape({
   title: yup.string().required('Title is required'),
   firstName: yup
     .string()
     .transform((value) => value?.trim())
-    .matches(/^[A-Za-z]+$/, 'First name must contain only English letters')
-    .test('first-letter-capital', 'First letter must be capitalized', (value) => {
-      if (!value) return true;
-      return value[0] === value[0].toUpperCase();
-    })
-    .required('First name is required'),
+    .required('First Name is required'),
   lastName: yup
     .string()
     .transform((value) => value?.trim())
-    .matches(/^[A-Za-z]+$/, 'Last name must contain only English letters')
-    .test('first-letter-capital', 'First letter must be capitalized', (value) => {
-      if (!value) return true;
-      return value[0] === value[0].toUpperCase();
-    })
-    .required('Last name is required'),
+    .required('Last Name is required'),
   email: yup
     .string()
     .transform((value) => value?.trim())
-    .email('Invalid email')
-    .required('Email is required'),
-  countryCode: yup.string().required('Country code is required'),
+    .email('Please enter a valid Email Address')
+    .required('Email Address is required'),
+  countryCode: yup.string().required('Country Code is required'),
   countryCode2: yup.string().when('$buyerType', {
     is: 'Wholesale',
-    then: (schema) => schema.required('Country code is required'),
+    then: (schema) => schema.required('Country Code is required'),
     otherwise: (schema) => schema.notRequired(),
   }),
   phoneNumber: yup
     .string()
     .transform((value) => value?.trim())
-    .matches(/^7[0-9]{8}$/, 'Please enter a valid mobile number (format: +947XXXXXXXX)')
-    .required('Phone number is required'),
+    .matches(/^7[0-9]{8}$/, 'Please enter a valid Phone Number (format: +947XXXXXXXX)')
+    .required('Phone Number is required'),
   phoneNumber2: yup.string().when('$buyerType', {
     is: 'Wholesale',
     then: (schema) => schema
       .transform((value) => value?.trim())
-      .matches(/^7[0-9]{8}$/, 'Please enter a valid mobile number (format: +947XXXXXXXX)')
-      .required('Phone number is required'),
+      .matches(/^7[0-9]{8}$/, 'Please enter a valid Phone Number (format: +947XXXXXXXX)')
+      .required('Phone Number is required'),
     otherwise: (schema) => schema.notRequired(),
   }),
   companyName: yup.string().when('$buyerType', {
     is: 'Wholesale',
     then: (schema) => schema
       .transform((value) => value?.trim())
-      .required('Company name is required'),
+      .required('Company Name is required'),
     otherwise: (schema) => schema.notRequired(),
   }),
-  // Add companyPhoneCode validation
   companyPhoneCode: yup.string().when('$buyerType', {
     is: 'Wholesale',
-    then: (schema) => schema.required('Company phone code is required'),
+    then: (schema) => schema.required('Company Phone Code is required'),
     otherwise: (schema) => schema.notRequired(),
   }),
   companyPhone: yup.string().when('$buyerType', {
     is: 'Wholesale',
     then: (schema) => schema
       .transform((value) => value?.trim())
-      .matches(/^7[0-9]{8}$/, 'Please enter a valid company phone number (format: +947XXXXXXXX)')
-      .required('Company phone number is required'),
+      .matches(/^7[0-9]{8}$/, 'Please enter a valid Company Phone Number (format: +947XXXXXXXX)')
+      .required('Company Phone Number is required'),
     otherwise: (schema) => schema.notRequired(),
   }),
-  currentPassword: yup.string().when('newPassword', {
-    is: (val: string | undefined) => val && val.length > 0,
-    then: (schema) => schema.required('Current password is required'),
-    otherwise: (schema) => schema.notRequired(),
-  }),
+  currentPassword: yup.string()
+    .transform((value) => value?.trim())
+    .when('newPassword', {
+      is: (val: string | undefined) => val && val.length > 0,
+      then: (schema) => schema.required('Current Password is required'),
+      otherwise: (schema) => schema.notRequired(),
+    }),
   newPassword: yup
     .string()
+    .transform((value) => value?.trim())
     .test('password-requirements', 'Password must contain a minimum of 6 characters with 1 Uppercase, Numbers & Special Characters', function (value) {
       if (!value) return true; // Allow empty (not required)
 
@@ -98,15 +89,18 @@ const schema = yup.object().shape({
       return hasMinLength && hasUppercase && hasNumber && hasSpecialChar;
     })
     .notRequired(),
-  confirmPassword: yup.string().when('newPassword', {
-    is: (val: string | undefined) => val && val.length > 0,
-    then: (schema) =>
-      schema
-        .required('Please confirm your new password')
-        .oneOf([yup.ref('newPassword')], 'Passwords must match'),
-    otherwise: (schema) => schema.notRequired(),
-  }),
+  confirmPassword: yup.string()
+    .transform((value) => value?.trim())
+    .when('newPassword', {
+      is: (val: string | undefined) => val && val.length > 0,
+      then: (schema) =>
+        schema
+          .required('Please confirm your New Password')
+          .oneOf([yup.ref('newPassword')], 'Passwords must match'),
+      otherwise: (schema) => schema.notRequired(),
+    }),
 });
+
 type FormData = yup.InferType<typeof schema>;
 
 // Custom Dropdown Component
@@ -249,6 +243,9 @@ const PersonalDetailsForm = () => {
   const countryCodeValue = watch('countryCode');
   const countryCode2Value = watch('countryCode2');
   const companyPhoneCodeValue = watch('companyPhoneCode');
+  const formValues = watch();
+
+  const hasErrors = Object.keys(errors).length > 0;
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -293,6 +290,12 @@ const PersonalDetailsForm = () => {
 
     loadProfile();
   }, [token, reset]);
+
+  const handlePasswordInput = (value: string): string => {
+    // Remove leading and trailing spaces, but keep internal spaces if any
+    return value.trim();
+  };
+
 
   const handleNameInput = (value: string): string => {
     const cleaned = value.replace(/[^A-Za-z\s]/g, '').replace(/\s+/g, ' ').trimStart();
@@ -762,7 +765,17 @@ const PersonalDetailsForm = () => {
             <input
               type={showCurrentPassword ? 'text' : 'password'}
               {...register('currentPassword')}
+              onChange={(e) => {
+                const trimmedValue = handlePasswordInput(e.target.value);
+                e.target.value = trimmedValue;
+                setValue('currentPassword', trimmedValue, { shouldValidate: true });
+              }}
+              onBlur={(e) => {
+                const trimmedValue = e.target.value.trim();
+                setValue('currentPassword', trimmedValue, { shouldValidate: true });
+              }}
               className="w-full focus:outline-none text-xs sm:text-sm"
+              placeholder="Enter current password"
             />
             <div onClick={() => setShowCurrentPassword(!showCurrentPassword)} className="cursor-pointer ml-2">
               {showCurrentPassword ? <FiEye className="text-gray-500" /> : <FiEyeOff className="text-gray-500" />}
@@ -779,7 +792,17 @@ const PersonalDetailsForm = () => {
               <input
                 type={showNewPassword ? 'text' : 'password'}
                 {...register('newPassword')}
+                onChange={(e) => {
+                  const trimmedValue = handlePasswordInput(e.target.value);
+                  e.target.value = trimmedValue;
+                  setValue('newPassword', trimmedValue, { shouldValidate: true });
+                }}
+                onBlur={(e) => {
+                  const trimmedValue = e.target.value.trim();
+                  setValue('newPassword', trimmedValue, { shouldValidate: true });
+                }}
                 className="w-full focus:outline-none text-xs sm:text-sm"
+                placeholder="Enter new password"
               />
               <div onClick={() => setShowNewPassword(!showNewPassword)} className="cursor-pointer ml-2">
                 {showNewPassword ? <FiEye className="text-gray-500" /> : <FiEyeOff className="text-gray-500" />}
@@ -803,7 +826,17 @@ const PersonalDetailsForm = () => {
                 }}
                 type={showConfirmPassword ? 'text' : 'password'}
                 {...register('confirmPassword')}
+                onChange={(e) => {
+                  const trimmedValue = handlePasswordInput(e.target.value);
+                  e.target.value = trimmedValue;
+                  setValue('confirmPassword', trimmedValue, { shouldValidate: true });
+                }}
+                onBlur={(e) => {
+                  const trimmedValue = e.target.value.trim();
+                  setValue('confirmPassword', trimmedValue, { shouldValidate: true });
+                }}
                 className="w-full focus:outline-none text-xs sm:text-sm"
+                placeholder="Confirm new password"
               />
               <div onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="cursor-pointer ml-2">
                 {showConfirmPassword ? <FiEye className="text-gray-500" /> : <FiEyeOff className="text-gray-500" />}
@@ -826,9 +859,12 @@ const PersonalDetailsForm = () => {
 
             <button
               type="submit"
-              className={`px-6 py-2.5 text-[12px] md:text-[16px] font-medium rounded-lg text-white bg-[#3E206D] hover:bg-[#341a5a] cursor-pointer leading-none ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`px-6 py-2.5 text-[12px] md:text-[16px] font-medium rounded-lg text-white leading-none ${isLoading || hasErrors
+                ? 'bg-gray-400 cursor-not-allowed opacity-50'
+                : 'bg-[#3E206D] hover:bg-[#341a5a] cursor-pointer'
+                }`}
               onClick={handleProfileUpdate}
-              disabled={isLoading}
+              disabled={isLoading || hasErrors}
             >
               Save
             </button>

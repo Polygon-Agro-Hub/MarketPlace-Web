@@ -155,9 +155,9 @@ const PackageSlider: React.FC<packagesProps> = ({ productData, onShowConfirmModa
     const getSliderSettings = () => {
         const itemCount = productData.length;
         
-        // Base settings
+        // Base settings - dots disabled for all screen sizes
         const baseSettings = {
-            dots: itemCount > 3,
+            dots: false, // Disabled pagination dots
             infinite: itemCount > 3, // Only infinite if we have more than 3 items
             speed: 500,
             nextArrow: itemCount > 3 ? <NextArrow /> : <></>,
@@ -178,7 +178,7 @@ const PackageSlider: React.FC<packagesProps> = ({ productData, onShowConfirmModa
                     settings: {
                         slidesToShow: Math.min(3, itemCount),
                         slidesToScroll: 1,
-                        dots: itemCount > 3,
+                        dots: false, // Disabled for desktop
                         infinite: itemCount > 3,
                         arrows: itemCount > 3,
                     }
@@ -188,7 +188,7 @@ const PackageSlider: React.FC<packagesProps> = ({ productData, onShowConfirmModa
                     settings: {
                         slidesToShow: Math.min(2, itemCount),
                         slidesToScroll: 1,
-                        dots: false,
+                        dots: false, // Disabled for tablet
                         infinite: itemCount > 2,
                         arrows: itemCount > 2,
                     }
@@ -199,7 +199,7 @@ const PackageSlider: React.FC<packagesProps> = ({ productData, onShowConfirmModa
                         slidesToShow: Math.min(2, itemCount),
                         slidesToScroll: 1,
                         centerMode: false,
-                        dots: false,
+                        dots: false, // Disabled for mobile
                         infinite: itemCount > 2,
                         arrows: itemCount > 2,
                     }
@@ -285,53 +285,14 @@ const PackageSlider: React.FC<packagesProps> = ({ productData, onShowConfirmModa
 
     return (
         <div className="flex flex-col items-center w-full my-5 package-slider-container" ref={containerRef}>
-            {/* Custom CSS for dots positioning */}
+            {/* Custom CSS for slider styling */}
             <style jsx global>{`
                 .package-slider-container .slick-dots {
-                    position: static !important;
-                    bottom: auto !important;
-                    margin-top: 20px !important;
-                    display: flex !important;
-                    justify-content: center !important;
-                    list-style: none !important;
-                    padding: 0 !important;
-                    width: 100% !important;
-                }
-                
-                .package-slider-container .slick-dots li {
-                    margin: 0 5px !important;
-                    width: auto !important;
-                    height: auto !important;
-                }
-                
-                .package-slider-container .slick-dots li button {
-                    width: 12px !important;
-                    height: 12px !important;
-                    border-radius: 50% !important;
-                    background-color: #D7D7D7 !important;
-                    border: none !important;
-                    cursor: pointer !important;
-                    font-size: 0 !important;
-                    outline: none !important;
-                    padding: 0 !important;
-                }
-                
-                .package-slider-container .slick-dots li button:before {
-                    display: none !important;
-                }
-                
-                .package-slider-container .slick-dots li.slick-active button {
-                    background-color: #FF4421 !important;
+                    display: none !important; /* Hide dots completely */
                 }
                 
                 .package-slider-container .slick-slider {
                     position: relative !important;
-                }
-                
-                @media (max-width: 768px) {
-                    .package-slider-container .slick-dots {
-                        display: none !important;
-                    }
                 }
 
                 /* Fix for few items - ensure proper alignment */
