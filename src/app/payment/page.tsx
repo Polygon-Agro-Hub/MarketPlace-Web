@@ -90,12 +90,17 @@ const Page: React.FC = () => {
 
     const couponDiscountAmount = isCouponApplied ? couponDiscount : 0;
 
-    // Handle Free Delivery coupon type
-    const effectiveDeliveryCharge = (isCouponApplied && couponType === 'Free Delivary') ? 0 : deliveryCharge;
+    // Only apply delivery charge if delivery method is 'home'
+    const shouldApplyDeliveryCharge = checkoutDetails.deliveryMethod === 'home';
+
+    // Handle Free Delivery coupon type - only applicable for home delivery
+    const effectiveDeliveryCharge = shouldApplyDeliveryCharge
+      ? ((isCouponApplied && couponType === 'Free Delivary') ? 0 : deliveryCharge)
+      : 0;
 
     const finalGrandTotal = isCouponApplied ?
       (originalGrandTotal - couponDiscount + effectiveDeliveryCharge) :
-      (originalGrandTotal + deliveryCharge);
+      (originalGrandTotal + effectiveDeliveryCharge);
 
     let finalCheckoutDetails = {
       deliveryMethod: checkoutDetails.deliveryMethod || 'home',
@@ -199,7 +204,6 @@ const Page: React.FC = () => {
       setCouponValidationLoading(false);
     }
   };
-
 
   const validateCartData = (): { isValid: boolean; error?: string } => {
     // Check if cart exists and has valid ID
@@ -371,14 +375,19 @@ const Page: React.FC = () => {
     const calculatedSummary = cartItems.calculatedSummary;
     const originalGrandTotal = calculatedSummary?.finalTotal || 0;
 
-    // Handle Free Delivery coupon type
-    const effectiveDeliveryCharge = (isCouponApplied && couponType === 'Free Delivary') ? 0 : deliveryCharge;
+    // Only show delivery charges if delivery method is 'home' (delivery)
+    const shouldShowDeliveryCharge = checkoutDetails.deliveryMethod === 'home';
+
+    // Handle Free Delivery coupon type - only applicable for home delivery
+    const effectiveDeliveryCharge = shouldShowDeliveryCharge
+      ? ((isCouponApplied && couponType === 'Free Delivary') ? 0 : deliveryCharge)
+      : 0;
 
     const couponDiscountAmount = isCouponApplied ? couponDiscount : 0;
 
     const finalGrandTotal = isCouponApplied
       ? (originalGrandTotal - couponDiscount + effectiveDeliveryCharge)
-      : (originalGrandTotal + deliveryCharge);
+      : (originalGrandTotal + effectiveDeliveryCharge);
 
     return {
       totalItems: calculatedSummary?.totalItems || 0,
@@ -387,8 +396,9 @@ const Page: React.FC = () => {
       originalGrandTotal: originalGrandTotal,
       couponDiscount: couponDiscountAmount,
       grandTotal: finalGrandTotal,
-      deliveryCharges: effectiveDeliveryCharge, // Use effective delivery charge
-      isFreeDelivery: isCouponApplied && couponType === 'Free Delivary', // Flag for UI display
+      deliveryCharges: effectiveDeliveryCharge,
+      isFreeDelivery: isCouponApplied && couponType === 'Free Delivary' && shouldShowDeliveryCharge,
+      showDeliveryCharges: shouldShowDeliveryCharge, // Add this flag for UI rendering
     };
   };
 
@@ -716,7 +726,7 @@ const Page: React.FC = () => {
                       : 'bg-[#3E206D] text-white hover:bg-[#2f1854] disabled:bg-gray-300 disabled:cursor-not-allowed'
                     }`}
                 >
-                  {couponValidationLoading ? 'Validating...' : isCouponApplied ? 'Applied' : 'Apply'}
+                  {couponValidationLoading ? 'Verifying...' : isCouponApplied ? 'Applied' : 'Apply'}
                 </button>
               </div>
               {isCouponApplied && (
@@ -745,20 +755,27 @@ const Page: React.FC = () => {
                 <p className='text-gray-600'>Rs.{formatPrice(displayValues.couponDiscount || 0)}</p>
               </div>
             )}
-            <div className='flex justify-between text-sm mb-2'>
-              <p className='text-gray-600'>
-                Delivery Charges
-                {displayValues.isFreeDelivery && (
-                  <span className='font-semibold ml-1'>(Free)</span>
-                )}
-              </p>
-              <p className={`text-gray-600 ${displayValues.isFreeDelivery ? 'line-through' : ''}`}>
-                Rs.{formatPrice(deliveryCharge || 0)}
-              </p>
-              {displayValues.isFreeDelivery && (
-                <p className='text-gray-600 font-semibold'>Rs.0.00</p>
-              )}
-            </div>
+            {displayValues.showDeliveryCharges && (
+              <div className='flex justify-between text-sm mb-2'>
+                <p className='text-gray-600'>
+                  Delivery Charges
+                  {displayValues.isFreeDelivery && (
+                    <span className='font-semibold ml-1'>(Free)</span>
+                  )}
+                </p>
+                <div className='flex items-center gap-2'>
+                  {displayValues.isFreeDelivery && (
+                    <p className='text-gray-600 line-through'>
+                      Rs.{formatPrice(deliveryCharge || 0)}
+                    </p>
+                  )}
+                  <p className='text-gray-600 font-semibold'>
+                    Rs.{formatPrice(displayValues.deliveryCharges || 0)}
+                  </p>
+                </div>
+              </div>
+            )}
+
 
 
             <div className='border-t border-gray-300 my-4' />

@@ -238,7 +238,7 @@ const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
       setErrorMessage('You have already uploaded some of these images. Some files were also invalid (unsupported type or too large). Max size: 5MB.');
       setShowErrorPopup(true);
     } else if (hasDuplicates) {
-      setErrorMessage('You have already uploaded one or more of these images.');
+      setErrorMessage('You have already uploaded this image.');
       setShowErrorPopup(true);
     } else if (hasInvalidFiles) {
       setErrorMessage('Some files were invalid (unsupported type or too large). Max size: 5MB.');
