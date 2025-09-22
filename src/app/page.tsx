@@ -1,7 +1,7 @@
 'use client';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store';
-import { setSearchTerm, setPackageResults } from '@/store/slices/searchSlice';
+import { setSearchTerm, setPackageResults, resetAndSearch ,clearSearch} from '@/store/slices/searchSlice';
 import { useEffect, useState } from 'react';
 import Loading from '@/components/loadings/loading';
 import PackageSlider from "@/components/home/PackageSlider";
@@ -50,28 +50,54 @@ export default function Home() {
 
   const router = useRouter();
 
-  // Initialize mobile input with Redux search term
+
   useEffect(() => {
     setLocalSearchInput(searchTerm);
   }, [searchTerm]);
 
-  // Initial data fetch
   useEffect(() => {
     fetchAllPackages();
     console.log("Cart:", cart);
   }, []);
 
-  // Fetch products when search term changes
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const searchFromUrl = urlParams.get('search');
+
+    if (searchFromUrl) {
+      console.log('Home: Found search in URL:', searchFromUrl);
+
+      dispatch(resetAndSearch(searchFromUrl));
+
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+    }
+  }, [dispatch]);
+
+  // Keep the existing search useEffect unchanged:
   useEffect(() => {
     fetchAllPackages(searchTerm);
   }, [searchTerm]);
 
-  // Log category changes
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      console.log('Home: Search term changed to:', searchTerm);
+      if (searchTerm && searchTerm.trim()) {
+        fetchAllPackages(searchTerm.trim());
+      } else if (searchTerm === '') {
+
+        fetchAllPackages();
+      }
+    }, 150);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm]);
+
   useEffect(() => {
     console.log(`Category changed to: ${selectedCategory}`);
   }, [selectedCategory]);
 
-  // Console log Redux data whenever it changes
+
   useEffect(() => {
     console.log('=== REDUX STATE UPDATE ===');
     console.log('Auth State:', authState);
@@ -101,7 +127,7 @@ export default function Home() {
   // Reset search function
   const handleResetSearch = () => {
     setLocalSearchInput('');
-    dispatch(setSearchTerm(''));
+    dispatch(clearSearch());
     console.log('Search reset');
   };
 
@@ -123,15 +149,16 @@ export default function Home() {
     console.log("Cart:", cart);
   }, []);
 
-  // Update the fetchAllPackages function
   async function fetchAllPackages(search?: string) {
     try {
-      // Only show loading on subsequent searches, not initial load
-      if (search !== undefined) {
+      // Only show loading on searches, not initial load
+      if (search !== undefined && search !== '') {
         setLoading(true);
       }
-      console.log('Fetching packages with search term:', search);
+
+      console.log('Home: Fetching packages with search term:', search);
       const response = await getAllProduct(search) as any;
+
       if (response && response.product) {
         setProductData(response.product);
         dispatch(setPackageResults(response.product.length > 0));
@@ -140,15 +167,16 @@ export default function Home() {
         dispatch(setPackageResults(false));
       }
     } catch (error) {
-      console.error('Error fetching packages:', error);
+      console.error('Home: Error fetching packages:', error);
       setError('Failed to fetch packages');
       dispatch(setPackageResults(false));
     } finally {
-      if (search !== undefined) {
+      if (search !== undefined && search !== '') {
         setLoading(false);
       }
     }
   }
+
   // Modal handlers
   const handleShowConfirmModal = (packageData: any) => {
     setSelectedPackageForCart(packageData);
@@ -491,7 +519,7 @@ export default function Home() {
                       onClick={handleResetSearch}
                       className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-[#3E206D] transition-colors"
                     >
-                      <X size={16} color='#3E206D' className='cursor-pointer'/>
+                      <X size={16} color='#3E206D' className='cursor-pointer' />
                     </button>
                   ) : (
                     <button

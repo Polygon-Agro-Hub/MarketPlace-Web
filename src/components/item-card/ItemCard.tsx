@@ -312,24 +312,24 @@ const ItemCard = ({
     };
 
     return (
-        <div className="relative bg-white rounded-lg shadow-sm border border-gray-200 p-2 w-full h-[240px] flex flex-col items-center transition-all duration-300 hover:shadow-md cursor-default">
+        <div className={`relative bg-white rounded-lg shadow-sm border border-gray-200 w-full flex flex-col items-center transition-all duration-300 hover:shadow-md cursor-default ${showQuantitySelector ? 'h-[320px]' : 'h-[280px]'}`}>
             {/* Error message */}
             {error && (
-                <div className="absolute top-0 left-0 right-0 bg-red-100 text-red-700 text-xs p-1 text-center">
+                <div className="absolute top-0 left-0 right-0 bg-red-100 text-red-700 text-xs p-1 text-center z-30">
                     {error}
                 </div>
             )}
 
             {/* Loading overlay */}
             {isLoading && (
-                <div className="absolute inset-0 bg-white bg-opacity-80 flex items-center justify-center z-10">
+                <div className="absolute inset-0 bg-white bg-opacity-80 flex items-center justify-center z-40">
                     <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-purple-500"></div>
                 </div>
             )}
 
             {/* Discount badge */}
             {discount && discount > 0 && (
-                <div className="absolute top-0 left-0">
+                <div className="absolute top-0 left-0 z-20">
                     <div
                         className="w-10 h-10 rounded-tl-lg sm:w-14 sm:h-14 md:w-15 md:h-15 bg-purple-900 flex flex-col items-center justify-center text-white"
                         style={{ clipPath: 'polygon(0 0, 0 100%, 100% 0)' }}
@@ -343,18 +343,18 @@ const ItemCard = ({
                 </div>
             )}
 
-            {/* Main content container with fixed height */}
-            <div className="w-full h-full flex flex-col items-center justify-between">
-                {/* Product image */}
-                <div className="w-full flex-grow flex items-center justify-center">
-                    {!showQuantitySelector && !addedToCart && (
-                        <div className="w-full h-full max-h-32 mb-1 md:mb-2 flex items-center justify-center">
+            {/* Main content container with flexible height management */}
+            <div className={`w-full h-full flex flex-col items-center justify-between p-2`}>
+                {/* Product image - adjusted height based on quantity selector */}
+                <div className={`w-full flex items-center justify-center ${discount ? 'mt-4' : 'mt-0'} ${showQuantitySelector ? 'h-20' : 'flex-grow max-h-36'}`}>
+                    {!addedToCart && (
+                        <div className="w-full h-full flex items-center justify-center">
                             {isImageUrl ? (
                                 <div className="relative w-full h-full">
                                     <img
                                         src={image as string}
                                         alt={name}
-                                        className="object-contain w-full h-full flex justify-center items-center"
+                                        className="object-contain w-full h-full"
                                     />
                                 </div>
                             ) : (
@@ -371,10 +371,12 @@ const ItemCard = ({
                 </div>
 
                 {/* Product name */}
-                <h3 className="text-xs md:text-sm lg:text-base font-medium text-gray-800 text-center mb-0.5">{name}</h3>
+                <div className="w-full text-center mb-1 flex-shrink-0">
+                    <h3 className="text-xs md:text-sm lg:text-base font-medium text-gray-800 line-clamp-2">{name}</h3>
+                </div>
 
                 {/* Price section */}
-                <div className="flex flex-col items-center space-y-0.5 mb-1 md:mb-2">
+                <div className="flex flex-col items-center space-y-0.5 mb-2 flex-shrink-0">
                     {originalPrice && originalPrice > currentPrice ? (
                         <>
                             <span className="text-gray-500 text-xs line-through">Rs.{formatPrice(originalPrice)}</span>
@@ -385,9 +387,9 @@ const ItemCard = ({
                     )}
                 </div>
 
-                {/* Quantity selector */}
+                {/* Quantity selector - positioned to not interfere with button */}
                 {token && user && showQuantitySelector && buyerType !== 'Wholesale' && !isInCart && (
-                    <div className="w-full space-y-2 mb-2 flex flex-col items-center justify-center">
+                    <div className="w-full space-y-2 mb-2 flex flex-col items-center justify-center flex-shrink-0">
                         <div className="flex justify-center">
                             <div className="flex rounded overflow-hidden gap-2 cursor-pointer">
                                 <button
@@ -432,8 +434,8 @@ const ItemCard = ({
                     </div>
                 )}
 
-                {/* Bottom button section */}
-                <div className="w-full mt-auto relative">
+                {/* Bottom button section - always at the bottom */}
+                <div className="w-full mt-auto relative flex-shrink-0">
                     <Tooltip />
                     {addedToCart ? (
                         <button className="w-full py-2 px-4 rounded flex items-center justify-center gap-2 text-sm md:text-base bg-[#EDE1FF] text-purple-900 border border-[#3E206D] transition-colors cursor-pointer">

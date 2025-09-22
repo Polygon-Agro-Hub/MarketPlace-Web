@@ -49,6 +49,11 @@ export default function Page() {
       setDisabledResend(false);
       setIsOtpExpired(true);
 
+      // Show OTP expired modal
+      setIsError(true);
+      setModalMessage('OTP has expired. Please request a new one.');
+      setIsModalOpen(true);
+
       // Delete expired referenceId from localStorage
       localStorage.removeItem('otpReferenceId');
       setReferenceId(''); // Clear from state as well
@@ -161,6 +166,8 @@ export default function Page() {
     if (isVerifying) return;
 
     const code = otp.join('');
+    
+    // Check if OTP is complete
     if (code.length !== 5) {
       setIsError(true);
       setModalMessage('Please enter all 5 digits.');
@@ -294,11 +301,6 @@ export default function Page() {
         </h2>
         <p className="text-center text-gray-500 mb-6 text-sm sm:text-base">
           The OTP has been sent to your mobile number
-          {isOtpExpired && (
-            <span className="block text-red-500 mt-1 font-xs ">
-              OTP has expired. Please request a new one.
-            </span>
-          )}
         </p>
 
         <div className="flex justify-center space-x-2 sm:space-x-3 mb-4">
@@ -314,7 +316,6 @@ export default function Page() {
               onPaste={handlePaste}
               placeholder="×"
               className="w-10 sm:w-11 h-10 sm:h-11 text-center border border-gray-300 rounded-md text-xl sm:text-2xl focus:outline-none focus:border-[#3E206D] placeholder:text-[#DCDCDC]"
-              disabled={isOtpExpired}
             />
           ))}
         </div>
@@ -340,36 +341,121 @@ export default function Page() {
 
         <button
           onClick={handleVerify}
-          disabled={isVerifying || isOtpExpired || !isOtpComplete || isVerified}
-          className={`font-semibold w-full max-w-[307px] h-[45px] rounded-[10px] mt-1 transition-colors ${isVerifying || isOtpExpired || !isOtpComplete || isVerified
+          disabled={isVerifying || isVerified}
+          className={`font-semibold w-full max-w-[307px] h-[45px] rounded-[10px] mt-1 transition-colors ${isVerifying || isVerified
               ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
               : 'bg-[#3E206D] text-white hover:bg-[#2D1A4F] cursor-pointer'
             }`}
         >
           {isVerifying ? 'Verifying...' :
             isVerified ? 'Verified ✓' :
-              isOtpExpired ? 'OTP Expired' :
-                !isOtpComplete ? 'Enter 5 digits' :
-                  'Verify'}
+              'Verify'}
         </button>
       </div>
 
       {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-          <div className="bg-white p-8 rounded-xl text-center w-[90%] max-w-md shadow-xl">
-            <img
-              src={isError ? WrongImg as any : CorrectImg}
-              alt={isError ? 'Error' : 'Success'}
-              className="w-20 h-20 mx-auto mb-4"
-            />
-            <h2 className="text-xl font-bold mb-2">
-              {isError ? 'Error' : 'OTP Verified'}
+          <div className="bg-white p-8 rounded-2xl text-center w-[90%] max-w-md shadow-xl">
+            {isError ? (
+              /* Error Icon with Animation */
+              <div className="flex justify-center mb-4">
+                <div className="relative w-28 h-28">
+                  {/* Animated Circle Background */}
+                  <div
+                    className="absolute inset-0 rounded-full bg-red-500 transition-all duration-700 ease-out scale-100 opacity-100"
+                    style={{
+                      transformOrigin: 'center',
+                      animationDelay: '0.2s'
+                    }}
+                  />
+
+                  {/* Animated X Icon */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <svg
+                      className="w-16 h-16 text-white"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <path
+                        className="opacity-100 transition-all duration-700 ease-out"
+                        d="M18 6L6 18M6 6L18 18"
+                        stroke="currentColor"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        style={{
+                          strokeDasharray: '24',
+                          strokeDashoffset: '0',
+                          transitionDelay: '0.6s'
+                        }}
+                      />
+                    </svg>
+                  </div>
+
+                  {/* Pulse Animation */}
+                  <div
+                    className="absolute inset-0 rounded-full bg-red-500 scale-125 opacity-0 transition-all duration-1000"
+                    style={{
+                      animationDelay: '0.8s'
+                    }}
+                  />
+                </div>
+              </div>
+            ) : (
+              /* Success Icon with Animation */
+              <div className="flex justify-center mb-4">
+                <div className="relative w-28 h-28">
+                  {/* Animated Circle */}
+                  <div
+                    className="absolute inset-0 rounded-full border-4 border-purple-500 scale-100 opacity-100 transition-all duration-700 ease-out"
+                    style={{
+                      transformOrigin: 'center',
+                      animationDelay: '0.2s'
+                    }}
+                  />
+
+                  {/* Animated Checkmark */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <svg
+                      className="w-14 h-14 text-[#8746ff]"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <path
+                        className="opacity-100 transition-all duration-700 ease-out"
+                        d="M20 6L9 17L4 12"
+                        stroke="currentColor"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        style={{
+                          strokeDasharray: '20',
+                          strokeDashoffset: '0',
+                          transitionDelay: '0.6s'
+                        }}
+                      />
+                    </svg>
+                  </div>
+
+                  {/* Pulse Animation */}
+                  <div
+                    className="absolute inset-0 rounded-full bg-[#8746ff] scale-125 opacity-0 transition-all duration-1000"
+                    style={{
+                      animationDelay: '0.8s'
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
+            <h2 className="text-xl font-bold mb-2 text-gray-900">
+              {isError ? 'Error' : isVerified ? 'OTP Verified' : 'Success'}
             </h2>
-            <p className="text-gray-700 mb-4">{modalMessage}</p>
+            <p className="text-gray-500 mb-6">{modalMessage}</p>
             <button
               onClick={() => setIsModalOpen(false)}
-              className="px-6 py-2 bg-gray-200 rounded hover:bg-gray-300 transition cursor-pointer"
+              className="px-6 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition cursor-pointer text-gray-700 font-medium"
             >
               Close
             </button>
@@ -379,4 +465,3 @@ export default function Page() {
     </div>
   );
 }
-

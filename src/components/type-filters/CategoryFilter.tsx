@@ -61,7 +61,7 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
     const defaultCategories = [
         {
             id: 'Vegetables',
-            name: 'Vegetables',
+            name: 'Vegetables & Mushrooms',
             imageUrl: Vegetables,
             itemCount: 0
         },
@@ -73,7 +73,7 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
         },
         {
             id: 'Cereals',
-            name: 'Cereals',
+            name: 'Cereals & Pulses',
             imageUrl: Grains,
             itemCount: 0
         },

@@ -9,7 +9,7 @@ import { logout } from '../../store/slices/authSlice';
 import { clearCart } from '@/store/slices/cartSlice';
 import { useRouter } from 'next/navigation'
 import { LogOut } from 'lucide-react';
-import { setSearchTerm, clearSearch } from '../../store/slices/searchSlice';
+import { setSearchTerm, clearSearch, resetAndSearch, } from '../../store/slices/searchSlice';
 import { X } from 'lucide-react';
 import { fetchProfile } from '@/services/auth-service';
 
@@ -33,6 +33,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
   const user = useSelector((state: RootState) => state.auth.user);
   const token = useSelector((state: RootState) => state.auth.token) as string | null;
   const cartState = useSelector((state: RootState) => state.auth.cart) || { count: 0, price: 0 };
+
   const router = useRouter();
   const [showSignupModal, setShowSignupModal] = useState(false);
   const [selectedBuyerType, setSelectedBuyerType] = useState('');
@@ -83,16 +84,35 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
     setLocalSearchInput(e.target.value);
   };
 
+  // Updated Header.tsx - Key changes in handleSearchSubmit function
+
   const handleSearchSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     const trimmedSearch = localSearchInput.trim();
-    console.log('Search submitted:', trimmedSearch);
-    dispatch(setSearchTerm(trimmedSearch));
+    console.log('Header: Search submitted:', trimmedSearch);
+
+    if (trimmedSearch) {
+      // Check current route and redirect to appropriate home if not already there
+      const currentPath = window.location.pathname;
+      const isWholesaleUser = user?.buyerType === 'Wholesale';
+      const targetHomePage = isWholesaleUser ? '/wholesale/home' : '/';
+
+      // If not on the target home page, redirect there with search as URL param
+      if (currentPath !== targetHomePage) {
+        console.log(`Header: Redirecting from ${currentPath} to ${targetHomePage} with search: ${trimmedSearch}`);
+        router.push(`${targetHomePage}?search=${encodeURIComponent(trimmedSearch)}`);
+        return;
+      } else {
+        // On the correct page, use resetAndSearch to ensure clean state
+        dispatch(resetAndSearch(trimmedSearch));
+      }
+    }
 
     if (onSearch) {
       onSearch(trimmedSearch);
     }
-  }, [localSearchInput, dispatch, onSearch]);
+  }, [localSearchInput, dispatch, onSearch, router, user?.buyerType]);
+
 
   const handleSearchKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -102,9 +122,10 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
 
   const handleResetSearch = () => {
     setLocalSearchInput('');
-    dispatch(setSearchTerm(''));
+    dispatch(clearSearch());
     console.log('Header search reset');
   };
+
   const formatPrice = (price: number): string => {
     // Convert to fixed decimal first, then add commas
     const fixedPrice = Number(price).toFixed(2);
@@ -373,7 +394,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
               <div className='relative'>
                 <FontAwesomeIcon className='text-2xl' icon={faBagShopping} />
                 <span className="absolute top-3 -right-2 bg-[#FF8F66] text-white rounded-full w-4 h-4 flex items-center justify-center text-xs">
-                  {isHydrated ? cartState.count : 0}
+                  {isHydrated ? (cartState.count || 0) : 0}
                 </span>
               </div>
               <div className="text-sm">Rs. {isHydrated ? formatPrice(cartState.price) : '0.00'}</div>
