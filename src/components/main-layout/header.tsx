@@ -830,4 +830,3 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
 
 export default Header
 
-

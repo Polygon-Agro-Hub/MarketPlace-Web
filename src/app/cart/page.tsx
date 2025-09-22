@@ -691,15 +691,15 @@ const Page: React.FC = () => {
     return (
       <div className="px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5">
         <TopNavigation NavArray={NavArray} />
-        <div className="flex flex-col items-center justify-center py-16 px-4">
+        <div className="flex flex-col items-center justify-center py-8 px-4">
           {/* Empty Cart Image/Icon */}
-          <div className="mb-8">
+          <div className="mb-6">
             <Image
               src={empty}
               alt="Empty Cart"
-              width={384}
-              height={384}
-              className="w-48 h-48 sm:w-64 sm:h-64 md:w-80 md:h-80 lg:w-96 lg:h-96 object-contain"
+              width={256}
+              height={256}
+              className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 lg:w-64 lg:h-64 object-contain"
               priority
             />
             <ShoppingCart
@@ -710,10 +710,10 @@ const Page: React.FC = () => {
 
           {/* Empty Cart Text */}
           <div className="text-center max-w-md">
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-3">
               Your Cart is Empty
             </h2>
-            <p className="text-gray-600 text-lg mb-8">
+            <p className="text-gray-600 text-base sm:text-lg mb-6">
               Looks like you haven't added any items to your cart yet.
               Start shopping to fill it up!
             </p>
@@ -833,7 +833,7 @@ const Page: React.FC = () => {
                 {/* Header section with package name on left, total on right */}
                 <div className='flex justify-between items-start mb-4'>
                   <div className='flex items-center gap-2'>
-                    <p className='text-[24px] font-normal text-gray-700'>
+                    <p className='text-[20px] font-normal text-gray-700'>
                       Your {itemGroup.packageName}
                     </p>
                   </div>

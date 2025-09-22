@@ -59,5 +59,18 @@ body {
     background: #ffffff; /* Slightly brighter on hover */
   }
   
+  /* Add this to your global CSS or component */
+.main-content {
+  padding-top: 140px; /* Adjust based on your header height */
+}
+
+/* For mobile devices */
+@media (max-width: 767px) {
+  .main-content {
+    padding-top: 100px; /* Smaller padding for mobile */
+  }
+}
+  
+  
 }
 
