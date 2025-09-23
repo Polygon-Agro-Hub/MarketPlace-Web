@@ -18,7 +18,7 @@ const Page = () => {
   const [modalMessage, setModalMessage] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [showNewPassword, setShowNewPassword] = useState(false);
-const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Get phone number from localStorage on component mount
   useEffect(() => {
@@ -58,10 +58,10 @@ const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     try {
       await resetPasswordByPhone(phoneNumber, newPassword);
-      
+
       // Clear stored phone number after successful reset
       localStorage.removeItem('otpPhoneOnly');
-      
+
       setIsError(false);
       setModalMessage('Your password has been updated successfully. You will be redirected to the login page.');
       setIsModalOpen(true);
@@ -98,41 +98,41 @@ const [showConfirmPassword, setShowConfirmPassword] = useState(false);
               Updating password for: {phoneNumber.substring(0, 3)}****{phoneNumber.slice(-3)}
             </p>
 
-           <div className="mb-4 relative">
-  <input
-    type={showNewPassword ? "text" : "password"}
-    placeholder="Enter New Password"
-    value={newPassword}
-    onChange={(e) => setNewPassword(e.target.value)}
-    className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
-    required
-  />
-  <button
-    type="button"
-    onClick={() => setShowNewPassword(!showNewPassword)}
-    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-  >
-    {showNewPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-  </button>
-</div>
+            <div className="mb-4 relative">
+              <input
+                type={showNewPassword ? "text" : "password"}
+                placeholder="Enter New Password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowNewPassword(!showNewPassword)}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              >
+                {showNewPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
 
-<div className="mb-4 relative">
-  <input
-    type={showConfirmPassword ? "text" : "password"}
-    placeholder="Re-enter New Password"
-    value={confirmPassword}
-    onChange={(e) => setConfirmPassword(e.target.value)}
-    className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
-    required
-  />
-  <button
-    type="button"
-    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-  >
-    {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-  </button>
-</div>
+            <div className="mb-4 relative">
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                placeholder="Re-enter New Password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              >
+                {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
 
             <p className="text-left text-sm text-gray-500 mb-6">
               <span className="font-semibold text-red-500">*</span> Your password must contain a minimum of 6 characters with 1 Uppercase, Number & Special character.
@@ -140,7 +140,7 @@ const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
             <button
               onClick={handleResetPassword}
-              className="w-full py-3 bg-purple-800 text-white rounded-md hover:bg-purple-900 transition-colors"
+              className="w-full py-3 bg-purple-800 text-white rounded-md hover:bg-purple-900 transition-colors cursor-pointer"
             >
               Save & Continue
             </button>
@@ -152,18 +152,102 @@ const [showConfirmPassword, setShowConfirmPassword] = useState(false);
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
           <div className="bg-white p-8 rounded-xl text-center w-[90%] max-w-md shadow-xl">
-            <Image
-              src={isError ? wrongImg : CorrectImg}
-              alt={isError ? 'Error' : 'Success'}
-              className="w-20 h-20 mx-auto mb-4"
-            />
+            {isError ? (
+              /* Error Icon with Animation */
+              <div className="flex justify-center mb-4">
+                <div className="relative w-20 h-20">
+                  {/* Animated Circle Background */}
+                  <div
+                    className="absolute inset-0 rounded-full bg-red-500 transition-all duration-700 ease-out scale-100 opacity-100"
+                    style={{
+                      transformOrigin: 'center',
+                      animationDelay: '0.2s'
+                    }}
+                  />
+
+                  {/* Animated X Icon */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <svg
+                      className="w-16 h-16 text-white"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <path
+                        className="opacity-100 transition-all duration-700 ease-out"
+                        d="M18 6L6 18M6 6L18 18"
+                        stroke="currentColor"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        style={{
+                          strokeDasharray: '24',
+                          strokeDashoffset: '0',
+                          transitionDelay: '0.6s'
+                        }}
+                      />
+                    </svg>
+                  </div>
+
+                  {/* Pulse Animation */}
+                  <div
+                    className="absolute inset-0 rounded-full bg-red-500 scale-125 opacity-0 transition-all duration-1000"
+                    style={{
+                      animationDelay: '0.8s'
+                    }}
+                  />
+                </div>
+              </div>
+            ) : (
+              /* Success Icon with Animation */
+              <div className="flex justify-center mb-4">
+                <div className="relative w-20 h-20">
+                  {/* Animated Circle */}
+                  <div
+                    className="absolute inset-0 rounded-full border-4 border-purple-500 scale-100 opacity-100 transition-all duration-700 ease-out"
+                    style={{
+                      transformOrigin: 'center',
+                      animationDelay: '0.2s'
+                    }}
+                  />
+
+                  {/* Animated Checkmark */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <svg
+                      className="w-14 h-14 text-[#8746ff]"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <path
+                        className="opacity-100 transition-all duration-700 ease-out"
+                        d="M20 6L9 17L4 12"
+                        stroke="currentColor"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        style={{
+                          strokeDasharray: '20',
+                          strokeDashoffset: '0',
+                          transitionDelay: '0.6s'
+                        }}
+                      />
+                    </svg>
+                  </div>
+
+                  {/* Pulse Animation */}
+                  <div
+                    className="absolute inset-0 rounded-full bg-[#8746ff] scale-125 opacity-0 transition-all duration-1000"
+                    style={{
+                      animationDelay: '0.8s'
+                    }}
+                  />
+                </div>
+              </div>
+            )}
 
             <h2 className="text-xl font-bold mb-2">
               {isError ? 'Error' : 'Success'}
             </h2>
-
             <p className="text-gray-700 mb-4">{modalMessage}</p>
-
             <button
               onClick={() => {
                 setIsModalOpen(false);

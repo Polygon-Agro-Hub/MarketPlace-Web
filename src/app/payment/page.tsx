@@ -54,6 +54,7 @@ const Page: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isError, setIsError] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
+  const [orderSubmitted, setOrderSubmitted] = useState(false);
 
   const getHomeUrl = () => {
     return user?.buyerType === 'Wholesale' ? '/wholesale/home' : '/';
@@ -88,7 +89,8 @@ const Page: React.FC = () => {
     const originalGrandTotal = calculatedSummary?.finalTotal || 0;
     const discountAmount = calculatedSummary?.totalDiscount || 0;
 
-    const couponDiscountAmount = isCouponApplied ? couponDiscount : 0;
+    // Ensure couponDiscount is a valid number
+    const couponDiscountAmount = isCouponApplied ? (Number(couponDiscount) || 0) : 0;
 
     // Only apply delivery charge if delivery method is 'home'
     const shouldApplyDeliveryCharge = checkoutDetails.deliveryMethod === 'home';
@@ -99,7 +101,7 @@ const Page: React.FC = () => {
       : 0;
 
     const finalGrandTotal = isCouponApplied ?
-      (originalGrandTotal - couponDiscount + effectiveDeliveryCharge) :
+      (originalGrandTotal - couponDiscountAmount + effectiveDeliveryCharge) :
       (originalGrandTotal + effectiveDeliveryCharge);
 
     let finalCheckoutDetails = {
@@ -156,6 +158,7 @@ const Page: React.FC = () => {
     };
   };
 
+
   const formatPrice = (price: number): string => {
     // Convert to fixed decimal first, then add commas
     const fixedPrice = Number(price).toFixed(2);
@@ -185,9 +188,12 @@ const Page: React.FC = () => {
 
       if (response.status) {
         setIsCouponApplied(true);
-        setCouponDiscount(response.discount);
-        setCouponType(response.type || ''); // Store coupon type from response
+        // Parse the discount value - remove commas and convert to number
+        const discountValue = parseFloat(response.discount.toString().replace(/,/g, '')) || 0;
+        setCouponDiscount(discountValue);
+        setCouponType(response.type || '');
         console.log('Coupon applied successfully:', response);
+        console.log('Parsed discount value:', discountValue);
       } else {
         setCouponError(response.message);
         setIsCouponApplied(false);
@@ -315,6 +321,7 @@ const Page: React.FC = () => {
       // Check if the response has the expected structure
       if (result.status && result.processOrderId) {
         setOrderId(result.processOrderId);
+        setOrderSubmitted(true); // Mark order as submitted
         localStorage.removeItem('deliveryCharge');
 
         // Show success modal
@@ -383,10 +390,11 @@ const Page: React.FC = () => {
       ? ((isCouponApplied && couponType === 'Free Delivary') ? 0 : deliveryCharge)
       : 0;
 
-    const couponDiscountAmount = isCouponApplied ? couponDiscount : 0;
+    // Ensure couponDiscount is a valid number
+    const couponDiscountAmount = isCouponApplied ? (Number(couponDiscount) || 0) : 0;
 
     const finalGrandTotal = isCouponApplied
-      ? (originalGrandTotal - couponDiscount + effectiveDeliveryCharge)
+      ? (originalGrandTotal - couponDiscountAmount + effectiveDeliveryCharge)
       : (originalGrandTotal + effectiveDeliveryCharge);
 
     return {
@@ -398,7 +406,7 @@ const Page: React.FC = () => {
       grandTotal: finalGrandTotal,
       deliveryCharges: effectiveDeliveryCharge,
       isFreeDelivery: isCouponApplied && couponType === 'Free Delivary' && shouldShowDeliveryCharge,
-      showDeliveryCharges: shouldShowDeliveryCharge, // Add this flag for UI rendering
+      showDeliveryCharges: shouldShowDeliveryCharge,
     };
   };
 
@@ -787,11 +795,17 @@ const Page: React.FC = () => {
             <div className="mt-8">
               <button
                 onClick={handleSubmitOrder}
-                disabled={isSubmitting}
-                className={`w-full py-4 px-6 rounded-lg cursor-pointer text-white font-semibold ${isSubmitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#3E206D] hover:bg-[#3E206D]'
+                disabled={isSubmitting || orderSubmitted}
+                className={`w-full py-4 px-6 rounded-lg cursor-pointer text-white font-semibold ${isSubmitting || orderSubmitted
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-[#3E206D] hover:bg-[#3E206D]'
                   } transition-colors`}
               >
-                {isSubmitting ? 'Processing Order...' : 'Confirm Order'}
+                {orderSubmitted
+                  ? 'Order Submitted'
+                  : isSubmitting
+                    ? 'Processing Order...'
+                    : 'Confirm Order'}
               </button>
             </div>
 
