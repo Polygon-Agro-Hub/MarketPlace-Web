@@ -1,6 +1,5 @@
 
 'use client';
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { FaCloudUploadAlt, FaTimes, FaAngleDown } from 'react-icons/fa';
@@ -184,7 +183,7 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
     }
   }, [complaint, categories]);
 
-  
+
   const handleDragOver = (e: React.DragEvent<HTMLLabelElement>) => {
     e.preventDefault();
     setIsDragging(true);
@@ -200,115 +199,115 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
     setIsDragging(false);
   };
 
-const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-  if (e.target.files) {
-    const filesArray = Array.from(e.target.files);
-    const validImages: File[] = [];
-    let hasInvalidFiles = false;
-    let hasDuplicates = false;
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const filesArray = Array.from(e.target.files);
+      const validImages: File[] = [];
+      let hasInvalidFiles = false;
+      let hasDuplicates = false;
 
-    filesArray.forEach((file) => {
-      const isValidType = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'].includes(file.type);
-      const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB limit
-      
-      // More reliable duplicate check - just check name and size
-      const isDuplicate = images.some((img) => img.name === file.name && img.size === file.size);
-      
-      if (isDuplicate) {
-        hasDuplicates = true;
-      } else if (!isValidType || !isValidSize) {
-        hasInvalidFiles = true;
-      } else {
-        // Only add if it's valid and not a duplicate
-        validImages.push(file);
+      filesArray.forEach((file) => {
+        const isValidType = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'].includes(file.type);
+        const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB limit
+
+        // More reliable duplicate check - just check name and size
+        const isDuplicate = images.some((img) => img.name === file.name && img.size === file.size);
+
+        if (isDuplicate) {
+          hasDuplicates = true;
+        } else if (!isValidType || !isValidSize) {
+          hasInvalidFiles = true;
+        } else {
+          // Only add if it's valid and not a duplicate
+          validImages.push(file);
+        }
+      });
+
+      // Check total images limit before adding
+      const totalImages = existingImages.length + images.length + validImages.length;
+
+      // Show error messages with proper priority
+      if (totalImages > 6) {
+        setErrorMessage('You can upload a maximum of 6 images.');
+        setShowErrorPopup(true);
+        return;
       }
-    });
 
-    // Check total images limit before adding
-    const totalImages = existingImages.length + images.length + validImages.length;
-    
-    // Show error messages with proper priority
-    if (totalImages > 6) {
-      setErrorMessage('You can upload a maximum of 6 images.');
-      setShowErrorPopup(true);
-      return;
-    }
-
-    if (hasDuplicates && hasInvalidFiles) {
-      setErrorMessage('You have already uploaded some of these images. Some files were also invalid (unsupported type or too large). Max size: 5MB.');
-      setShowErrorPopup(true);
-    } else if (hasDuplicates) {
-      setErrorMessage('You have already uploaded this image.');
-      setShowErrorPopup(true);
-    } else if (hasInvalidFiles) {
-      setErrorMessage('Some files were invalid (unsupported type or too large). Max size: 5MB.');
-      setShowErrorPopup(true);
-    }
-
-    // Add valid images even if there were duplicates/invalid files
-    if (validImages.length > 0) {
-      setImages((prev) => [...prev, ...validImages]);
-    }
-
-    // Clear the input so the same file can trigger onChange again
-    e.target.value = '';
-  }
-};
-
-const handleDrop = (e: React.DragEvent<HTMLLabelElement>) => {
-  e.preventDefault();
-  setIsDragging(false);
-  
-  if (e.dataTransfer.files) {
-    const filesArray = Array.from(e.dataTransfer.files);
-    const validImages: File[] = [];
-    let hasInvalidFiles = false;
-    let hasDuplicates = false;
-
-    filesArray.forEach((file) => {
-      const isValidType = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'].includes(file.type);
-      const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB limit
-      
-      // More reliable duplicate check
-      const isDuplicate = images.some((img) => img.name === file.name && img.size === file.size);
-
-      if (isDuplicate) {
-        hasDuplicates = true;
-      } else if (!isValidType || !isValidSize) {
-        hasInvalidFiles = true;
-      } else {
-        // Only add if it's valid and not a duplicate
-        validImages.push(file);
+      if (hasDuplicates && hasInvalidFiles) {
+        setErrorMessage('You have already uploaded some of these images. Some files were also invalid (unsupported type or too large). Max size: 5MB.');
+        setShowErrorPopup(true);
+      } else if (hasDuplicates) {
+        setErrorMessage('You have already uploaded this image.');
+        setShowErrorPopup(true);
+      } else if (hasInvalidFiles) {
+        setErrorMessage('Some files were invalid (unsupported type or too large). Max size: 5MB.');
+        setShowErrorPopup(true);
       }
-    });
 
-    // Check total images limit before adding
-    const totalImages = existingImages.length + images.length + validImages.length;
-    
-    // Show error messages with proper priority
-    if (totalImages > 6) {
-      setErrorMessage('You can upload a maximum of 6 images.');
-      setShowErrorPopup(true);
-      return;
-    }
+      // Add valid images even if there were duplicates/invalid files
+      if (validImages.length > 0) {
+        setImages((prev) => [...prev, ...validImages]);
+      }
 
-    if (hasDuplicates && hasInvalidFiles) {
-      setErrorMessage('You have already uploaded some of these images. Some files were also invalid (unsupported type or too large). Max size: 5MB.');
-      setShowErrorPopup(true);
-    } else if (hasDuplicates) {
-      setErrorMessage('You have already uploaded one or more of these images.');
-      setShowErrorPopup(true);
-    } else if (hasInvalidFiles) {
-      setErrorMessage('Some files were invalid (unsupported type or too large). Max size: 5MB.');
-      setShowErrorPopup(true);
+      // Clear the input so the same file can trigger onChange again
+      e.target.value = '';
     }
+  };
 
-    // Add valid images even if there were duplicates/invalid files
-    if (validImages.length > 0) {
-      setImages((prev) => [...prev, ...validImages]);
+  const handleDrop = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+
+    if (e.dataTransfer.files) {
+      const filesArray = Array.from(e.dataTransfer.files);
+      const validImages: File[] = [];
+      let hasInvalidFiles = false;
+      let hasDuplicates = false;
+
+      filesArray.forEach((file) => {
+        const isValidType = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'].includes(file.type);
+        const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB limit
+
+        // More reliable duplicate check
+        const isDuplicate = images.some((img) => img.name === file.name && img.size === file.size);
+
+        if (isDuplicate) {
+          hasDuplicates = true;
+        } else if (!isValidType || !isValidSize) {
+          hasInvalidFiles = true;
+        } else {
+          // Only add if it's valid and not a duplicate
+          validImages.push(file);
+        }
+      });
+
+      // Check total images limit before adding
+      const totalImages = existingImages.length + images.length + validImages.length;
+
+      // Show error messages with proper priority
+      if (totalImages > 6) {
+        setErrorMessage('You can upload a maximum of 6 images.');
+        setShowErrorPopup(true);
+        return;
+      }
+
+      if (hasDuplicates && hasInvalidFiles) {
+        setErrorMessage('You have already uploaded some of these images. Some files were also invalid (unsupported type or too large). Max size: 5MB.');
+        setShowErrorPopup(true);
+      } else if (hasDuplicates) {
+        setErrorMessage('You have already uploaded one or more of these images.');
+        setShowErrorPopup(true);
+      } else if (hasInvalidFiles) {
+        setErrorMessage('Some files were invalid (unsupported type or too large). Max size: 5MB.');
+        setShowErrorPopup(true);
+      }
+
+      // Add valid images even if there were duplicates/invalid files
+      if (validImages.length > 0) {
+        setImages((prev) => [...prev, ...validImages]);
+      }
     }
-  }
-};
+  };
   // Clear form
   const clearForm = () => {
     setCategoryId('');
@@ -393,7 +392,7 @@ const handleDrop = (e: React.DragEvent<HTMLLabelElement>) => {
   };
 
   return (
-    <div className="relative z-40 px-6 md:px-8 bg-white">
+    <div className="relative z-10 px-4 sm:px-6 md:px-8 min-h-screen bg-white blur-effect py-6">
       <Loader isVisible={isLoading} />
       <ErrorPopup
         isVisible={showErrorPopup}
@@ -409,7 +408,7 @@ const handleDrop = (e: React.DragEvent<HTMLLabelElement>) => {
         duration={3000}
       />
 
-      <h2 className="font-medium text-base text-[14px] md:text-[18px] mb-2 p-3">
+      <h2 className="font-medium text-base text-[14px] md:text-[18px] mb-2 ">
         {complaint?.id ? 'Update Complaint' : 'Report a Complaint'}
       </h2>
       <p className="text-[12px] md:text-[16px] text-[#626D76] mb-2">

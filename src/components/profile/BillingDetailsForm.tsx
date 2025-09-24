@@ -540,7 +540,7 @@ const BillingDetailsForm = () => {
   };
 
   return (
-    <div className="relative z-50">
+    <div className="relative z-10 px-4 sm:px-6 md:px-8 min-h-screen bg-white blur-effect py-6">
       <Loader isVisible={isLoading} />
       <SuccessPopup
         isVisible={showSuccessPopup}
@@ -556,8 +556,8 @@ const BillingDetailsForm = () => {
       />
 
 
-      <form onSubmit={handleSubmit(onSubmit)} className="px-2 md:px-10 bg-white">
-        <h2 className="font-medium text-[14px] md:text-[18px] mb-2 mt-2">Account Details</h2>
+      <form onSubmit={handleSubmit(onSubmit)} className="bg-white">
+        <h2 className="font-medium text-[14px] md:text-[18px] mb-2">Account Details</h2>
         <p className="text-[12px] md:text-[16px] text-[#626D76] mb-2">
           Real-time information and updates for your billing details.
         </p>
