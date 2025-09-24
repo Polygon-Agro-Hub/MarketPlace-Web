@@ -18,7 +18,7 @@ interface AuthState {
 
 interface CartInfo {
   price: number;
-  count: number;
+  count: number | null;
 }
 
 const initialStateCart: CartInfo = {
@@ -44,7 +44,10 @@ const authSlice = createSlice({
       state.tokenExpiration = action.payload.tokenExpiration || null;
     },
     updateCartInfo: (state, action: PayloadAction<CartInfo>) => {
-      state.cart = action.payload;
+      state.cart = {
+        price: action.payload.price || 0,
+        count: action.payload.count === null ? 0 : action.payload.count
+      };
     },
     logout: (state) => {
       state.token = null;

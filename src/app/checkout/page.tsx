@@ -560,11 +560,11 @@ const Page: React.FC = () => {
 
       case 'phone1':
         if (!value) return 'Phone number 1 is required.';
-        if (!/^\d{9}$/.test(value.toString())) return 'Please enter a valid mobile number (format: +947XXXXXXXX)';
+        if (!/^\d{9}$/.test(value.toString())) return 'Please enter a valid mobile number (format: 7XXXXXXXX)';
         return '';
 
       case 'phone2':
-        return value && !/^\d{9}$/.test(value.toString()) ? 'Please enter a valid mobile number (format: +947XXXXXXXX)' : '';
+        return value && !/^\d{9}$/.test(value.toString()) ? 'Please enter a valid mobile number (format: 7XXXXXXXX)' : '';
 
       case 'timeSlot':
         return !trimmed ? 'Time slot is required.' : '';
@@ -909,7 +909,7 @@ const Page: React.FC = () => {
                     <div className="w-full">
                       <input
                         type="text"
-                        className='w-full h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2 text-[#808FA2]'
+                        className='w-full h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2 '
                         value={formData.phone1}
                         onChange={(e) => handleFieldChange('phone1', e.target.value)}
                         placeholder='7xxxxxxxx'
@@ -939,7 +939,7 @@ const Page: React.FC = () => {
                     <div className="w-full">
                       <input
                         type="text"
-                        className='w-full  h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2 text-[#808FA2]'
+                        className='w-full  h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2 '
                         value={formData.phone2}
                         onChange={(e) => handleFieldChange('phone2', e.target.value)}
                         placeholder='7xxxxxxxx'
@@ -1091,16 +1091,23 @@ const Page: React.FC = () => {
 
               <div className='flex md:flex-row flex-col gap-4 mb-6'>
                 <div className="md:w-1/2 w-full">
+                  <style dangerouslySetInnerHTML={{
+                    __html: `
+      .date-input::-webkit-calendar-picker-indicator {
+        cursor: pointer;
+      }
+      .date-input::-webkit-inner-spin-button {
+        cursor: pointer;
+      }
+    `
+                  }} />
                   <label className='block text-[#2E2E2E] font-semibold mb-4'>Date *</label>
                   <div className="relative">
                     <input
                       type="date"
-                      className={`w-full border h-[39px] border-gray-300 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2 appearance-none bg-white ${formData.deliveryDate ? 'text-[#3D3D3D]' : 'text-transparent'
-                        }`}
+                      className={`date-input w-full border h-[39px] border-gray-300 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2 bg-white ${formData.deliveryDate ? 'text-[#3D3D3D]' : 'text-transparent'}`}
                       style={{
                         colorScheme: 'light',
-                        WebkitAppearance: 'none',
-                        MozAppearance: 'textfield'
                       }}
                       value={formData.deliveryDate}
                       onChange={(e) => {
@@ -1124,8 +1131,19 @@ const Page: React.FC = () => {
                           handleFieldChange('deliveryDate', selectedValue);
                         }
                       }}
+                      onClick={(e) => {
+                        // Ensure the date picker opens on click
+                        const target = e.target as HTMLInputElement;
+                        if (target.showPicker) {
+                          target.showPicker();
+                        }
+                      }}
+                      onFocus={(e) => {
+                        // Alternative fallback for browsers that don't support showPicker
+                        const target = e.target as HTMLInputElement;
+                        target.click();
+                      }}
                       min={getMinDate()}
-                      // Additional attributes for iOS Safari
                       pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}"
                       placeholder="mm/dd/yyyy"
                     />

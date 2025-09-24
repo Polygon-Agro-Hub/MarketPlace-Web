@@ -1,14 +1,14 @@
 'use client';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store';
-import { setSearchTerm, setPackageResults, resetAndSearch ,clearSearch} from '@/store/slices/searchSlice';
+import { setSearchTerm, setPackageResults, resetAndSearch, clearSearch } from '@/store/slices/searchSlice';
 import { useEffect, useState } from 'react';
 import Loading from '@/components/loadings/loading';
 import PackageSlider from "@/components/home/PackageSlider";
 import CategoryFilter from "@/components/type-filters/CategoryFilter";
 import { getAllProduct } from "@/services/product-service";
 import TopBanner from '@/components/home/TopBanner';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons';
 import { X } from 'lucide-react';
@@ -49,54 +49,71 @@ export default function Home() {
   const [showLoginPopup, setShowLoginPopup] = useState(false);
 
   const router = useRouter();
-
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     setLocalSearchInput(searchTerm);
   }, [searchTerm]);
 
   useEffect(() => {
-    fetchAllPackages();
     console.log("Cart:", cart);
   }, []);
 
+  // FIXED: Handle URL search parameters and search state separately to avoid undefined issues
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const searchFromUrl = urlParams.get('search');
-
-    if (searchFromUrl) {
+    const searchFromUrl = searchParams.get('search');
+    
+    if (searchFromUrl && searchFromUrl.trim()) {
       console.log('Home: Found search in URL:', searchFromUrl);
-
-      dispatch(resetAndSearch(searchFromUrl));
-
-      const newUrl = window.location.pathname;
-      window.history.replaceState({}, '', newUrl);
-    }
-  }, [dispatch]);
-
-  // Keep the existing search useEffect unchanged:
-  useEffect(() => {
-    fetchAllPackages(searchTerm);
-  }, [searchTerm]);
-
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      console.log('Home: Search term changed to:', searchTerm);
-      if (searchTerm && searchTerm.trim()) {
-        fetchAllPackages(searchTerm.trim());
-      } else if (searchTerm === '') {
-
-        fetchAllPackages();
+      
+      // Only update Redux state if it's different and execute search immediately
+      if (searchFromUrl.trim() !== searchTerm) {
+        console.log('Home: Setting search term from URL:', searchFromUrl.trim());
+        dispatch(resetAndSearch(searchFromUrl.trim()));
       }
-    }, 150);
+      
+      // Always execute search with URL parameter to ensure it's not undefined
+      console.log('Home: Executing immediate search with URL param:', searchFromUrl.trim());
+      fetchAllPackages(searchFromUrl.trim());
+      
+      // Clean URL after search is processed
+      setTimeout(() => {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('search');
+        window.history.replaceState({}, '', url.pathname);
+      }, 500);
+      
+      return; // Exit early to avoid running other conditions
+    }
+  }, [searchParams, dispatch]);
 
-    return () => clearTimeout(timeoutId);
-  }, [searchTerm]);
+  // Separate useEffect for handling search term changes (not from URL)
+  useEffect(() => {
+    const searchFromUrl = searchParams.get('search');
+    
+    // Skip if we have URL parameter (handled above)
+    if (searchFromUrl && searchFromUrl.trim()) {
+      return;
+    }
+    
+    if (searchTerm && searchTerm.trim()) {
+      // Handle regular search term changes with debouncing
+      const timeoutId = setTimeout(() => {
+        console.log('Home: Executing debounced search for:', searchTerm.trim());
+        fetchAllPackages(searchTerm.trim());
+      }, 300);
+
+      return () => clearTimeout(timeoutId);
+    } else if (searchTerm === '' || !searchTerm) {
+      // Handle empty search - fetch all products
+      console.log('Home: No search term, fetching all packages');
+      fetchAllPackages(); // This will call API with undefined, which should get all products
+    }
+  }, [searchTerm, searchParams]);
 
   useEffect(() => {
     console.log(`Category changed to: ${selectedCategory}`);
   }, [selectedCategory]);
-
 
   useEffect(() => {
     console.log('=== REDUX STATE UPDATE ===');
@@ -135,45 +152,44 @@ export default function Home() {
   useEffect(() => {
     const initializeData = async () => {
       try {
-        await fetchAllPackages();
+        // Don't fetch here as it will be handled by the search useEffect
         // Add a small delay to show the skeleton for better UX
         setTimeout(() => {
           setLoading(false);
-        }, 2000);
+        }, 1500);
       } catch (error) {
         setLoading(false);
       }
     };
 
     initializeData();
-    console.log("Cart:", cart);
   }, []);
 
+  // FIXED: Better API call handling
   async function fetchAllPackages(search?: string) {
     try {
-      // Only show loading on searches, not initial load
-      if (search !== undefined && search !== '') {
-        setLoading(true);
-      }
-
-      console.log('Home: Fetching packages with search term:', search);
-      const response = await getAllProduct(search) as any;
+      // IMPORTANT: Handle undefined/empty search properly
+      const searchParam = search && search.trim() ? search.trim() : undefined;
+      console.log('Home: Calling API with search param:', searchParam);
+      
+      const response = await getAllProduct(searchParam) as any;
 
       if (response && response.product) {
+        console.log('Home: API response received:', response.product.length, 'products');
         setProductData(response.product);
         dispatch(setPackageResults(response.product.length > 0));
+        setError(null);
       } else {
+        console.log('Home: No products in API response');
+        setProductData([]);
         setError('No products found');
         dispatch(setPackageResults(false));
       }
     } catch (error) {
       console.error('Home: Error fetching packages:', error);
       setError('Failed to fetch packages');
+      setProductData([]);
       dispatch(setPackageResults(false));
-    } finally {
-      if (search !== undefined && search !== '') {
-        setLoading(false);
-      }
     }
   }
 
@@ -211,10 +227,8 @@ export default function Home() {
 
       const loadAnimation = async () => {
         try {
-          // Prevent double loading
           if (isLoadedRef.current || !animationContainer.current) return;
 
-          // Clear any existing content first
           animationContainer.current.innerHTML = '';
           isLoadedRef.current = true;
 
@@ -228,12 +242,10 @@ export default function Home() {
             animationData: animationData,
           });
 
-          // Additional cleanup of duplicate elements after animation loads
           setTimeout(() => {
             if (animationContainer.current) {
               const svgElements = animationContainer.current.querySelectorAll('svg');
               if (svgElements.length > 1) {
-                // Keep only the first SVG element
                 for (let i = 1; i < svgElements.length; i++) {
                   svgElements[i].remove();
                 }
@@ -262,7 +274,6 @@ export default function Home() {
     return (
       <div className="w-full flex items-center justify-center px-4 sm:px-6 lg:px-8 py-8 mt-8">
         <div className="flex flex-col items-center justify-center text-center max-w-md w-full">
-          {/* Lottie Animation Container - isolated and controlled */}
           <div className="w-48 h-48 mb-4 flex items-center justify-center">
             <div
               ref={animationContainer}
@@ -290,6 +301,7 @@ export default function Home() {
       </div>
     );
   };
+
   // Login popup component
   const LoginPopup = () => {
     if (!showLoginPopup) return null;
@@ -297,7 +309,6 @@ export default function Home() {
     return (
       <div className="fixed top-0 left-0 w-full h-full bg-black bg-black/50 flex items-center justify-center z-[9999] mb-[5%]">
         <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4 relative">
-          {/* Close button */}
           <button
             onClick={() => setShowLoginPopup(false)}
             className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 cursor-pointer"
@@ -307,7 +318,6 @@ export default function Home() {
             </svg>
           </button>
 
-          {/* Header */}
           <div className="text-center mb-6">
             <h2 className="text-xl font-bold text-[#000000] mb-4">
               Welcome, Guest!
@@ -319,7 +329,6 @@ export default function Home() {
             </p>
           </div>
 
-          {/* Buttons */}
           <div className="flex justify-center space-x-4">
             <button
               onClick={handleRegisterClick}
@@ -342,16 +351,13 @@ export default function Home() {
   const HomeSkeleton = ({ isSearchActive = false }) => {
     return (
       <main className="flex min-h-screen flex-col bg-gray-50 mb-[10%]">
-        {/* Top banner skeleton - hide when search is active */}
         {!isSearchActive && (
           <div className="w-full h-[500px] bg-gray-200 animate-pulse relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"></div>
             <div className="flex flex-col items-center justify-center h-full px-8 text-center">
-              {/* Main content skeleton */}
               <div className="space-y-6 z-10">
                 <div className="h-16 bg-gray-300 rounded-lg w-80 animate-pulse"></div>
                 <div className="h-8 bg-gray-200 rounded-lg w-64 animate-pulse"></div>
-                {/* Timer skeleton */}
                 <div className="flex space-x-6 items-center justify-center mt-12">
                   <div className="flex flex-col items-center">
                     <div className="h-12 w-12 bg-gray-300 rounded animate-pulse"></div>
@@ -375,7 +381,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Carousel dots skeleton */}
               <div className="flex space-x-3 mt-12">
                 <div className="w-3 h-3 bg-gray-400 rounded-full animate-pulse"></div>
                 <div className="w-3 h-3 bg-gray-300 rounded-full animate-pulse"></div>
@@ -385,7 +390,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* Mobile search bar skeleton */}
         <div className={`w-full px-4 sm:hidden ${isSearchActive ? 'mt-4' : 'mt-4'}`}>
           <div className="flex-1 max-w-xl mx-auto">
             <div className="relative shadow-lg">
@@ -394,19 +398,14 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Content container with controlled spacing */}
         <div className={`flex-1 ${isSearchActive ? 'mt-6' : 'mt-6'} px-4 sm:px-6 lg:px-8`}>
           <div className="space-y-8">
-            {/* Package slider skeleton section */}
             <div className="w-full">
-              {/* Section label skeleton */}
               <div className="flex justify-center mb-8">
                 <div className="h-10 w-24 bg-gray-200 rounded-full animate-pulse"></div>
               </div>
 
-              {/* Package cards horizontal slider skeleton */}
               <div className="relative max-w-6xl mx-auto">
-                {/* Navigation arrows skeleton */}
                 <div className="absolute left-0 top-1/2 transform -translate-y-1/2 z-10 -ml-6">
                   <div className="w-12 h-12 bg-gray-300 rounded-full animate-pulse shadow-md"></div>
                 </div>
@@ -414,18 +413,14 @@ export default function Home() {
                   <div className="w-12 h-12 bg-gray-300 rounded-full animate-pulse shadow-md"></div>
                 </div>
 
-                {/* Package cards */}
                 <div className="flex justify-center space-x-8 overflow-hidden px-16">
                   {[...Array(3)].map((_, index) => (
                     <div key={index} className="bg-white rounded-3xl border-2 border-gray-200 overflow-hidden animate-pulse flex-shrink-0 w-80 h-96 shadow-sm">
                       <div className="p-8 text-center h-full flex flex-col justify-center">
-                        {/* Package icon skeleton */}
                         <div className="w-32 h-32 bg-gray-200 rounded-2xl mx-auto mb-8 animate-pulse relative">
                           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer rounded-2xl"></div>
                         </div>
-                        {/* Package title skeleton */}
                         <div className="h-8 bg-gray-300 rounded-lg w-3/4 mx-auto mb-4 animate-pulse"></div>
-                        {/* Package price skeleton */}
                         <div className="h-6 bg-gray-200 rounded-lg w-1/2 mx-auto animate-pulse"></div>
                       </div>
                     </div>
@@ -434,20 +429,16 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Category filter skeleton section */}
             <div className="w-full">
-              {/* Section label skeleton */}
               <div className="flex justify-center mb-6">
                 <div className="h-8 w-16 bg-gray-200 rounded-full animate-pulse"></div>
               </div>
 
-              {/* Category cards grid skeleton */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 mb-8">
                 {[...Array(4)].map((_, index) => (
                   <div key={index} className="bg-white rounded-2xl shadow-md overflow-hidden animate-pulse">
                     <div className="aspect-square bg-gray-200 relative">
                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer"></div>
-                      {/* Category icon placeholder */}
                       <div className="absolute bottom-4 right-4 w-8 h-8 bg-gray-300 rounded-full"></div>
                     </div>
                     <div className="p-4 text-center">
@@ -458,11 +449,9 @@ export default function Home() {
                 ))}
               </div>
 
-              {/* Individual product cards skeleton */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
                 {[...Array(4)].map((_, index) => (
                   <div key={index} className="bg-white rounded-2xl shadow-md overflow-hidden animate-pulse relative">
-                    {/* Discount badge skeleton */}
                     {index % 2 === 0 && (
                       <div className="absolute top-2 left-2 z-10">
                         <div className="w-8 h-12 bg-gray-300 rounded-r-full animate-pulse"></div>
@@ -486,21 +475,18 @@ export default function Home() {
     );
   };
 
-
   return (
     <>
       {loading ? (
         <HomeSkeleton isSearchActive={isSearchActive} />
       ) : (
         <main className="flex min-h-screen flex-col">
-          {/* Top banner - hide when search is active */}
           {!isSearchActive && (
             <div className="w-full">
               <TopBanner />
             </div>
           )}
 
-          {/* Mobile search bar */}
           <div className={`w-full px-4 sm:hidden ${isSearchActive ? 'mt-4' : 'mt-4'}`}>
             <div className="flex-1 max-w-xl mx-auto">
               <form onSubmit={handleSearchSubmit}>
@@ -534,14 +520,11 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Content container with controlled spacing */}
           <div className={`flex-1 ${isSearchActive ? 'mt-6' : 'mt-0'}`}>
-            {/* Conditional rendering based on search results */}
             {isSearchActive && !hasPackageResults && !hasCategoryResults ? (
               <NoSearchResults />
             ) : (
               <div className="space-y-6">
-                {/* Package slider section - show only if has results or not searching */}
                 {(!isSearchActive || hasPackageResults) && (
                   error ? (
                     <div className="text-red-500 text-center py-4">{error}</div>
@@ -556,7 +539,6 @@ export default function Home() {
                   )
                 )}
 
-                {/* Category filter section - show only if has results or not searching */}
                 {(!isSearchActive || hasCategoryResults) && (
                   <div className="w-full px-4 sm:px-6 lg:px-8">
                     <CategoryFilter />
@@ -566,7 +548,6 @@ export default function Home() {
             )}
           </div>
 
-          {/* Package add to cart confirmation modal */}
           {showConfirmModal && selectedPackageForCart && (
             <div className="fixed inset-0 bg-black/50 bg-opacity-50 flex items-center justify-center z-50">
               <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full mx-4">
@@ -599,7 +580,6 @@ export default function Home() {
             </div>
           )}
 
-          {/* Login popup modal */}
           <LoginPopup />
         </main>
       )}
