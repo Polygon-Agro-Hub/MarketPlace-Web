@@ -113,9 +113,9 @@ const ViewMyList = () => {
   };
 
   return (
-    <div className="relative z-10 px-4 sm:px-6 md:px-8 min-h-screen mb-10 bg-white blur-effect">
+    <div className="relative z-10 px-4 sm:px-6 md:px-8 min-h-screen bg-white blur-effect py-6">
       <Loader isVisible={loading} /> {/* Add Loader component */}
-      <h2 className="font-medium text-sm sm:text-base md:text-[18px] mb-2 mt-2">
+      <h2 className="font-medium text-sm sm:text-base md:text-[18px] mb-2 ">
         Exclude Item List
       </h2>
       <p className="text-xs sm:text-sm md:text-[16px] text-[#626D76] mb-3">

@@ -157,10 +157,10 @@ const ItemCard = ({
 
                 const productData = {
                     mpItemId: id,
-                    quantityType: unitType as 'kg' | 'g', 
-                    quantity: typeof startValue === 'string' ? parseFloat(startValue) : startValue 
+                    quantityType: unitType as 'kg' | 'g',
+                    quantity: typeof startValue === 'string' ? parseFloat(startValue) : startValue
                 };
-                
+
                 console.log('Adding to cart with data:', productData);
 
                 await productAddToCart(productData, token);
@@ -312,7 +312,10 @@ const ItemCard = ({
     };
 
     return (
-        <div className={`relative bg-white rounded-lg shadow-sm border border-gray-200 w-full flex flex-col items-center transition-all duration-300 hover:shadow-md cursor-default ${showQuantitySelector ? 'h-[320px]' : 'h-[280px]'}`}>
+        <div className={`relative bg-white rounded-xl md:rounded-3xl shadow-sm border border-gray-200 w-full flex flex-col items-center transition-all duration-300 hover:shadow-md cursor-default ${showQuantitySelector
+            ? 'h-[260px] sm:h-[300px] md:h-[320px]'
+            : 'h-[200px] sm:h-[260px] md:h-[280px]'
+            }`}>
             {/* Error message */}
             {error && (
                 <div className="absolute top-0 left-0 right-0 bg-red-100 text-red-700 text-xs p-1 text-center z-30">
@@ -331,13 +334,13 @@ const ItemCard = ({
             {discount && discount > 0 && (
                 <div className="absolute top-0 left-0 z-20">
                     <div
-                        className="w-10 h-10 rounded-tl-lg sm:w-14 sm:h-14 md:w-15 md:h-15 bg-purple-900 flex flex-col items-center justify-center text-white"
+                        className="w-15 h-15 rounded-tl-xl md:rounded-tl-3xl sm:w-14 sm:h-14 md:w-20 md:h-20 bg-purple-900 flex flex-col items-center justify-center text-white"
                         style={{ clipPath: 'polygon(0 0, 0 100%, 100% 0)' }}
                     >
-                        <div className="transform -translate-y-1/3 -translate-x-1/3 text-[8px] sm:text-[9px] md:text-[10px] absolute top-3 left-3 sm:top-4 sm:left-4">
-                            <span className="font-bold">{discount}%</span>
+                        <div className="transform -translate-y-1/3 -translate-x-1/3 text-[8px] sm:text-[9px] md:text-[10px] absolute top-4 left-4 md:top-5 md:left-5">
+                            <span className="text-xs">{discount}%</span>
                             <br />
-                            <span className="text-[6px] sm:text-[7px] md:text-xs">Off</span>
+                            <span className="text-[7px] md:text-xs">Off</span>
                         </div>
                     </div>
                 </div>
@@ -349,23 +352,13 @@ const ItemCard = ({
                 <div className={`w-full flex items-center justify-center ${discount ? 'mt-4' : 'mt-0'} ${showQuantitySelector ? 'h-20' : 'flex-grow max-h-36'}`}>
                     {!addedToCart && (
                         <div className="w-full h-full flex items-center justify-center">
-                            {isImageUrl ? (
-                                <div className="relative w-full h-full">
-                                    <img
-                                        src={image as string}
-                                        alt={name}
-                                        className="object-contain w-full h-full"
-                                    />
-                                </div>
-                            ) : (
-                                <Image
-                                    src={image}
-                                    alt={name}
-                                    width={80}
-                                    height={80}
-                                    className="object-contain max-h-full"
-                                />
-                            )}
+                            <Image
+                                src={image}
+                                alt={name}
+                                width={120}
+                                height={120}
+                                className="object-contain w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 xl:w-28 xl:h-28"
+                            />
                         </div>
                     )}
                 </div>
@@ -435,10 +428,10 @@ const ItemCard = ({
                 )}
 
                 {/* Bottom button section - always at the bottom */}
-                <div className="w-full mt-auto relative flex-shrink-0">
+                <div className="flex justify-center w-full lg:mb-4">
                     <Tooltip />
                     {addedToCart ? (
-                        <button className="w-full py-2 px-4 rounded flex items-center justify-center gap-2 text-sm md:text-base bg-[#EDE1FF] text-purple-900 border border-[#3E206D] transition-colors cursor-pointer">
+                        <button className="w-52 py-2 px-1.5 rounded rounded-lg md:rounded-xl flex items-center justify-center gap-1 text-xs md:text-sm bg-[#EDE1FF] text-purple-900 border border-[#3E206D] transition-colors cursor-pointer">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                             </svg>
@@ -450,11 +443,11 @@ const ItemCard = ({
                             onMouseEnter={() => setIsHovering(true)}
                             onMouseLeave={() => setIsHovering(false)}
                             disabled={isLoading || isInCart}
-                            className={`w-full py-1 px-1.5 rounded flex items-center justify-center gap-1 text-xs md:text-sm transition-colors ${isInCart
+                            className={`w-52 py-2 px-1.5 rounded rounded-lg md:rounded-xl flex items-center justify-center gap-1 text-xs md:text-sm transition-colors ${isInCart
                                 ? "bg-[#EDE1FF] text-gray-500 cursor-not-allowed"
                                 : token && user && showQuantitySelector && buyerType !== 'Wholesale'
                                     ? "bg-purple-900 text-white hover:bg-purple-800 cursor-pointer"
-                                    : "bg-[#EDE1FF] text-gray-400 hover:bg-[#3E206D] hover:text-white cursor-pointer"
+                                    : "bg-white border shadow text-gray-400 hover:bg-[#3E206D] hover:text-white cursor-pointer"
                                 } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                             {!showQuantitySelector && !isInCart && (

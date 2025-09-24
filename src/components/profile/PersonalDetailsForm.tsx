@@ -520,7 +520,7 @@ const PersonalDetailsForm = () => {
   ];
 
   return (
-    <>
+    <div className="relative z-10 px-4 sm:px-6 md:px-8 min-h-screen bg-white blur-effect py-6">
       <div className="relative z-50">
         <Loader isVisible={isLoading} />
         <SuccessPopup
@@ -538,8 +538,8 @@ const PersonalDetailsForm = () => {
         />
       </div>
 
-      <form className="px-2 md:px-10 bg-white">
-        <h2 className="font-medium text-[14px] text-base md:text-[18px] mb-2 p-2">Account</h2>
+      <form className="bg-white">
+        <h2 className="font-medium text-[14px] text-base md:text-[18px] mb-2 ">Account</h2>
         <p className="text-xs md:text-sm lg:text-[16px] text-[#626D76] mb-2 whitespace-nowrap">
           Real-time information and activities of your property.
         </p>
@@ -871,7 +871,7 @@ const PersonalDetailsForm = () => {
           </div>
         </div>
       </form>
-    </>
+    </div>
   );
 };
 
