@@ -57,7 +57,7 @@ const CategoryTile: React.FC<CategoryTileProps> = ({
 
             <div className="flex flex-col items-center mt-auto mb-7">
                 <h3 className="font-medium text-sm md:text-lg lg:text-xl text-center">{name}</h3>
-                <p className="text-xs text-gray-500 text-center">{itemCount} items</p>
+                <p className="text-lg text-gray-500 text-center">{itemCount} items</p>
             </div>
 
             {isSelected && (

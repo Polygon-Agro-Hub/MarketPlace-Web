@@ -148,6 +148,7 @@ const Page: React.FC = () => {
   const [loadingCities, setLoadingCities] = useState(false);
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
   const [deliveryCharge, setDeliveryCharge] = useState<number>(0); // Default charge
+  const [hasPreviousAddress, setHasPreviousAddress] = useState(true);
 
   useEffect(() => {
     // Only run on client side
@@ -162,13 +163,6 @@ const Page: React.FC = () => {
         ...prev,
         deliveryMethod: deliveryMethodFromQuery
       }));
-
-      // Set default to saved address for home delivery
-      if (deliveryMethodFromQuery === 'home') {
-        setUsePreviousAddress(true);
-        // Trigger fetch of previous address
-        handleAddressOptionChange('previous');
-      }
 
       console.log('Delivery method set from query params:', deliveryMethodFromQuery);
     }
@@ -236,28 +230,11 @@ const Page: React.FC = () => {
 
   useEffect(() => {
     // Set default to saved address if delivery method is home on initial load
-    if (formData.deliveryMethod === 'home' && searchParamsLoaded && !usePreviousAddress) {
-      setUsePreviousAddress(true);
+    if (formData.deliveryMethod === 'home' && searchParamsLoaded) {
       handleAddressOptionChange('previous');
     }
-  }, [formData.deliveryMethod, searchParamsLoaded]);
+  }, [formData.deliveryMethod, searchParamsLoaded, cities]);
 
-
-  const handleCitySelect = (cityId: string, cityName: string) => {
-    const selectedCityData = cities.find(city => city.id.toString() === cityId);
-
-    if (selectedCityData) {
-      setSelectedCity(selectedCityData);
-      setFormDataLocal(prev => ({ ...prev, cityName: selectedCityData.city }));
-
-      // Set delivery charge based on selected city
-      const charge = parseFloat(selectedCityData.charge);
-      setDeliveryCharge(charge);
-
-      console.log('Selected city:', selectedCityData);
-      console.log('Delivery charge:', charge);
-    }
-  };
 
   // 5. Create city dropdown options
   const cityOptions = cities.map(city => ({
@@ -274,7 +251,21 @@ const Page: React.FC = () => {
       try {
         const response = await getLastOrderAddress(token);
 
-        if (response && response.status) {
+        // Check if response has hasAddress field
+        if (response && response.hasAddress === false) {
+          // No previous address found - hide the saved address option
+          setHasPreviousAddress(false);
+          setUsePreviousAddress(false);
+          // Switch to new address mode
+          setFormDataLocal(prev => ({
+            ...initialFormState,
+            deliveryMethod: prev.deliveryMethod
+          }));
+          setSelectedCity(null);
+          setDeliveryCharge(0);
+        } else if (response && response.status) {
+          // Previous address found - show the saved address option
+          setHasPreviousAddress(true);
           const data = response.result;
           console.log('fetch last order address data', data);
 
@@ -308,17 +299,18 @@ const Page: React.FC = () => {
             flatNumber: data.unitNo || '',
             floorNumber: data.floorNo || '',
           }));
-        } else {
-          // Handle case where no previous address is found
-          console.log('No previous order address found, staying with saved address option but clearing form');
-          // Keep usePreviousAddress as true but don't show error popup
-          // User can still choose to enter new address manually
-          setUsePreviousAddress(true);
         }
       } catch (error: any) {
         console.error('Failed to fetch last order address:', error);
-        // Keep the saved address option selected but allow user to choose new address
-        setUsePreviousAddress(true);
+        // On error, assume no previous address and hide the option
+        setHasPreviousAddress(false);
+        setUsePreviousAddress(false);
+        setFormDataLocal(prev => ({
+          ...initialFormState,
+          deliveryMethod: prev.deliveryMethod
+        }));
+        setSelectedCity(null);
+        setDeliveryCharge(0);
       } finally {
         setFetching(false);
       }
@@ -353,9 +345,12 @@ const Page: React.FC = () => {
     const selectedCenter = pickupCenters.find(center => center.value === centerId);
 
     if (selectedCenter) {
-      const centerIdAsNumber = parseInt(centerId, 10); // Convert string to number
+      const centerIdAsNumber = parseInt(centerId, 10);
       setSelectedPickupCenter({ id: centerIdAsNumber, name: centerName });
       setFormDataLocal(prev => ({ ...prev, centerId: centerIdAsNumber }));
+
+      // Clear centerId error when center is selected
+      setErrors(prev => ({ ...prev, centerId: '' }));
 
       // Update map center and zoom to selected pickup center
       setMapCenter([selectedCenter.latitude, selectedCenter.longitude]);
@@ -370,6 +365,7 @@ const Page: React.FC = () => {
     }
   };
 
+
   const pickupCenterOptions = pickupCenters.map(center => ({
     value: center.value,
     label: center.label
@@ -377,52 +373,80 @@ const Page: React.FC = () => {
 
   const getMinDate = (): string => {
     const today = new Date();
-    const minDate = new Date(today);
-    minDate.setDate(today.getDate() + 3); // Add 3 days to current date
 
-    // Format as YYYY-MM-DD for the date input
-    return minDate.toISOString().split('T')[0];
+    // Create a new date object and add 3 days
+    const minDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 3);
+
+    // Ensure we get the correct local date without timezone issues
+    const year = minDate.getFullYear();
+    const month = String(minDate.getMonth() + 1).padStart(2, '0');
+    const day = String(minDate.getDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
   };
-
 
 
   const handleFieldChange = (field: keyof FormData, value: string | number) => {
     // Update the form state
     setFormDataLocal(prev => ({ ...prev, [field]: value }));
 
-    // Validate the field with access to current form data
-    const error = validateField(field, value, formData);
+    // Validate the field with the updated form data
+    const updatedFormData = { ...formData, [field]: value };
+    const error = validateField(field, value, updatedFormData);
     setErrors(prev => ({ ...prev, [field]: error }));
 
-    // Special case: if deliveryMethod changes, revalidate all address fields and centerId
+    // Special case: if deliveryMethod changes, revalidate all fields and reset relevant state
     if (field === 'deliveryMethod') {
-      // Set default to saved address for home delivery
+      // Clear errors for all fields first
+      setErrors({
+        centerId: '',
+        deliveryMethod: '',
+        title: '',
+        fullName: '',
+        phone1: '',
+        phone2: '',
+        buildingType: '',
+        deliveryDate: '',
+        timeSlot: '',
+        phoneCode1: '',
+        phoneCode2: '',
+        buildingNo: '',
+        buildingName: '',
+        flatNumber: '',
+        floorNumber: '',
+        houseNo: '',
+        street: '',
+        cityName: '',
+        scheduleType: '',
+      });
+
       if (value === 'home') {
         setUsePreviousAddress(true);
+        setSelectedPickupCenter(null); // Clear pickup center selection
         // Trigger fetch of previous address
         handleAddressOptionChange('previous');
-      } else {
+      } else if (value === 'pickup') {
         setUsePreviousAddress(false);
+        setSelectedCity(null); // Clear city selection
+        setDeliveryCharge(0); // Reset delivery charge
+        // Reset form to initial state but keep delivery method and basic info
+        const basicInfo = {
+          title: formData.title,
+          fullName: formData.fullName,
+          phone1: formData.phone1,
+          phone2: formData.phone2,
+          phoneCode1: formData.phoneCode1,
+          phoneCode2: formData.phoneCode2,
+          deliveryDate: formData.deliveryDate,
+          timeSlot: formData.timeSlot,
+        };
+
+        setFormDataLocal(prev => ({
+          ...initialFormState,
+          deliveryMethod: value as string,
+          ...basicInfo
+        }));
       }
-
-      const addressFields = [
-        'buildingType', 'buildingName', 'buildingNo',
-        'street', 'cityName', 'houseNo',
-        'floorNumber', 'flatNumber', 'centerId'
-      ];
-
-      addressFields.forEach(addressField => {
-        const fieldValue = addressField === 'centerId'
-          ? formData[addressField as keyof FormData]
-          : formData[addressField as keyof FormData];
-
-        const addressError = validateField(
-          addressField as keyof FormData,
-          fieldValue,
-          { ...formData, deliveryMethod: value as string } // Updated deliveryMethod
-        );
-        setErrors(prev => ({ ...prev, [addressField]: addressError }));
-      });
     }
   };
 
@@ -470,6 +494,11 @@ const Page: React.FC = () => {
       if (error) return false;
     }
 
+    // Additional check: For home delivery, ensure selectedCity is not null
+    if (isHomeDelivery && !selectedCity) {
+      return false;
+    }
+
     return true;
   };
 
@@ -480,6 +509,27 @@ const Page: React.FC = () => {
   }, [formData, errors]);
 
 
+  // Updated validateField function - replace the existing one
+  const handleCitySelect = (cityId: string, cityName: string) => {
+    const selectedCityData = cities.find(city => city.id.toString() === cityId);
+
+    if (selectedCityData) {
+      setSelectedCity(selectedCityData);
+      setFormDataLocal(prev => ({ ...prev, cityName: selectedCityData.city }));
+
+      // Set delivery charge based on selected city
+      const charge = parseFloat(selectedCityData.charge);
+      setDeliveryCharge(charge);
+
+      // Clear any existing cityName error
+      setErrors(prev => ({ ...prev, cityName: '' }));
+
+      console.log('Selected city:', selectedCityData);
+      console.log('Delivery charge:', charge);
+    }
+  };
+
+  // Updated validateField function - ensure cityName validation
   const validateField = (field: keyof FormData, value: string | number | null, formData: FormData): string => {
     const trimmed = typeof value === 'string' ? value.trim() : '';
     const isHomeDelivery = formData.deliveryMethod === 'home';
@@ -488,7 +538,17 @@ const Page: React.FC = () => {
 
     switch (field) {
       case 'centerId':
-        return isPickup && (value === null || value === undefined) ? 'Please select a pickup center.' : '';
+        if (isPickup) {
+          if (value === null || value === undefined) {
+            return 'Please select a pickup center.';
+          }
+          // Additional check: ensure the value is a valid number
+          if (typeof value === 'number' && value > 0) {
+            return '';
+          }
+          return 'Please select a pickup center.';
+        }
+        return ''; // Not required for home delivery
 
       case 'fullName':
         if (!trimmed) return 'Full Name is required.';
@@ -500,19 +560,33 @@ const Page: React.FC = () => {
 
       case 'phone1':
         if (!value) return 'Phone number 1 is required.';
-        if (!/^\d{9}$/.test(value.toString())) return 'Please enter a valid phone number';
+        if (!/^\d{9}$/.test(value.toString())) return 'Please enter a valid mobile number (format: 7XXXXXXXX)';
         return '';
 
       case 'phone2':
-        return value && !/^\d{9}$/.test(value.toString()) ? 'Please enter a valid phone number' : '';
+        return value && !/^\d{9}$/.test(value.toString()) ? 'Please enter a valid mobile number (format: 7XXXXXXXX)' : '';
 
       case 'timeSlot':
         return !trimmed ? 'Time slot is required.' : '';
 
       case 'deliveryDate':
-        return !value ? 'Delivery Date is required.' : '';
+        if (!value) return 'Delivery Date is required.';
 
-      // Address fields - conditionally required
+        const selectedDate = new Date(value.toString());
+        const today = new Date();
+        const minDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 3);
+
+        selectedDate.setHours(0, 0, 0, 0);
+        minDate.setHours(0, 0, 0, 0);
+        today.setHours(0, 0, 0, 0);
+
+        if (selectedDate < minDate) {
+          return 'Please select a date at least 3 days from today.';
+        }
+
+        return '';
+
+      // Address fields - only required for home delivery
       case 'buildingType':
         return isHomeDelivery && !trimmed ? 'Building type is required.' : '';
 
@@ -520,22 +594,31 @@ const Page: React.FC = () => {
       case 'buildingNo':
       case 'floorNumber':
       case 'flatNumber':
-        // Only required for apartment and home delivery
         return isHomeDelivery && isApartment && !trimmed ?
           `${field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} is required.` :
           '';
 
       case 'street':
-      case 'cityName':
       case 'houseNo':
-        // Required for both house and apartment when home delivery
         return isHomeDelivery && !trimmed ?
           `${field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} is required.` :
           '';
 
+      case 'cityName':
+        if (isHomeDelivery) {
+          if (!trimmed) return 'Nearest City is required.';
+          if (!selectedCity) return 'Please select a valid city.';
+        }
+        return '';
+
       default:
         return '';
     }
+  };
+
+  const capitalizeFirstLetter = (value: string): string => {
+    if (!value) return value;
+    return value.charAt(0).toUpperCase() + value.slice(1);
   };
 
   const validateForm = (): boolean => {
@@ -688,20 +771,22 @@ const Page: React.FC = () => {
                 </div>
 
                 {formData.deliveryMethod === 'home' && (
-
                   <div className="flex flex-col md:flex-row ">
                     <div className="flex md:gap-8 gap-2 flex-nowrap ">
-                      <label className="flex items-center text-nowrap text-sm md:text-base cursor-pointer">
-                        <input
-                          type="radio"
-                          name="addressMode"
-                          value="previous"
-                          checked={usePreviousAddress}
-                          onChange={() => handleAddressOptionChange('previous')}
-                          className="mr-2 accent-[#3E206D] cursor-pointer"
-                        />
-                        Your Saved Address
-                      </label>
+                      {/* Only show "Your Saved Address" option if hasPreviousAddress is true */}
+                      {hasPreviousAddress && (
+                        <label className="flex items-center text-nowrap text-sm md:text-base cursor-pointer">
+                          <input
+                            type="radio"
+                            name="addressMode"
+                            value="previous"
+                            checked={usePreviousAddress}
+                            onChange={() => handleAddressOptionChange('previous')}
+                            className="mr-2 accent-[#3E206D] cursor-pointer"
+                          />
+                          Your Saved Address
+                        </label>
+                      )}
 
                       <label className="flex items-center text-nowrap text-sm md:text-base cursor-pointer">
                         <input
@@ -793,10 +878,13 @@ const Page: React.FC = () => {
                   <label htmlFor="fullName" className='block font-semibold mb-1 text-[#2E2E2E]'>Full name *</label>
                   <input
                     type="text"
-                    className='w-full border-2 border-[#F2F4F7] bg-[#F9FAFB] h-[39px] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-3 text-base'
+                    className='w-full border-2 border-[#F2F4F7] bg-[#F9FAFB] h-[39px] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-3 text-base capitalize'
                     placeholder='Enter your full name'
                     value={formData.fullName}
-                    onChange={(e) => handleFieldChange('fullName', e.target.value)}
+                    onChange={(e) => {
+                      const capitalizedValue = capitalizeFirstLetter(e.target.value);
+                      handleFieldChange('fullName', capitalizedValue);
+                    }}
                   />
                   {errors.fullName && <p className="text-red-600 text-sm mt-1">{errors.fullName}</p>}
                 </div>
@@ -821,7 +909,7 @@ const Page: React.FC = () => {
                     <div className="w-full">
                       <input
                         type="text"
-                        className='w-full h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2 text-[#808FA2]'
+                        className='w-full h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2 '
                         value={formData.phone1}
                         onChange={(e) => handleFieldChange('phone1', e.target.value)}
                         placeholder='7xxxxxxxx'
@@ -851,7 +939,7 @@ const Page: React.FC = () => {
                     <div className="w-full">
                       <input
                         type="text"
-                        className='w-full  h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2 text-[#808FA2]'
+                        className='w-full  h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2 '
                         value={formData.phone2}
                         onChange={(e) => handleFieldChange('phone2', e.target.value)}
                         placeholder='7xxxxxxxx'
@@ -960,14 +1048,16 @@ const Page: React.FC = () => {
                     <label className="block font-semibold text-[#2E2E2E] mb-1">Street Name *</label>
                     <input
                       value={formData.street}
-                      onChange={(e) => handleFieldChange('street', e.target.value)}
+                      onChange={(e) => {
+                        const capitalizedValue = capitalizeFirstLetter(e.target.value);
+                        handleFieldChange('street', capitalizedValue);
+                      }}
                       type="text"
                       placeholder="Enter Street Name"
-                      className="w-full px-4 py-2 border-2 h-[39px] border-[#F2F4F7] bg-[#F9FAFB] rounded-lg  placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                      className="w-full px-4 py-2 border-2 h-[39px] border-[#F2F4F7] bg-[#F9FAFB] rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600 capitalize"
                     />
                     {errors.street && <p className="text-red-600 text-sm mt-1">{errors.street}</p>}
                   </div>
-
                   {/* City */}
                   <div className="w-full md:w-1/2 px-2 mb-4">
                     <label className="block font-semibold text-[#2E2E2E] mb-1">Nearest City *</label>
@@ -1001,14 +1091,69 @@ const Page: React.FC = () => {
 
               <div className='flex md:flex-row flex-col gap-4 mb-6'>
                 <div className="md:w-1/2 w-full">
+                  <style dangerouslySetInnerHTML={{
+                    __html: `
+      .date-input::-webkit-calendar-picker-indicator {
+        cursor: pointer;
+      }
+      .date-input::-webkit-inner-spin-button {
+        cursor: pointer;
+      }
+    `
+                  }} />
                   <label className='block text-[#2E2E2E] font-semibold mb-4'>Date *</label>
+                  <div className="relative">
                     <input
                       type="date"
-                      className='w-full border h-[39px] border-gray-300 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2 text-[#3D3D3D]'
+                      className={`date-input w-full border h-[39px] border-gray-300 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2 bg-white ${formData.deliveryDate ? 'text-[#3D3D3D]' : 'text-transparent'}`}
+                      style={{
+                        colorScheme: 'light',
+                      }}
                       value={formData.deliveryDate}
-                      onChange={(e) => handleFieldChange('deliveryDate', e.target.value)}
-                      min={getMinDate()} // Only allows dates 3 days after today or later
+                      onChange={(e) => {
+                        const selectedValue = e.target.value;
+                        // Additional client-side validation for iOS
+                        if (selectedValue) {
+                          const selectedDate = new Date(selectedValue);
+                          const today = new Date();
+                          const minDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 3);
+
+                          selectedDate.setHours(0, 0, 0, 0);
+                          minDate.setHours(0, 0, 0, 0);
+
+                          if (selectedDate >= minDate) {
+                            handleFieldChange('deliveryDate', selectedValue);
+                          } else {
+                            // Don't update the field value, just trigger validation error
+                            handleFieldChange('deliveryDate', selectedValue);
+                          }
+                        } else {
+                          handleFieldChange('deliveryDate', selectedValue);
+                        }
+                      }}
+                      onClick={(e) => {
+                        // Ensure the date picker opens on click
+                        const target = e.target as HTMLInputElement;
+                        if (target.showPicker) {
+                          target.showPicker();
+                        }
+                      }}
+                      onFocus={(e) => {
+                        // Alternative fallback for browsers that don't support showPicker
+                        const target = e.target as HTMLInputElement;
+                        target.click();
+                      }}
+                      min={getMinDate()}
+                      pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}"
+                      placeholder="mm/dd/yyyy"
                     />
+                    {/* Show placeholder text when no date is selected */}
+                    {!formData.deliveryDate && (
+                      <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none text-base">
+                        mm/dd/yyyy
+                      </div>
+                    )}
+                  </div>
                   {errors.deliveryDate && <p className="text-red-600 text-sm mt-1">{errors.deliveryDate}</p>}
                 </div>
                 <div className="md:w-1/2 w-full">
@@ -1083,8 +1228,8 @@ const Page: React.FC = () => {
                     type="submit"
                     disabled={!isFormValidState || isLoading}
                     className={`w-full font-semibold rounded-lg px-4 py-3 transition-colors ${!isFormValidState || isLoading
-                        ? 'bg-[#EBEEF2] text-[#B1BAC3] cursor-not-allowed '
-                        : 'bg-purple-800 text-white hover:bg-purple-900 cursor-pointer'
+                      ? 'bg-[#EBEEF2] text-[#B1BAC3] cursor-not-allowed '
+                      : 'bg-purple-800 text-white hover:bg-purple-900 cursor-pointer'
                       }`}
                   >
                     {isLoading ? 'Processing...' : 'Continue to Payment'}

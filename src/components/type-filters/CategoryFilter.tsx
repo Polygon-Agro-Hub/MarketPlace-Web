@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/store';
 import CategoryTile from './CategoryTile';
 import Vegetables from '../../../public/images/Vegetables.png';
 import Fruits from '../../../public/images/Fruits.png';
 import Grains from '../../../public/images/Grains.png';
-import Mushrooms from '../../../public/images/Mushrooms.png';
+import Spices from '../../../public/images/Spices.png';
 import ItemCard from '../../components/item-card/ItemCard';
 import { getProductsByCategory } from '@/services/product-service';
 import { getCategoryCounts } from '@/services/product-service';
 import { StaticImageData } from 'next/image';
+import { useDispatch } from 'react-redux';
+import { setCategoryResults } from '@/store/slices/searchSlice';
 
 interface Product {
     id: number;
@@ -38,37 +42,45 @@ interface Category {
     itemCount: number;
 }
 
-export default function CategoryFilter() {
+// Remove the searchTerm prop since we'll use Redux
+interface CategoryFilterProps { }
+
+export default function CategoryFilter({ }: CategoryFilterProps) {
+    // Get search term from Redux instead of props
+    const searchTerm = useSelector((state: RootState) => state.search.searchTerm);
+    const isSearchActive = useSelector((state: RootState) => state.search.isSearchActive);
+
     const [selectedCategory, setSelectedCategory] = useState('Vegetables');
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [categories, setCategories] = useState<Category[]>([]);
     const [countsLoading, setCountsLoading] = useState(true);
+    const dispatch = useDispatch();
 
     const defaultCategories = [
         {
             id: 'Vegetables',
-            name: 'Vegetables',
+            name: 'Vegetables & Mushrooms',
             imageUrl: Vegetables,
             itemCount: 0
         },
         {
-            id: 'Fruit',
-            name: 'Fruit',
+            id: 'Fruits',
+            name: 'Fruits',
             imageUrl: Fruits,
             itemCount: 0
         },
         {
-            id: 'Grain',
-            name: 'Grain',
+            id: 'Cereals',
+            name: 'Cereals & Pulses',
             imageUrl: Grains,
             itemCount: 0
         },
         {
-            id: 'Mushrooms',
-            name: 'Mushrooms',
-            imageUrl: Mushrooms,
+            id: 'Spices',
+            name: 'Spices',
+            imageUrl: Spices,
             itemCount: 0
         }
     ];
@@ -81,13 +93,41 @@ export default function CategoryFilter() {
 
                 if (response.status && response.counts) {
                     const updatedCategories = defaultCategories.map(cat => {
-                        const apiCategory = response.counts.find(
-                            (apiCat: any) => apiCat.category.toLowerCase() === cat.name.toLowerCase()
-                        );
+                        // Handle category mapping for count display
+                        let totalCount = 0;
+
+                        if (cat.id === 'Vegetables') {
+                            // Sum counts for Vegetables and Mushrooms
+                            const vegetablesCount = response.counts.find(
+                                (apiCat: any) => apiCat.category.toLowerCase() === 'vegetables'
+                            )?.itemCount || 0;
+                            const mushroomsCount = response.counts.find(
+                                (apiCat: any) => apiCat.category.toLowerCase() === 'mushrooms'
+                            )?.itemCount || 0;
+                            totalCount = vegetablesCount + mushroomsCount;
+                        } else if (cat.id === 'Cereals') {
+                            // Sum counts for Cereals, Legumes, and Pulses
+                            const cerealsCount = response.counts.find(
+                                (apiCat: any) => apiCat.category.toLowerCase() === 'cereals'
+                            )?.itemCount || 0;
+                            const legumesCount = response.counts.find(
+                                (apiCat: any) => apiCat.category.toLowerCase() === 'legumes'
+                            )?.itemCount || 0;
+                            const pulsesCount = response.counts.find(
+                                (apiCat: any) => apiCat.category.toLowerCase() === 'pulses'
+                            )?.itemCount || 0;
+                            totalCount = cerealsCount + legumesCount + pulsesCount;
+                        } else {
+                            // For Fruits and Spices, use direct mapping
+                            const apiCategory = response.counts.find(
+                                (apiCat: any) => apiCat.category.toLowerCase() === cat.name.toLowerCase()
+                            );
+                            totalCount = apiCategory ? apiCategory.itemCount : 0;
+                        }
 
                         return {
                             ...cat,
-                            itemCount: apiCategory ? apiCategory.itemCount : 0
+                            itemCount: totalCount
                         };
                     });
 
@@ -110,21 +150,27 @@ export default function CategoryFilter() {
             setError(null);
 
             try {
-                console.log(selectedCategory);
-                
-                const response = await getProductsByCategory(selectedCategory);
+                console.log('Fetching products with:', { selectedCategory, searchTerm });
+
+                const response = await getProductsByCategory(selectedCategory, searchTerm || undefined);
                 setProducts(response.products);
+
+                // Always update category results state, regardless of results
+                dispatch(setCategoryResults(response.products.length > 0));
             } catch (err) {
                 console.error('Error fetching products:', err);
                 setError('Failed to load products. Please try again.');
                 setProducts([]);
+
+                // Set to false on error
+                dispatch(setCategoryResults(false));
             } finally {
                 setLoading(false);
             }
         };
 
         fetchProducts();
-    }, [selectedCategory]);
+    }, [selectedCategory, searchTerm, dispatch]);
 
     function handleCategorySelect(id: string): void {
         setSelectedCategory(id);
@@ -133,6 +179,8 @@ export default function CategoryFilter() {
     return (
         <div className='mx-auto w-full'>
             <div className='flex flex-col'>
+                {/* Only show the Types section and category tiles when not searching */}
+
                 <div className="flex items-center justify-center gap-2 w-full my-4 md:my-8 px-2 md:px-20">
                     <div className="w-1/2 border-t-2 border-[#D7D7D7]"></div>
                     <span className="bg-[#FF8F6666] text-[#FF4421] rounded-lg text-xs md:text-sm px-3 md:px-6 py-1">
@@ -141,24 +189,38 @@ export default function CategoryFilter() {
                     <div className="w-1/2 border-t-2 border-[#D7D7D7]"></div>
                 </div>
 
-                {countsLoading ? (
-                    <div className="flex justify-center items-center py-4">
-                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#3E206D]"></div>
-                    </div>
-                ) : (
-                    <div className='grid grid-cols-4'>
-                        {categories.map((category) => (
-                            <div key={category.id} className="aspect-[4/5] md:aspect-square">
-                                <CategoryTile
-                                    id={category.id}
-                                    name={category.name}
-                                    imageUrl={category.imageUrl}
-                                    itemCount={category.itemCount}
-                                    isSelected={selectedCategory === category.id}
-                                    onSelect={handleCategorySelect}
-                                />
+                {!isSearchActive && (
+                    <>
+
+                        {countsLoading ? (
+                            <div className="flex justify-center items-center py-4">
+                                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#3E206D]"></div>
                             </div>
-                        ))}
+                        ) : (
+                            <div className='grid grid-cols-4'>
+                                {categories.map((category) => (
+                                    <div key={category.id} className="aspect-[4/5] md:aspect-square">
+                                        <CategoryTile
+                                            id={category.id}
+                                            name={category.name}
+                                            imageUrl={category.imageUrl}
+                                            itemCount={category.itemCount}
+                                            isSelected={selectedCategory === category.id}
+                                            onSelect={handleCategorySelect}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </>
+                )}
+
+                {/* Show search indicator if search is active */}
+                {isSearchActive && (
+                    <div className="text-center mb-4">
+                        <p className="text-sm text-gray-600">
+                            Searching for "{searchTerm}"
+                        </p>
                     </div>
                 )}
             </div>
@@ -184,12 +246,20 @@ export default function CategoryFilter() {
                                         currentPrice={product.discountedPrice}
                                         image={product.image}
                                         discount={product.discount}
+                                        unitType={product.unitType}
+                                        startValue={product.startValue}
+                                        changeby={product.changeby}
                                     />
                                 </div>
                             ))
                         ) : (
                             <div className="col-span-full text-center py-10">
-                                <p className="text-gray-500">No products found in this category.</p>
+                                <p className="text-gray-500">
+                                    {isSearchActive
+                                        ? `No products found for "${searchTerm}" in ${selectedCategory}.`
+                                        : 'No products found in this category.'
+                                    }
+                                </p>
                             </div>
                         )}
                     </div>

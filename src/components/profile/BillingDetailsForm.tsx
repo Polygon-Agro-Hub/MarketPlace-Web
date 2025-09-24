@@ -51,7 +51,6 @@ const CustomDropdown = ({ register, setValue, name, value, errors, options, plac
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -83,12 +82,6 @@ const CustomDropdown = ({ register, setValue, name, value, errors, options, plac
       </div>
       {isOpen && (
         <ul className="absolute z-10 w-full bg-white border border-[#CECECE] rounded-lg mt-1">
-          <li
-            className="p-2 text-[12px] md:text-[14px] cursor-pointer hover:bg-gray-100"
-            onClick={() => handleSelect('')}
-          >
-            {placeholder}
-          </li>
           {options.map((option) => (
             <li
               key={option.value}
@@ -143,26 +136,49 @@ const BillingDetailsForm = () => {
   const [billingNameError, setBillingNameError] = useState('');
   const [initialFormData, setInitialFormData] = useState<BillingFormData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-const [cities, setCities] = useState<string[]>([]);
+  const [cities, setCities] = useState<string[]>([]);
+  const [hasFormChanged, setHasFormChanged] = useState(false);
 
-useEffect(() => {
-  const loadCities = async () => {
-    if (!token) return; // Additional safeguard
-    try {
-      const fetchedCities = await fetchCities(token as string); // Type assertion
-      setCities(fetchedCities);
-    } catch (error: any) {
-      console.error('Error fetching cities:', error);
-      setErrorMessage('Failed to fetch cities. Using default cities.');
-      setShowErrorPopup(true);
-      setCities(['Colombo', 'Kandy', 'Galle', 'Jaffna', 'Negombo', 'Anuradhapura']);
+  useEffect(() => {
+    const loadCities = async () => {
+      if (!token) return; // Additional safeguard
+      try {
+        const fetchedCities = await fetchCities(token as string); // Type assertion
+        setCities(fetchedCities);
+      } catch (error: any) {
+        console.error('Error fetching cities:', error);
+        setErrorMessage('Failed to fetch cities. Using default cities.');
+        setShowErrorPopup(true);
+        setCities(['Colombo', 'Kandy', 'Galle', 'Jaffna', 'Negombo', 'Anuradhapura']);
+      }
+    };
+
+    if (token) {
+      loadCities();
     }
+  }, [token]);
+
+
+
+  const compareFormData = (current: BillingFormData, initial: BillingFormData | null): boolean => {
+    if (!initial) return false;
+
+    const fieldsToCompare: (keyof BillingFormData)[] = [
+      'billingTitle', 'billingName', 'title', 'firstName', 'lastName',
+      'houseNo', 'buildingNo', 'buildingType', 'apartmentName', 'flatNumber',
+      'apartmentFloor', 'apartmentHouseNo', 'houseStreet', 'houseCity',
+      'apartmentStreet', 'apartmentCity', 'phonecode1', 'phone1',
+      'phonecode2', 'phone2'
+    ];
+
+    return fieldsToCompare.some(field => {
+      const currentValue = current[field] || '';
+      const initialValue = initial[field] || '';
+      return currentValue !== initialValue;
+    });
   };
 
-  if (token) {
-    loadCities();
-  }
-}, [token]);
+
 
   // Options for dropdowns
   const billingTitleOptions = [
@@ -176,10 +192,10 @@ useEffect(() => {
     { value: 'house', label: 'House' },
     { value: 'apartment', label: 'Apartment' },
   ];
-const cityOptions = cities.map((city) => ({
-  value: city.toLowerCase(),
-  label: city,
-}));
+  const cityOptions = cities.map((city) => ({
+    value: city.toLowerCase(),
+    label: city,
+  }));
 
   const phoneCodeOptions = [
     { value: '+94', label: '+94' },
@@ -304,6 +320,61 @@ const cityOptions = cities.map((city) => ({
     loadBillingDetails();
   }, [token, reset, setValue, getValues]);
 
+  useEffect(() => {
+    const subscription = watch((value) => {
+      if (initialFormData) {
+        const currentFormData = value as BillingFormData;
+        const hasChanged = compareFormData(currentFormData, initialFormData);
+        setHasFormChanged(hasChanged);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [watch, initialFormData]);
+
+
+
+  useEffect(() => {
+    // Register building type as required
+    register('buildingType', { required: 'Building Type is required' });
+
+    // Register house fields with conditional validation
+    register('houseNo', {
+      validate: (value) => buildingType === 'house' && !value ? 'House No is required' : true
+    });
+    register('houseStreet', {
+      validate: (value) => buildingType === 'house' && !value ? 'Street Name is required' : true
+    });
+    register('houseCity', {
+      validate: (value) => buildingType === 'house' && !value ? 'City is required' : true
+    });
+
+    // Register apartment fields with conditional validation
+    register('buildingNo', {
+      validate: (value) => buildingType === 'apartment' && !value ? 'Building No is required' : true
+    });
+    register('apartmentName', {
+      validate: (value) => buildingType === 'apartment' && !value ? 'Apartment/Building Name is required' : true
+    });
+    register('flatNumber', {
+      validate: (value) => buildingType === 'apartment' && !value ? 'Flat/Unit Number is required' : true
+    });
+    register('apartmentFloor', {
+      validate: (value) => buildingType === 'apartment' && !value ? 'Floor Number is required' : true
+    });
+    register('apartmentHouseNo', {
+      validate: (value) => buildingType === 'apartment' && !value ? 'House Number is required' : true
+    });
+    register('apartmentStreet', {
+      validate: (value) => buildingType === 'apartment' && !value ? 'Street Name is required' : true
+    });
+    register('apartmentCity', {
+      validate: (value) => buildingType === 'apartment' && !value ? 'City is required' : true
+    });
+
+    // Register phone code as required
+    register('phonecode1', { required: 'Phone code is required' });
+  }, [register, buildingType]);
+
   const onSubmit: SubmitHandler<BillingFormData> = async (data) => {
     setIsLoading(true);
 
@@ -328,6 +399,45 @@ const cityOptions = cities.map((city) => ({
       return;
     }
 
+    // Additional validation for building type
+    if (!data.buildingType) {
+      setErrorMessage('Please select a building type.');
+      setShowErrorPopup(true);
+      setIsLoading(false);
+      return;
+    }
+
+    // Validate required fields based on building type
+    if (data.buildingType === 'house') {
+      if (!data.houseNo || !data.houseStreet || !data.houseCity) {
+        setErrorMessage('Please fill all required house address fields including city.');
+        setShowErrorPopup(true);
+        setIsLoading(false);
+        return;
+      }
+    }
+
+    // Add city validation to the existing apartment validation block:
+
+    else if (data.buildingType === 'apartment') {
+      if (!data.buildingNo || !data.apartmentName || !data.flatNumber ||
+        !data.apartmentFloor || !data.apartmentHouseNo ||
+        !data.apartmentStreet || !data.apartmentCity) {
+        setErrorMessage('Please fill all required apartment address fields including city.');
+        setShowErrorPopup(true);
+        setIsLoading(false);
+        return;
+      }
+    }
+    // Validate phone number
+    if (!data.phonecode1 || !data.phone1) {
+      setErrorMessage('Phone number is required.');
+      setShowErrorPopup(true);
+      setIsLoading(false);
+      return;
+    }
+
+    // Rest of the existing onSubmit logic...
     const address: BillingAddress = {
       title: data.title || data.billingTitle,
       firstName: data.firstName || '',
@@ -374,9 +484,23 @@ const cityOptions = cities.map((city) => ({
     }
   };
 
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Block leading space
+    if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
+      e.preventDefault();
+    }
+  };
+
   const handleBillingNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     const isNumber = /[0-9]/.test(e.key);
     const isInvalidChar = /[0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?]/.test(e.key);
+
+    // Block leading space
+    if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
+      e.preventDefault();
+      return;
+    }
+
     if (isNumber) {
       setBillingNameError('Numbers are not allowed in Billing Name');
       setTimeout(() => setBillingNameError(''), 2000);
@@ -387,6 +511,12 @@ const cityOptions = cities.map((city) => ({
   };
 
   const handlePhoneKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Block leading space
+    if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
+      e.preventDefault();
+      return;
+    }
+
     const invalidKeys = ['e', 'E', '+', '-', '.', ','];
     if (invalidKeys.includes(e.key)) {
       e.preventDefault();
@@ -398,6 +528,7 @@ const cityOptions = cities.map((city) => ({
     if (initialFormData) {
       reset(initialFormData);
       setValue('buildingType', initialFormData.buildingType); // Ensure buildingType is reset
+      setHasFormChanged(false); // Reset the change flag
     }
     setTimeout(() => {
       setIsLoading(false);
@@ -423,7 +554,7 @@ const cityOptions = cities.map((city) => ({
         title="Error!"
         description={errorMessage}
       />
-   
+
 
       <form onSubmit={handleSubmit(onSubmit)} className="px-2 md:px-10 bg-white">
         <h2 className="font-medium text-[14px] md:text-[18px] mb-2 mt-2">Account Details</h2>
@@ -432,13 +563,13 @@ const cityOptions = cities.map((city) => ({
         </p>
         <div className="border-t border-[#626D76] mb-6 mt-1" />
 
-        <h2 className="font-medium text-[14px] md:text-[18px] mb-4">Billing Information</h2>
+        <h2 className="font-medium text-[14px] md:text-[18px] mb-4">Billing Name</h2>
 
         <div className="md:w-[90%]">
           <div className="flex gap-4 md:gap-8">
             <div className="w-[10%] min-w-[70px]">
               <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
-                Billing Title
+                Title
               </label>
               <CustomDropdown
                 register={register}
@@ -453,7 +584,7 @@ const cityOptions = cities.map((city) => ({
 
             <div className="w-[90%]">
               <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
-                Billing Name
+                Full Name
               </label>
               <input
                 {...register('billingName', {
@@ -465,6 +596,7 @@ const cityOptions = cities.map((city) => ({
                 })}
                 className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
                 onKeyDown={handleBillingNameKeyDown}
+                placeholder='Full Name'
               />
               {billingNameError && <p className="text-red-500 text-xs">{billingNameError}</p>}
               <p className="text-red-500 text-xs">{errors.billingName?.message}</p>
@@ -500,6 +632,8 @@ const cityOptions = cities.map((city) => ({
                 <input
                   {...register('houseNo')}
                   className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
+                  placeholder='House Number'
+                  onKeyDown={handleInputKeyDown}
                 />
                 <p className="text-red-500 text-xs">{errors.houseNo?.message}</p>
               </div>
@@ -513,6 +647,8 @@ const cityOptions = cities.map((city) => ({
                 <input
                   {...register('buildingNo')}
                   className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
+                  placeholder='Building Number'
+                  onKeyDown={handleInputKeyDown}
                 />
                 <p className="text-red-500 text-xs">{errors.buildingNo?.message}</p>
               </div>
@@ -528,13 +664,16 @@ const cityOptions = cities.map((city) => ({
                 <input
                   {...register('houseStreet')}
                   className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
+                  placeholder='Street Name'
+                  onKeyDown={handleInputKeyDown}
                 />
+
                 <p className="text-red-500 text-xs">{errors.houseStreet?.message}</p>
               </div>
 
               <div className="w-full lg:w-1/2">
                 <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
-                  Nearest City
+                  Nearest City <span className="text-red-500">*</span>
                 </label>
                 <CustomDropdown
                   register={register}
@@ -559,7 +698,10 @@ const cityOptions = cities.map((city) => ({
                   <input
                     {...register('apartmentName')}
                     className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
+                    placeholder='Apartment or Building Name'
+                    onKeyDown={handleInputKeyDown}
                   />
+
                   <p className="text-red-500 text-xs">{errors.apartmentName?.message}</p>
                 </div>
 
@@ -570,6 +712,8 @@ const cityOptions = cities.map((city) => ({
                   <input
                     {...register('flatNumber')}
                     className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
+                    placeholder='Flat/Unit Number'
+                    onKeyDown={handleInputKeyDown}
                   />
                   <p className="text-red-500 text-xs">{errors.flatNumber?.message}</p>
                 </div>
@@ -583,6 +727,8 @@ const cityOptions = cities.map((city) => ({
                   <input
                     {...register('apartmentFloor')}
                     className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
+                    placeholder='Floor Number'
+                    onKeyDown={handleInputKeyDown}
                   />
                   <p className="text-red-500 text-xs">{errors.apartmentFloor?.message}</p>
                 </div>
@@ -594,6 +740,8 @@ const cityOptions = cities.map((city) => ({
                   <input
                     {...register('apartmentHouseNo')}
                     className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
+                    placeholder='House Number'
+                    onKeyDown={handleInputKeyDown}
                   />
                   <p className="text-red-500 text-xs">{errors.apartmentHouseNo?.message}</p>
                 </div>
@@ -607,13 +755,15 @@ const cityOptions = cities.map((city) => ({
                   <input
                     {...register('apartmentStreet')}
                     className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
+                    placeholder='Street Name'
+                    onKeyDown={handleInputKeyDown}
                   />
                   <p className="text-red-500 text-xs">{errors.apartmentStreet?.message}</p>
                 </div>
 
                 <div className="w-full lg:w-1/2">
                   <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
-                    Nearest City
+                    Nearest City <span className="text-red-500">*</span>
                   </label>
                   <CustomDropdown
                     register={register}
@@ -664,13 +814,13 @@ const cityOptions = cities.map((city) => ({
                       },
                       validate: num === 2
                         ? {
-                            notDuplicate: (value) =>
-                              !value ||
-                              !watch('phone1') ||
-                              watch('phonecode1') !== watch('phonecode2') ||
-                              value !== watch('phone1') ||
-                              'Phone numbers cannot be the same',
-                          }
+                          notDuplicate: (value) =>
+                            !value ||
+                            !watch('phone1') ||
+                            watch('phonecode1') !== watch('phonecode2') ||
+                            value !== watch('phone1') ||
+                            'Phone numbers cannot be the same',
+                        }
                         : undefined,
                     })}
                     className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
@@ -690,19 +840,26 @@ const cityOptions = cities.map((city) => ({
 
         <div className="flex justify-end gap-4 mt-10">
           <button
-            type="button"
-            className={`w-[90px] h-[36px] sm:w-[110px] sm:h-[44px] cursor-pointer text-[16px] md:text-[20px] font-medium rounded-lg text-[#757E87] bg-[#F3F4F7] hover:bg-[#e1e2e5] ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-            onClick={handleCancel}
-            disabled={isLoading}
-          >
-            Cancel
-          </button>
-          <button
             type="submit"
-            className={`w-[90px] h-[36px] sm:w-[110px] sm:h-[44px] cursor-pointer mb-4 text-[16px] md:text-[20px] font-medium rounded-lg text-white bg-[#3E206D] hover:bg-[#341a5a] ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-            disabled={isLoading}
+            className={`w-[90px] h-[36px] sm:w-[110px] sm:h-[44px] cursor-pointer mb-4 text-[16px] md:text-[20px] font-medium rounded-lg text-white ${isLoading || !hasFormChanged
+              ? 'opacity-50 cursor-not-allowed bg-[#9ca3af]'
+              : 'bg-[#3E206D] hover:bg-[#341a5a]'
+              }`}
+            disabled={isLoading || !hasFormChanged}
           >
             Save
+          </button>
+
+          <button
+            type="button"
+            className={`w-[90px] h-[36px] sm:w-[110px] sm:h-[44px] cursor-pointer text-[16px] md:text-[20px] font-medium rounded-lg ${isLoading || !hasFormChanged
+              ? 'opacity-50 cursor-not-allowed text-[#9ca3af] bg-[#f9fafb]'
+              : 'text-[#757E87] bg-[#F3F4F7] hover:bg-[#e1e2e5]'
+              }`}
+            onClick={handleCancel}
+            disabled={isLoading || !hasFormChanged}
+          >
+            Cancel
           </button>
         </div>
       </form>

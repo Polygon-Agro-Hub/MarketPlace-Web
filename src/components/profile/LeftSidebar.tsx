@@ -3,12 +3,22 @@
 import React, { useState, useEffect } from 'react';
 import { FaAngleLeft, FaUser, FaAddressCard, FaExclamationTriangle, FaTimes } from 'react-icons/fa';
 import { useRouter } from 'next/navigation';
+import { useSelector } from 'react-redux';
 
 // Define the props interface
 interface LeftSidebarProps {
   selectedMenu: string;
   setSelectedMenu: React.Dispatch<React.SetStateAction<string>>;
   onComplaintIconClick: (isOpen: boolean) => void;
+}
+
+// Define RootState interface (adjust according to your store structure)
+interface RootState {
+  auth: {
+    user: {
+      buyerType: string;
+    } | null;
+  };
 }
 
 const LeftSidebar: React.FC<LeftSidebarProps> = ({
@@ -20,6 +30,9 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const [complaintSubmenuOpen, setComplaintSubmenuOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
   const router = useRouter();
+
+  // Get buyer type from Redux store
+  const buyerType = useSelector((state: RootState) => state.auth.user?.buyerType);
 
   useEffect(() => {
     const handleResize = () => {
@@ -65,6 +78,14 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
     setComplaintSubmenuOpen(false);
     onComplaintIconClick(false);
   };
+  
+  const handleBackClick = () => {
+  if (buyerType === 'Wholesale') {
+    router.push('/wholesale/home');
+  } else {
+    router.push('/');
+  }
+};
 
   const isActive = (menu: string) => selectedMenu === menu;
   const isComplaintSectionActive = ['complaints', 'reportComplaint', 'ComplaintHistory'].includes(selectedMenu);
@@ -76,7 +97,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
         <div className="items-center gap-4 mb-4 hidden md:flex">
           <div
             className="w-[44px] h-[42px] border border-[#D4D8DC] cursor-pointer rounded-[10px] flex items-center justify-center bg-white ml-4"
-            onClick={() => router.push('/')}
+            onClick={ handleBackClick}
           >
             <FaAngleLeft />
           </div>
@@ -106,70 +127,71 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
             </div>
           </li>
 
-          {/* Excluded Item List Section */}
-          <li className="relative">
-            <div className={`w-full ${isExcludeSectionActive ? 'bg-[#DDDDDD]' : ''} rounded-md`}>
-              <div className="flex flex-col w-full cursor-pointer">
-                <div
-                  onClick={handleExcludeClick}
-                  className={`flex items-center gap-4 px-2 py-2 rounded-md ${
-                    isActive('ExcludedItemList') && !['ViewMyList', 'AddMoreItems'].includes(selectedMenu)
-                      ? 'bg-[#D2D2D2]'
-                      : 'bg-transparent'
-                  }`}
-                >
-                  <div className="w-[44px] h-[42px] cursor-pointer border border-[#D4D8DC] rounded-[10px] flex items-center justify-center bg-white" style={{ boxShadow: '-4px 2px 8px rgba(0, 0, 0, 0.1)' }}>
-                    <FaTimes className={isExcludeSectionActive ? 'text-[#3E206D]' : 'text-[#233242]'} />
-                  </div>
-                  <span className="hidden md:inline font-[500] text-[16px]">Excluded Item List</span>
-                </div>
-
-                {excludeSubmenuOpen && (
+          {/* Excluded Item List Section - Only show if buyerType is not 'Wholesale' */}
+          {buyerType !== 'Wholesale' && (
+            <li className="relative">
+              <div className={`w-full ${isExcludeSectionActive ? 'bg-[#DDDDDD]' : ''} rounded-md`}>
+                <div className="flex flex-col w-full cursor-pointer">
                   <div
-                    className={`flex flex-col ${
-                      isDesktop
-                        ? 'mt-2 w-full'
-                        : 'absolute left-[70px] top-[1px] w-[200px] h-[100px] shadow-lg z-10 bg-[#DDDDDD] justify-center rounded-md'
+                    onClick={handleExcludeClick}
+                    className={`flex items-center gap-4 px-2 py-2 rounded-md ${
+                      isActive('ExcludedItemList') && !['ViewMyList', 'AddMoreItems'].includes(selectedMenu)
+                        ? 'bg-[#D2D2D2]'
+                        : 'bg-transparent'
                     }`}
                   >
-                    <div
-                      onClick={() => handleSubMenuClick('ViewMyList')}
-                      className={`cursor-pointer text-[15px] px-2 w-full flex items-center ${
-                        isDesktop ? 'py-2' : 'h-[51px]'
-                      } ${
-                        isActive('ViewMyList')
-                          ? 'bg-[#D2D2D2] font-[700] text-[#111]'
-                          : 'text-[#233242] font-[500]'
-                      }`}
-                      style={{
-                        whiteSpace: 'nowrap',
-
-                      }}
-                    >
-                      <span className={`${isDesktop ? 'ml-[54px]' : 'pl-0'} text-[14px] leading-tight`}>View My List</span>
+                    <div className="w-[44px] h-[42px] cursor-pointer border border-[#D4D8DC] rounded-[10px] flex items-center justify-center bg-white" style={{ boxShadow: '-4px 2px 8px rgba(0, 0, 0, 0.1)' }}>
+                      <FaTimes className={isExcludeSectionActive ? 'text-[#3E206D]' : 'text-[#233242]'} />
                     </div>
-                    <div
-                      onClick={() => handleSubMenuClick('AddMoreItems')}
-                      className={`cursor-pointer text-[15px] px-2 w-full flex items-center ${
-                        isDesktop ? 'py-2' : 'h-[47px] border-t border-[#C1C1C1]'
-                      } ${
-                        isActive('AddMoreItems')
-                          ? 'bg-[#D2D2D2] font-[700] text-[#111]'
-                          : 'text-[#233242] font-[500]'
-                      }`}
-                      style={{
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                      }}
-                    >
-                      <span className={`${isDesktop ? 'ml-[54px]' : 'pl-0'} text-[14px] leading-tight`}>Add More Items</span>
-                    </div>
+                    <span className="hidden md:inline font-[500] text-[16px]">Excluded Item List</span>
                   </div>
-                )}
+
+                  {excludeSubmenuOpen && (
+                    <div
+                      className={`flex flex-col ${
+                        isDesktop
+                          ? 'mt-2 w-full'
+                          : 'absolute left-[70px] top-[1px] w-[200px] h-[100px] shadow-lg z-10 bg-[#DDDDDD] justify-center rounded-md'
+                      }`}
+                    >
+                      <div
+                        onClick={() => handleSubMenuClick('ViewMyList')}
+                        className={`cursor-pointer text-[15px] px-2 w-full flex items-center ${
+                          isDesktop ? 'py-2' : 'h-[51px]'
+                        } ${
+                          isActive('ViewMyList')
+                            ? 'bg-[#D2D2D2] font-[700] text-[#111]'
+                            : 'text-[#233242] font-[500]'
+                        }`}
+                        style={{
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        <span className={`${isDesktop ? 'ml-[54px]' : 'pl-0'} text-[14px] leading-tight`}>View My List</span>
+                      </div>
+                      <div
+                        onClick={() => handleSubMenuClick('AddMoreItems')}
+                        className={`cursor-pointer text-[15px] px-2 w-full flex items-center ${
+                          isDesktop ? 'py-2' : 'h-[47px] border-t border-[#C1C1C1]'
+                        } ${
+                          isActive('AddMoreItems')
+                            ? 'bg-[#D2D2D2] font-[700] text-[#111]'
+                            : 'text-[#233242] font-[500]'
+                        }`}
+                        style={{
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}
+                      >
+                        <span className={`${isDesktop ? 'ml-[54px]' : 'pl-0'} text-[14px] leading-tight`}>Add More Items</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          </li>
+            </li>
+          )}
 
           {/* Complaints Section */}
           <li className="relative">

@@ -6,65 +6,99 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { FaUserCircle, FaAngleDown } from 'react-icons/fa';
 import { FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store';
 import SuccessPopup from '@/components/toast-messages/success-message';
 import ErrorPopup from '@/components/toast-messages/error-message';
 import Loader from '@/components/loader-spinner/Loader';
 import { fetchProfile, updateProfile, updatePassword } from '@/services/auth-service';
+import { updateUser } from '@/store/slices/authSlice';
 
-// Yup schema
 const schema = yup.object().shape({
   title: yup.string().required('Title is required'),
   firstName: yup
     .string()
-    .matches(/^[A-Za-z]+$/, 'First name must contain only letters')
-    .required('First name is required'),
+    .transform((value) => value?.trim())
+    .required('First Name is required'),
   lastName: yup
     .string()
-    .matches(/^[A-Za-z]+$/, 'Last name must contain only letters')
-    .required('Last name is required'),
-  email: yup.string().email('Invalid email').required('Email is required'),
-  countryCode: yup.string().required('Country code is required'),
+    .transform((value) => value?.trim())
+    .required('Last Name is required'),
+  email: yup
+    .string()
+    .transform((value) => value?.trim())
+    .email('Please enter a valid Email Address')
+    .required('Email Address is required'),
+  countryCode: yup.string().required('Country Code is required'),
   countryCode2: yup.string().when('$buyerType', {
     is: 'Wholesale',
-    then: (schema) => schema.required('Country code is required'),
+    then: (schema) => schema.required('Country Code is required'),
     otherwise: (schema) => schema.notRequired(),
   }),
   phoneNumber: yup
     .string()
-    .matches(/^[0-9]{9}$/, 'Phone number must be exactly 9 digits')
-    .required('Phone number is required'),
+    .transform((value) => value?.trim())
+    .matches(/^7[0-9]{8}$/, 'Please enter a valid Phone Number (format: +947XXXXXXXX)')
+    .required('Phone Number is required'),
   phoneNumber2: yup.string().when('$buyerType', {
     is: 'Wholesale',
-    then: (schema) => schema.matches(/^[0-9]{9}$/, 'Phone number must be exactly 9 digits').required('Phone number is required'),
+    then: (schema) => schema
+      .transform((value) => value?.trim())
+      .matches(/^7[0-9]{8}$/, 'Please enter a valid Phone Number (format: +947XXXXXXXX)')
+      .required('Phone Number is required'),
     otherwise: (schema) => schema.notRequired(),
   }),
   companyName: yup.string().when('$buyerType', {
     is: 'Wholesale',
-    then: (schema) => schema.required('Company name is required'),
+    then: (schema) => schema
+      .transform((value) => value?.trim())
+      .required('Company Name is required'),
     otherwise: (schema) => schema.notRequired(),
   }),
-  currentPassword: yup.string().when('newPassword', {
-    is: (val: string | undefined) => val && val.length > 0,
-    then: (schema) => schema.required('Current password is required'),
+  companyPhoneCode: yup.string().when('$buyerType', {
+    is: 'Wholesale',
+    then: (schema) => schema.required('Company Phone Code is required'),
     otherwise: (schema) => schema.notRequired(),
   }),
+  companyPhone: yup.string().when('$buyerType', {
+    is: 'Wholesale',
+    then: (schema) => schema
+      .transform((value) => value?.trim())
+      .matches(/^7[0-9]{8}$/, 'Please enter a valid Company Phone Number (format: +947XXXXXXXX)')
+      .required('Company Phone Number is required'),
+    otherwise: (schema) => schema.notRequired(),
+  }),
+  currentPassword: yup.string()
+    .transform((value) => value?.trim())
+    .when('newPassword', {
+      is: (val: string | undefined) => val && val.length > 0,
+      then: (schema) => schema.required('Current Password is required'),
+      otherwise: (schema) => schema.notRequired(),
+    }),
   newPassword: yup
     .string()
-    .min(6, 'New password must be at least 6 characters')
-    .matches(/[A-Z]/, 'Password must contain at least one uppercase letter')
-    .matches(/[0-9]/, 'Password must contain at least one number')
-    .matches(/[!@#$%^&*]/, 'Password must contain at least one special character')
+    .transform((value) => value?.trim())
+    .test('password-requirements', 'Password must contain a minimum of 6 characters with 1 Uppercase, Numbers & Special Characters', function (value) {
+      if (!value) return true; // Allow empty (not required)
+
+      const hasMinLength = value.length >= 6;
+      const hasUppercase = /[A-Z]/.test(value);
+      const hasNumber = /[0-9]/.test(value);
+      const hasSpecialChar = /[!@#$%^&*]/.test(value);
+
+      return hasMinLength && hasUppercase && hasNumber && hasSpecialChar;
+    })
     .notRequired(),
-  confirmPassword: yup.string().when('newPassword', {
-    is: (val: string | undefined) => val && val.length > 0,
-    then: (schema) =>
-      schema
-        .required('Please confirm your new password')
-        .oneOf([yup.ref('newPassword')], 'Passwords must match'),
-    otherwise: (schema) => schema.notRequired(),
-  }),
+  confirmPassword: yup.string()
+    .transform((value) => value?.trim())
+    .when('newPassword', {
+      is: (val: string | undefined) => val && val.length > 0,
+      then: (schema) =>
+        schema
+          .required('Please confirm your New Password')
+          .oneOf([yup.ref('newPassword')], 'Passwords must match'),
+      otherwise: (schema) => schema.notRequired(),
+    }),
 });
 
 type FormData = yup.InferType<typeof schema>;
@@ -111,12 +145,11 @@ const CustomDropdown = ({ register, name, value, errors, options, placeholder, o
       </div>
       {isOpen && (
         <ul className="absolute z-10 w-full bg-white border border-[#CECECE] rounded-lg mt-1">
-          <li
+          {/* <li
             className="p-2 text-xs sm:text-sm cursor-pointer hover:bg-gray-100"
             onClick={() => handleSelect('')}
           >
-            {placeholder}
-          </li>
+          </li> */}
           {options.map((option) => (
             <li
               key={option.value}
@@ -176,6 +209,7 @@ const PersonalDetailsForm = () => {
   const [originalData, setOriginalData] = useState<any>(null);
   const [originalProfilePic, setOriginalProfilePic] = useState<string | null>(null);
   const [buyerType, setBuyerType] = useState<string>('');
+  const dispatch = useDispatch();
 
   const {
     register,
@@ -197,6 +231,8 @@ const PersonalDetailsForm = () => {
       phoneNumber: '',
       phoneNumber2: '',
       companyName: '',
+      companyPhoneCode: '',
+      companyPhone: '',
       currentPassword: undefined,
       newPassword: undefined,
       confirmPassword: undefined,
@@ -206,6 +242,10 @@ const PersonalDetailsForm = () => {
   const titleValue = watch('title');
   const countryCodeValue = watch('countryCode');
   const countryCode2Value = watch('countryCode2');
+  const companyPhoneCodeValue = watch('companyPhoneCode');
+  const formValues = watch();
+
+  const hasErrors = Object.keys(errors).length > 0;
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -228,6 +268,8 @@ const PersonalDetailsForm = () => {
           countryCode2: data.phoneCode2 || '',
           phoneNumber2: data.phoneNumber2 || '',
           companyName: data.companyName || '',
+          companyPhoneCode: data.companyPhoneCode || '',
+          companyPhone: data.companyPhone || '',
           currentPassword: undefined,
           newPassword: undefined,
           confirmPassword: undefined,
@@ -248,6 +290,38 @@ const PersonalDetailsForm = () => {
 
     loadProfile();
   }, [token, reset]);
+
+  const handlePasswordInput = (value: string): string => {
+    // Remove leading and trailing spaces, but keep internal spaces if any
+    return value.trim();
+  };
+
+
+  const handleNameInput = (value: string): string => {
+    const cleaned = value.replace(/[^A-Za-z\s]/g, '').replace(/\s+/g, ' ').trimStart();
+
+
+    if (cleaned.length > 0) {
+      return cleaned.charAt(0).toUpperCase() + cleaned.slice(1).toLowerCase();
+    }
+    return cleaned;
+  };
+
+  const handlePhoneInput = (value: string): string => {
+
+    const cleaned = value.replace(/[^0-9]/g, '');
+
+    if (cleaned.length > 0 && !cleaned.startsWith('7')) {
+      return '7' + cleaned.slice(0, 8);
+    }
+
+    return cleaned.slice(0, 9);
+  };
+
+  const handleGeneralInput = (value: string): string => {
+
+    return value.trimStart();
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -307,6 +381,13 @@ const PersonalDetailsForm = () => {
         if (formValues.companyName) {
           profileData.companyName = formValues.companyName;
         }
+        // Add company phone fields
+        if (formValues.companyPhoneCode) {
+          profileData.companyPhoneCode = formValues.companyPhoneCode;
+        }
+        if (formValues.companyPhone) {
+          profileData.companyPhone = formValues.companyPhone;
+        }
       }
 
       await updateProfile({
@@ -336,6 +417,14 @@ const PersonalDetailsForm = () => {
       const updatedData = await fetchProfile({ token });
       setBuyerType(updatedData.buyerType || '');
 
+      // Update Redux state with new user data (especially the image)
+      dispatch(updateUser({
+        firstName: updatedData.firstName,
+        lastName: updatedData.lastName,
+        email: updatedData.email,
+        image: updatedData.profileImageURL || updatedData.image || null
+      }));
+
       const newFormData = {
         title: updatedData.title || '',
         firstName: updatedData.firstName || '',
@@ -346,6 +435,8 @@ const PersonalDetailsForm = () => {
         countryCode2: updatedData.phoneCode2 || '',
         phoneNumber2: updatedData.phoneNumber2 || '',
         companyName: updatedData.companyName || '',
+        companyPhoneCode: updatedData.companyPhoneCode || '',
+        companyPhone: updatedData.companyPhone || '',
         currentPassword: undefined,
         newPassword: undefined,
         confirmPassword: undefined,
@@ -378,6 +469,7 @@ const PersonalDetailsForm = () => {
     }
   };
 
+
   const handleCancel = () => {
     setIsLoading(true);
 
@@ -396,6 +488,8 @@ const PersonalDetailsForm = () => {
         phoneNumber: '',
         phoneNumber2: '',
         companyName: '',
+        companyPhoneCode: '', // Add this
+        companyPhone: '',     // Add this
         currentPassword: undefined,
         newPassword: undefined,
         confirmPassword: undefined,
@@ -445,7 +539,7 @@ const PersonalDetailsForm = () => {
       </div>
 
       <form className="px-2 md:px-10 bg-white">
-        <h2 className="font-medium text-[14px] text-base md:text-[18px] mb-2 mt-2">Account</h2>
+        <h2 className="font-medium text-[14px] text-base md:text-[18px] mb-2 p-2">Account</h2>
         <p className="text-xs md:text-sm lg:text-[16px] text-[#626D76] mb-2 whitespace-nowrap">
           Real-time information and activities of your property.
         </p>
@@ -505,7 +599,17 @@ const PersonalDetailsForm = () => {
                 <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">First Name</label>
                 <input
                   {...register('firstName')}
+                  onChange={(e) => {
+                    const formattedValue = handleNameInput(e.target.value);
+                    e.target.value = formattedValue;
+                    setValue('firstName', formattedValue, { shouldValidate: true });
+                  }}
+                  onBlur={(e) => {
+                    const trimmedValue = e.target.value.trim();
+                    setValue('firstName', trimmedValue, { shouldValidate: true });
+                  }}
                   className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm"
+                  placeholder="Enter first name"
                 />
                 <p className="text-red-500 text-xs">{errors.firstName?.message}</p>
               </div>
@@ -515,7 +619,17 @@ const PersonalDetailsForm = () => {
             <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">Last Name</label>
             <input
               {...register('lastName')}
+              onChange={(e) => {
+                const formattedValue = handleNameInput(e.target.value);
+                e.target.value = formattedValue;
+                setValue('lastName', formattedValue, { shouldValidate: true });
+              }}
+              onBlur={(e) => {
+                const trimmedValue = e.target.value.trim();
+                setValue('lastName', trimmedValue, { shouldValidate: true });
+              }}
               className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm"
+              placeholder="Enter last name"
             />
             <p className="text-red-500 text-xs">{errors.lastName?.message}</p>
           </div>
@@ -531,9 +645,15 @@ const PersonalDetailsForm = () => {
           <div className="md:w-[60%]">
             <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">Email</label>
             <input
-              type="text"
+              type="email"
               {...register('email')}
+              onChange={(e) => {
+                const trimmedValue = handleGeneralInput(e.target.value);
+                e.target.value = trimmedValue;
+                setValue('email', trimmedValue, { shouldValidate: true });
+              }}
               className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm"
+              placeholder="Enter email address"
             />
             <p className="text-red-500 text-xs">{errors.email?.message}</p>
           </div>
@@ -554,7 +674,14 @@ const PersonalDetailsForm = () => {
               <div className="w-[82%]">
                 <input
                   {...register('phoneNumber')}
+                  onChange={(e) => {
+                    const formattedValue = handlePhoneInput(e.target.value);
+                    e.target.value = formattedValue;
+                    setValue('phoneNumber', formattedValue, { shouldValidate: true });
+                  }}
                   className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm"
+                  placeholder="7XXXXXXXX"
+                  maxLength={9}
                 />
                 <p className="text-red-500 text-xs">{errors.phoneNumber?.message}</p>
               </div>
@@ -570,40 +697,58 @@ const PersonalDetailsForm = () => {
             <p className="text-[12px] md:text-[16px] text-[#626D76] mb-6">
               Manage your company account email address for the invoices.
             </p>
+
+            {/* Company Name */}
             <div className="flex flex-col md:flex-row gap-8 mb-6">
               <div className="md:w-[60%]">
                 <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">Name</label>
                 <input
                   type="text"
                   {...register('companyName')}
+                  onChange={(e) => {
+                    const trimmedValue = handleGeneralInput(e.target.value);
+                    e.target.value = trimmedValue;
+                    setValue('companyName', trimmedValue, { shouldValidate: true });
+                  }}
                   className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm"
+                  placeholder="Enter company name"
                 />
                 <p className="text-red-500 text-xs">{errors.companyName?.message}</p>
               </div>
+
+              {/* Company Phone */}
               <div className="md:w-[56%]">
-                <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">Phone Number</label>
+                <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">Company Phone Number</label>
                 <div className="flex gap-4">
                   <div className="relative w-[30%] md:w-[15%]">
                     <CustomDropdown
                       register={register}
-                      name="countryCode2"
-                      value={countryCode2Value as any}
+                      name="companyPhoneCode"
+                      value={companyPhoneCodeValue as any}
                       errors={errors}
                       options={phoneCodeOptions}
                       placeholder="Select Code"
-                      onChange={(value) => setValue('countryCode2', value, { shouldValidate: true })}
+                      onChange={(value) => setValue('companyPhoneCode', value, { shouldValidate: true })}
                     />
                   </div>
                   <div className="w-[82%]">
                     <input
-                      {...register('phoneNumber2')}
+                      {...register('companyPhone')}
+                      onChange={(e) => {
+                        const formattedValue = handlePhoneInput(e.target.value);
+                        e.target.value = formattedValue;
+                        setValue('companyPhone', formattedValue, { shouldValidate: true });
+                      }}
                       className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm"
+                      placeholder="7XXXXXXXX"
+                      maxLength={9}
                     />
-                    <p className="text-red-500 text-xs">{errors.phoneNumber2?.message}</p>
+                    <p className="text-red-500 text-xs">{errors.companyPhone?.message}</p>
                   </div>
                 </div>
               </div>
             </div>
+
           </>
         )}
 
@@ -620,7 +765,17 @@ const PersonalDetailsForm = () => {
             <input
               type={showCurrentPassword ? 'text' : 'password'}
               {...register('currentPassword')}
+              onChange={(e) => {
+                const trimmedValue = handlePasswordInput(e.target.value);
+                e.target.value = trimmedValue;
+                setValue('currentPassword', trimmedValue, { shouldValidate: true });
+              }}
+              onBlur={(e) => {
+                const trimmedValue = e.target.value.trim();
+                setValue('currentPassword', trimmedValue, { shouldValidate: true });
+              }}
               className="w-full focus:outline-none text-xs sm:text-sm"
+              placeholder="Enter current password"
             />
             <div onClick={() => setShowCurrentPassword(!showCurrentPassword)} className="cursor-pointer ml-2">
               {showCurrentPassword ? <FiEye className="text-gray-500" /> : <FiEyeOff className="text-gray-500" />}
@@ -637,12 +792,26 @@ const PersonalDetailsForm = () => {
               <input
                 type={showNewPassword ? 'text' : 'password'}
                 {...register('newPassword')}
+                onChange={(e) => {
+                  const trimmedValue = handlePasswordInput(e.target.value);
+                  e.target.value = trimmedValue;
+                  setValue('newPassword', trimmedValue, { shouldValidate: true });
+                }}
+                onBlur={(e) => {
+                  const trimmedValue = e.target.value.trim();
+                  setValue('newPassword', trimmedValue, { shouldValidate: true });
+                }}
                 className="w-full focus:outline-none text-xs sm:text-sm"
+                placeholder="Enter new password"
               />
               <div onClick={() => setShowNewPassword(!showNewPassword)} className="cursor-pointer ml-2">
                 {showNewPassword ? <FiEye className="text-gray-500" /> : <FiEyeOff className="text-gray-500" />}
               </div>
             </div>
+            {/* Password validation message */}
+            <p className="text-[#626D76] text-[10px] md:text-xs mt-1">
+              Your password must contain a minimum of 6 characters with 1 Uppercase, Numbers & Special Characters
+            </p>
             <p className="text-red-500 text-xs">{errors.newPassword?.message}</p>
           </div>
 
@@ -657,7 +826,17 @@ const PersonalDetailsForm = () => {
                 }}
                 type={showConfirmPassword ? 'text' : 'password'}
                 {...register('confirmPassword')}
+                onChange={(e) => {
+                  const trimmedValue = handlePasswordInput(e.target.value);
+                  e.target.value = trimmedValue;
+                  setValue('confirmPassword', trimmedValue, { shouldValidate: true });
+                }}
+                onBlur={(e) => {
+                  const trimmedValue = e.target.value.trim();
+                  setValue('confirmPassword', trimmedValue, { shouldValidate: true });
+                }}
                 className="w-full focus:outline-none text-xs sm:text-sm"
+                placeholder="Confirm new password"
               />
               <div onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="cursor-pointer ml-2">
                 {showConfirmPassword ? <FiEye className="text-gray-500" /> : <FiEyeOff className="text-gray-500" />}
@@ -667,11 +846,11 @@ const PersonalDetailsForm = () => {
           </div>
         </div>
 
-        <div className="flex justify-end gap-4 mt-10 mb-5">
+        <div className="flex justify-end  mt-10 p-4 ">
           <div className="flex gap-4">
             <button
               type="button"
-              className={`px-6 py-2.5 text-[16px] md:text-[20px] font-medium rounded-lg text-[#757E87] bg-[#F3F4F7] hover:bg-[#e1e2e5] cursor-pointer leading-none ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`px-6 py-2.5 text-[12px] md:text-[16px] font-medium rounded-lg text-[#757E87] bg-[#F3F4F7] hover:bg-[#e1e2e5] cursor-pointer leading-none ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
               onClick={handleCancel}
               disabled={isLoading}
             >
@@ -680,9 +859,12 @@ const PersonalDetailsForm = () => {
 
             <button
               type="submit"
-              className={`px-6 py-2.5 text-[16px] md:text-[20px] font-medium rounded-lg text-white bg-[#3E206D] hover:bg-[#341a5a] cursor-pointer leading-none ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`px-6 py-2.5 text-[12px] md:text-[16px] font-medium rounded-lg text-white leading-none ${isLoading || hasErrors
+                ? 'bg-gray-400 cursor-not-allowed opacity-50'
+                : 'bg-[#3E206D] hover:bg-[#341a5a] cursor-pointer'
+                }`}
               onClick={handleProfileUpdate}
-              disabled={isLoading}
+              disabled={isLoading || hasErrors}
             >
               Save
             </button>

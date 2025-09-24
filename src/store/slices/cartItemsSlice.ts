@@ -95,24 +95,24 @@ const initialState: CartItemsState = {
 // Helper function to calculate price based on unit and quantity
 const calculatePrice = (basePrice: number, unit: 'kg' | 'g', quantity: number): number => {
   const quantityInKg = unit === 'g' ? quantity / 1000 : quantity;
-  return basePrice * quantityInKg;
+  return parseFloat((basePrice * quantityInKg).toFixed(3));
 };
 
-// Helper function to calculate discount based on unit and quantity
+// Helper function to calculate discount based on unit and quantity with 3 decimal precision
 const calculateDiscount = (baseDiscount: number, unit: 'kg' | 'g', quantity: number): number => {
   const quantityInKg = unit === 'g' ? quantity / 1000 : quantity;
-  return baseDiscount * quantityInKg;
+  return parseFloat((baseDiscount * quantityInKg).toFixed(3));
 };
 
-// Helper function to calculate summary
+// Updated calculateSummary function with 3 decimal precision
 const calculateSummary = (
   packages: CartPackage[],
   additionalItems: AdditionalItems[],
   couponDiscount: number = 0
 ) => {
   // Calculate package total
-  const packageTotal = packages.reduce((sum, pkg) => sum + (pkg.price * pkg.quantity), 0);
-  
+  const packageTotal = parseFloat(packages.reduce((sum, pkg) => sum + (pkg.price * pkg.quantity), 0).toFixed(3));
+
   // Calculate product total and discount
   let productTotal = 0;
   let productDiscount = 0;
@@ -120,18 +120,23 @@ const calculateSummary = (
 
   additionalItems.forEach(group => {
     group.Items.forEach(item => {
-      const itemPrice = calculatePrice(item.price, item.unit, item.quantity);
+      // Use normalPrice instead of price for calculations
+      const itemPrice = calculatePrice(item.normalPrice, item.unit, item.quantity);
       const itemDiscount = calculateDiscount(item.discount, item.unit, item.quantity);
-      
+
       productTotal += itemPrice;
       productDiscount += itemDiscount;
       totalProducts += 1;
     });
   });
 
-  const grandTotal = packageTotal + productTotal;
-  const totalDiscount = productDiscount + couponDiscount;
-  const finalTotal = grandTotal - totalDiscount;
+  // Apply 3 decimal precision to all calculations
+  productTotal = parseFloat(productTotal.toFixed(3));
+  productDiscount = parseFloat(productDiscount.toFixed(3));
+
+  const grandTotal = parseFloat((packageTotal + productTotal).toFixed(3));
+  const totalDiscount = parseFloat((productDiscount + couponDiscount).toFixed(3));
+  const finalTotal = parseFloat((grandTotal - totalDiscount).toFixed(3));
   const totalItems = packages.length + totalProducts;
 
   return {
@@ -147,6 +152,7 @@ const calculateSummary = (
   };
 };
 
+
 const cartItemsSlice = createSlice({
   name: 'cartItems',
   initialState,
@@ -161,13 +167,13 @@ const cartItemsSlice = createSlice({
       }>
     ) => {
       const { cart, packages, additionalItems, summary } = action.payload;
-      
+
       state.cartId = cart.cartId;
       state.cart = cart;
       state.packages = packages;
       state.additionalItems = additionalItems;
       state.summary = summary;
-      
+
       // Calculate the summary for order creation
       const calculated = calculateSummary(packages, additionalItems, summary.couponDiscount);
       state.calculatedSummary = {
@@ -186,7 +192,7 @@ const cartItemsSlice = createSlice({
       }>
     ) => {
       const { productId, newQuantity } = action.payload;
-      
+
       // Update in additionalItems array
       state.additionalItems = state.additionalItems.map(group => ({
         ...group,
@@ -197,11 +203,11 @@ const cartItemsSlice = createSlice({
 
       // Recalculate summary
       const calculated = calculateSummary(
-        state.packages, 
-        state.additionalItems, 
+        state.packages,
+        state.additionalItems,
         state.summary?.couponDiscount || 0
       );
-      
+
       state.calculatedSummary = {
         grandTotal: calculated.grandTotal,
         totalDiscount: calculated.totalDiscount,
@@ -220,24 +226,24 @@ const cartItemsSlice = createSlice({
       }>
     ) => {
       const { productId, newUnit, newQuantity } = action.payload;
-      
+
       // Update both unit and quantity in additionalItems array
       state.additionalItems = state.additionalItems.map(group => ({
         ...group,
         Items: group.Items.map(item =>
-          item.id === productId 
-            ? { ...item, unit: newUnit, quantity: newQuantity } 
+          item.id === productId
+            ? { ...item, unit: newUnit, quantity: newQuantity }
             : item
         ),
       }));
 
       // Recalculate summary
       const calculated = calculateSummary(
-        state.packages, 
-        state.additionalItems, 
+        state.packages,
+        state.additionalItems,
         state.summary?.couponDiscount || 0
       );
-      
+
       state.calculatedSummary = {
         grandTotal: calculated.grandTotal,
         totalDiscount: calculated.totalDiscount,
@@ -248,7 +254,7 @@ const cartItemsSlice = createSlice({
 
     removeProduct: (state, action: PayloadAction<number>) => {
       const productId = action.payload;
-      
+
       // Remove from additionalItems array
       state.additionalItems = state.additionalItems
         .map(group => ({
@@ -259,11 +265,11 @@ const cartItemsSlice = createSlice({
 
       // Recalculate summary
       const calculated = calculateSummary(
-        state.packages, 
-        state.additionalItems, 
+        state.packages,
+        state.additionalItems,
         state.summary?.couponDiscount || 0
       );
-      
+
       state.calculatedSummary = {
         grandTotal: calculated.grandTotal,
         totalDiscount: calculated.totalDiscount,
@@ -274,17 +280,17 @@ const cartItemsSlice = createSlice({
 
     removePackage: (state, action: PayloadAction<number>) => {
       const packageId = action.payload;
-      
+
       // Remove from packages array
       state.packages = state.packages.filter(pkg => pkg.id !== packageId);
 
       // Recalculate summary
       const calculated = calculateSummary(
-        state.packages, 
-        state.additionalItems, 
+        state.packages,
+        state.additionalItems,
         state.summary?.couponDiscount || 0
       );
-      
+
       state.calculatedSummary = {
         grandTotal: calculated.grandTotal,
         totalDiscount: calculated.totalDiscount,
@@ -301,11 +307,11 @@ const cartItemsSlice = createSlice({
       }>
     ) => {
       const { couponValue, isCoupon } = action.payload;
-      
+
       if (state.summary) {
         state.summary.couponDiscount = isCoupon ? couponValue : 0;
       }
-      
+
       if (state.cart) {
         state.cart.isCoupon = isCoupon ? 1 : 0;
         state.cart.couponValue = couponValue.toString();
@@ -313,11 +319,11 @@ const cartItemsSlice = createSlice({
 
       // Recalculate summary
       const calculated = calculateSummary(
-        state.packages, 
-        state.additionalItems, 
+        state.packages,
+        state.additionalItems,
         isCoupon ? couponValue : 0
       );
-      
+
       state.calculatedSummary = {
         grandTotal: calculated.grandTotal,
         totalDiscount: calculated.totalDiscount,
@@ -337,7 +343,7 @@ const cartItemsSlice = createSlice({
   },
 });
 
-export const { 
+export const {
   setCartData,
   updateProductQuantity,
   updateProductUnit, // New export
@@ -362,8 +368,8 @@ export const selectCartForOrder = createSelector(
 
     // Return null if no items
     const hasItems = (cartItems.additionalItems && cartItems.additionalItems.length > 0) ||
-                    (cartItems.packages && cartItems.packages.length > 0);
-         
+      (cartItems.packages && cartItems.packages.length > 0);
+
     if (!hasItems) {
       return null;
     }

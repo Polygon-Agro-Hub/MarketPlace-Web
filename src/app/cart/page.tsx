@@ -24,8 +24,8 @@ import {
 } from '@/store/slices/cartItemsSlice';
 import { useRouter } from 'next/navigation';
 import empty from '../../../public/empty.jpg'
-import pickup from '../../../public/pickup.png'
-import delivery from '../../../public/deliver.png'
+import pickup from '../../../public/IP.png'
+import delivery from '../../../public/HMI.png'
 import summary from '../../../public/summary.png'
 import Image from 'next/image'
 import { updateCartInfo } from '@/store/slices/authSlice';
@@ -109,6 +109,7 @@ const Page: React.FC = () => {
   const [showDeliveryModal, setShowDeliveryModal] = useState(false);
   const [selectedDeliveryMethod, setSelectedDeliveryMethod] = useState<'pickup' | 'delivery' | null>(null);
   const [tooltipStates, setTooltipStates] = useState<Record<number, boolean>>({});
+  const buyerType = useSelector((state: RootState) => state.auth.user?.buyerType);
 
 
   const dispatch = useDispatch();
@@ -116,13 +117,14 @@ const Page: React.FC = () => {
 
   const calculateDiscount = (baseDiscount: number, unit: 'kg' | 'g', quantity: number): number => {
     const quantityInKg = unit === 'g' ? quantity / 1000 : quantity;
-    return parseFloat((baseDiscount * quantityInKg).toFixed(2));
+    return parseFloat((baseDiscount * quantityInKg).toFixed(3));
   };
 
   const calculatePrice = (basePrice: number, unit: 'kg' | 'g', quantity: number): number => {
     const quantityInKg = unit === 'g' ? quantity / 1000 : quantity;
-    return parseFloat((basePrice * quantityInKg).toFixed(2));
+    return parseFloat((basePrice * quantityInKg).toFixed(3));
   };
+
 
   const getDisplayDiscount = (item: CartItem): number => {
     const selectedUnit = unitSelection[item.id] || item.unit;
@@ -131,7 +133,8 @@ const Page: React.FC = () => {
 
   const getDisplayPrice = (item: CartItem): number => {
     const selectedUnit = unitSelection[item.id] || item.unit;
-    return calculatePrice(item.price, selectedUnit, item.quantity);
+    // Use normalPrice instead of price for calculations
+    return calculatePrice(item.normalPrice, selectedUnit, item.quantity);
   };
 
   // Helper function to check if cart is empty
@@ -191,14 +194,14 @@ const Page: React.FC = () => {
     const currentUnit = unitSelection[itemId] || currentItem.unit;
     let newQuantity = currentItem.quantity;
 
-    // Convert quantity based on unit change with proper precision handling
+    // Convert quantity based on unit change with 3 decimal precision
     if (currentUnit !== newUnit) {
       if (currentUnit === 'kg' && newUnit === 'g') {
         // Convert kg to g: multiply by 1000
-        newQuantity = parseFloat((currentItem.quantity * 1000).toFixed(2));
+        newQuantity = parseFloat((currentItem.quantity * 1000).toFixed(3));
       } else if (currentUnit === 'g' && newUnit === 'kg') {
         // Convert g to kg: divide by 1000
-        newQuantity = parseFloat((currentItem.quantity / 1000).toFixed(2));
+        newQuantity = parseFloat((currentItem.quantity / 1000).toFixed(3));
       }
     }
 
@@ -222,6 +225,7 @@ const Page: React.FC = () => {
       return [...prev, { productId: itemId, newQuantity }];
     });
   };
+
 
 
   // Updated formatPrice function to handle decimal precision
@@ -255,27 +259,27 @@ const Page: React.FC = () => {
     const currentQuantity = currentItem.quantity;
     const selectedUnit = unitSelection[productId] || currentItem.unit;
 
-    // Get changeby value based on selected unit with proper precision
+    // Get changeby value based on selected unit with 3 decimal precision
     let changeBy = currentItem.changeby || 1;
     let startValue = currentItem.startValue || 1;
 
     // If unit is grams but changeby is for kg, convert it
     if (selectedUnit === 'g' && currentItem.unit === 'kg') {
-      changeBy = parseFloat((changeBy * 1000).toFixed(2));
-      startValue = parseFloat((startValue * 1000).toFixed(2));
+      changeBy = parseFloat((changeBy * 1000).toFixed(3));
+      startValue = parseFloat((startValue * 1000).toFixed(3));
     } else if (selectedUnit === 'kg' && currentItem.unit === 'g') {
-      changeBy = parseFloat((changeBy / 1000).toFixed(2));
-      startValue = parseFloat((startValue / 1000).toFixed(2));
+      changeBy = parseFloat((changeBy / 1000).toFixed(3));
+      startValue = parseFloat((startValue / 1000).toFixed(3));
     }
 
-    // Calculate new quantity using changeby value with proper precision
+    // Calculate new quantity using changeby value with 3 decimal precision
     let newQuantity: number;
     if (delta > 0) {
       // Increment by changeby value
-      newQuantity = parseFloat((currentQuantity + (changeBy * delta)).toFixed(2));
+      newQuantity = parseFloat((currentQuantity + (changeBy * delta)).toFixed(3));
     } else {
       // Check if decrement would go below startValue
-      const potentialNewQuantity = parseFloat((currentQuantity + (changeBy * delta)).toFixed(2));
+      const potentialNewQuantity = parseFloat((currentQuantity + (changeBy * delta)).toFixed(3));
 
       if (potentialNewQuantity < startValue) {
         // Show tooltip when trying to go below minimum
@@ -581,7 +585,11 @@ const Page: React.FC = () => {
   };
 
   const handleContinueShopping = () => {
-    router.push('/');
+    if (buyerType === 'Wholesale') {
+      router.push('/wholesale/home');
+    } else {
+      router.push('/');
+    }
   };
 
   const handleDeliveryMethodSelect = (method: any) => {
@@ -601,7 +609,8 @@ const Page: React.FC = () => {
   const calculateItemGroupTotal = (itemGroup: AdditionalItems): number => {
     return itemGroup.Items.reduce((total, item) => {
       const selectedUnit = unitSelection[item.id] || item.unit;
-      const itemTotal = calculatePrice(item.price, selectedUnit, item.quantity);
+      // Use normalPrice instead of price for calculations
+      const itemTotal = calculatePrice(item.normalPrice, selectedUnit, item.quantity);
       return total + itemTotal;
     }, 0);
   };
@@ -625,12 +634,13 @@ const Page: React.FC = () => {
       });
     }
 
-    // Calculate product totals with unit conversions
+    // Calculate product totals with unit conversions using normalPrice
     if (cartData.additionalItems) {
       cartData.additionalItems.forEach(itemGroup => {
         itemGroup.Items.forEach(item => {
           const selectedUnit = unitSelection[item.id] || item.unit;
-          const itemPrice = calculatePrice(item.price, selectedUnit, item.quantity);
+          // Use normalPrice instead of price for calculations
+          const itemPrice = calculatePrice(item.normalPrice, selectedUnit, item.quantity);
           const itemDiscount = calculateDiscount(item.discount, selectedUnit, item.quantity);
 
           productTotal += itemPrice;
@@ -681,15 +691,15 @@ const Page: React.FC = () => {
     return (
       <div className="px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5">
         <TopNavigation NavArray={NavArray} />
-        <div className="flex flex-col items-center justify-center py-16 px-4">
+        <div className="flex flex-col items-center justify-center py-8 px-4">
           {/* Empty Cart Image/Icon */}
-          <div className="mb-8">
+          <div className="mb-6">
             <Image
               src={empty}
               alt="Empty Cart"
-              width={384}
-              height={384}
-              className="w-48 h-48 sm:w-64 sm:h-64 md:w-80 md:h-80 lg:w-96 lg:h-96 object-contain"
+              width={256}
+              height={256}
+              className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 lg:w-64 lg:h-64 object-contain"
               priority
             />
             <ShoppingCart
@@ -700,10 +710,10 @@ const Page: React.FC = () => {
 
           {/* Empty Cart Text */}
           <div className="text-center max-w-md">
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-3">
               Your Cart is Empty
             </h2>
-            <p className="text-gray-600 text-lg mb-8">
+            <p className="text-gray-600 text-base sm:text-lg mb-6">
               Looks like you haven't added any items to your cart yet.
               Start shopping to fill it up!
             </p>
@@ -767,7 +777,7 @@ const Page: React.FC = () => {
               onClick={() => setShowDeliveryModal(false)}
               className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors duration-200 border border-white  p-1 hover:border-gray-300 cursor-pointer"
             >
-              <X size={15}  />
+              <X size={15} />
             </button>
             <h2 className="text-white text-2xl font-semibold text-center mb-8">
               Select a method
@@ -783,7 +793,7 @@ const Page: React.FC = () => {
                   <Image
                     src={pickup}
                     alt="Store Pickup"
-                    className="w-24 h-24 object-contain"
+                    className="w-28 h-28 object-contain"
                   />
                 </div>
                 <div className="text-center">
@@ -801,7 +811,7 @@ const Page: React.FC = () => {
                   <Image
                     src={delivery}
                     alt="Home Delivery"
-                    className="w-24 h-24 object-contain"
+                    className="w-28 h-28 object-contain"
                   />
                 </div>
                 <div className="text-center">
@@ -823,7 +833,7 @@ const Page: React.FC = () => {
                 {/* Header section with package name on left, total on right */}
                 <div className='flex justify-between items-start mb-4'>
                   <div className='flex items-center gap-2'>
-                    <p className='text-[24px] font-normal text-gray-700'>
+                    <p className='text-[20px] font-normal text-gray-700'>
                       Your {itemGroup.packageName}
                     </p>
                   </div>
@@ -906,11 +916,16 @@ const Page: React.FC = () => {
                                 </td>
                                 <td className="px-4 py-4">
                                   <div className="flex items-center gap-3">
-                                    <img
-                                      src={item.image}
-                                      alt={item.name}
-                                      className="w-12 h-12 rounded-lg object-cover "
-                                    />
+                                    <div className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden">
+                                      <img
+                                        src={item.image}
+                                        alt={item.name}
+                                        className="w-full h-full object-contain"
+                                        onError={(e) => {
+                                          e.currentTarget.src = '/placeholder-image.jpg'; // Add a fallback image
+                                        }}
+                                      />
+                                    </div>
                                     <span className="text-sm font-medium text-gray-900">
                                       {item.name}
                                     </span>
@@ -924,8 +939,8 @@ const Page: React.FC = () => {
                                         onClick={() => handleUnitChange(item.id, unit)}
                                         disabled={isRemoving}
                                         className={`px-3 py-1 text-sm rounded-md border transition-colors cursor-pointer ${selectedUnit === unit
-                                            ? 'bg-purple-100 text-purple-700 border-purple-300 font-medium'
-                                            : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                                          ? 'bg-purple-100 text-purple-700 border-purple-300 font-medium'
+                                          : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
                                           } disabled:opacity-50 disabled:cursor-not-allowed`}
                                       >
                                         {unit}
@@ -953,12 +968,12 @@ const Page: React.FC = () => {
                                               let startValue = item.startValue || 1;
 
                                               if (selectedUnit === 'g' && item.unit === 'kg') {
-                                                startValue = parseFloat((startValue * 1000).toFixed(2));
+                                                startValue = parseFloat((startValue * 1000).toFixed(3));
                                               } else if (selectedUnit === 'kg' && item.unit === 'g') {
-                                                startValue = parseFloat((startValue / 1000).toFixed(2));
+                                                startValue = parseFloat((startValue / 1000).toFixed(3));
                                               }
 
-                                              return parseFloat(startValue.toFixed(2));
+                                              return parseFloat(startValue.toFixed(3));
                                             })()} {unitSelection[item.id] || item.unit}
 
                                             {/* Tooltip arrow */}
@@ -969,7 +984,7 @@ const Page: React.FC = () => {
                                     </div>
 
                                     <span className="text-sm font-medium flex-1 text-center">
-                                      {parseFloat(item.quantity.toFixed(2))}
+                                      {parseFloat(item.quantity.toFixed(3))}
                                     </span>
 
                                     <button
@@ -1110,8 +1125,8 @@ const Page: React.FC = () => {
 
               {couponMessage && (
                 <div className={`mt-2 text-sm p-2 rounded ${couponMessage.type === 'success'
-                    ? 'bg-green-100 text-green-800 border border-green-200'
-                    : 'bg-red-100 text-red-800 border border-red-200'
+                  ? 'bg-green-100 text-green-800 border border-green-200'
+                  : 'bg-red-100 text-red-800 border border-red-200'
                   }`}>
                   {couponMessage.text}
                 </div>
@@ -1121,7 +1136,7 @@ const Page: React.FC = () => {
 
               <div className='space-y-2 mb-4'>
                 <div className='flex justify-between text-sm sm:text-base'>
-                  <p className='text-gray-600'>Subtotal</p>
+                  <p className='text-gray-600'>Total</p>
                   <p>Rs.{formatPrice(dynamicSummary.grandTotal)}</p>
                 </div>
 
@@ -1146,7 +1161,7 @@ const Page: React.FC = () => {
                 disabled={checkoutLoading || isCartEmpty() || dynamicSummary.totalItems === 0}
                 className='w-full bg-[#3E206D] text-white font-semibold rounded-lg py-3 text-sm sm:text-base hover:bg-[#2F1A5B] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
               >
-                {checkoutLoading ? 'Processing...' : 'Proceed to Checkout'}
+                {checkoutLoading ? 'Processing...' : 'Checkout Now'}
               </button>
             </div>
           </div>

@@ -54,6 +54,7 @@ const Page: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isError, setIsError] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
+  const [orderSubmitted, setOrderSubmitted] = useState(false);
 
   const getHomeUrl = () => {
     return user?.buyerType === 'Wholesale' ? '/wholesale/home' : '/';
@@ -82,20 +83,26 @@ const Page: React.FC = () => {
     }));
   };
 
-  // 1. Updated prepareOrderPayload function
+  // Updated prepareOrderPayload function
   const prepareOrderPayload = (): OrderPayload => {
     const calculatedSummary = cartItems.calculatedSummary;
     const originalGrandTotal = calculatedSummary?.finalTotal || 0;
     const discountAmount = calculatedSummary?.totalDiscount || 0;
 
-    const couponDiscountAmount = isCouponApplied ? couponDiscount : 0;
+    // Ensure couponDiscount is a valid number
+    const couponDiscountAmount = isCouponApplied ? (Number(couponDiscount) || 0) : 0;
 
-    // Handle Free Delivery coupon type
-    const effectiveDeliveryCharge = (isCouponApplied && couponType === 'Free Delivary') ? 0 : deliveryCharge;
+    // Only apply delivery charge if delivery method is 'home'
+    const shouldApplyDeliveryCharge = checkoutDetails.deliveryMethod === 'home';
+
+    // Handle Free Delivery coupon type - only applicable for home delivery
+    const effectiveDeliveryCharge = shouldApplyDeliveryCharge
+      ? ((isCouponApplied && couponType === 'Free Delivary') ? 0 : deliveryCharge)
+      : 0;
 
     const finalGrandTotal = isCouponApplied ?
-      (originalGrandTotal - couponDiscount + effectiveDeliveryCharge) :
-      (originalGrandTotal + deliveryCharge);
+      (originalGrandTotal - couponDiscountAmount + effectiveDeliveryCharge) :
+      (originalGrandTotal + effectiveDeliveryCharge);
 
     let finalCheckoutDetails = {
       deliveryMethod: checkoutDetails.deliveryMethod || 'home',
@@ -117,12 +124,13 @@ const Page: React.FC = () => {
       cityName: '',
       scheduleType: checkoutDetails.scheduleType || 'One Time',
       centerId: null as number | null,
-      couponValue: Number(couponDiscountAmount) || 0,
+      // Updated coupon fields - send coupon value for ALL coupon types, not just free delivery
+      couponValue: isCouponApplied ? Number(couponDiscountAmount) : 0,
       isCoupon: isCouponApplied,
       couponCode: isCouponApplied ? couponCode : '',
     };
 
-    // ... rest of the function remains the same
+    // ... rest of the address handling code remains the same
     if (checkoutDetails.deliveryMethod === 'home') {
       finalCheckoutDetails.buildingType = (checkoutDetails.buildingType || 'apartment').toLowerCase();
       finalCheckoutDetails.houseNo = checkoutDetails.houseNo || '';
@@ -150,6 +158,7 @@ const Page: React.FC = () => {
     };
   };
 
+
   const formatPrice = (price: number): string => {
     // Convert to fixed decimal first, then add commas
     const fixedPrice = Number(price).toFixed(2);
@@ -172,13 +181,19 @@ const Page: React.FC = () => {
         throw new Error('Please log in to apply coupon');
       }
 
-      const response = await validateCoupon(couponCode.trim(), token);
+      // Get deliveryMethod from Redux state
+      const deliveryMethod = checkoutDetails.deliveryMethod || 'home';
+
+      const response = await validateCoupon(couponCode.trim(), token, deliveryMethod);
 
       if (response.status) {
         setIsCouponApplied(true);
-        setCouponDiscount(response.discount);
-        setCouponType(response.type || ''); // Store coupon type from response
+        // Parse the discount value - remove commas and convert to number
+        const discountValue = parseFloat(response.discount.toString().replace(/,/g, '')) || 0;
+        setCouponDiscount(discountValue);
+        setCouponType(response.type || '');
         console.log('Coupon applied successfully:', response);
+        console.log('Parsed discount value:', discountValue);
       } else {
         setCouponError(response.message);
         setIsCouponApplied(false);
@@ -195,8 +210,6 @@ const Page: React.FC = () => {
       setCouponValidationLoading(false);
     }
   };
-
-
 
   const validateCartData = (): { isValid: boolean; error?: string } => {
     // Check if cart exists and has valid ID
@@ -308,6 +321,7 @@ const Page: React.FC = () => {
       // Check if the response has the expected structure
       if (result.status && result.processOrderId) {
         setOrderId(result.processOrderId);
+        setOrderSubmitted(true); // Mark order as submitted
         localStorage.removeItem('deliveryCharge');
 
         // Show success modal
@@ -349,33 +363,39 @@ const Page: React.FC = () => {
   };
 
   // Handle view invoice
-    const handleViewInvoice = () => {
-      setIsModalOpen(false);
-      console.log('Navigating to invoice with orderId:', orderId); // Debug log
-      
-      if (orderId) {
-        router.push(`/history/invoice/?orderId=${orderId}`);
-      } else {
-        console.error('Order ID is not available');
-        // Handle case where orderId is not available
-        setIsError(true);
-        setModalMessage('Order ID not available. Please try again.');
-        setIsModalOpen(true);
-      }
-    };
+  const handleViewInvoice = () => {
+    setIsModalOpen(false);
+    console.log('Navigating to invoice with orderId:', orderId); // Debug log
+
+    if (orderId) {
+      router.push(`/history/invoice/?orderId=${orderId}`);
+    } else {
+      console.error('Order ID is not available');
+      // Handle case where orderId is not available
+      setIsError(true);
+      setModalMessage('Order ID not available. Please try again.');
+      setIsModalOpen(true);
+    }
+  };
   // Calculate display values for OrderSummary
   const getDisplayValues = () => {
     const calculatedSummary = cartItems.calculatedSummary;
     const originalGrandTotal = calculatedSummary?.finalTotal || 0;
 
-    // Handle Free Delivery coupon type
-    const effectiveDeliveryCharge = (isCouponApplied && couponType === 'Free Delivary') ? 0 : deliveryCharge;
+    // Only show delivery charges if delivery method is 'home' (delivery)
+    const shouldShowDeliveryCharge = checkoutDetails.deliveryMethod === 'home';
 
-    const couponDiscountAmount = isCouponApplied ? couponDiscount : 0;
+    // Handle Free Delivery coupon type - only applicable for home delivery
+    const effectiveDeliveryCharge = shouldShowDeliveryCharge
+      ? ((isCouponApplied && couponType === 'Free Delivary') ? 0 : deliveryCharge)
+      : 0;
+
+    // Ensure couponDiscount is a valid number
+    const couponDiscountAmount = isCouponApplied ? (Number(couponDiscount) || 0) : 0;
 
     const finalGrandTotal = isCouponApplied
-      ? (originalGrandTotal - couponDiscount + effectiveDeliveryCharge)
-      : (originalGrandTotal + deliveryCharge);
+      ? (originalGrandTotal - couponDiscountAmount + effectiveDeliveryCharge)
+      : (originalGrandTotal + effectiveDeliveryCharge);
 
     return {
       totalItems: calculatedSummary?.totalItems || 0,
@@ -384,8 +404,9 @@ const Page: React.FC = () => {
       originalGrandTotal: originalGrandTotal,
       couponDiscount: couponDiscountAmount,
       grandTotal: finalGrandTotal,
-      deliveryCharges: effectiveDeliveryCharge, // Use effective delivery charge
-      isFreeDelivery: isCouponApplied && couponType === 'Free Delivary', // Flag for UI display
+      deliveryCharges: effectiveDeliveryCharge,
+      isFreeDelivery: isCouponApplied && couponType === 'Free Delivary' && shouldShowDeliveryCharge,
+      showDeliveryCharges: shouldShowDeliveryCharge,
     };
   };
 
@@ -395,59 +416,136 @@ const Page: React.FC = () => {
 
   return (
     <div className="px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5">
-     {isModalOpen && (
-      <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-        <div className="bg-white p-8 rounded-2xl text-center w-[90%] max-w-md shadow-xl">
-          {isError ? (
-            <Image
-              src={wrongImg}
-              alt="Error"
-              className="w-28 h-28 mx-auto mb-4"
-            />
-          ) : (
-            <Image
-              src={correct}
-              alt="Success"
-              className="w-28 h-28 mx-auto mb-4"
-            />
-          )}
-          
-          <h2 className="text-xl font-bold mb-2 text-gray-900">
-            {isError ? 'Error' : 'Thank you for ordering!'}
-          </h2>
-          <p className="text-gray-500 mb-6">{modalMessage}</p>
-          
-          {isError ? (
-            <button
-              onClick={handleModalClose}
-              className="px-6 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition cursor-pointer text-gray-700 font-medium"
-            >
-              Close
-            </button>
-          ) : (
-            <div className="flex gap-3 justify-center">
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+          <div className="bg-white p-8 rounded-2xl text-center w-[90%] max-w-md shadow-xl">
+            {isError ? (
+              /* Error Icon with Animation */
+              <div className="flex justify-center mb-4">
+                <div className="relative w-28 h-28">
+                  {/* Animated Circle Background */}
+                  <div
+                    className="absolute inset-0 rounded-full bg-red-500 transition-all duration-700 ease-out scale-100 opacity-100"
+                    style={{
+                      transformOrigin: 'center',
+                      animationDelay: '0.2s'
+                    }}
+                  />
+
+                  {/* Animated X Icon */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <svg
+                      className="w-16 h-16 text-white"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <path
+                        className="opacity-100 transition-all duration-700 ease-out"
+                        d="M18 6L6 18M6 6L18 18"
+                        stroke="currentColor"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        style={{
+                          strokeDasharray: '24',
+                          strokeDashoffset: '0',
+                          transitionDelay: '0.6s'
+                        }}
+                      />
+                    </svg>
+                  </div>
+
+                  {/* Pulse Animation */}
+                  <div
+                    className="absolute inset-0 rounded-full bg-red-500 scale-125 opacity-0 transition-all duration-1000"
+                    style={{
+                      animationDelay: '0.8s'
+                    }}
+                  />
+                </div>
+              </div>
+            ) : (
+              /* Success Icon with Animation */
+              <div className="flex justify-center mb-4">
+                <div className="relative w-28 h-28">
+                  {/* Animated Circle */}
+                  <div
+                    className="absolute inset-0 rounded-full border-4 border-purple-500 scale-100 opacity-100 transition-all duration-700 ease-out"
+                    style={{
+                      transformOrigin: 'center',
+                      animationDelay: '0.2s'
+                    }}
+                  />
+
+                  {/* Animated Checkmark */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <svg
+                      className="w-14 h-14 text-[#8746ff]"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <path
+                        className="opacity-100 transition-all duration-700 ease-out"
+                        d="M20 6L9 17L4 12"
+                        stroke="currentColor"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        style={{
+                          strokeDasharray: '20',
+                          strokeDashoffset: '0',
+                          transitionDelay: '0.6s'
+                        }}
+                      />
+                    </svg>
+                  </div>
+
+                  {/* Pulse Animation */}
+                  <div
+                    className="absolute inset-0 rounded-full bg-[#8746ff] scale-125 opacity-0 transition-all duration-1000"
+                    style={{
+                      animationDelay: '0.8s'
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
+            <h2 className="text-xl font-bold mb-2 text-gray-900">
+              {isError ? 'Error' : 'Thank you for ordering!'}
+            </h2>
+            <p className="text-gray-500 mb-6">{modalMessage}</p>
+
+            {isError ? (
               <button
                 onClick={handleModalClose}
                 className="px-6 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition cursor-pointer text-gray-700 font-medium"
               >
-                Go Back
+                Close
               </button>
+            ) : (
+              <div className="flex gap-3 justify-center">
                 <button
-                    onClick={handleViewInvoice}
-                    disabled={!orderId} // Disable if orderId is not available
-                    className={`px-6 py-2 rounded-lg transition cursor-pointer font-medium ${
-                      !orderId 
-                        ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
-                        : 'bg-[#3E206D] text-white hover:bg-[#3E206D]'
+                  onClick={handleModalClose}
+                  className="px-6 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition cursor-pointer text-gray-700 font-medium"
+                >
+                  Go Back
+                </button>
+                <button
+                  onClick={handleViewInvoice}
+                  disabled={!orderId}
+                  className={`px-6 py-2 rounded-lg transition cursor-pointer font-medium ${!orderId
+                    ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                    : 'bg-[#3E206D] text-white hover:bg-[#3E206D]'
                     }`}
-                  >
-                View Invoice
-              </button>
-            </div>
-          )}
+                >
+                  View Invoice
+                </button>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-    )}
+      )}
       <TopNavigation NavArray={NavArray} />
 
       <div className="flex flex-col lg:flex-row lg:items-start gap-4 sm:gap-6 items-start">
@@ -476,40 +574,91 @@ const Page: React.FC = () => {
                 </div>
               </div>
               {paymentMethod === 'card' && (
-                <div className="mb-5 rounded-b-lg p-10 border-t border-gray-200">
-                  <div className="mb-4">
-                    <input
-                      type="text"
-                      placeholder="Enter Card Number"
-                      value={cardDetails.cardNumber}
-                      onChange={(e) => handleCardInputChange('cardNumber', e.target.value)}
-                      className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm"
-                    />
-                  </div>
-                  <div className="mb-4">
-                    <input
-                      type="text"
-                      placeholder="Enter Name on Card"
-                      value={cardDetails.nameOnCard}
-                      onChange={(e) => handleCardInputChange('nameOnCard', e.target.value)}
-                      className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm"
-                    />
-                  </div>
-                  <div className="flex gap-4">
-                    <input
-                      type="text"
-                      placeholder="Enter Expiration Date (MM/YY)"
-                      value={cardDetails.expirationDate}
-                      onChange={(e) => handleCardInputChange('expirationDate', e.target.value)}
-                      className="w-3/5 p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Enter CVV"
-                      value={cardDetails.cvv}
-                      onChange={(e) => handleCardInputChange('cvv', e.target.value)}
-                      className="w-2/5 p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm"
-                    />
+                <div className="mb-5 rounded-b-lg p-4 sm:p-6 md:p-8 lg:p-10 border-t border-gray-200">
+                  <div className="space-y-4">
+                    <div>
+                      <input
+                        type="text"
+                        placeholder="Enter Card Number"
+                        value={cardDetails.cardNumber}
+                        onChange={(e) => {
+                          // Only allow digits and format with spaces every 4 digits
+                          const value = e.target.value.replace(/[^0-9]/g, '');
+                          const formattedValue = value.replace(/(\d{4})(?=\d)/g, '$1 ');
+                          if (value.length <= 16) {
+                            handleCardInputChange('cardNumber', formattedValue);
+                          }
+                        }}
+                        maxLength={19} // 16 digits + 3 spaces
+                        className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <input
+                        type="text"
+                        placeholder="Enter Name on Card"
+                        value={cardDetails.nameOnCard}
+                        onChange={(e) => {
+                          let value = e.target.value;
+
+                          // Block leading spaces
+                          if (value.startsWith(' ')) {
+                            value = value.trimStart();
+                          }
+
+                          // Only allow letters and spaces (no numbers or special characters)
+                          value = value.replace(/[^a-zA-Z\s]/g, '');
+
+                          // Capitalize first letter and first letter after each space
+                          value = value.replace(/\b\w/g, (char) => char.toUpperCase());
+
+                          handleCardInputChange('nameOnCard', value);
+                        }}
+                        className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm"
+                      />
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-4">
+                      <input
+                        type="text"
+                        placeholder="Enter Expiration Date (MM/YY)"
+                        value={cardDetails.expirationDate}
+                        onChange={(e) => {
+                          const inputValue = e.target.value;
+                          const value = inputValue.replace(/[^0-9/]/g, '');
+                          let formattedValue = value;
+
+                          if (value.length === 2 && !value.includes('/') && inputValue.length > cardDetails.expirationDate.length) {
+                            formattedValue = value + '/';
+                          }
+
+                          else if (value.length >= 2 && !value.includes('/') && value.length <= 4) {
+
+                            formattedValue = value;
+                          }
+
+                          if (formattedValue.length <= 5) {
+                            handleCardInputChange('expirationDate', formattedValue);
+                          }
+                        }}
+                        maxLength={5}
+                        className="w-full sm:w-3/5 p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm"
+                      />
+
+                      <input
+                        type="text"
+                        placeholder="Enter CVV"
+                        value={cardDetails.cvv}
+                        onChange={(e) => {
+                          // Remove all non-numeric characters and limit to exactly 3 digits
+                          const value = e.target.value.replace(/[^0-9]/g, '');
+                          if (value.length <= 3) {
+                            handleCardInputChange('cvv', value);
+                          }
+                        }}
+                        maxLength={3}
+                        className="w-full sm:w-2/5 p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm"
+                      />
+                    </div>
                   </div>
                 </div>
               )}
@@ -585,7 +734,7 @@ const Page: React.FC = () => {
                       : 'bg-[#3E206D] text-white hover:bg-[#2f1854] disabled:bg-gray-300 disabled:cursor-not-allowed'
                     }`}
                 >
-                  {couponValidationLoading ? 'Validating...' : isCouponApplied ? 'Applied' : 'Apply'}
+                  {couponValidationLoading ? 'Verifying...' : isCouponApplied ? 'Applied' : 'Apply'}
                 </button>
               </div>
               {isCouponApplied && (
@@ -614,20 +763,27 @@ const Page: React.FC = () => {
                 <p className='text-gray-600'>Rs.{formatPrice(displayValues.couponDiscount || 0)}</p>
               </div>
             )}
-            <div className='flex justify-between text-sm mb-2'>
-              <p className='text-gray-600'>
-                Delivery Charges
-                {displayValues.isFreeDelivery && (
-                  <span className='font-semibold ml-1'>(Free)</span>
-                )}
-              </p>
-              <p className={`text-gray-600 ${displayValues.isFreeDelivery ? 'line-through' : ''}`}>
-                Rs.{formatPrice(deliveryCharge || 0)}
-              </p>
-              {displayValues.isFreeDelivery && (
-                <p className='text-gray-600 font-semibold'>Rs.0.00</p>
-              )}
-            </div>
+            {displayValues.showDeliveryCharges && (
+              <div className='flex justify-between text-sm mb-2'>
+                <p className='text-gray-600'>
+                  Delivery Charges
+                  {displayValues.isFreeDelivery && (
+                    <span className='font-semibold ml-1'>(Free)</span>
+                  )}
+                </p>
+                <div className='flex items-center gap-2'>
+                  {displayValues.isFreeDelivery && (
+                    <p className='text-gray-600 line-through'>
+                      Rs.{formatPrice(deliveryCharge || 0)}
+                    </p>
+                  )}
+                  <p className='text-gray-600 font-semibold'>
+                    Rs.{formatPrice(displayValues.deliveryCharges || 0)}
+                  </p>
+                </div>
+              </div>
+            )}
+
 
 
             <div className='border-t border-gray-300 my-4' />
@@ -639,11 +795,17 @@ const Page: React.FC = () => {
             <div className="mt-8">
               <button
                 onClick={handleSubmitOrder}
-                disabled={isSubmitting}
-                className={`w-full py-4 px-6 rounded-lg cursor-pointer text-white font-semibold ${isSubmitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#3E206D] hover:bg-[#3E206D]'
+                disabled={isSubmitting || orderSubmitted}
+                className={`w-full py-4 px-6 rounded-lg cursor-pointer text-white font-semibold ${isSubmitting || orderSubmitted
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-[#3E206D] hover:bg-[#3E206D]'
                   } transition-colors`}
               >
-                {isSubmitting ? 'Processing Order...' : 'Confirm Order'}
+                {orderSubmitted
+                  ? 'Order Submitted'
+                  : isSubmitting
+                    ? 'Processing Order...'
+                    : 'Confirm Order'}
               </button>
             </div>
 

@@ -7,6 +7,7 @@ import { useSelector, useDispatch } from 'react-redux'; // Add useDispatch
 import { RootState } from '@/store';
 import { updateCartInfo } from '@/store/slices/authSlice'; // Add this import
 import { useRouter } from 'next/navigation';
+import vegebox from '../../../public/Vegetables_Box.png';
 
 interface PackageItem {
   id: number;
@@ -34,6 +35,7 @@ interface PackageProps {
   errorDetails?: string | null;
   onShowConfirmModal: (packageData: any) => void;
   onShowLoginPopup: () => void;
+  isSingleCardMobile?: boolean;
 }
 
 const PackageCard: React.FC<PackageProps> = ({
@@ -47,12 +49,13 @@ const PackageCard: React.FC<PackageProps> = ({
   isLoadingDetails,
   errorDetails,
   onShowConfirmModal,
-  onShowLoginPopup
+  onShowLoginPopup,
+  isSingleCardMobile = false
 }) => {
   const { isMobile } = useViewport();
   const dispatch = useDispatch(); // Add this
   const token = useSelector((state: RootState) => state.auth.token) as string | null;
-  const user = useSelector((state:RootState) => state.auth.user) as string | null;
+  const user = useSelector((state: RootState) => state.auth.user) as string | null;
   const router = useRouter();
   const [showLoginPopup, setShowLoginPopup] = useState(false);
 
@@ -67,8 +70,8 @@ const PackageCard: React.FC<PackageProps> = ({
     if (!token || !user) {
       if (onAddToCartError) {
         if (onShowLoginPopup) {
-        onShowLoginPopup(); 
-      }
+          onShowLoginPopup();
+        }
       }
       return;
     }
@@ -119,20 +122,40 @@ const PackageCard: React.FC<PackageProps> = ({
     // Convert to fixed decimal first, then add commas
     const fixedPrice = Number(price).toFixed(2);
     const [integerPart, decimalPart] = fixedPrice.split('.');
-    
+
     // Add commas to integer part
     const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-    
+
     return `${formattedInteger}.${decimalPart}`;
   };
 
-  
+  // Dynamic height classes based on isSingleCardMobile prop
+  const getCardHeight = () => {
+    if (isSingleCardMobile) {
+      return 'h-[400px] md:h-[320px] lg:h-[360px]'; // Taller in mobile when single card
+    }
+    return 'h-[220px] md:h-[320px] lg:h-[360px]'; // Normal height
+  };
+
+  const getSelectedCardHeight = () => {
+    if (isSingleCardMobile) {
+      return 'h-[500px] md:h-[400px] lg:h-[450px]'; // Taller in mobile when single card
+    }
+    return 'h-[380px] md:h-[400px] lg:h-[450px]'; // Normal height
+  };
+
+  const getScrollAreaHeight = () => {
+    if (isSingleCardMobile) {
+      return 'h-[280px] md:h-[200px] lg:h-[250px]'; // Taller scroll area in mobile when single card
+    }
+    return 'h-[200px] md:h-[200px] lg:h-[250px]'; // Normal scroll area height
+  };
 
   return (
     <div className="w-full h-full">
       {!isSelected ? (
         <div
-          className="flex flex-col items-center justify-between w-4/5 h-1/4 border border-[#D7D7D7] rounded-lg shadow-lg py-4 px-2 hover:shadow-xl transition-shadow duration-300 md:min-h-[320px] md:max-h-full max-h-[240px] min-w-[140px] cursor-pointer"
+          className={`flex flex-col items-center justify-between w-full ${getCardHeight()} border border-[#D7D7D7] rounded-lg shadow-lg py-4 px-2 hover:shadow-xl transition-shadow duration-300 cursor-pointer`}
           onClick={() => onPackageClick(packageItem.id)}
         >
           <div className="w-full flex-shrink-0">
@@ -153,7 +176,7 @@ const PackageCard: React.FC<PackageProps> = ({
         </div>
       ) : (
         <div
-          className="w-full h-full bg-[#3E206D] rounded-2xl shadow-lg relative md:min-h-[360px] min-h-[480px] md:max-w-[360px] min-w-[260px] border border-gray-200 text-white flex flex-col"
+          className={`w-full ${getSelectedCardHeight()} bg-[#3E206D] rounded-2xl shadow-lg relative md:max-w-[360px] lg:max-w-[400px] min-w-[280px] border border-gray-200 text-white flex flex-col`}
           data-package-popup={packageItem.id}
         >
           <div className="p-4 h-full flex flex-col flex-grow mt-1">
@@ -161,7 +184,7 @@ const PackageCard: React.FC<PackageProps> = ({
               <div className="flex items-start justify-start mr-4">
                 <div className="rounded-3xl bg-[#654D8A] px-2 pb-2 pt-1.5">
                   <Image
-                    src="/Vegetables_Box.png"
+                    src={vegebox}
                     alt="Vegetables box icon"
                     width={22}
                     height={22}
@@ -178,7 +201,7 @@ const PackageCard: React.FC<PackageProps> = ({
               </div>
             </div>
 
-            <div className="px-8 pt-2 overflow-y-auto max-h-[380px] scrollbar mb-4">
+            <div className={`px-8 pt-2 overflow-y-auto ${getScrollAreaHeight()} scrollbar mb-4`}>
               {isLoadingDetails ? (
                 <div className="text-center py-8 text-white">Loading products...</div>
               ) : errorDetails ? (

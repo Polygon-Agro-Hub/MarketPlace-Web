@@ -7,6 +7,15 @@
   --foreground: #171717; */
 }
 
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+};
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -49,4 +58,19 @@ body {
   .scrollbar::-webkit-scrollbar-thumb:hover {
     background: #ffffff; /* Slightly brighter on hover */
   }
+  
+  /* Add this to your global CSS or component */
+.main-content {
+  padding-top: 140px; /* Adjust based on your header height */
 }
+
+/* For mobile devices */
+@media (max-width: 767px) {
+  .main-content {
+    padding-top: 100px; /* Smaller padding for mobile */
+  }
+}
+  
+  
+}
+

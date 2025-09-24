@@ -115,7 +115,7 @@ const Page = () => {
 
   const validateEmail = (email: string) => {
     if (!email.trim()) {
-      return 'This field is required';
+      return 'Email is required';
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
@@ -127,7 +127,7 @@ const Page = () => {
 
   const validatePhoneNumber = (phone: string) => {
     if (!phone.trim()) {
-      return 'This field is required';
+      return 'Valid Mobile Number is required';
     }
 
     const cleanedPhone = phone.replace(/\s+/g, "");
@@ -284,12 +284,14 @@ const Page = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 relative">
-      <div className="w-[90vw] h-[90vh] bg-white rounded-xl shadow-lg flex flex-col md:flex-row overflow-hidden">
+    // 1. Update the main container div
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 relative p-4">
+      <div className="w-full max-w-6xl h-auto min-h-[90vh] md:h-[90vh] bg-white rounded-xl shadow-lg flex flex-col md:flex-row overflow-hidden">
 
+        {/* 2. Update the back button */}
         <button
           onClick={handleBackToLogin}
-          className="absolute top-4 left-4 z-10 mt-[3%] ml-[6%] md:mt-[3%] md:ml-[6%] sm:mt-2 sm:ml-2 flex items-center space-x-2 px-3 py-2 md:px-4 md:py-2 bg-white border border-gray-300 rounded-[10px] shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+          className="absolute top-2 left-2 z-10 md:top-4 md:left-4 flex items-center space-x-1 md:space-x-2 px-2 py-1 md:px-4 md:py-2 bg-white border border-gray-300 rounded-[10px] shadow-sm hover:shadow-md transition-shadow cursor-pointer"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -303,58 +305,57 @@ const Page = () => {
           <span className="text-gray-600 text-xs md:text-sm font-medium">Back to Login</span>
         </button>
 
-
-
-        {/* Left Illustration */}
-        <div className="md:w-1/2 flex items-center justify-center bg-white p-8">
+        {/* 3. Update the left illustration section */}
+        <div className="w-full md:w-1/2 flex items-center justify-center bg-white p-4 md:p-8 order-1 md:order-1">
           <Image
             src={reset}
             alt="Forgot password illustration"
-            className="w-[70%] h-auto object-cover"
+            className="w-[60%] md:w-[70%] h-auto object-cover"
           />
         </div>
 
-        {/* Right Form */}
-        <div className="md:w-1/2 flex flex-col items-center justify-center p-10">
+        {/* 4. Update the right form section */}
+        <div className="w-full md:w-1/2 flex flex-col items-center justify-center p-4 md:p-10 order-2 md:order-2 pt-4 md:pt-10">
           <div className="w-full max-w-md text-center">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Forgot Password ?</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Forgot Password ?</h1>
 
-            <p className="text-gray-600 mb-4">
+            <p className="text-sm md:text-base text-gray-600 mb-4">
               Choose how you'd like to receive your password reset code:
             </p>
 
-            <div className="flex flex-row space-x-4 mb-6 items-center justify-center">
+            {/* 5. Update the radio button section */}
+            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 mb-6 items-center justify-center">
               <label
-                className={`flex items-center space-x-2 cursor-pointer border rounded-md p-3 ${resetMethod === 'email' ? 'border-[#3E206D]' : 'border-gray-300'
+                className={`flex items-center space-x-2 cursor-pointer border rounded-md p-2 md:p-3 w-full sm:w-auto ${resetMethod === 'email' ? 'border-[#3E206D]' : 'border-gray-300'
                   }`}
               >
                 <input
                   type="radio"
                   checked={resetMethod === 'email'}
                   onChange={() => setResetMethod('email')}
-                  className="form-radio h-5 w-5 [#3E206D] cursor-pointer accent-[#3E206D]"
+                  className="form-radio h-4 w-4 md:h-5 md:w-5 cursor-pointer accent-[#3E206D]"
                 />
-                <span>Via Email</span>
+                <span className="text-sm md:text-base">Via Email</span>
               </label>
               <label
-                className={`flex items-center space-x-2 cursor-pointer border rounded-md p-3 ${resetMethod === 'sms' ? 'border-[#3E206D]' : 'border-gray-300'
+                className={`flex items-center space-x-2 cursor-pointer border rounded-md p-2 md:p-3 w-full sm:w-auto ${resetMethod === 'sms' ? 'border-[#3E206D]' : 'border-gray-300'
                   }`}
               >
                 <input
                   type="radio"
                   checked={resetMethod === 'sms'}
                   onChange={() => setResetMethod('sms')}
-                  className="form-radio h-5 w-5 text-[#3E206D] cursor-pointer accent-[#3E206D]"
+                  className="form-radio h-4 w-4 md:h-5 md:w-5 cursor-pointer accent-[#3E206D]"
                 />
-                <span>Via SMS</span>
+                <span className="text-sm md:text-base">Via SMS</span>
               </label>
             </div>
 
-            <p className="text-gray-600 mb-4">
+            <p className="text-sm md:text-base text-gray-600 mb-4">
               Enter the {resetMethod === 'email' ? 'Email' : 'Phone Number'} associated with your account
             </p>
 
-            {/* Email Input */}
+            {/* Email input remains the same */}
             {resetMethod === 'email' && (
               <div className="mb-6">
                 <input
@@ -362,35 +363,36 @@ const Page = () => {
                   value={email}
                   onChange={handleEmailChange}
                   placeholder="Enter the Email"
-                  className={`w-full px-4 py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600 ${emailError ? 'border-red-500' : 'border-gray-300'
+                  className={`w-full px-3 md:px-4 py-2 md:py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600 text-sm md:text-base ${emailError ? 'border-red-500' : 'border-gray-300'
                     }`}
                   disabled={isSendingEmail}
                 />
                 {emailError && (
-                  <p className="text-red-500 text-sm mt-1 text-left">{emailError}</p>
+                  <p className="text-red-500 text-xs md:text-sm mt-1 text-left">{emailError}</p>
                 )}
               </div>
             )}
 
-            {/* Country Code + Phone Number Input */}
+            {/* 6. Update the phone number section */}
             {resetMethod === 'sms' && (
               <div className="mb-6">
-                <div className="flex space-x-4">
-                  {/* Searchable Country Code Dropdown - 1/4 */}
-                  <div className="w-1/4 relative" ref={dropdownRef}>
+                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+                  {/* Country Code Dropdown */}
+                  <div className="w-full sm:w-2/5 md:w-1/3 relative" ref={dropdownRef}>
                     <button
                       type="button"
                       onClick={() => setIsCountryDropdownOpen(!isCountryDropdownOpen)}
-                      className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600 flex items-center justify-between bg-white cursor-pointer"
+                      className="w-full px-2 md:px-3 py-2 md:py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600 flex items-center justify-between bg-white cursor-pointer text-sm md:text-base"
                     >
-                      <span>
+                      <span className="truncate">
                         {selectedCountry && (
-                          <>{(selectedCountry.code)} {selectedCountry.dial_code}</>
+                          <>{selectedCountry.code} {selectedCountry.dial_code}</>
                         )}
                       </span>
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
-                        className={`h-4 w-4 transition-transform ${isCountryDropdownOpen ? 'rotate-180' : ''}`}
+                        className={`h-3 w-3 md:h-4 md:w-4 ml-1 transition-transform ${isCountryDropdownOpen ? 'rotate-180' : ''
+                          }`}
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -400,14 +402,14 @@ const Page = () => {
                     </button>
 
                     {isCountryDropdownOpen && (
-                      <div className="absolute z-10 mt-1 w-64 max-h-60 overflow-auto bg-white border border-gray-300 rounded-md shadow-lg">
+                      <div className="absolute z-10 mt-1 w-full sm:w-80 max-h-60 overflow-auto bg-white border border-gray-300 rounded-md shadow-lg">
                         <div className="sticky top-0 bg-white p-2 border-b">
                           <input
                             type="text"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Search country or code..."
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-600"
+                            className="w-full px-2 md:px-3 py-1 md:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-600 text-sm"
                           />
                         </div>
                         <div>
@@ -416,72 +418,69 @@ const Page = () => {
                               key={country.code}
                               type="button"
                               onClick={() => selectCountry(country.dial_code)}
-                              className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2 cursor-pointer"
+                              className="w-full text-left px-2 md:px-4 py-2 hover:bg-gray-100 flex items-center space-x-1 md:space-x-2 cursor-pointer text-sm md:text-base"
                             >
-                              <span>{(country.code)}</span>
-                              <span className="font-medium w-14">{country.dial_code}</span>
-                              <span className="text-gray-600 text-lg">{country.name}</span>
+                              <span className="text-xs md:text-sm">{country.code}</span>
+                              <span className="font-medium w-10 md:w-14 text-xs md:text-sm">{country.dial_code}</span>
+                              <span className="text-gray-600 text-xs md:text-sm truncate">{country.name}</span>
                             </button>
                           ))}
                           {filteredCountries.length === 0 && (
-                            <div className="px-4 py-2 text-gray-500 italic">No countries found</div>
+                            <div className="px-2 md:px-4 py-2 text-gray-500 italic text-sm">No countries found</div>
                           )}
                         </div>
                       </div>
                     )}
                   </div>
 
-                  {/* Phone Number Input - 3/4 */}
-                  <div className="w-3/4">
+                  {/* Phone Number Input */}
+                  <div className="w-full sm:w-3/5 md:w-2/3">
                     <input
                       type="tel"
                       value={phoneNumber}
                       onChange={handlePhoneChange}
                       placeholder="7XXXXXXXX"
-                      className={`w-full px-4 py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600 ${phoneError ? 'border-red-500' : 'border-gray-300'
+                      className={`w-full px-3 md:px-4 py-2 md:py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600 text-sm md:text-base ${phoneError ? 'border-red-500' : 'border-gray-300'
                         }`}
                       required
                     />
                   </div>
                 </div>
                 {phoneError && (
-                  <p className="text-red-500 text-sm mt-1 text-left">{phoneError}</p>
+                  <p className="text-red-500 text-xs md:text-sm mt-1 text-left">{phoneError}</p>
                 )}
               </div>
             )}
 
+            {/* 7. Update the main button */}
             <button
               onClick={handleReset}
-              className={`w-full py-3 text-white rounded-md transition-colors mb-4 ${(resetMethod === 'email' && (isEmailSent || isSendingEmail)) ||
-                (resetMethod === 'sms' && (isOTPSent || isSendingOTP)) ||
-                (resetMethod === 'email' ? !email : !phoneNumber)
+              className={`w-full py-2 md:py-3 text-white rounded-md transition-colors mb-4 text-sm md:text-base ${(resetMethod === 'email' && isSendingEmail) ||
+                (resetMethod === 'sms' && isSendingOTP)
                 ? 'bg-[#CEBAF4] text-[#3E206D] cursor-not-allowed'
                 : 'bg-purple-800 hover:bg-purple-900 cursor-pointer'
                 }`}
               disabled={
-                (resetMethod === 'email' && (isEmailSent || isSendingEmail)) ||
-                (resetMethod === 'sms' && (isOTPSent || isSendingOTP)) ||
-                (resetMethod === 'email' ? !email : !phoneNumber)
+                (resetMethod === 'email' && isSendingEmail) ||
+                (resetMethod === 'sms' && isSendingOTP)
               }
             >
               {getSendButtonText()}
             </button>
 
-            {/* Show timer and resend button only for email */}
+            {/* Resend section remains mostly the same with small text adjustments */}
             {resetMethod === 'email' && isEmailSent && (
               <div className="flex flex-col items-center space-y-2 mt-4">
-                {/* Timer display */}
                 {isResendDisabled && (
-                  <div className="text-gray-600 font-medium">
+                  <div className="text-gray-600 font-medium text-sm md:text-base">
                     {String(Math.floor(countdown / 60)).padStart(2, '0')}:
                     {String(countdown % 60).padStart(2, '0')}
                   </div>
                 )}
-
                 <button
                   onClick={handleResendEmail}
                   disabled={isResendDisabled || isSendingEmail}
-                  className={`text-[#094EE8] hover:text-blue-800 underline ${(isResendDisabled || isSendingEmail) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                  className={`text-[#094EE8] hover:text-blue-800 underline text-sm md:text-base ${(isResendDisabled || isSendingEmail) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                     }`}
                 >
                   {isSendingEmail ? 'Sending...' : 'Resend again'}
@@ -492,27 +491,27 @@ const Page = () => {
         </div>
       </div>
 
-      {/* Modal */}
+      {/* 8. Update the modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-          <div className="bg-white p-8 rounded-xl text-center w-[90%] max-w-md shadow-xl">
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-white p-4 md:p-8 rounded-xl text-center w-full max-w-md shadow-xl">
             <Image
               src={isError ? error : success}
               alt={isError ? 'Error' : 'Success'}
-              className="w-20 h-20 mx-auto mb-4"
+              className="w-16 h-16 md:w-20 md:h-20 mx-auto mb-4"
             />
 
-            <h2 className="text-xl font-bold mb-2">
+            <h2 className="text-lg md:text-xl font-bold mb-2">
               {isError ? 'Error' : resetMethod === 'email' ? 'Email has been sent!' : 'OTP Sent Successfully'}
             </h2>
 
-            <p className="text-gray-700 mb-4">{modalMessage}</p>
+            <p className="text-gray-700 mb-4 text-sm md:text-base">{modalMessage}</p>
 
             <button
               onClick={() => setIsModalOpen(false)}
-              className="px-6 py-2 bg-[#F3F4F7] rounded hover:bg-gray-300 text-[#757E87] transition cursor-pointer"
+              className="px-4 md:px-6 py-2 bg-[#F3F4F7] rounded hover:bg-gray-300 text-[#757E87] transition cursor-pointer text-sm md:text-base"
             >
-              cancel
+              Cancel
             </button>
           </div>
         </div>

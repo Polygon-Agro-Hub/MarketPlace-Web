@@ -16,6 +16,7 @@ import ErrorPopup from '@/components/toast-messages/error-message';
 import { Lock, Mail } from 'lucide-react';
 import Link from 'next/link';
 import LoginImg from '../../../public/images/login.png'
+import Image from 'next/image';
 
 const Page = () => {
   const router = useRouter();
@@ -43,104 +44,124 @@ const Page = () => {
     }
   }, []);
 
-const handleLogin = async (e: React.FormEvent) => {
-  e.preventDefault();
-  let valid = true;
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    let valid = true;
 
-  if (!email.trim()) {
-    setEmailError('Email is required');
-    valid = false;
-  } else {
-    const emailInput = email.trim();
-    
-
-    if (emailInput.includes('@')) {
-      // Email validation
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput)) {
-        setEmailError('Enter a valid email address');
-        valid = false;
-      } else {
-        setEmailError('');
-      }
-    } else if (emailInput.startsWith('+')) {
-      if (!/^\+947\d{8}$/.test(emailInput)) {
-        setEmailError('Enter the number in +947XXXXXXXX');
-        valid = false;
-      } else {
-        setEmailError('');
-      }
-    } else {
-      setEmailError('Enter a valid email address or phone number in +947XXXXXXXX format');
+    if (!email.trim()) {
+      setEmailError('Email is required');
       valid = false;
-    }
-  }
-
-  if (!password.trim()) {
-    setPasswordError('Password is required');
-    valid = false;
-  } else {
-    setPasswordError('');
-  }
-
-  if (!valid) return;
-
-  try {
-    setIsLoading(true);
-    const data = await login({ email, password, buyerType: userType });
-
-    setShowSuccessPopup(true);
-    console.log('token details', data.userData, data.token, data.cart);
-    
-    // Store token and credentials
-    if (data.token) {
-      dispatch(setCredentials({ 
-        token: data.token, 
-        user: data.userData, 
-        cart: data.userData.cart,
-        tokenExpiration: data.tokenExpiration
-      }));
-
-      console.log('token expiration time',data.tokenExpiration)
-
-      // Save credentials to localStorage if "Remember me" is checked
-      if (rememberMe) {
-        localStorage.setItem('rememberedEmail', email);
-        localStorage.setItem('rememberedPassword', password);
-      } else {
-        localStorage.removeItem('rememberedEmail');
-        localStorage.removeItem('rememberedPassword');
-      }
-
-      console.log('rememberedEmail',email)
-
-      if (data.userData.buyerType === 'Retail') {
-        router.push('/'); // Redirect to home page
-      } else if (data.userData.buyerType === 'Wholesale') {
-        router.push('/wholesale/home'); // Redirect to wholesale page
-      }
-    }
-  } catch (err: any) {
-    setShowErrorPopup(true);
-
-    const message = err.message;
-
-    if (message === 'Wrong password.') {
-      setPasswordError('Incorrect password. Please try again!');
-      setEmailError('');
-    } else if (message === 'User not found.' || message === 'Invalid buyer type.') {
-      // Treat invalid buyer type as "User not found"
-      setPasswordError('');
-      setEmailError('');
     } else {
-      // Generic error
-      setEmailError('');
+      const emailInput = email.trim();
+
+      if (emailInput.includes('@')) {
+        // Email validation
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput)) {
+          setEmailError('Enter a valid email address');
+          valid = false;
+        } else {
+          setEmailError('');
+        }
+      } else if (emailInput.startsWith('+')) {
+        if (!/^\+947\d{8}$/.test(emailInput)) {
+          setEmailError('Enter the number in +947XXXXXXXX');
+          valid = false;
+        } else {
+          setEmailError('');
+        }
+      } else {
+        setEmailError('Enter a valid email address or phone number in +947XXXXXXXX format');
+        valid = false;
+      }
+    }
+
+    if (!password.trim()) {
+      setPasswordError('Password is required');
+      valid = false;
+    } else {
       setPasswordError('');
     }
 
-  } finally {
-    setIsLoading(false);
-  }
-};
+    if (!valid) return;
+
+    try {
+      setIsLoading(true);
+      const data = await login({ email, password, buyerType: userType });
+
+      setShowSuccessPopup(true);
+      console.log('token details', data.userData, data.token, data.cart);
+      console.log('firstTimeUser status:', data.userData.firstTimeUser);
+
+      // Store token and credentials
+      if (data.token) {
+        dispatch(setCredentials({
+          token: data.token,
+          user: data.userData,
+          cart: data.userData.cart,
+          tokenExpiration: data.tokenExpiration
+        }));
+
+        console.log('token expiration time', data.tokenExpiration)
+
+        // Save credentials to localStorage if "Remember me" is checked
+        if (rememberMe) {
+          localStorage.setItem('rememberedEmail', email);
+          localStorage.setItem('rememberedPassword', password);
+        } else {
+          localStorage.removeItem('rememberedEmail');
+          localStorage.removeItem('rememberedPassword');
+        }
+
+        console.log('rememberedEmail', email)
+
+        // Updated routing logic based on firstTimeUser and buyerType
+        if (data.userData.buyerType === 'Retail') {
+          // For retail users, check if it's their first time
+          if (data.userData.firstTimeUser === 0) {
+            router.push('/exclude/exclude'); // First-time retail user goes to exclude page
+          } else {
+            router.push('/'); // Returning retail user goes to home
+          }
+        } else if (data.userData.buyerType === 'Wholesale') {
+          // Wholesale users always go to wholesale home (no exclude list needed)
+          router.push('/wholesale/home');
+        }
+      }
+    } catch (err: any) {
+      setShowErrorPopup(true);
+
+      const message = err.message;
+
+      if (message === 'Wrong password.' || message === 'Incorrect password.') {
+        // Password is wrong - highlight password field
+        setPasswordError('Incorrect password. Please try again!');
+        setEmailError(''); // Clear email error
+      } else if (message === 'User not found.' || message === 'User not found or invalid account type.' || message === 'Invalid buyer type.') {
+        // User not found - highlight email/phone field
+        setEmailError('User not found. Please check your email/phone number!');
+        setPasswordError(''); // Clear password error
+      } else if (message === 'Invalid email or phone number format.') {
+        // Invalid format - highlight email/phone field
+        setEmailError('Invalid email or phone number format!');
+        setPasswordError(''); // Clear password error
+      } else if (message === 'Account found but no password is set. Please contact support to set up your password.') {
+        // No password set - highlight email/phone field (account issue)
+        setEmailError('Account found but no password is set. Please contact support!');
+        setPasswordError(''); // Clear password error
+      } else if (message === 'This account is not authorized for marketplace access.') {
+        // Not authorized - highlight email/phone field
+        setEmailError('This account is not authorized for marketplace access!');
+        setPasswordError(''); // Clear password error
+      } else {
+ 
+        setEmailError('');
+        setPasswordError('');
+      }
+
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
 
   return (
@@ -169,44 +190,43 @@ const handleLogin = async (e: React.FormEvent) => {
         <h1 className="text-2xl font-bold text-purple-800 mb-2 text-center">MyFarm</h1>
         <h2 className="text-lg font-semibold mb-6 text-center">Log in to your Account</h2>
 
-        {/* Buyer Type Toggle */}
+        {/* Buyer Type Toggle - Updated for better mobile responsiveness */}
         <div className="flex mb-6 space-x-2">
           <button
             onClick={() => setUserType('Retail')}
-            className={`flex-1 px-4 py-2 border rounded-md flex items-center justify-start space-x-2 text-sm sm:text-base cursor-pointer ${userType === 'Retail'
+            className={`flex-1 px-2 sm:px-4 py-2 border rounded-md flex items-center justify-start space-x-1 sm:space-x-2 text-xs sm:text-sm cursor-pointer ${userType === 'Retail'
               ? 'bg-purple-100 text-purple-800 border-purple-500'
               : 'bg-white text-gray-800 border-gray-300'
               }`}
           >
             <span
-              className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${userType === 'Retail' ? 'border-purple-800' : 'border-gray-400'
+              className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${userType === 'Retail' ? 'border-purple-800' : 'border-gray-400'
                 }`}
             >
-              {userType === 'Retail' && <span className="w-2 h-2 bg-purple-800 rounded-full" />}
+              {userType === 'Retail' && <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-purple-800 rounded-full" />}
             </span>
-            <span>I’m Buying for Home</span>
+            <span className="text-left leading-tight">I'm Buying for Home</span>
           </button>
 
           <button
             onClick={() => setUserType('Wholesale')}
-            className={`flex-1 px-4 py-2 border rounded-md flex items-center justify-start space-x-2 text-sm sm:text-base cursor-pointer ${userType === 'Wholesale'
+            className={`flex-1 px-2 sm:px-4 py-2 border rounded-md flex items-center justify-start space-x-1 sm:space-x-2 text-xs sm:text-sm cursor-pointer ${userType === 'Wholesale'
               ? 'bg-purple-100 text-purple-800 border-purple-500'
               : 'bg-white text-gray-800 border-gray-300'
               }`}
           >
             <span
-              className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${userType === 'Wholesale' ? 'border-purple-800' : 'border-gray-400'
+              className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${userType === 'Wholesale' ? 'border-purple-800' : 'border-gray-400'
                 }`}
             >
-              {userType === 'Wholesale' && <span className="w-2 h-2 bg-purple-800 rounded-full" />}
+              {userType === 'Wholesale' && <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-purple-800 rounded-full" />}
             </span>
-            <span>I’m Buying for Business</span>
+            <span className="text-left leading-tight">I'm Buying for Business</span>
           </button>
-
         </div>
 
         {userType === 'Retail' && (
-          <p className="mb-4 text-gray-600">Welcome! Select method to log in:</p>
+          <p className="mb-4 text-gray-600 text-center">Welcome! Select method to log in:</p>
         )}
         {/* Social Login Buttons */}
         <div className="mb-6">
@@ -273,7 +293,9 @@ const handleLogin = async (e: React.FormEvent) => {
                 }`}
               value={email}
               onChange={(e) => {
-                setEmail(e.target.value);
+                // Automatically trim leading spaces
+                const trimmedValue = e.target.value.replace(/^\s+/, '');
+                setEmail(trimmedValue);
                 setEmailError('');
               }}
             />
@@ -291,7 +313,9 @@ const handleLogin = async (e: React.FormEvent) => {
                 }`}
               value={password}
               onChange={(e) => {
-                setPassword(e.target.value);
+                // Automatically trim leading spaces
+                const trimmedValue = e.target.value.replace(/^\s+/, '');
+                setPassword(trimmedValue);
                 setPasswordError('');
               }}
             />
@@ -368,8 +392,8 @@ const handleLogin = async (e: React.FormEvent) => {
 
       {/* Right Panel (Image) - Hidden on small screens */}
       <div className="hidden md:flex md:w-1/2 items-center justify-center bg-[#3E206D] relative">
-        <img
-          src={LoginImg as any}
+        <Image
+          src={LoginImg}
           alt="Farmer"
           className="w-full h-full absolute inset object-cover"
         />

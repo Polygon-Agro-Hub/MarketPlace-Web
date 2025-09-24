@@ -10,6 +10,8 @@ import { fetchComplaints } from '@/services/auth-service';
 import EmptyComplaints from '../complaints/No-complaint';
 import Select, { ActionMeta, SingleValue } from 'react-select'; // Import react-select
 import Loader from '@/components/loader-spinner/Loader';
+import Image from 'next/image';
+import noComplaints from '../../../public/icons/no complaints.png';
 
 // Interfaces
 interface Complaint {
@@ -132,7 +134,7 @@ const ComplaintsHistory = () => {
     <div>
       <Loader isVisible={loading} />
       <div
-        className={`relative z-10 px-4 sm:px-6 md:px-8 min-h-screen mb-10 ${selectedComplaint ? 'bg-white' : 'bg-white'
+        className={`relative z-10 px-4 sm:px-6 md:px-8 min-h-screen p-3 ${selectedComplaint ? 'bg-white' : 'bg-white'
           } blur-effect`}
       >
         <h2 className="font-medium text-[14px] text-base md:text-[18px] mb-2 mt-2">
@@ -163,9 +165,9 @@ const ComplaintsHistory = () => {
                   </p>
                   <p className="text-sm">Sincerely,</p>
                   <p className="text-sm">Support Team</p>
-                  <p className="text-sm">
-                    {selectedComplaint.replyDate || 'June 16, 2025'}
-                  </p>
+                  {/* <p className="text-sm">
+                    {selectedComplaint.replyDate}
+                  </p> */}
                 </div>
                 <button
                   onClick={handleGoBack}
@@ -269,6 +271,7 @@ const ComplaintsHistory = () => {
                         <div className="text-[12px] md:text-[16px]">{complaint.date}</div>
                       </div>
                       <div className="flex flex-col items-start sm:items-center">
+                        <div className="text-[12px] md:text-[16px] text-[#626D76] font-medium">Status:</div>
                         <div className="flex items-center">
                           <span
                             className={`min-w-[100px] sm:min-w-[120px] text-center px-2 py-1 rounded-full text-[12px] md:text-[16px] ${complaint.status === 'Closed'

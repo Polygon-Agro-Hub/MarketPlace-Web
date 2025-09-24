@@ -12,6 +12,8 @@ import pdfFonts from 'pdfmake/build/vfs_fonts';
 pdfMake.vfs = (pdfFonts as any).vfs;
 import { Suspense } from 'react';
 import Loader from '@/components/loader-spinner/Loader';
+import NextImage from 'next/image';
+import Logo from '../../../../public/POLYGON ORIGINAL LOGO.png'
 
 // Define interfaces based on the API responses
 export interface InvoiceItem {
@@ -33,13 +35,13 @@ export interface InvoiceItem {
 interface BillingInfo {
   title: string;
   fullName: string;
+  email: string;
   buildingType: string;
   houseNo: string;
   street: string;
   city: string;
   phone: string;
 }
-
 interface PickupInfo {
   centerId?: string;
   centerName: string;
@@ -54,6 +56,7 @@ interface PickupInfo {
   };
 }
 
+// 2. Updated InvoiceData interface to include couponDiscount
 interface InvoiceData {
   invoiceNumber: string;
   invoiceDate: string;
@@ -67,10 +70,12 @@ interface InvoiceData {
   additionalItemsTotal: string;
   deliveryFee: string;
   discount: string;
+  couponDiscount: string; // Added couponDiscount
   grandTotal: string;
   billingInfo: BillingInfo;
   pickupInfo?: PickupInfo;
 }
+
 
 function formatDateTime(dateTimeStr: string, type: 'date' | 'time' = 'date'): string {
   if (!dateTimeStr || dateTimeStr === 'N/A') return 'N/A';
@@ -102,6 +107,9 @@ function InvoiceView({
   onClose: () => void;
   invoiceRef: React.RefObject<HTMLDivElement>;
 }) {
+  const user = useSelector((state: RootState) => state.auth.user);
+  const buyerType = user?.buyerType || 'Retail';
+
   if (!invoice) {
     return (
       <div className="flex flex-col items-center justify-center h-[70vh] text-center text-[rgb(75,85,99)]">
@@ -110,65 +118,99 @@ function InvoiceView({
     );
   }
 
-  const parseCurrency = (value: string): number => {
+
+  function formatCurrencyWithCommas(value: string | number): string {
+    const numValue = typeof value === 'string' ? parseCurrency(value) : value;
+    return `Rs. ${numValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+
+  // Update the parseCurrency function to work with the new formatter
+  function parseCurrency(value: string): number {
     if (value === 'Rs. NaN' || !value) return 0;
-    return parseFloat(value.replace('Rs. ', '')) || 0;
-  };
+    return parseFloat(value.replace('Rs. ', '').replace(/,/g, '')) || 0;
+  }
 
   return (
-    <div className="w-[794px] mx-auto p-8 bg-white" ref={invoiceRef}>
-      <h1 className="text-2xl font-bold text-center" style={{ color: 'rgb(62,32,109)' }}>
-        <div className="flex justify-start">
+    <div className="w-full max-w-[794px] mx-auto p-4 sm:p-6 lg:p-8 bg-white" ref={invoiceRef}>
+      <h1 className="text-xl sm:text-2xl font-bold text-center" style={{ color: 'rgb(62,32,109)' }}>
+        <div className="flex justify-start mb-2 sm:mb-0">
           <button onClick={onClose} className="text-[rgb(107,114,128)] cursor-pointer hover:text-[rgb(62,32,109)]">
-            <span className="text-2xl">⟵</span>
+            <span className="text-xl sm:text-2xl">⟵</span>
           </button>
         </div>
         INVOICE
       </h1>
 
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <p className="text-lg font-semibold">Polygon Holdings (Pvt) Ltd</p>
-          <div className="text-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-4">
+        <div className="order-2 sm:order-1">
+          <p className="text-base sm:text-lg font-semibold">Polygon Holdings (Pvt) Ltd</p>
+          <div className="text-xs sm:text-sm">
             <p>No. 614, Nawam Mawatha, Colombo 02</p>
             <p>Contact No: +94 112 700 900</p>
             <p>Email Address: info@polygon.lk</p>
           </div>
         </div>
-        <div>
-          <img
-            src="/POLYGON ORIGINAL LOGO.png"
+        <div className="order-1 sm:order-2 flex justify-center sm:justify-end">
+          <NextImage
+            src={Logo}
             alt="Polygon Logo"
-            width={150}
-            height={150}
+            width={120}
+            height={120}
+            className="sm:w-[150px] sm:h-[150px]"
             style={{ objectFit: 'contain' }}
           />
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-6 text-sm">
-        <div>
-          <p className="font-semibold">Bill To:</p>
-          <p>{`${invoice.billingInfo.title} ${invoice.billingInfo.fullName}`}</p>
-          <p>{`No. ${invoice.billingInfo.houseNo}`}</p>
-          <p>{invoice.billingInfo.street}</p>
-          <p>{invoice.billingInfo.city}</p>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6 text-xs sm:text-sm">
+        <div className="order-1">
+          <p className="font-bold">Bill To:</p>
+          <p>{`${invoice.billingInfo.title}. ${invoice.billingInfo.fullName}`}</p>
+          <p className="break-all">{invoice.billingInfo.email}</p>
           <p>{invoice.billingInfo.phone}</p>
-          <p className="font-semibold mt-5">Invoice No:</p>
+          {invoice.deliveryMethod?.toLowerCase() !== 'instore pickup' && (
+            <>
+              {invoice.billingInfo.buildingType === "House" ? (
+                <>
+                  <p className="font-bold mt-4">House Address :</p>
+                  <p><span className="font-normal" style={{ color: '#929292' }}>House No :</span> {invoice.billingInfo.houseNo},</p>
+                  <p><span className="font-normal" style={{ color: '#929292' }}>Street Name :</span> {invoice.billingInfo.street},</p>
+                  <p><span className="font-normal" style={{ color: '#929292' }}>City :</span> {invoice.billingInfo.city}</p>
+                </>
+              ) : invoice.billingInfo.buildingType === "Apartment" ? (
+                <>
+                  <p className="font-bold mt-4">Apartment Address :</p>
+                  <p><span className="font-normal" style={{ color: '#929292' }}>No :</span> {invoice.billingInfo.houseNo},</p>
+                  <p><span className="font-normal" style={{ color: '#929292' }}>Name :</span> {invoice.billingInfo.street},</p>
+                  <p><span className="font-normal" style={{ color: '#929292' }}>House No :</span> {invoice.billingInfo.houseNo},</p>
+                  <p><span className="font-normal" style={{ color: '#929292' }}>Street Name :</span> {invoice.billingInfo.street},</p>
+                  <p><span className="font-normal" style={{ color: '#929292' }}>City :</span> {invoice.billingInfo.city}</p>
+                </>
+              ) : (
+                <>
+                  <p>{`No. ${invoice.billingInfo.houseNo}`}</p>
+                  <p>{invoice.billingInfo.street}</p>
+                  <p>{invoice.billingInfo.city}</p>
+                </>
+              )}
+            </>
+          )}
+          <p className="font-bold mt-5">Invoice No:</p>
           <p>{invoice.invoiceNumber}</p>
-          <p className="font-semibold mt-5">Delivery Method:</p>
+          <p className="font-bold mt-5">Delivery Method:</p>
           <p>{invoice.deliveryMethod}</p>
-          {invoice.deliveryMethod?.toLowerCase() === 'pickup' && invoice.pickupInfo && (
-            <div className="mt-3 text-sm">
-              <p className="font-semibold">Center: {invoice.pickupInfo.centerName || 'N/A'}</p>
+          {invoice.deliveryMethod?.toLowerCase().includes('pickup') && invoice.pickupInfo && (
+            <div className="mt-3 text-xs sm:text-sm">
+              <p className="font-bold">Centre: {invoice.pickupInfo.centerName || 'N/A'}</p>
               <p>{`${invoice.pickupInfo.address?.city || 'N/A'}, ${invoice.pickupInfo.address?.district || 'N/A'}`}</p>
               <p>{`${invoice.pickupInfo.address?.province || 'N/A'}, ${invoice.pickupInfo.address?.country || 'N/A'}`}</p>
             </div>
           )}
         </div>
-        <div className="text-left ml-49">
-          <p className="font-semibold mt-5">Grand Total:</p>
-          <p className="font-extrabold">{`Rs. ${parseCurrency(invoice.grandTotal).toFixed(2)}`}</p>
+
+        <div className="order-2 lg:text-left lg:ml-49">
+          <p className="font-semibold mt-5 lg:mt-5">Grand Total:</p>
+          <p className="font-extrabold text-lg sm:text-xl">{formatCurrencyWithCommas(invoice.grandTotal)}</p>
           <p className="font-semibold mt-5">Payment Method:</p>
           <p>{invoice.paymentMethod}</p>
           <p className="font-semibold mt-5">Ordered Date:</p>
@@ -178,127 +220,166 @@ function InvoiceView({
         </div>
       </div>
 
-      <div className="mb-8">
-        {invoice.familyPackItems.map((pack, packIndex) => (
-          <div key={pack.id} className="mb-4">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="font-semibold">{`${pack.name} (${pack.packageDetails?.length || 0} Items)`}</h2>
-              <span className="font-semibold">{pack.amount}</span>
-            </div>
-            <div className="border-t mb-4 mt-4 border-gray-300" />
-            <div className="mb-4 border border-gray-300 rounded-lg">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b bg-gray-100 border-gray-300">
-                    <th className="p-3 text-left">Index</th>
-                    <th className="p-3 text-left">Item Description</th>
-                    <th className="p-3 text-left">QTY</th>
-                    <th className="p-3 text-left"></th>
-                    <th className="p-3 text-left"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pack.packageDetails && pack.packageDetails.length > 0 ? (
-                    pack.packageDetails.map((detail, index) => (
-                      <tr key={index} className="border-b border-gray-200">
-                        <td className="p-5 text-left">{`${index + 1}.`}</td>
-                        <td className="p-3 text-left">{detail.typeName}</td>
-                        <td className="p-3 text-left">{detail.qty}</td>
-                        <td className="p-3 text-left"></td>
-                        <td className="p-3 text-left"></td>
+      <div className="mb-6 sm:mb-8">
+        {invoice.familyPackItems && invoice.familyPackItems.length > 0 && (
+          <div className="mb-6 sm:mb-8">
+            {invoice.familyPackItems.map((pack, packIndex) => (
+              <div key={pack.id} className="mb-4">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 gap-2">
+                  <h2 className="font-semibold text-sm sm:text-base">{`${pack.name} (${pack.packageDetails?.length || 0} Items)`}</h2>
+                  <span className="font-semibold text-lg">{formatCurrencyWithCommas(pack.amount)}</span>
+                </div>
+                <div className="border-t mb-4 mt-4 border-gray-300" />
+                <div className="mb-4 border border-gray-300 rounded-lg overflow-x-auto">
+                  <table className="w-full text-xs sm:text-sm min-w-[500px] sm:min-w-0">
+                    <thead>
+                      <tr className="border-b bg-gray-100 border-gray-300">
+                        <th className="p-2 sm:p-3 text-left w-16">Index</th>
+                        <th className="p-2 sm:p-3 text-left">Item Description</th>
+                        <th className="p-2 sm:p-3 text-left w-16">QTY</th>
+                        <th className="p-2 sm:p-3 text-left w-16"></th>
+                        <th className="p-2 sm:p-3 text-left w-16"></th>
                       </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={5} className="p-3 text-center text-gray-600">
-                        No package details available.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    </thead>
+                    <tbody>
+                      {pack.packageDetails && pack.packageDetails.length > 0 ? (
+                        pack.packageDetails.map((detail, index) => (
+                          <tr key={index} className="border-b border-gray-200">
+                            <td className="p-2 sm:p-5 text-left">{`${index + 1}.`}</td>
+                            <td className="p-2 sm:p-3 text-left">{detail.typeName}</td>
+                            <td className="p-2 sm:p-3 text-center">{detail.qty}</td>
+                            <td className="p-2 sm:p-3 text-left"></td>
+                            <td className="p-2 sm:p-3 text-left"></td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={5} className="p-2 sm:p-3 text-center text-gray-600">
+                            No package details available.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
+        )}
       </div>
 
-      <div className="mb-8">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="font-semibold">{`Additional Items (${invoice.additionalItems.length} Items)`}</h2>
-          <span className="font-semibold">{`Rs. ${parseCurrency(invoice.additionalItemsTotal).toFixed(2)}`}</span>
-        </div>
-        <div className="border-t mb-4 mt-4 border-gray-300" />
-        <div className="mb-4 border border-gray-300 rounded-lg">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b bg-gray-100 border-gray-300">
-                <th className="p-3 text-left">Index</th>
-                <th className="p-3 text-left">Item Description</th>
-                <th className="p-3 text-left">Unit Price (Rs.)</th>
-                <th className="p-3 text-left">QTY</th>
-                <th className="p-3 text-left">Amount (Rs.)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {invoice.additionalItems.map((item, index) => (
-                <tr key={item.id} className="border-b border-gray-200">
-                  <td className="p-5 text-left">{`${index + 1}.`}</td>
-                  <td className="p-3 text-left">{item.name}</td>
-                  <td className="p-3 text-left">{item.unitPrice}</td>
-                  <td className="p-3 text-left">{`${item.quantity} ${item.unit}`}</td>
-                  <td className="p-3 text-left">{item.amount}</td>
+      {invoice.additionalItems && invoice.additionalItems.length > 0 && (
+        <div className="mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 gap-2">
+            <h2 className="font-semibold text-sm sm:text-base">
+              {`${buyerType === 'Wholesale' ? 'Selected Items' : 'Additional Items'} (${invoice.additionalItems.length} Items)`}
+            </h2>
+            <span className="font-semibold text-lg">{formatCurrencyWithCommas(invoice.additionalItemsTotal)}</span>
+          </div>
+          <div className="border-t mb-4 mt-4 border-gray-300" />
+          <div className="mb-4 border border-gray-300 rounded-lg overflow-x-auto">
+            <table className="w-full text-xs sm:text-sm min-w-[600px] sm:min-w-0">
+              <thead>
+                <tr className="border-b bg-gray-100 border-gray-300">
+                  <th className="p-2 sm:p-3 text-left w-16">Index</th>
+                  <th className="p-2 sm:p-3 text-left">Item Description</th>
+                  <th className="p-2 sm:p-3 text-left">Unit Price (Rs.)</th>
+                  <th className="p-2 sm:p-3 text-left w-20">QTY</th>
+                  <th className="p-2 sm:p-3 text-left">Amount (Rs.)</th>
                 </tr>
-              ))}
+              </thead>
+              <tbody>
+                {invoice.additionalItems.map((item, index) => (
+                  <tr key={item.id} className="border-b border-gray-200">
+                    <td className="p-2 sm:p-5 text-left">{`${index + 1}.`}</td>
+                    <td className="p-2 sm:p-3 text-left">{item.name}</td>
+                    <td className="p-2 sm:p-3 text-left">{formatCurrencyWithCommas(item.unitPrice)}</td>
+                    <td className="p-2 sm:p-3 text-left">{`${item.quantity} ${item.unit}`}</td>
+                    <td className="p-2 sm:p-3 text-left">{formatCurrencyWithCommas(item.amount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      <div className="mb-6 sm:mb-8">
+        <h2 className="font-semibold text-sm sm:text-base">Grand Total for all items</h2>
+        <div className="border-t mb-4 mt-4 border-gray-300" />
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs sm:text-sm min-w-[400px] sm:min-w-0" id="grandTotalTable">
+            <tbody>
+              {invoice.familyPackItems && invoice.familyPackItems.length > 0 && (
+                <tr>
+                  <td className="p-2">Total Price for Packages</td>
+                  <td className="p-2 text-right">{formatCurrencyWithCommas(invoice.familyPackTotal)}</td>
+                </tr>
+              )}
+              {invoice.additionalItems && invoice.additionalItems.length > 0 && (
+                <tr>
+                  <td className="p-2">{buyerType === 'Wholesale' ? 'Selected Items' : 'Additional Items'}</td>
+                  <td className="p-2 text-right">{formatCurrencyWithCommas(invoice.additionalItemsTotal)}</td>
+                </tr>
+              )}
+              {!invoice.deliveryMethod?.toLowerCase().includes('pickup') && parseCurrency(invoice.deliveryFee) > 0 && (
+                <tr>
+                  <td className="p-2">Delivery Fee</td>
+                  <td className="p-2 text-right">{formatCurrencyWithCommas(invoice.deliveryFee)}</td>
+                </tr>
+              )}
+              {parseCurrency(invoice.discount) > 0 && (
+                <tr>
+                  <td className="p-2">Discount</td>
+                  <td className="p-2 text-right">{formatCurrencyWithCommas(invoice.discount)}</td>
+                </tr>
+              )}
+              {parseCurrency(invoice.couponDiscount) > 0 && (
+                <tr>
+                  <td className="p-2">Coupon Discount</td>
+                  <td className="p-2 text-right">{formatCurrencyWithCommas(invoice.couponDiscount)}</td>
+                </tr>
+              )}
+              <tr className="font-bold border-t-2 border-black">
+                <td className="p-2">Grand Total</td>
+                <td className="p-2 text-right">{formatCurrencyWithCommas((() => {
+                  let total = 0;
+                  // Add family pack total
+                  if (invoice.familyPackItems && invoice.familyPackItems.length > 0) {
+                    total += parseCurrency(invoice.familyPackTotal);
+                  }
+                  // Add additional items total
+                  if (invoice.additionalItems && invoice.additionalItems.length > 0) {
+                    total += parseCurrency(invoice.additionalItemsTotal);
+                  }
+                  // Add delivery fee (only if not pickup)
+                  if (!invoice.deliveryMethod?.toLowerCase().includes('pickup')) {
+                    total += parseCurrency(invoice.deliveryFee);
+                  }
+                  // Subtract discount
+                  total -= parseCurrency(invoice.discount);
+                  // Subtract coupon discount
+                  total -= parseCurrency(invoice.couponDiscount);
+                  // Ensure minimum 0
+                  return Math.max(total, 0);
+                })())}</td>
+              </tr>
             </tbody>
           </table>
         </div>
       </div>
 
-      <div className="mb-8">
-        <h2 className="font-semibold">Grand Total for all items</h2>
-        <div className="border-t mb-4 mt-4 border-gray-300" />
-        <table className="w-full text-sm" id="grandTotalTable">
-          <tbody>
-            <tr>
-              <td className="p-2">Family Packs</td>
-              <td className="p-2 text-right">{`Rs. ${parseCurrency(invoice.familyPackTotal).toFixed(2)}`}</td>
-            </tr>
-            <tr>
-              <td className="p-2">Additional Items</td>
-              <td className="p-2 text-right">{`Rs. ${parseCurrency(invoice.additionalItemsTotal).toFixed(2)}`}</td>
-            </tr>
-            <tr>
-              <td className="p-2">Delivery Fee</td>
-              <td className="p-2 text-right">{`Rs. ${parseCurrency(invoice.deliveryFee).toFixed(2)}`}</td>
-            </tr>
-            <tr>
-              <td className="p-2">Discount</td>
-              <td className="p-2 text-right">{`Rs. ${parseCurrency(invoice.discount).toFixed(2)}`}</td>
-            </tr>
-            <tr className="font-bold border-t-4 border-black">
-              <td className="p-4">Grand Total</td>
-              <td className="p-2 text-right">{`Rs. ${(
-                parseCurrency(invoice.familyPackTotal) +
-                parseCurrency(invoice.additionalItemsTotal) +
-                parseCurrency(invoice.deliveryFee) -
-                parseCurrency(invoice.discount)
-              ).toFixed(2)}`}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div className="text-sm">
+      <div className="text-xs sm:text-sm">
         <p className="mb-2 font-bold">Remarks:</p>
         <p className="mb-2">Kindly inspect all goods at the time of delivery to ensure accuracy and condition.</p>
         <p className="mb-2">Polygon does not accept returns under any circumstances.</p>
         <p className="mb-2">Please contact our customer service team within 24 hours of delivery.</p>
         <p className="mb-2">For any assistance, feel free to contact our customer service team.</p>
-        <p className="font-semibold text-center italic mt-9">Thank you for shopping with us!</p>
+        <p className="font-semibold text-center italic mt-6 sm:mt-9">Thank you for shopping with us!</p>
         <p className="text-center italic mt-3">
           WE WILL SEND YOU MORE OFFERS, LOWEST PRICED VEGGIES FROM US
         </p>
-        <p className="text-center italic mt-10 text-gray-400">
+        <p className="text-center italic mt-6 sm:mt-10 text-gray-400 text-xs">
           -THIS IS A COMPUTER GENERATED INVOICE, THUS NO SIGNATURE REQUIRED-
         </p>
       </div>
@@ -316,6 +397,9 @@ function InvoicePageContent() {
   const [pdfMakeLoaded, setPdfMakeLoaded] = useState(false);
   const [logoBase64, setLogoBase64] = useState<string | null>(null);
   const invoiceRef = useRef<HTMLDivElement>(null);
+  const [error, setError] = useState<string | null>(null);
+  const user = useSelector((state: RootState) => state.auth.user);
+  const buyerType = user?.buyerType || 'Retail'
 
   const orderId = searchParams.get('orderId');
 
@@ -357,9 +441,16 @@ function InvoicePageContent() {
           setPdfMakeLoaded(true);
         }
 
-        // Load logo image as base64
-        const img = new Image();
-        img.src = '/POLYGON ORIGINAL LOGO.png';
+        // Load logo image as base64 - FIXED: Use HTMLImageElement explicitly
+        const img = new (window as any).Image() as HTMLImageElement;
+        console.log('----------------------------------------');
+        
+        console.log(`${window.location.origin}/market/POLYGON%20ORIGINAL%20LOGO.png`);
+        console.log('----------------------------------------');
+
+        // img.src = Logo;
+        
+        img.src = `${window.location.origin}/market/POLYGON%20ORIGINAL%20LOGO.png`;
         img.crossOrigin = 'anonymous';
         img.onload = () => {
           const canvas = document.createElement('canvas');
@@ -388,7 +479,10 @@ function InvoicePageContent() {
     loadScripts();
   }, []);
 
-  const generatePDF = (invoice: InvoiceData) => {
+  const generatePDF = (invoice: InvoiceData, buyerType: string) => {
+
+    console.log('buyerType in generatePDF:', buyerType);
+
     const parseNum = (value: string): number => {
       if (typeof value === 'number') return value;
       if (!value) return 0;
@@ -397,17 +491,80 @@ function InvoicePageContent() {
       return isNaN(num) ? 0 : num;
     };
 
+    // Add this new function for formatting currency with commas in PDF
+    const formatCurrencyForPDF = (value: string | number): string => {
+      const numValue = typeof value === 'string' ? parseNum(value) : value;
+      return `Rs. ${numValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    };
+
     const formatDate = (dateStr: string): string => {
       const d = new Date(dateStr);
       if (isNaN(d.getTime())) return 'N/A';
       return d.toLocaleDateString('en-US', { timeZone: 'Asia/Colombo', dateStyle: 'medium' });
     };
 
-    const familyPackSections = invoice.familyPackItems.map(pack => [
+    // Family Pack Sections - only include if familyPackItems exist
+    const familyPackSections = invoice.familyPackItems && invoice.familyPackItems.length > 0
+      ? invoice.familyPackItems.map(pack => [
+        {
+          columns: [
+            { text: `${pack.name} (${pack.packageDetails?.length || 0} Items)`, bold: true, fontSize: 9, margin: [0, 8, 0, 4] },
+            { text: formatCurrencyForPDF(pack.amount), bold: true, fontSize: 9, alignment: 'right', margin: [0, 8, 0, 4] }
+          ]
+        },
+        {
+          canvas: [
+            { type: 'line', x1: 0, y1: 0, x2: 545, y2: 0, lineWidth: 0.5, lineColor: '#D7D7D7' }
+          ],
+          margin: [0, 4, 0, 4]
+        },
+        {
+          table: {
+            widths: ['10%', '70%', '20%'],
+            body: [
+              [
+                { text: 'Index', style: 'tableHeader', fillColor: '#F8F8F8' },
+                { text: 'Item Description', style: 'tableHeader', fillColor: '#F8F8F8' },
+                { text: 'QTY', style: 'tableHeader', fillColor: '#F8F8F8' }
+              ],
+              ...(pack.packageDetails?.map((detail, i) => [
+                `${i + 1}.`,
+                detail.typeName,
+                detail.qty
+              ]) || [])
+            ]
+          },
+          margin: [0, 4, 0, 4],
+          layout: {
+            fillColor: (row: number) => row === 0 ? '#F8F8F8' : null,
+            hLineWidth: (i: number, node: any) => {
+              return (i === 0 || i === node.table.body.length) ? 0.5 : 0;
+            },
+            vLineWidth: (i: number, node: any) => {
+              return (i === 0 || i === node.table.widths.length) ? 0.5 : 0;
+            },
+            hLineColor: () => '#D1D5DB',
+            vLineColor: () => '#D1D5DB',
+            paddingLeft: () => 6,
+            paddingRight: () => 6,
+            paddingTop: () => 8,
+            paddingBottom: () => 8
+          }
+        }
+      ]).flat()
+      : [];
+
+    // Additional Items Section - only include if additionalItems exist
+    const additionalItemsSection = invoice.additionalItems && invoice.additionalItems.length > 0 ? [
       {
         columns: [
-          { text: `${pack.name} (${pack.packageDetails?.length || 0} Items)`, bold: true, fontSize: 9, margin: [0, 8, 0, 4] },
-          { text: pack.amount, bold: true, fontSize: 9, alignment: 'right', margin: [0, 8, 0, 4] }
+          {
+            text: `${buyerType === 'Wholesale' ? 'Selected Items' : 'Additional Items'} (${invoice.additionalItems.length} Items)`,
+            bold: true,
+            fontSize: 9,
+            margin: [0, 8, 0, 4]
+          },
+          { text: formatCurrencyForPDF(invoice.additionalItemsTotal), bold: true, fontSize: 9, alignment: 'right', margin: [0, 8, 0, 4] }
         ]
       },
       {
@@ -418,18 +575,22 @@ function InvoicePageContent() {
       },
       {
         table: {
-          widths: ['10%', '70%', '20%'],
+          widths: ['10%', '40%', '20%', '15%', '15%'],
           body: [
             [
-              { text: 'Index', style: 'tableHeader', fillColor: '#F8F8F8' },
-              { text: 'Item Description', style: 'tableHeader', fillColor: '#F8F8F8' },
-              { text: 'QTY', style: 'tableHeader', fillColor: '#F8F8F8' }
+              { text: 'Index', style: 'tableHeader', fillColor: '#F3F4F6' },
+              { text: 'Item Description', style: 'tableHeader', fillColor: '#F3F4F6' },
+              { text: 'Unit Price (Rs.)', style: 'tableHeader', fillColor: '#F3F4F6' },
+              { text: 'QTY', style: 'tableHeader', fillColor: '#F3F4F6' },
+              { text: 'Amount (Rs.)', style: 'tableHeader', fillColor: '#F3F4F6' }
             ],
-            ...(pack.packageDetails?.map((detail, i) => [
+            ...invoice.additionalItems.map((it, i) => [
               `${i + 1}.`,
-              detail.typeName,
-              detail.qty
-            ]) || [])
+              it.name,
+              formatCurrencyForPDF(it.unitPrice), // Updated to use comma formatting
+              `${it.quantity} ${it.unit}`,
+              formatCurrencyForPDF(it.amount) // Updated to use comma formatting
+            ])
           ]
         },
         margin: [0, 4, 0, 4],
@@ -449,11 +610,59 @@ function InvoicePageContent() {
           paddingBottom: () => 8
         }
       }
-    ]).flat();
+    ] : [];
 
-    const addCount = invoice.additionalItems.length;
-    const addTitle = `Additional Items (${addCount} Items)`;
-    const hasPackages = invoice.familyPackItems.length > 0;
+    const grandTotalRows = [];
+
+    // Calculate subtotal
+    let subtotal = 0;
+    if (invoice.familyPackItems && invoice.familyPackItems.length > 0) {
+      subtotal += parseNum(invoice.familyPackTotal);
+      grandTotalRows.push([
+        { text: 'Total Price for Packages', fontSize: 9 },
+        { text: formatCurrencyForPDF(invoice.familyPackTotal), fontSize: 9, alignment: 'right' }
+      ]);
+    }
+
+    if (invoice.additionalItems && invoice.additionalItems.length > 0) {
+      subtotal += parseNum(invoice.additionalItemsTotal);
+      grandTotalRows.push([
+        { text: buyerType === 'Wholesale' ? 'Selected Items' : 'Additional Items', fontSize: 9 },
+        { text: formatCurrencyForPDF(invoice.additionalItemsTotal), fontSize: 9, alignment: 'right' }
+      ]);
+    }
+
+    // Add delivery fee if not pickup
+    if (!invoice.deliveryMethod?.toLowerCase().includes('pickup') && parseNum(invoice.deliveryFee) > 0) {
+      subtotal += parseNum(invoice.deliveryFee);
+      grandTotalRows.push([
+        { text: 'Delivery Fee', fontSize: 9 },
+        { text: formatCurrencyForPDF(invoice.deliveryFee), fontSize: 9, alignment: 'right' }
+      ]);
+    }
+
+    // Subtract discounts
+    if (parseNum(invoice.discount) > 0) {
+      subtotal -= parseNum(invoice.discount);
+      grandTotalRows.push([
+        { text: 'Discount', fontSize: 9 },
+        { text: formatCurrencyForPDF(invoice.discount), fontSize: 9, alignment: 'right' }
+      ]);
+    }
+
+    if (parseNum(invoice.couponDiscount) > 0) {
+      subtotal -= parseNum(invoice.couponDiscount);
+      grandTotalRows.push([
+        { text: 'Coupon Discount', fontSize: 9 },
+        { text: formatCurrencyForPDF(invoice.couponDiscount), fontSize: 9, alignment: 'right' }
+      ]);
+    }
+
+    const finalTotal = Math.max(subtotal, 0); // Ensure no negative total
+    grandTotalRows.push([
+      { text: 'Grand Total', bold: true, fontSize: 9 },
+      { text: formatCurrencyForPDF(finalTotal), bold: true, fontSize: 10, alignment: 'right' }
+    ]);
 
     const docDefinition: any = {
       pageSize: 'A4',
@@ -461,6 +670,7 @@ function InvoicePageContent() {
       content: [
         // INVOICE Title
         { text: 'INVOICE', fontSize: 14, bold: true, color: '#3E206D', alignment: 'center', margin: [0, 0, 0, 16] },
+
         // Company Info and Logo
         {
           columns: [
@@ -477,29 +687,91 @@ function InvoicePageContent() {
           columnGap: 16,
           margin: [0, 0, 0, 8]
         },
+
         // Two-column Info
         {
           columns: [
             [
               { text: 'Bill To:', bold: true, fontSize: 9, margin: [0, 8, 0, 2] },
-              { text: `${invoice.billingInfo.title} ${invoice.billingInfo.fullName}`, fontSize: 9 },
-              { text: `No. ${invoice.billingInfo.houseNo}`, fontSize: 9 },
-              { text: invoice.billingInfo.street, fontSize: 9 },
-              { text: invoice.billingInfo.city, fontSize: 9 },
+              { text: `${invoice.billingInfo.title}. ${invoice.billingInfo.fullName}`, fontSize: 9 },
+              { text: invoice.billingInfo.email, fontSize: 9 },
               { text: invoice.billingInfo.phone, fontSize: 9 },
+
+              // Conditional address display - only show if delivery method is NOT 'instore pickup'
+              ...(invoice.deliveryMethod?.toLowerCase() !== 'instore pickup' ? [
+                ...(invoice.billingInfo.buildingType === "House" ? [
+                  { text: 'House Address :', bold: true, fontSize: 9, marginTop: 4 },
+                  {
+                    text: [
+                      { text: 'House No : ', fontSize: 9, bold: false, color: '#929292' },
+                      { text: `${invoice.billingInfo.houseNo},`, fontSize: 9 }
+                    ]
+                  },
+                  {
+                    text: [
+                      { text: 'Street Name : ', fontSize: 9, bold: false, color: '#929292' },
+                      { text: `${invoice.billingInfo.street},`, fontSize: 9 }
+                    ]
+                  },
+                  {
+                    text: [
+                      { text: 'City : ', fontSize: 9, bold: false, color: '#929292' },
+                      { text: invoice.billingInfo.city, fontSize: 9 }
+                    ]
+                  }
+                ] : invoice.billingInfo.buildingType === "Apartment" ? [
+                  { text: 'Apartment Address :', bold: true, fontSize: 9, marginTop: 4 },
+                  {
+                    text: [
+                      { text: 'No : ', fontSize: 9, bold: false, color: '#929292' },
+                      { text: `${invoice.billingInfo.houseNo},`, fontSize: 9 }
+                    ]
+                  },
+                  {
+                    text: [
+                      { text: 'Name : ', fontSize: 9, bold: false, color: '#929292' },
+                      { text: `${invoice.billingInfo.street},`, fontSize: 9 }
+                    ]
+                  },
+                  {
+                    text: [
+                      { text: 'House No : ', fontSize: 9, bold: false, color: '#929292' },
+                      { text: `${invoice.billingInfo.houseNo},`, fontSize: 9 }
+                    ]
+                  },
+                  {
+                    text: [
+                      { text: 'Street Name : ', fontSize: 9, bold: false, color: '#929292' },
+                      { text: `${invoice.billingInfo.street},`, fontSize: 9 }
+                    ]
+                  },
+                  {
+                    text: [
+                      { text: 'City : ', fontSize: 9, bold: false, color: '#929292' },
+                      { text: invoice.billingInfo.city, fontSize: 9 }
+                    ]
+                  }
+                ] : [
+                  { text: `No. ${invoice.billingInfo.houseNo}`, fontSize: 9 },
+                  { text: invoice.billingInfo.street, fontSize: 9 },
+                  { text: invoice.billingInfo.city, fontSize: 9 }
+                ])
+              ] : []), // Empty array if instore pickup
+
               { text: 'Invoice No:', bold: true, fontSize: 9, margin: [0, 8, 0, 2] },
               { text: invoice.invoiceNumber, fontSize: 9 },
               { text: 'Delivery Method:', bold: true, fontSize: 9, margin: [0, 8, 0, 2] },
               { text: invoice.deliveryMethod, fontSize: 9 },
-              ...(invoice.deliveryMethod?.toLowerCase() === 'pickup' && invoice.pickupInfo ? [
-                { text: `Center: ${invoice.pickupInfo.centerName}`, bold: true, fontSize: 9, margin: [0, 6, 0, 0] },
+              ...(invoice.deliveryMethod?.toLowerCase().includes('pickup') && invoice.pickupInfo ? [
+                { text: `Centre: ${invoice.pickupInfo.centerName}`, bold: true, fontSize: 9, margin: [0, 6, 0, 0] },
                 { text: `${invoice.pickupInfo.address.city}, ${invoice.pickupInfo.address.district}`, fontSize: 9 },
                 { text: `${invoice.pickupInfo.address.province}, ${invoice.pickupInfo.address.country}`, fontSize: 9 }
               ] : [])
             ],
             [
+              // Right column with comma formatting
               { text: 'Grand Total:', bold: true, fontSize: 9, margin: [105, 8, 0, 2] },
-              { text: `Rs. ${parseNum(invoice.grandTotal).toFixed(2)}`, fontSize: 11, bold: true, margin: [105, 0, 0, 6] },
+              { text: formatCurrencyForPDF(invoice.grandTotal), fontSize: 11, bold: true, margin: [105, 0, 0, 6] }, // Updated
               { text: 'Payment Method:', bold: true, fontSize: 9, margin: [105, 6, 0, 2] },
               { text: invoice.paymentMethod, fontSize: 9, margin: [105, 0, 0, 6] },
               { text: 'Ordered Date:', bold: true, fontSize: 9, margin: [105, 6, 0, 2] },
@@ -511,59 +783,13 @@ function InvoicePageContent() {
           columnGap: 16,
           margin: [0, 0, 0, 12]
         },
-        // Family Pack Sections
+
+        // Family Pack Sections - conditional
         ...familyPackSections,
-        // Additional Items Section
-        hasPackages ? { text: '', pageBreak: 'before' } : null,
-        {
-          columns: [
-            { text: addTitle, bold: true, fontSize: 9, margin: [0, 8, 0, 4] },
-            { text: `Rs. ${parseNum(invoice.additionalItemsTotal).toFixed(2)}`, bold: true, fontSize: 9, alignment: 'right', margin: [0, 8, 0, 4] }
-          ]
-        },
-        {
-          canvas: [
-            { type: 'line', x1: 0, y1: 0, x2: 545, y2: 0, lineWidth: 0.5, lineColor: '#D7D7D7' }
-          ],
-          margin: [0, 4, 0, 4]
-        },
-        {
-          table: {
-            widths: ['10%', '40%', '20%', '15%', '15%'],
-            body: [
-              [
-                { text: 'Index', style: 'tableHeader', fillColor: '#F3F4F6' },
-                { text: 'Item Description', style: 'tableHeader', fillColor: '#F3F4F6' },
-                { text: 'Unit Price (Rs.)', style: 'tableHeader', fillColor: '#F3F4F6' },
-                { text: 'QTY', style: 'tableHeader', fillColor: '#F3F4F6' },
-                { text: 'Amount (Rs.)', style: 'tableHeader', fillColor: '#F3F4F6' }
-              ],
-              ...invoice.additionalItems.map((it, i) => [
-                `${i + 1}.`,
-                it.name,
-                it.unitPrice,
-                `${it.quantity} ${it.unit}`,
-                it.amount
-              ])
-            ]
-          },
-          margin: [0, 4, 0, 4],
-          layout: {
-            fillColor: (row: number) => row === 0 ? '#F8F8F8' : null,
-            hLineWidth: (i: number, node: any) => {
-              return (i === 0 || i === node.table.body.length) ? 0.5 : 0;
-            },
-            vLineWidth: (i: number, node: any) => {
-              return (i === 0 || i === node.table.widths.length) ? 0.5 : 0;
-            },
-            hLineColor: () => '#D1D5DB',
-            vLineColor: () => '#D1D5DB',
-            paddingLeft: () => 6,
-            paddingRight: () => 6,
-            paddingTop: () => 8,
-            paddingBottom: () => 8
-          }
-        },
+
+        // Additional Items Section - conditional  
+        ...additionalItemsSection,
+
         // Grand Total Table
         {
           text: 'Grand Total for all items',
@@ -580,38 +806,7 @@ function InvoicePageContent() {
         {
           table: {
             widths: ['80%', '20%'],
-            body: [
-              [
-                { text: 'Family Packs', fontSize: 9 },
-                { text: `Rs. ${parseNum(invoice.familyPackTotal).toFixed(2)}`, fontSize: 9, alignment: 'right' }
-              ],
-              [
-                { text: 'Additional Items', fontSize: 9 },
-                { text: `Rs. ${parseNum(invoice.additionalItemsTotal).toFixed(2)}`, fontSize: 9, alignment: 'right' }
-              ],
-              [
-                { text: 'Delivery Fee', fontSize: 9 },
-                { text: `Rs. ${parseNum(invoice.deliveryFee).toFixed(2)}`, fontSize: 9, alignment: 'right' }
-              ],
-              [
-                { text: 'Discount', fontSize: 9 },
-                { text: `Rs. ${parseNum(invoice.discount).toFixed(2)}`, fontSize: 9, alignment: 'right' }
-              ],
-              [
-                { text: 'Total', bold: true, fontSize: 9 },
-                {
-                  text: `Rs. ${(
-                    parseNum(invoice.familyPackTotal) +
-                    parseNum(invoice.additionalItemsTotal) +
-                    parseNum(invoice.deliveryFee) -
-                    parseNum(invoice.discount)
-                  ).toFixed(2)}`,
-                  bold: true,
-                  fontSize: 9,
-                  alignment: 'right'
-                }
-              ]
-            ]
+            body: grandTotalRows
           },
           layout: {
             hLineWidth: function (i: number, node: any) {
@@ -638,6 +833,7 @@ function InvoicePageContent() {
           },
           margin: [0, 0, 0, 12]
         },
+
         // Remarks
         {
           text: [
@@ -649,11 +845,13 @@ function InvoicePageContent() {
           ],
           margin: [0, 6, 0, 6]
         },
+
         // Footer
         { text: 'Thank you for shopping with us!', italics: true, alignment: 'center', fontSize: 9, margin: [0, 10, 0, 2] },
         { text: 'WE WILL SEND YOU MORE OFFERS, LOWEST PRICED VEGGIES FROM US', italics: true, alignment: 'center', fontSize: 9 },
         { text: '-THIS IS A COMPUTER GENERATED INVOICE, THUS NO SIGNATURE REQUIRED-', italics: true, alignment: 'center', color: 'gray', fontSize: 8, margin: [0, 8, 0, 0] }
       ].filter(item => item !== null),
+
       images: { logo: logoBase64 || '' },
       defaultStyle: { font: 'Roboto', fontSize: 9 },
       styles: {
@@ -661,70 +859,86 @@ function InvoicePageContent() {
       }
     };
 
-    pdfMake.createPdf(docDefinition).download(`invoice_${invoice.invoiceNumber}.pdf`);
+    pdfMake.createPdf(docDefinition).download(`Invoice_${invoice.invoiceNumber}.pdf`);
   };
-const fetchInvoice = async (orderId: string): Promise<void> => {
-  if (!token) {
-    console.error('No token available at 01:25 PM +0530, July 08, 2025');
-    setSelectedInvoice(null);
-    setLoading(false);
-    return;
-  }
 
-  try {
-    setSelectedInvoice(null);
-    const data = await getInvoice(token, orderId);
-    console.log('Invoice Response at 01:25 PM +0530, July 08, 2025:', data);
+  const fetchInvoice = async (orderId: string): Promise<void> => {
+    if (!token) {
+      console.error('No token available');
+      setSelectedInvoice(null);
+      setLoading(false);
+      return;
+    }
 
-    if (data.status && data.invoice) {
-      const apiInvoice = data.invoice.invoice || data.invoice;
+    try {
+      setSelectedInvoice(null);
 
-      const invoiceData: InvoiceData = {
-        invoiceNumber: apiInvoice.invoiceNumber || 'N/A',
-        invoiceDate: apiInvoice.invoiceDate || 'N/A',
-        scheduledDate: apiInvoice.scheduledDate || 'N/A',
-        deliveryMethod: apiInvoice.deliveryMethod || 'N/A',
-        paymentMethod: apiInvoice.paymentMethod || 'N/A',
-        amountDue: parseCurrency(apiInvoice.amountDue),
-        familyPackItems: apiInvoice.familyPackItems?.map((item: any) => ({
-          id: item.id ?? 0,
-          name: item.name || 'Unknown',
-          unitPrice: parseCurrency(item.unitPrice),
-          quantity: item.quantity || '1',
-          unit: item.unit || 'units',
-          amount: parseCurrency(item.amount),
-          packageDetails: item.packageDetails?.map((detail: any) => ({
-            packageId: detail.packageId,
-            productTypeId: detail.productTypeId,
-            typeName: detail.typeName,
-            qty: detail.qty
-          })) || []
-        })) || [],
-        additionalItems: apiInvoice.additionalItems?.map((item: any) => ({
-          id: item.id ?? 0,
-          name: item.name || 'Unknown',
-          unitPrice: parseCurrency(item.unitPrice),
-          quantity: item.quantity || '1',
-          unit: item.unit || 'units',
-          amount: parseCurrency(item.amount),
-          image: item.image || undefined,
-        })) || [],
-        familyPackTotal: parseCurrency(apiInvoice.familyPackTotal),
-        additionalItemsTotal: parseCurrency(apiInvoice.additionalItemsTotal),
-        deliveryFee: parseCurrency(apiInvoice.deliveryFee),
-        discount: parseCurrency(apiInvoice.discount), // Use discount directly from API
-        grandTotal: parseCurrency(apiInvoice.grandTotal),
-        billingInfo: {
-          title: apiInvoice.billingInfo?.title || 'N/A',
-          fullName: apiInvoice.billingInfo?.fullName || 'N/A',
-          buildingType: apiInvoice.billingInfo?.buildingType || 'N/A',
-          houseNo: apiInvoice.billingInfo?.houseNo || 'N/A',
-          street: apiInvoice.billingInfo?.street || 'N/A',
-          city: apiInvoice.billingInfo?.city || 'N/A',
-          phone: apiInvoice.billingInfo?.phone || 'N/A',
-        },
-        pickupInfo: apiInvoice.pickupInfo
-          ? {
+      const data = await getInvoice(token, orderId);
+      console.log('Invoice Response:', data);
+
+      // FIXED: Handle the nested structure - data.invoice.invoice
+      if (data.status && data.invoice && data.invoice.invoice) {
+        const apiInvoice = data.invoice.invoice; // Access the nested invoice object
+
+        const invoiceData: InvoiceData = {
+          invoiceNumber: apiInvoice.invoiceNumber || 'N/A',
+          invoiceDate: apiInvoice.invoiceDate || 'N/A',
+          scheduledDate: apiInvoice.scheduledDate || 'N/A',
+          deliveryMethod: apiInvoice.deliveryMethod || 'N/A',
+          paymentMethod: apiInvoice.paymentMethod || 'N/A',
+          amountDue: parseCurrency(apiInvoice.amountDue),
+
+          familyPackItems: Array.isArray(apiInvoice.familyPackItems)
+            ? apiInvoice.familyPackItems.map((item: any) => ({
+              id: item.id ?? 0,
+              name: item.name || 'Unknown',
+              unitPrice: parseCurrency(item.unitPrice),
+              quantity: item.quantity || '1',
+              unit: item.unit || 'units',
+              amount: parseCurrency(item.amount),
+              packageDetails: Array.isArray(item.packageDetails)
+                ? item.packageDetails.map((detail: any) => ({
+                  packageId: detail.packageId,
+                  productTypeId: detail.productTypeId,
+                  typeName: detail.typeName,
+                  qty: detail.qty
+                }))
+                : []
+            }))
+            : [],
+
+          additionalItems: Array.isArray(apiInvoice.additionalItems)
+            ? apiInvoice.additionalItems.map((item: any) => ({
+              id: item.id ?? 0,
+              name: item.name || 'Unknown',
+              unitPrice: parseCurrency(item.unitPrice),
+              quantity: item.quantity || '1',
+              unit: item.unit || 'units',
+              amount: parseCurrency(item.amount),
+              image: item.image || undefined,
+            }))
+            : [],
+
+          familyPackTotal: parseCurrency(apiInvoice.familyPackTotal),
+          additionalItemsTotal: parseCurrency(apiInvoice.additionalItemsTotal),
+          deliveryFee: parseCurrency(apiInvoice.deliveryFee),
+          discount: parseCurrency(apiInvoice.discount),
+          couponDiscount: parseCurrency(apiInvoice.couponDiscount),
+          grandTotal: parseCurrency(apiInvoice.grandTotal),
+
+          billingInfo: {
+            title: apiInvoice.billingInfo?.title || 'N/A',
+            fullName: apiInvoice.billingInfo?.fullName || 'N/A',
+            email: apiInvoice.billingInfo?.email || 'N/A',
+            buildingType: apiInvoice.billingInfo?.buildingType || 'N/A',
+            houseNo: apiInvoice.billingInfo?.houseNo || 'N/A',
+            street: apiInvoice.billingInfo?.street || 'N/A',
+            city: apiInvoice.billingInfo?.city || 'N/A',
+            phone: apiInvoice.billingInfo?.phone || 'N/A',
+          },
+
+          pickupInfo: apiInvoice.pickupInfo
+            ? {
               centerId: apiInvoice.pickupInfo.centerId ?? undefined,
               centerName: apiInvoice.pickupInfo.centerName || 'N/A',
               contact01: apiInvoice.pickupInfo.contact01 || 'N/A',
@@ -737,65 +951,50 @@ const fetchInvoice = async (orderId: string): Promise<void> => {
                 zipCode: apiInvoice.pickupInfo.address?.zipCode || 'N/A',
               },
             }
-          : undefined,
-      };
+            : undefined,
+        };
 
-      // Validate grand total
-      const calculatedGrandTotal = (
-        parseFloat(apiInvoice.familyPackTotal?.replace('Rs. ', '') || '0') +
-        parseFloat(apiInvoice.additionalItemsTotal?.replace('Rs. ', '') || '0') +
-        parseFloat(apiInvoice.deliveryFee?.replace('Rs. ', '') || '0') -
-        parseFloat(apiInvoice.discount?.replace('Rs. ', '') || '0')
-      ).toFixed(2);
+        console.log('Processed Invoice Data:', invoiceData);
+        setSelectedInvoice(invoiceData);
 
-      if (
-        parseFloat(invoiceData.amountDue.replace('Rs. ', '')) !==
-        parseFloat(invoiceData.grandTotal.replace('Rs. ', ''))
-      ) {
-        console.warn('Amount due and grand total mismatch at 01:25 PM +0530, July 08, 2025:', invoiceData);
+        // Generate PDF automatically
+        // Generate PDF automatically
+        if (imageLoaded && pdfMakeLoaded) {
+          setTimeout(() => {
+            if (invoiceData) {
+              generatePDF(invoiceData, buyerType);
+            } else {
+              console.error('No invoice data available for PDF generation');
+              alert('Failed to generate PDF. Invoice data not available.');
+            }
+          }, 500);
+        }
+      } else {
+        console.error('Invalid invoice data received:', data);
+        setSelectedInvoice(null);
+        alert('Invalid invoice data received. Please try again.');
       }
-
-      if (parseFloat(invoiceData.grandTotal.replace('Rs. ', '')) !== parseFloat(calculatedGrandTotal)) {
-        console.warn(
-          'Calculated grand total does not match API grand total at 01:25 PM +0530, July 08, 2025:',
-          { apiGrandTotal: invoiceData.grandTotal, calculatedGrandTotal }
-        );
-      }
-
-      setSelectedInvoice(invoiceData);
-
-      if (imageLoaded && pdfMakeLoaded) {
-        setTimeout(() => {
-          if (invoiceData) {
-            generatePDF(invoiceData);
-          } else {
-            console.error('No invoice data available for PDF generation at 01:25 PM +0530, July 08, 2025');
-            alert('Failed to generate PDF. Invoice data not available.');
-          }
-        }, 500);
-      }
-    } else {
-      console.error('Invalid invoice data received at 01:25 PM +0530, July 08, 2025:', data);
+    } catch (error) {
+      console.error('Error fetching invoice:', error);
       setSelectedInvoice(null);
-      alert('Invalid invoice data received. Please try again.');
+      alert('Failed to fetch invoice. Please try again.');
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error('Error fetching invoice at 01:25 PM +0530, July 08, 2025:', error);
-    setSelectedInvoice(null);
-    alert('Failed to fetch invoice. Please try again.');
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   useEffect(() => {
+
+    const orderId = searchParams.get('orderId');
+
     if (orderId) {
       fetchInvoice(orderId);
     } else {
       setLoading(false);
       alert('No order ID provided.');
     }
-  }, [orderId, token, imageLoaded, pdfMakeLoaded]);
+  }, [token, imageLoaded, pdfMakeLoaded]);
+
 
   return (
     <div className="flex flex-col min-h-screen bg-white">
