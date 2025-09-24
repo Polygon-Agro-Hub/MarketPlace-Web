@@ -2,7 +2,7 @@
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store';
 import { setSearchTerm, setPackageResults, resetAndSearch, clearSearch } from '@/store/slices/searchSlice';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import Loading from '@/components/loadings/loading';
 import PackageSlider from "@/components/home/PackageSlider";
 import CategoryFilter from "@/components/type-filters/CategoryFilter";
@@ -22,7 +22,28 @@ interface Package {
   subTotal: number;
 }
 
-export default function Home() {
+// Separate component to handle search params
+function SearchParamsHandler({ 
+  onSearchFromUrl 
+}: { 
+  onSearchFromUrl: (search: string | null) => void 
+}) {
+  const searchParams = useSearchParams();
+  
+  useEffect(() => {
+    const searchFromUrl = searchParams.get('search');
+    onSearchFromUrl(searchFromUrl);
+  }, [searchParams, onSearchFromUrl]);
+  
+  return null;
+}
+
+// Loading component for Suspense fallback
+function SearchParamsLoader() {
+  return <div></div>; // Empty div since we don't need visible loading for search params
+}
+
+function HomeContent() {
   // Redux state
   const dispatch = useDispatch();
   const searchTerm = useSelector((state: RootState) => state.search.searchTerm);
@@ -49,7 +70,6 @@ export default function Home() {
   const [showLoginPopup, setShowLoginPopup] = useState(false);
 
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   useEffect(() => {
     setLocalSearchInput(searchTerm);
@@ -59,10 +79,8 @@ export default function Home() {
     console.log("Cart:", cart);
   }, []);
 
-  // FIXED: Handle URL search parameters and search state separately to avoid undefined issues
-  useEffect(() => {
-    const searchFromUrl = searchParams.get('search');
-    
+  // Handle search from URL parameters
+  const handleSearchFromUrl = (searchFromUrl: string | null) => {
     if (searchFromUrl && searchFromUrl.trim()) {
       console.log('Home: Found search in URL:', searchFromUrl);
       
@@ -82,20 +100,11 @@ export default function Home() {
         url.searchParams.delete('search');
         window.history.replaceState({}, '', url.pathname);
       }, 500);
-      
-      return; // Exit early to avoid running other conditions
     }
-  }, [searchParams, dispatch]);
+  };
 
   // Separate useEffect for handling search term changes (not from URL)
   useEffect(() => {
-    const searchFromUrl = searchParams.get('search');
-    
-    // Skip if we have URL parameter (handled above)
-    if (searchFromUrl && searchFromUrl.trim()) {
-      return;
-    }
-    
     if (searchTerm && searchTerm.trim()) {
       // Handle regular search term changes with debouncing
       const timeoutId = setTimeout(() => {
@@ -109,7 +118,7 @@ export default function Home() {
       console.log('Home: No search term, fetching all packages');
       fetchAllPackages(); // This will call API with undefined, which should get all products
     }
-  }, [searchTerm, searchParams]);
+  }, [searchTerm]);
 
   useEffect(() => {
     console.log(`Category changed to: ${selectedCategory}`);
@@ -477,6 +486,10 @@ export default function Home() {
 
   return (
     <>
+      <Suspense fallback={<SearchParamsLoader />}>
+        <SearchParamsHandler onSearchFromUrl={handleSearchFromUrl} />
+      </Suspense>
+      
       {loading ? (
         <HomeSkeleton isSearchActive={isSearchActive} />
       ) : (
@@ -584,5 +597,13 @@ export default function Home() {
         </main>
       )}
     </>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <HomeContent />
+    </Suspense>
   );
 }
