@@ -8,7 +8,7 @@ import { FaAngleDown } from 'react-icons/fa';
 import { RootState } from '@/store';
 import { fetchComplaints } from '@/services/auth-service';
 import EmptyComplaints from '../complaints/No-complaint';
-import Select, { ActionMeta, SingleValue } from 'react-select'; // Import react-select
+import Select, { ActionMeta, SingleValue } from 'react-select';
 import Loader from '@/components/loader-spinner/Loader';
 import Image from 'next/image';
 import noComplaints from '../../../public/icons/no complaints.png';
@@ -131,13 +131,13 @@ const ComplaintsHistory = () => {
 
 
   return (
-    <div>
+    <div className="relative z-10 px-4 sm:px-6 md:px-8 min-h-screen bg-white blur-effect py-6">
       <Loader isVisible={loading} />
       <div
-        className={`relative z-10 px-4 sm:px-6 md:px-8 min-h-screen p-3 ${selectedComplaint ? 'bg-white' : 'bg-white'
+        className={`relative z-10 ${selectedComplaint ? 'bg-white' : 'bg-white'
           } blur-effect`}
       >
-        <h2 className="font-medium text-[14px] text-base md:text-[18px] mb-2 mt-2">
+        <h2 className="font-medium text-[14px] text-base md:text-[18px] mb-2">
           Complaints History
         </h2>
         <p className="text-[12px] md:text-[16px] text-[#626D76] mb-3">
@@ -194,7 +194,7 @@ const ComplaintsHistory = () => {
                   value={filterOptions.find((option) => option.value === filter)}
                   onChange={handleFilterChange}
                   className="text-xs sm:text-sm"
-                  isSearchable={false} 
+                  isSearchable={false}
                   styles={{
                     control: (base) => ({
                       ...base,
@@ -275,10 +275,10 @@ const ComplaintsHistory = () => {
                         <div className="flex items-center">
                           <span
                             className={`min-w-[100px] sm:min-w-[120px] text-center px-2 py-1 rounded-full text-[12px] md:text-[16px] ${complaint.status === 'Closed'
-                                ? 'bg-[#EDE1FF] text-[#3E206D]'
-                                : complaint.status === 'Opened'
-                                  ? 'bg-[#CFE1FF] text-[#3B82F6]'
-                                  : 'bg-gray-200 text-gray-800'
+                              ? 'bg-[#EDE1FF] text-[#3E206D]'
+                              : complaint.status === 'Opened'
+                                ? 'bg-[#CFE1FF] text-[#3B82F6]'
+                                : 'bg-gray-200 text-gray-800'
                               }`}
                           >
                             {complaint.status || 'Unknown'}

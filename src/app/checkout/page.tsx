@@ -813,6 +813,7 @@ const Page: React.FC = () => {
                   </h2>
 
                   {/* Center Selection Dropdown - ABOVE the map */}
+                  {/* Center Selection Dropdown - ABOVE the map */}
                   <div className="mb-4 relative z-50">
                     <label className="block font-semibold mb-2 text-[#2E2E2E]">Select Pickup Center</label>
                     {loadingCenters ? (
@@ -830,6 +831,8 @@ const Page: React.FC = () => {
                           }
                         }}
                         placeholder="Select from here"
+                        searchable={true}
+                        searchPlaceholder="Type to search centers..."
                       />
                     )}
                     {errors.centerId && <p className="text-red-600 text-sm mt-1">{errors.centerId}</p>}
@@ -912,7 +915,7 @@ const Page: React.FC = () => {
                         className='w-full h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2 '
                         value={formData.phone1}
                         onChange={(e) => handleFieldChange('phone1', e.target.value)}
-                        placeholder='7xxxxxxxx'
+                        placeholder='7XXXXXXXX'
                       />
                       {errors.phone1 && (
                         <p className="text-red-600 text-sm mt-1">{errors.phone1}</p>
@@ -942,7 +945,7 @@ const Page: React.FC = () => {
                         className='w-full  h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2 '
                         value={formData.phone2}
                         onChange={(e) => handleFieldChange('phone2', e.target.value)}
-                        placeholder='7xxxxxxxx'
+                        placeholder='7XXXXXXXX'
                       />
                       {errors.phone2 && (
                         <p className="text-red-600 text-sm mt-1">{errors.phone2}</p>
@@ -1059,6 +1062,7 @@ const Page: React.FC = () => {
                     {errors.street && <p className="text-red-600 text-sm mt-1">{errors.street}</p>}
                   </div>
                   {/* City */}
+                  {/* City */}
                   <div className="w-full md:w-1/2 px-2 mb-4">
                     <label className="block font-semibold text-[#2E2E2E] mb-1">Nearest City *</label>
                     {loadingCities ? (
@@ -1076,6 +1080,8 @@ const Page: React.FC = () => {
                           }
                         }}
                         placeholder="Select nearest city"
+                        searchable={true}
+                        searchPlaceholder="Type to search cities..."
                       />
                     )}
                     {errors.cityName && <p className="text-red-600 text-sm mt-1">{errors.cityName}</p>}

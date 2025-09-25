@@ -54,10 +54,10 @@ export default function CategoryFilterWholesale() {
     const [categories, setCategories] = useState<Category[]>([]);
     const [countsLoading, setCountsLoading] = useState(true);
 
-    const defaultCategories = [
+const defaultCategories = [
         {
             id: 'Vegetables',
-            name: 'Vegetables',
+            name: 'Vegetables & Mushrooms',
             imageUrl: Vegetables,
             itemCount: 0
         },
@@ -69,7 +69,7 @@ export default function CategoryFilterWholesale() {
         },
         {
             id: 'Cereals',
-            name: 'Cereals',
+            name: 'Cereals & Pulses',
             imageUrl: Grains,
             itemCount: 0
         },

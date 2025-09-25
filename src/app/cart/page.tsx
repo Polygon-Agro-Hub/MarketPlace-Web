@@ -177,6 +177,20 @@ const Page: React.FC = () => {
     }
   }, [token, dispatch]);
 
+
+  // Updated formatPrice function to handle decimal precision
+  const formatPrice = (price: number): string => {
+    // Ensure proper decimal precision before formatting
+    const fixedPrice = parseFloat(price.toFixed(2));
+    const [integerPart, decimalPart] = fixedPrice.toFixed(2).split('.');
+
+    // Add commas to integer part
+    const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+    return `${formattedInteger}.${decimalPart}`;
+  };
+
+
   // Updated handleUnitChange function
   const handleUnitChange = (itemId: number, newUnit: 'kg' | 'g') => {
     // Find the current item to get current unit and quantity
@@ -192,52 +206,39 @@ const Page: React.FC = () => {
     if (!currentItem) return;
 
     const currentUnit = unitSelection[itemId] || currentItem.unit;
-    let newQuantity = currentItem.quantity;
 
-    // Convert quantity based on unit change with 3 decimal precision
-    if (currentUnit !== newUnit) {
-      if (currentUnit === 'kg' && newUnit === 'g') {
-        // Convert kg to g: multiply by 1000
-        newQuantity = parseFloat((currentItem.quantity * 1000).toFixed(3));
-      } else if (currentUnit === 'g' && newUnit === 'kg') {
-        // Convert g to kg: divide by 1000
-        newQuantity = parseFloat((currentItem.quantity / 1000).toFixed(3));
-      }
+    // Only proceed if the unit is actually changing
+    if (currentUnit === newUnit) {
+      return;
     }
 
-    // Update unit selection
+    let newQuantity = currentItem.quantity;
+
+    // Convert quantity based on unit change
+    if (currentUnit === 'kg' && newUnit === 'g') {
+      // Convert kg to g: multiply by 1000
+      newQuantity = parseFloat((currentItem.quantity * 1000).toFixed(3));
+    } else if (currentUnit === 'g' && newUnit === 'kg') {
+      // Convert g to kg: divide by 1000
+      newQuantity = parseFloat((currentItem.quantity / 1000).toFixed(3));
+    }
+
+    // Update unit selection FIRST
     setUnitSelection(prev => ({
       ...prev,
       [itemId]: newUnit,
     }));
 
-    // Update quantity in Redux store
+    // Then update quantity in Redux store
     dispatch(updateProductQuantity({ productId: itemId, newQuantity }));
 
-    // Store pending update for API call
+    // Store pending update for API call with converted quantity
     setPendingUpdates(prev => {
-      const existing = prev.find(update => update.productId === itemId);
-      if (existing) {
-        return prev.map(update =>
-          update.productId === itemId ? { ...update, newQuantity } : update
-        );
-      }
-      return [...prev, { productId: itemId, newQuantity }];
+      // Remove any existing pending update for this item first
+      const filtered = prev.filter(update => update.productId !== itemId);
+      // Add new pending update with converted quantity
+      return [...filtered, { productId: itemId, newQuantity }];
     });
-  };
-
-
-
-  // Updated formatPrice function to handle decimal precision
-  const formatPrice = (price: number): string => {
-    // Ensure proper decimal precision before formatting
-    const fixedPrice = parseFloat(price.toFixed(2));
-    const [integerPart, decimalPart] = fixedPrice.toFixed(2).split('.');
-
-    // Add commas to integer part
-    const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-
-    return `${formattedInteger}.${decimalPart}`;
   };
 
 
@@ -258,18 +259,23 @@ const Page: React.FC = () => {
 
     const currentQuantity = currentItem.quantity;
     const selectedUnit = unitSelection[productId] || currentItem.unit;
+    const originalUnit = currentItem.unit;
 
-    // Get changeby value based on selected unit with 3 decimal precision
+    // Get base changeby and startValue from the item
     let changeBy = currentItem.changeby || 1;
     let startValue = currentItem.startValue || 1;
 
-    // If unit is grams but changeby is for kg, convert it
-    if (selectedUnit === 'g' && currentItem.unit === 'kg') {
-      changeBy = parseFloat((changeBy * 1000).toFixed(3));
-      startValue = parseFloat((startValue * 1000).toFixed(3));
-    } else if (selectedUnit === 'kg' && currentItem.unit === 'g') {
-      changeBy = parseFloat((changeBy / 1000).toFixed(3));
-      startValue = parseFloat((startValue / 1000).toFixed(3));
+    // Only convert changeby and startValue if the selected unit differs from original unit
+    if (selectedUnit !== originalUnit) {
+      if (selectedUnit === 'g' && originalUnit === 'kg') {
+        // If displaying in grams but item is originally stored in kg, convert to grams
+        changeBy = parseFloat((changeBy * 1000).toFixed(3));
+        startValue = parseFloat((startValue * 1000).toFixed(3));
+      } else if (selectedUnit === 'kg' && originalUnit === 'g') {
+        // If displaying in kg but item is originally stored in grams, convert to kg
+        changeBy = parseFloat((changeBy / 1000).toFixed(3));
+        startValue = parseFloat((startValue / 1000).toFixed(3));
+      }
     }
 
     // Calculate new quantity using changeby value with 3 decimal precision

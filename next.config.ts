@@ -1,14 +1,19 @@
 import type { NextConfig } from "next";
-console.log(  `process.env.NODE_ENV == "development" ? '' : process.env.NEXT_PUBLIC_BASE_PATH || '/market'`, process.env.NODE_ENV == "development" ? '' : process.env.NEXT_PUBLIC_BASE_PATH || '/market')
+
+console.log(
+  `process.env.NODE_ENV == "development" ? '' : process.env.NEXT_PUBLIC_BASE_PATH || '/market'`,
+  process.env.NODE_ENV == "development" ? '' : process.env.NEXT_PUBLIC_BASE_PATH || '/market'
+);
+
 const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
-        source: '/404',
-        destination: '/error/404',
+        source: "/404",
+        destination: "/error/404",
         permanent: false,
       },
-    ]
+    ];
   },
   eslint: {
     ignoreDuringBuilds: true,
@@ -20,8 +25,16 @@ const nextConfig: NextConfig = {
   assetPrefix: process.env.NODE_ENV == "development" ? '' : process.env.NEXT_PUBLIC_BASE_PATH ??  '/market',
   trailingSlash: true,
 
-
-  /* other config options here */
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "pub-79ee03a4a23e4dbbb70c7d799d3cb786.r2.dev",
+        port: "",
+        pathname: "/**",
+      },
+    ],
+  },
 };
 
 export default nextConfig;
