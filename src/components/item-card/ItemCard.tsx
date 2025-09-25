@@ -325,7 +325,7 @@ const ItemCard = ({
 
             {/* Loading overlay */}
             {isLoading && (
-                <div className="absolute inset-0 bg-white bg-opacity-80 flex items-center justify-center z-40">
+                <div className="absolute inset-0 bg-white rounded-xl md:rounded-3xl bg-opacity-80 flex items-center justify-center z-40">
                     <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-purple-500"></div>
                 </div>
             )}
@@ -337,7 +337,7 @@ const ItemCard = ({
                         className="w-15 h-15 rounded-tl-xl md:rounded-tl-3xl sm:w-14 sm:h-14 md:w-20 md:h-20 bg-purple-900 flex flex-col items-center justify-center text-white"
                         style={{ clipPath: 'polygon(0 0, 0 100%, 100% 0)' }}
                     >
-                        <div className="transform -translate-y-1/3 -translate-x-1/3 text-[8px] sm:text-[9px] md:text-[10px] absolute top-4 left-4 md:top-5 md:left-5">
+                        <div className="transform -translate-y-1/3 -translate-x-1/3 text-[8px] sm:text-[9px] md:text-[10px] absolute top-4 left-4 md:top-5 md:left-6">
                             <span className="text-xs">{discount}%</span>
                             <br />
                             <span className="text-[7px] md:text-xs">Off</span>
