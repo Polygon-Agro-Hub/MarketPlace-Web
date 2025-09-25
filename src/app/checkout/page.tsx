@@ -242,6 +242,9 @@ const Page: React.FC = () => {
     label: city.city
   }));
 
+
+
+
   const handleAddressOptionChange = async (value: string) => {
     if (value === 'previous') {
       console.log('fetching last order address');
@@ -269,8 +272,9 @@ const Page: React.FC = () => {
           const data = response.result;
           console.log('fetch last order address data', data);
 
-          // Find the city from the cities list
-          const cityData = cities.find(city => city.city === data.city);
+          const cityData = cities.find(city =>
+            city.city.toLowerCase() === data.city.toLowerCase()
+          );
           if (cityData) {
             setSelectedCity(cityData);
             // Set delivery charge for previous address city
@@ -326,6 +330,16 @@ const Page: React.FC = () => {
       setDeliveryCharge(0);
     }
   };
+
+  useEffect(() => {
+
+    if (searchParamsLoaded && !fetching && !formData.title.trim()) {
+      setErrors(prev => ({
+        ...prev,
+        title: 'Title is required.'
+      }));
+    }
+  }, [searchParamsLoaded, fetching, formData.title]);
 
   const calculateFinalTotal = (): number => {
     const baseTotal = cartData?.grandTotal || 0;
@@ -507,6 +521,7 @@ const Page: React.FC = () => {
   useEffect(() => {
     setIsFormValidState(isFormValid());
   }, [formData, errors]);
+
 
 
   // Updated validateField function - replace the existing one
@@ -859,19 +874,21 @@ const Page: React.FC = () => {
               <div className='flex flex-row md:gap-4 gap-2 mb-6'>
                 {/* Title dropdown */}
                 <div className="w-1/4 md:w-1/9 cursor-pointer">
-                  <label htmlFor="title" className='block font-semibold mb-1 text-[#2E2E2E] '>Title *</label>
-                  <div className="w-full ">
-                    <CustomDropdown
-                      options={[
-                        { value: 'Mr', label: 'Mr' },
-                        { value: 'Ms', label: 'Ms' },
-                        { value: 'Mrs', label: 'Mrs' },
-                        { value: 'Rev', label: 'Rev' },
-                      ]}
-                      selectedValue={formData.title}
-                      onSelect={(value) => handleFieldChange('title', value)}
-                      placeholder="Title"
-                    />
+                  <label htmlFor="title" className='block font-semibold mb-1 text-[#2E2E2E]'>Title *</label>
+                  <div className="w-full">
+                    <div className={`rounded-lg ${errors.title ? 'border-2 border-red-500' : ''}`}>
+                      <CustomDropdown
+                        options={[
+                          { value: 'Mr', label: 'Mr' },
+                          { value: 'Ms', label: 'Ms' },
+                          { value: 'Mrs', label: 'Mrs' },
+                          { value: 'Rev', label: 'Rev' },
+                        ]}
+                        selectedValue={formData.title}
+                        onSelect={(value) => handleFieldChange('title', value)}
+                        placeholder="Title"
+                      />
+                    </div>
                     {errors.title && <p className="text-red-600 text-sm mt-1">{errors.title}</p>}
                   </div>
                 </div>

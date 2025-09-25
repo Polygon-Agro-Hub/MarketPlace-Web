@@ -66,6 +66,8 @@ interface CartItem {
   varietyNameEnglish: string;
   category: string;
   createdAt: string;
+  maxQuantity?: number;
+
 }
 
 interface AdditionalItems {
@@ -108,7 +110,7 @@ const Page: React.FC = () => {
   const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
   const [showDeliveryModal, setShowDeliveryModal] = useState(false);
   const [selectedDeliveryMethod, setSelectedDeliveryMethod] = useState<'pickup' | 'delivery' | null>(null);
-  const [tooltipStates, setTooltipStates] = useState<Record<number, boolean>>({});
+  const [tooltipStates, setTooltipStates] = useState<Record<number, 'min' | 'max' | boolean>>({});
   const buyerType = useSelector((state: RootState) => state.auth.user?.buyerType);
 
 
@@ -127,12 +129,13 @@ const Page: React.FC = () => {
 
 
   const getDisplayDiscount = (item: CartItem): number => {
-    const selectedUnit = unitSelection[item.id] || item.unit;
+    const selectedUnit = unitSelection[item.id] || item.unit.toLowerCase() as ('kg' | 'g');
     return calculateDiscount(item.discount, selectedUnit, item.quantity);
   };
 
+  // Updated getDisplayPrice function  
   const getDisplayPrice = (item: CartItem): number => {
-    const selectedUnit = unitSelection[item.id] || item.unit;
+    const selectedUnit = unitSelection[item.id] || item.unit.toLowerCase() as ('kg' | 'g');
     // Use normalPrice instead of price for calculations
     return calculatePrice(item.normalPrice, selectedUnit, item.quantity);
   };
@@ -164,6 +167,19 @@ const Page: React.FC = () => {
           summary: response.summary,
         }));
 
+        // Initialize unit selection for all items
+        const initialUnitSelection: Record<number, 'kg' | 'g'> = {};
+        if (response.additionalItems) {
+          response.additionalItems.forEach((itemGroup: AdditionalItems) => {
+            itemGroup.Items.forEach((item: CartItem) => {
+              // Normalize the unit from API (handle both "Kg" and "kg", "G" and "g")
+              const normalizedUnit = item.unit.toLowerCase() === 'kg' ? 'kg' : 'g';
+              initialUnitSelection[item.id] = normalizedUnit;
+            });
+          });
+        }
+        setUnitSelection(initialUnitSelection);
+
         setError(null);
       } catch (err: any) {
         setError(err.message);
@@ -176,6 +192,7 @@ const Page: React.FC = () => {
       fetchCartData();
     }
   }, [token, dispatch]);
+
 
 
   // Updated formatPrice function to handle decimal precision
@@ -193,7 +210,6 @@ const Page: React.FC = () => {
 
   // Updated handleUnitChange function
   const handleUnitChange = (itemId: number, newUnit: 'kg' | 'g') => {
-    // Find the current item to get current unit and quantity
     let currentItem: CartItem | null = null;
     for (const itemGroup of cartData.additionalItems) {
       const item = itemGroup.Items.find(item => item.id === itemId);
@@ -205,7 +221,7 @@ const Page: React.FC = () => {
 
     if (!currentItem) return;
 
-    const currentUnit = unitSelection[itemId] || currentItem.unit;
+    const currentUnit = unitSelection[itemId] || currentItem.unit.toLowerCase() as ('kg' | 'g');
 
     // Only proceed if the unit is actually changing
     if (currentUnit === newUnit) {
@@ -258,8 +274,8 @@ const Page: React.FC = () => {
     if (!currentItem) return;
 
     const currentQuantity = currentItem.quantity;
-    const selectedUnit = unitSelection[productId] || currentItem.unit;
-    const originalUnit = currentItem.unit;
+    const selectedUnit = unitSelection[productId] || currentItem.unit.toLowerCase() as ('kg' | 'g');
+    const originalUnit = currentItem.unit.toLowerCase() as ('kg' | 'g');
 
     // Get base changeby and startValue from the item
     let changeBy = currentItem.changeby || 1;
@@ -278,18 +294,42 @@ const Page: React.FC = () => {
       }
     }
 
+    // Get maxQuantity and convert if needed
+    let maxQuantity = currentItem.maxQuantity || Infinity;
+    if (selectedUnit !== originalUnit) {
+      if (selectedUnit === 'g' && originalUnit === 'kg') {
+        maxQuantity = parseFloat((maxQuantity * 1000).toFixed(3));
+      } else if (selectedUnit === 'kg' && originalUnit === 'g') {
+        maxQuantity = parseFloat((maxQuantity / 1000).toFixed(3));
+      }
+    }
+
     // Calculate new quantity using changeby value with 3 decimal precision
     let newQuantity: number;
     if (delta > 0) {
       // Increment by changeby value
-      newQuantity = parseFloat((currentQuantity + (changeBy * delta)).toFixed(3));
+      const potentialNewQuantity = parseFloat((currentQuantity + (changeBy * delta)).toFixed(3));
+
+      if (potentialNewQuantity > maxQuantity) {
+        // Show MAX tooltip when trying to go above maximum
+        setTooltipStates(prev => ({ ...prev, [productId]: 'max' }));
+
+        // Hide tooltip after 2 seconds
+        setTimeout(() => {
+          setTooltipStates(prev => ({ ...prev, [productId]: false }));
+        }, 2000);
+
+        return; // Don't update quantity
+      }
+
+      newQuantity = potentialNewQuantity;
     } else {
       // Check if decrement would go below startValue
       const potentialNewQuantity = parseFloat((currentQuantity + (changeBy * delta)).toFixed(3));
 
       if (potentialNewQuantity < startValue) {
-        // Show tooltip when trying to go below minimum
-        setTooltipStates(prev => ({ ...prev, [productId]: true }));
+        // Show MIN tooltip when trying to go below minimum
+        setTooltipStates(prev => ({ ...prev, [productId]: 'min' }));
 
         // Hide tooltip after 2 seconds
         setTimeout(() => {
@@ -316,7 +356,8 @@ const Page: React.FC = () => {
       return [...prev, { productId, newQuantity }];
     });
   };
-
+  
+  
   // Show confirmation modal for product removal
   const handleRemoveProduct = async (productId: number) => {
     const itemKey = `product-${productId}`;
@@ -969,18 +1010,39 @@ const Page: React.FC = () => {
                                       {tooltipStates[item.id] && (
                                         <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 z-10">
                                           <div className="bg-[#191D28] text-white text-xs px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
-                                            Minimum quantity is {(() => {
-                                              const selectedUnit = unitSelection[item.id] || item.unit;
-                                              let startValue = item.startValue || 1;
+                                            {tooltipStates[item.id] === 'min' ? (
+                                              <>
+                                                Minimum quantity is {(() => {
+                                                  const selectedUnit = unitSelection[item.id] || item.unit;
+                                                  let startValue = item.startValue || 1;
 
-                                              if (selectedUnit === 'g' && item.unit === 'kg') {
-                                                startValue = parseFloat((startValue * 1000).toFixed(3));
-                                              } else if (selectedUnit === 'kg' && item.unit === 'g') {
-                                                startValue = parseFloat((startValue / 1000).toFixed(3));
-                                              }
+                                                  if (selectedUnit === 'g' && item.unit === 'kg') {
+                                                    startValue = parseFloat((startValue * 1000).toFixed(3));
+                                                  } else if (selectedUnit === 'kg' && item.unit === 'g') {
+                                                    startValue = parseFloat((startValue / 1000).toFixed(3));
+                                                  }
 
-                                              return parseFloat(startValue.toFixed(3));
-                                            })()} {unitSelection[item.id] || item.unit}
+                                                  return parseFloat(startValue.toFixed(3));
+                                                })()} {unitSelection[item.id] || item.unit}
+                                              </>
+                                            ) : (
+                                              <>
+                                                Maximum quantity is {(() => {
+                                                  const selectedUnit = unitSelection[item.id] || item.unit;
+                                                  let maxValue = item.maxQuantity || Infinity;
+
+                                                  if (maxValue !== Infinity && selectedUnit !== item.unit) {
+                                                    if (selectedUnit === 'g' && item.unit === 'kg') {
+                                                      maxValue = parseFloat((maxValue * 1000).toFixed(3));
+                                                    } else if (selectedUnit === 'kg' && item.unit === 'g') {
+                                                      maxValue = parseFloat((maxValue / 1000).toFixed(3));
+                                                    }
+                                                  }
+
+                                                  return parseFloat(maxValue.toFixed(3));
+                                                })()} {unitSelection[item.id] || item.unit}
+                                              </>
+                                            )}
 
                                             {/* Tooltip arrow */}
                                             <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-red-600"></div>

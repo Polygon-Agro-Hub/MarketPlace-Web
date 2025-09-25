@@ -16,6 +16,7 @@ interface CartItem {
   varietyNameEnglish: string;
   category: string;
   createdAt: string;
+  maxQuantity?: number;
 }
 
 interface PackageItem {
