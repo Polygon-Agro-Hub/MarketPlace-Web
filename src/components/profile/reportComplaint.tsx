@@ -392,7 +392,7 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
   };
 
   return (
-    <div className="relative z-10 px-4 sm:px-6 md:px-8 min-h-screen bg-white blur-effect py-6">
+    <div className="relative z-10 px-4 sm:px-6 min-h-screen bg-white blur-effect py-4">
       <Loader isVisible={isLoading} />
       <ErrorPopup
         isVisible={showErrorPopup}
@@ -408,10 +408,10 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
         duration={3000}
       />
 
-      <h2 className="font-medium text-base text-[14px] md:text-[18px] mb-2 ">
+      <h2 className="font-medium text-[14px] text-base md:text-[17.5px]">
         {complaint?.id ? 'Update Complaint' : 'Report a Complaint'}
       </h2>
-      <p className="text-[12px] md:text-[16px] text-[#626D76] mb-2">
+      <p className="text-[12px] md:text-[16px] text-[#626D76] mb-3">
         Have a concern or issue? This section is here to help.
       </p>
 

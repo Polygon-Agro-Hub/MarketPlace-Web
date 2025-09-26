@@ -93,8 +93,8 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
   return (
     <div className="w-[70px] md:w-[336px] min-h-full bg-[#E9EBEE]">
-      <div className="py-4">
-        <div className="items-center gap-4 mb-4 hidden md:flex">
+      <div className="py-5">
+        <div className="items-center gap-4 mb-4 hidden md:flex ">
           <div
             className="w-[44px] h-[42px] border border-[#D4D8DC] cursor-pointer rounded-[10px] flex items-center justify-center bg-white ml-4"
             onClick={ handleBackClick}
