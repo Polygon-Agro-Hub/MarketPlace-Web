@@ -13,7 +13,7 @@ export default function MainLayout({
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsHeaderLoaded(true)
-    }, 500) 
+    }, 500)
 
     return () => clearTimeout(timer)
   }, [])
@@ -21,7 +21,8 @@ export default function MainLayout({
   return (
     <>
       {isHeaderLoaded ? <Header /> : <HeaderSkeleton />}
-      <main>{children}</main>
+      {/* Add padding-top so content doesn’t hide behind fixed header */}
+      <main className="pt-[129px]">{children}</main>
       <Footer />
     </>
   )

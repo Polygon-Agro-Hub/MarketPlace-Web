@@ -20,18 +20,18 @@ interface Package {
 }
 
 // Separate component to handle search params
-function SearchParamsHandler({ 
-  onSearchFromUrl 
-}: { 
-  onSearchFromUrl: (search: string | null) => void 
+function SearchParamsHandler({
+  onSearchFromUrl
+}: {
+  onSearchFromUrl: (search: string | null) => void
 }) {
   const searchParams = useSearchParams();
-  
+
   useEffect(() => {
     const searchFromUrl = searchParams.get('search');
     onSearchFromUrl(searchFromUrl);
   }, [searchParams, onSearchFromUrl]);
-  
+
   return null;
 }
 
@@ -75,7 +75,7 @@ function WholesaleHomeContent() {
         router.push('/');
         return;
       } else if (user.buyerType === 'Wholesale') {
-       router.push('/wholesale/home')
+        router.push('/wholesale/home')
         return;
       }
     }
@@ -89,17 +89,17 @@ function WholesaleHomeContent() {
   const handleSearchFromUrl = (searchFromUrl: string | null) => {
     if (searchFromUrl && searchFromUrl.trim()) {
       console.log('Wholesale: Found search in URL:', searchFromUrl);
-      
+
       // Only update Redux state if it's different and execute search immediately
       if (searchFromUrl.trim() !== searchTerm) {
         console.log('Wholesale: Setting search term from URL:', searchFromUrl.trim());
         dispatch(resetAndSearch(searchFromUrl.trim()));
       }
-      
+
       // Always execute search with URL parameter to ensure it's not undefined
       console.log('Wholesale: Executing immediate search with URL param:', searchFromUrl.trim());
       fetchAllPackages(searchFromUrl.trim());
-      
+
       // Clean URL after search is processed
       setTimeout(() => {
         const url = new URL(window.location.href);
@@ -177,9 +177,9 @@ function WholesaleHomeContent() {
       // IMPORTANT: Handle undefined/empty search properly
       const searchParam = search && search.trim() ? search.trim() : undefined;
       console.log('Wholesale: Calling API with search param:', searchParam);
-      
+
       const response = await getAllProduct(searchParam) as any;
-      
+
       if (response && response.product) {
         console.log('Wholesale: API response received:', response.product.length, 'products');
         setProductData(response.product);
@@ -204,109 +204,109 @@ function WholesaleHomeContent() {
     }
   }
 
- const NoSearchResults = () => {
-  const animationContainer = useRef<HTMLDivElement>(null);
-  const isLoadedRef = useRef(false);
+  const NoSearchResults = () => {
+    const animationContainer = useRef<HTMLDivElement>(null);
+    const isLoadedRef = useRef(false);
 
-  useEffect(() => {
-    let animationInstance: any = null;
+    useEffect(() => {
+      let animationInstance: any = null;
 
-    const loadAnimation = async () => {
-      try {
-        // Prevent double loading
-        if (isLoadedRef.current || !animationContainer.current) return;
+      const loadAnimation = async () => {
+        try {
+          // Prevent double loading
+          if (isLoadedRef.current || !animationContainer.current) return;
 
-        // Clear any existing content first
-        animationContainer.current.innerHTML = '';
-        isLoadedRef.current = true;
+          // Clear any existing content first
+          animationContainer.current.innerHTML = '';
+          isLoadedRef.current = true;
 
-        const lottie = await import('lottie-web');
+          const lottie = await import('lottie-web');
 
-        animationInstance = lottie.default.loadAnimation({
-          container: animationContainer.current,
-          renderer: 'svg',
-          loop: true,
-          autoplay: true,
-          animationData: animationData,
-        });
+          animationInstance = lottie.default.loadAnimation({
+            container: animationContainer.current,
+            renderer: 'svg',
+            loop: true,
+            autoplay: true,
+            animationData: animationData,
+          });
 
-        // Additional cleanup of duplicate elements after animation loads
-        setTimeout(() => {
-          if (animationContainer.current) {
-            const svgElements = animationContainer.current.querySelectorAll('svg');
-            if (svgElements.length > 1) {
-              // Keep only the first SVG element
-              for (let i = 1; i < svgElements.length; i++) {
-                svgElements[i].remove();
+          // Additional cleanup of duplicate elements after animation loads
+          setTimeout(() => {
+            if (animationContainer.current) {
+              const svgElements = animationContainer.current.querySelectorAll('svg');
+              if (svgElements.length > 1) {
+                // Keep only the first SVG element
+                for (let i = 1; i < svgElements.length; i++) {
+                  svgElements[i].remove();
+                }
               }
             }
-          }
-        }, 100);
-      } catch (error) {
-        console.error('Error loading Lottie animation:', error);
+          }, 100);
+        } catch (error) {
+          console.error('Error loading Lottie animation:', error);
+          isLoadedRef.current = false;
+        }
+      };
+
+      loadAnimation();
+
+      return () => {
+        if (animationInstance) {
+          animationInstance.destroy();
+        }
+        if (animationContainer.current) {
+          animationContainer.current.innerHTML = '';
+        }
         isLoadedRef.current = false;
-      }
-    };
+      };
+    }, []);
 
-    loadAnimation();
-
-    return () => {
-      if (animationInstance) {
-        animationInstance.destroy();
-      }
-      if (animationContainer.current) {
-        animationContainer.current.innerHTML = '';
-      }
-      isLoadedRef.current = false;
-    };
-  }, []);
-
-  return (
-    <div className="min-h-screen w-full flex items-center justify-center px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex flex-col items-center justify-center text-center max-w-md w-full">
-        {/* Lottie Animation Container - isolated and controlled */}
-        <div className="w-48 h-48 mb-4 flex items-center justify-center">
-          <div
-            ref={animationContainer}
-            className="w-full h-full"
-            style={{ 
-              maxWidth: '200px',
-              maxHeight: '200px',
-              overflow: 'hidden'
-            }}
-          />
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex flex-col items-center justify-center text-center max-w-md w-full">
+          {/* Lottie Animation Container - isolated and controlled */}
+          <div className="w-48 h-48 mb-4 flex items-center justify-center">
+            <div
+              ref={animationContainer}
+              className="w-full h-full"
+              style={{
+                maxWidth: '200px',
+                maxHeight: '200px',
+                overflow: 'hidden'
+              }}
+            />
+          </div>
+          <h3 className="text-xl font-semibold text-gray-600 mb-2">
+            No Results Found
+          </h3>
+          <p className="text-gray-500 mb-4">
+            Sorry, we couldn't find any products matching "{searchTerm}"
+          </p>
+          <button
+            onClick={handleResetSearch}
+            className="px-6 py-2 bg-[#3E206D] text-white rounded-lg hover:bg-[#2D1850] transition-colors"
+          >
+            Clear Search
+          </button>
         </div>
-        <h3 className="text-xl font-semibold text-gray-600 mb-2">
-          No Results Found
-        </h3>
-        <p className="text-gray-500 mb-4">
-          Sorry, we couldn't find any products matching "{searchTerm}"
-        </p>
-        <button
-          onClick={handleResetSearch}
-          className="px-6 py-2 bg-[#3E206D] text-white rounded-lg hover:bg-[#2D1850] transition-colors"
-        >
-          Clear Search
-        </button>
       </div>
-    </div>
-  );
-};
+    );
+  };
 
   return (
     <>
       <Suspense fallback={<SearchParamsLoader />}>
         <SearchParamsHandler onSearchFromUrl={handleSearchFromUrl} />
       </Suspense>
-      
-      <main className="flex min-h-screen flex-col items-center justify-between">
+
+      <main className="flex min-h-screen flex-col">
         {/* Top banner - hide when search is active */}
         {!isSearchActive && (
           <div className='mt-0 my-8 w-full'>
-            <TopBanner/>
+            <TopBanner />
           </div>
         )}
-        
+
         {/* Mobile search bar */}
         <div className="w-full px-4 md:hidden mt-4">
           <div className="flex-1 max-w-xl mx-auto">
@@ -321,7 +321,7 @@ function WholesaleHomeContent() {
                   className="italic w-full py-2 px-4 rounded-[10px] text-[#3E206D] focus:outline-none bg-[#EFE4FF]"
                 />
                 {isSearchActive && searchTerm ? (
-                  <button 
+                  <button
                     type="button"
                     onClick={handleResetSearch}
                     className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-[#3E206D] transition-colors"
@@ -329,18 +329,18 @@ function WholesaleHomeContent() {
                     <X size={16} color='#3E206D' className='cursor-pointer' />
                   </button>
                 ) : (
-                  <button 
+                  <button
                     type="submit"
                     className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-[#3E206D]"
                   >
-                    <FontAwesomeIcon icon={faMagnifyingGlass} color='#3E206D' className='cursor-pointer'/>
+                    <FontAwesomeIcon icon={faMagnifyingGlass} color='#3E206D' className='cursor-pointer' />
                   </button>
                 )}
               </div>
             </form>
           </div>
         </div>
-        
+
         {/* Search indicator on mobile */}
         {isSearchActive && (
           <div className="w-full px-4 md:hidden mt-2">
@@ -351,7 +351,7 @@ function WholesaleHomeContent() {
             </div>
           </div>
         )}
-        
+
         {/* Conditional rendering based on search results */}
         {isSearchActive && !hasPackageResults && !hasCategoryResults ? (
           // Show no results animation when both have no data

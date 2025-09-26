@@ -153,20 +153,14 @@ const PackageCard: React.FC<PackageProps> = ({
     return 'h-[100px] md:h-[160px] lg:h-[240px]';
   };
 
-  // Apply +10% height if loading
-  const applyLoadingHeight = (baseClass: string) => {
-    if (!isLoadingDetails) return baseClass;
-    return `${baseClass} scale-105 transition-transform duration-300`;
-  };
-
   return (
     <div className="w-full h-full">
       {!isSelected ? (
         <div
-          className={`flex flex-col items-center justify-between w-full ${applyLoadingHeight(getCardHeight())} border border-[#D7D7D7] rounded-3xl shadow-lg py-4 px-2 hover:shadow-xl transition-shadow duration-300 cursor-pointer`}
+          className={`flex flex-col items-center justify-between w-full ${getCardHeight()} border border-[#D7D7D7] rounded-3xl shadow-lg py-4 px-2 hover:shadow-xl transition-shadow duration-300 cursor-pointer`}
           onClick={() => onPackageClick(packageItem.id)}
         >
-          {/* Image container with fixed dimensions */}
+          {/* Image container */}
           <div className={`w-full ${getImageContainerHeight()} flex-shrink-0 overflow-hidden rounded-lg`}>
             <Image
               src={packageItem.image}
@@ -178,7 +172,7 @@ const PackageCard: React.FC<PackageProps> = ({
             />
           </div>
 
-          {/* Content area with consistent spacing */}
+          {/* Content */}
           <div className="flex flex-col items-center justify-center w-full flex-grow px-2 min-h-[80px] mt-2">
             <p className="font-bold text-sm lg:text-xl text-center line-clamp-2 leading-tight mb-2">
               {packageItem.displayName}
@@ -190,7 +184,7 @@ const PackageCard: React.FC<PackageProps> = ({
         </div>
       ) : (
         <div
-          className={`w-full ${applyLoadingHeight(getSelectedCardHeight())} bg-[#3E206D] rounded-2xl shadow-lg relative min-w-[280px] border border-gray-200 text-white flex flex-col mx-auto`}
+          className={`w-full ${getSelectedCardHeight()} bg-[#3E206D] rounded-3xl shadow-lg relative border border-gray-200 text-white flex flex-col mx-auto`}
           data-package-popup={packageItem.id}
         >
           <div className="p-4 h-full flex flex-col flex-grow mt-1">
@@ -217,7 +211,7 @@ const PackageCard: React.FC<PackageProps> = ({
 
             <div className={`px-8 pt-2 overflow-y-auto ${getScrollAreaHeight()} scrollbar mb-4`}>
               {isLoadingDetails ? (
-                <div className="text-center py-8 text-white">Loading products...</div>
+                <div className="">Loading products...</div>
               ) : errorDetails ? (
                 <div className="text-red-200 text-center py-8">{errorDetails}</div>
               ) : (
@@ -227,8 +221,8 @@ const PackageCard: React.FC<PackageProps> = ({
                       key={item.id}
                       className="flex justify-between items-center border-b border-white/30 py-1 text-sm"
                     >
-                      <span className="flex-1 text-start truncate pr-2 mb-7">{item.displayName}</span>
-                      <span className="text-white text-start whitespace-nowrap mb-7">
+                      <span className="flex-1 text-start truncate pr-2 mb-2">{item.displayName}</span>
+                      <span className="text-white text-start whitespace-nowrap mb-2">
                         {item.quantity}
                         {item.quantityType && <span className="ml-1">{item.quantityType}</span>}
                       </span>
