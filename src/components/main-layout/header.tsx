@@ -96,7 +96,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
 
-      if (currentScrollY > lastScrollY.current && currentScrollY > 80) {
+      if (currentScrollY > lastScrollY.current && currentScrollY > 120) {
         // scrolling down
         setShowHeader(false);
       } else {
@@ -521,7 +521,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
 
       {/* Your existing modals remain the same */}
       {showLogoutModal && (
-        <div className="fixed inset-0 bg-black/60 bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/60 bg-opacity-50 flex min-h-screen items-center justify-center z-50">
           <div className="bg-white p-6 rounded-[25px] shadow-lg w-96 text-center">
             <p className="text-lg font-medium mb-6">
               Are you sure you want to logout?
