@@ -120,70 +120,72 @@ const Page = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black/40 relative">
-      <div className="w-[90vw] h-[90vh] bg-white rounded-xl shadow-lg flex flex-col md:flex-row overflow-hidden">
-        {/* Left Illustration */}
-        <div className="md:w-1/2 flex items-center justify-center bg-white p-8">
-          <Image
-            src={resetImg}
-            alt="Forgot password illustration"
-            className="w-[70%] h-auto object-cover"
-          />
-        </div>
+    <div className="flex lg:bg-gray-100 justify-center items-center w-full min-h-screen lg:py-10 lg:px-2">
+      <div className="flex w-full lg:max-w-7xl">
+        <div className="flex min-w-full mx-auto lg:shadow-lg rounded-lg bg-white overflow-auto py-20">
+          {/* Left Illustration */}
+          <div className="hidden lg:flex lg:w-1/2 justify-center items-center relative overflow-hidden">
+            <Image
+              src={resetImg}
+              alt="Forgot password illustration"
+              className="w-[70%] h-auto object-cover"
+            />
+          </div>
 
-        {/* Right Form */}
-        <div className="md:w-1/2 flex flex-col items-center justify-center p-10">
-          <div className="w-full max-w-md text-center">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Reset</h1>
-            <h1 className="text-3xl font-bold text-gray-900 mb-6">Password</h1>
+          {/* Right Form */}
+          <div className="w-full lg:w-1/2 flex justify-center items-center px-6 sm:px-10">
+            <div className="w-full max-w-md text-center">
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Reset</h1>
+              <h1 className="text-3xl font-bold text-gray-900 mb-6">Password</h1>
 
-            <div className="mb-4 relative">
-              <input
-                type={showNewPassword ? "text" : "password"}
-                placeholder="Enter New Password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
-                required
-              />
+              <div className="mb-4 relative">
+                <input
+                  type={showNewPassword ? "text" : "password"}
+                  placeholder="Enter New Password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
+                >
+                  {showNewPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
+
+
+              <div className="mb-4 relative">
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="Re-enter New Password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
+                >
+                  {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
+
+              <p className="text-left text-sm text-gray-500 mb-6">
+                <span className="font-semibold text-red-500">*</span> Your password must contain a minimum of 6 characters with 1 Uppercase, Number & Special character.
+              </p>
+
               <button
-                type="button"
-                onClick={() => setShowNewPassword(!showNewPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
+                onClick={handleResetPassword}
+                className="w-full py-3 bg-purple-800 text-white rounded-md hover:bg-purple-900 transition-colors cursor-pointer"
               >
-                {showNewPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                Save & Continue
               </button>
             </div>
-
-
-            <div className="mb-4 relative">
-              <input
-                type={showConfirmPassword ? "text" : "password"}
-                placeholder="Re-enter New Password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
-              >
-                {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-            </div>
-
-            <p className="text-left text-sm text-gray-500 mb-6">
-              <span className="font-semibold text-red-500">*</span> Your password must contain a minimum of 6 characters with 1 Uppercase, Number & Special character.
-            </p>
-
-            <button
-              onClick={handleResetPassword}
-              className="w-full py-3 bg-purple-800 text-white rounded-md hover:bg-purple-900 transition-colors cursor-pointer"
-            >
-              Save & Continue
-            </button>
           </div>
         </div>
       </div>
