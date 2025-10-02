@@ -88,9 +88,16 @@ export default function CategoryFilterWholesale() {
                 const response = await getCategoryCountsWholesale();
 
                 if (response.status && response.counts) {
+                    const categoryMapping: { [key: string]: string } = {
+                        'Vegetables': 'Vegetables',
+                        'Fruits': 'Fruits',
+                        'Cereals': 'Cereals',
+                        'Spices': 'Spices'
+                    };
+
                     const updatedCategories = defaultCategories.map(cat => {
                         const apiCategory = response.counts.find(
-                            (apiCat: any) => apiCat.category.toLowerCase() === cat.name.toLowerCase()
+                            (apiCat: any) => categoryMapping[apiCat.category] === cat.id
                         );
 
                         return {

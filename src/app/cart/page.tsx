@@ -875,7 +875,7 @@ const Page: React.FC = () => {
 
         <div className='flex flex-col lg:flex-row lg:items-start gap-4 sm:gap-6 items-start'>
           <div className='w-full lg:w-2/3'>
-            {cartData.additionalItems.map((itemGroup) => (
+            {cartData.additionalItems.map((itemGroup: AdditionalItems) => (
               <div key={itemGroup.id} className='my-4 sm:my-6 lg:my-8'>
                 {/* Header section with package name on left, total on right */}
                 <div className='flex justify-between items-start mb-4'>

@@ -21,8 +21,7 @@ export default function MainLayout({
   return (
     <>
       {isHeaderLoaded ? <Header /> : <HeaderSkeleton />}
-      {/* Add padding-top so content doesn’t hide behind fixed header */}
-      <main className="pt-[129px]">{children}</main>
+      <main className="pt-20 md:pt-[126px]">{children}</main>
       <Footer />
     </>
   )
