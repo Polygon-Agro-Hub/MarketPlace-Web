@@ -37,14 +37,6 @@ interface CustomDropdownProps {
   className?: string;
 }
 
-interface CustomDropdownProps {
-  options: { value: string; label: string; flag?: string }[];
-  selectedValue: string;
-  onSelect: (value: string) => void;
-  placeholder: string;
-  className?: string;
-}
-
 const CustomDropdown: React.FC<CustomDropdownProps> = ({
   options,
   selectedValue,
@@ -61,22 +53,22 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`h-10 w-full border rounded-md px-2 py-2 focus:outline-none focus:ring-1 cursor-pointer border-gray-300 focus:ring-purple-500 focus:border-purple-500 ${className} ${selectedValue ? "text-black" : "text-gray-500"} flex items-center justify-between bg-white`}
+        className={`h-10 w-full border rounded-md px-1 py-2 focus:outline-none focus:ring-1 cursor-pointer border-gray-300 focus:ring-purple-500 focus:border-purple-500 ${className} ${selectedValue ? "text-black" : "text-gray-500"} flex items-center justify-between bg-white`}
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-1">
           {selectedOption?.flag && (
             <img
               src={selectedOption.flag}
               alt=""
-              className="w-5 h-4 object-cover"
+              className="w-7 h-6 object-cover flex-shrink-0"
             />
           )}
-          <span className="truncate">
+          <span className="font-medium text-m mr-1">
             {selectedOption ? selectedOption.label : placeholder}
           </span>
         </div>
         <svg
-          className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          className={`w-4 h-4 transition-transform flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -101,8 +93,11 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
                 onSelect(option.value);
                 setIsOpen(false);
               }}
-              className={`w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center gap-2 ${selectedValue === option.value ? 'bg-purple-50 text-purple-700' : 'text-gray-900'
-                }`}
+              className={`w-full text-left px-1 py-3 hover:bg-gray-100 flex items-center gap-2 transition-colors ${
+                selectedValue === option.value 
+                  ? 'bg-purple-50 text-purple-700 border-l-4 border-purple-700' 
+                  : 'text-gray-900'
+              }`}
             >
               {option.flag && (
                 <img
@@ -111,7 +106,7 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
                   className="w-5 h-4 object-cover flex-shrink-0"
                 />
               )}
-              <span className="truncate">{option.value}</span>
+              <span className="truncate font-medium text-m">{option.label}</span>
             </button>
           ))}
         </div>
@@ -178,9 +173,12 @@ export default function SignupForm() {
 
   const countryOptions = countries.map(country => ({
     value: country.dialCode,
-    label: `${country.dialCode}`,
-    flag: getFlagUrl(country.code)
+    label: country.dialCode,
+    flag: getFlagUrl(country.code),
+    countryName: country.name
   }));
+
+
 
 
 
