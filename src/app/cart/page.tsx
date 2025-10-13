@@ -66,6 +66,8 @@ interface CartItem {
   varietyNameEnglish: string;
   category: string;
   createdAt: string;
+  maxQuantity?: number;
+
 }
 
 interface AdditionalItems {
@@ -108,7 +110,7 @@ const Page: React.FC = () => {
   const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
   const [showDeliveryModal, setShowDeliveryModal] = useState(false);
   const [selectedDeliveryMethod, setSelectedDeliveryMethod] = useState<'pickup' | 'delivery' | null>(null);
-  const [tooltipStates, setTooltipStates] = useState<Record<number, boolean>>({});
+  const [tooltipStates, setTooltipStates] = useState<Record<number, 'min' | 'max' | boolean>>({});
   const buyerType = useSelector((state: RootState) => state.auth.user?.buyerType);
 
 
@@ -127,12 +129,13 @@ const Page: React.FC = () => {
 
 
   const getDisplayDiscount = (item: CartItem): number => {
-    const selectedUnit = unitSelection[item.id] || item.unit;
+    const selectedUnit = unitSelection[item.id] || item.unit.toLowerCase() as ('kg' | 'g');
     return calculateDiscount(item.discount, selectedUnit, item.quantity);
   };
 
+  // Updated getDisplayPrice function  
   const getDisplayPrice = (item: CartItem): number => {
-    const selectedUnit = unitSelection[item.id] || item.unit;
+    const selectedUnit = unitSelection[item.id] || item.unit.toLowerCase() as ('kg' | 'g');
     // Use normalPrice instead of price for calculations
     return calculatePrice(item.normalPrice, selectedUnit, item.quantity);
   };
@@ -164,6 +167,19 @@ const Page: React.FC = () => {
           summary: response.summary,
         }));
 
+        // Initialize unit selection for all items
+        const initialUnitSelection: Record<number, 'kg' | 'g'> = {};
+        if (response.additionalItems) {
+          response.additionalItems.forEach((itemGroup: AdditionalItems) => {
+            itemGroup.Items.forEach((item: CartItem) => {
+              // Normalize the unit from API (handle both "Kg" and "kg", "G" and "g")
+              const normalizedUnit = item.unit.toLowerCase() === 'kg' ? 'kg' : 'g';
+              initialUnitSelection[item.id] = normalizedUnit;
+            });
+          });
+        }
+        setUnitSelection(initialUnitSelection);
+
         setError(null);
       } catch (err: any) {
         setError(err.message);
@@ -177,55 +193,6 @@ const Page: React.FC = () => {
     }
   }, [token, dispatch]);
 
-  // Updated handleUnitChange function
-  const handleUnitChange = (itemId: number, newUnit: 'kg' | 'g') => {
-    // Find the current item to get current unit and quantity
-    let currentItem: CartItem | null = null;
-    for (const itemGroup of cartData.additionalItems) {
-      const item = itemGroup.Items.find(item => item.id === itemId);
-      if (item) {
-        currentItem = item;
-        break;
-      }
-    }
-
-    if (!currentItem) return;
-
-    const currentUnit = unitSelection[itemId] || currentItem.unit;
-    let newQuantity = currentItem.quantity;
-
-    // Convert quantity based on unit change with 3 decimal precision
-    if (currentUnit !== newUnit) {
-      if (currentUnit === 'kg' && newUnit === 'g') {
-        // Convert kg to g: multiply by 1000
-        newQuantity = parseFloat((currentItem.quantity * 1000).toFixed(3));
-      } else if (currentUnit === 'g' && newUnit === 'kg') {
-        // Convert g to kg: divide by 1000
-        newQuantity = parseFloat((currentItem.quantity / 1000).toFixed(3));
-      }
-    }
-
-    // Update unit selection
-    setUnitSelection(prev => ({
-      ...prev,
-      [itemId]: newUnit,
-    }));
-
-    // Update quantity in Redux store
-    dispatch(updateProductQuantity({ productId: itemId, newQuantity }));
-
-    // Store pending update for API call
-    setPendingUpdates(prev => {
-      const existing = prev.find(update => update.productId === itemId);
-      if (existing) {
-        return prev.map(update =>
-          update.productId === itemId ? { ...update, newQuantity } : update
-        );
-      }
-      return [...prev, { productId: itemId, newQuantity }];
-    });
-  };
-
 
 
   // Updated formatPrice function to handle decimal precision
@@ -238,6 +205,56 @@ const Page: React.FC = () => {
     const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
     return `${formattedInteger}.${decimalPart}`;
+  };
+
+
+  // Updated handleUnitChange function
+  const handleUnitChange = (itemId: number, newUnit: 'kg' | 'g') => {
+    let currentItem: CartItem | null = null;
+    for (const itemGroup of cartData.additionalItems) {
+      const item = itemGroup.Items.find(item => item.id === itemId);
+      if (item) {
+        currentItem = item;
+        break;
+      }
+    }
+
+    if (!currentItem) return;
+
+    const currentUnit = unitSelection[itemId] || currentItem.unit.toLowerCase() as ('kg' | 'g');
+
+    // Only proceed if the unit is actually changing
+    if (currentUnit === newUnit) {
+      return;
+    }
+
+    let newQuantity = currentItem.quantity;
+
+    // Convert quantity based on unit change
+    if (currentUnit === 'kg' && newUnit === 'g') {
+      // Convert kg to g: multiply by 1000
+      newQuantity = parseFloat((currentItem.quantity * 1000).toFixed(3));
+    } else if (currentUnit === 'g' && newUnit === 'kg') {
+      // Convert g to kg: divide by 1000
+      newQuantity = parseFloat((currentItem.quantity / 1000).toFixed(3));
+    }
+
+    // Update unit selection FIRST
+    setUnitSelection(prev => ({
+      ...prev,
+      [itemId]: newUnit,
+    }));
+
+    // Then update quantity in Redux store
+    dispatch(updateProductQuantity({ productId: itemId, newQuantity }));
+
+    // Store pending update for API call with converted quantity
+    setPendingUpdates(prev => {
+      // Remove any existing pending update for this item first
+      const filtered = prev.filter(update => update.productId !== itemId);
+      // Add new pending update with converted quantity
+      return [...filtered, { productId: itemId, newQuantity }];
+    });
   };
 
 
@@ -257,33 +274,62 @@ const Page: React.FC = () => {
     if (!currentItem) return;
 
     const currentQuantity = currentItem.quantity;
-    const selectedUnit = unitSelection[productId] || currentItem.unit;
+    const selectedUnit = unitSelection[productId] || currentItem.unit.toLowerCase() as ('kg' | 'g');
+    const originalUnit = currentItem.unit.toLowerCase() as ('kg' | 'g');
 
-    // Get changeby value based on selected unit with 3 decimal precision
+    // Get base changeby and startValue from the item
     let changeBy = currentItem.changeby || 1;
     let startValue = currentItem.startValue || 1;
 
-    // If unit is grams but changeby is for kg, convert it
-    if (selectedUnit === 'g' && currentItem.unit === 'kg') {
-      changeBy = parseFloat((changeBy * 1000).toFixed(3));
-      startValue = parseFloat((startValue * 1000).toFixed(3));
-    } else if (selectedUnit === 'kg' && currentItem.unit === 'g') {
-      changeBy = parseFloat((changeBy / 1000).toFixed(3));
-      startValue = parseFloat((startValue / 1000).toFixed(3));
+    // Only convert changeby and startValue if the selected unit differs from original unit
+    if (selectedUnit !== originalUnit) {
+      if (selectedUnit === 'g' && originalUnit === 'kg') {
+        // If displaying in grams but item is originally stored in kg, convert to grams
+        changeBy = parseFloat((changeBy * 1000).toFixed(3));
+        startValue = parseFloat((startValue * 1000).toFixed(3));
+      } else if (selectedUnit === 'kg' && originalUnit === 'g') {
+        // If displaying in kg but item is originally stored in grams, convert to kg
+        changeBy = parseFloat((changeBy / 1000).toFixed(3));
+        startValue = parseFloat((startValue / 1000).toFixed(3));
+      }
+    }
+
+    // Get maxQuantity and convert if needed
+    let maxQuantity = currentItem.maxQuantity || Infinity;
+    if (selectedUnit !== originalUnit) {
+      if (selectedUnit === 'g' && originalUnit === 'kg') {
+        maxQuantity = parseFloat((maxQuantity * 1000).toFixed(3));
+      } else if (selectedUnit === 'kg' && originalUnit === 'g') {
+        maxQuantity = parseFloat((maxQuantity / 1000).toFixed(3));
+      }
     }
 
     // Calculate new quantity using changeby value with 3 decimal precision
     let newQuantity: number;
     if (delta > 0) {
       // Increment by changeby value
-      newQuantity = parseFloat((currentQuantity + (changeBy * delta)).toFixed(3));
+      const potentialNewQuantity = parseFloat((currentQuantity + (changeBy * delta)).toFixed(3));
+
+      if (potentialNewQuantity > maxQuantity) {
+        // Show MAX tooltip when trying to go above maximum
+        setTooltipStates(prev => ({ ...prev, [productId]: 'max' }));
+
+        // Hide tooltip after 2 seconds
+        setTimeout(() => {
+          setTooltipStates(prev => ({ ...prev, [productId]: false }));
+        }, 2000);
+
+        return; // Don't update quantity
+      }
+
+      newQuantity = potentialNewQuantity;
     } else {
       // Check if decrement would go below startValue
       const potentialNewQuantity = parseFloat((currentQuantity + (changeBy * delta)).toFixed(3));
 
       if (potentialNewQuantity < startValue) {
-        // Show tooltip when trying to go below minimum
-        setTooltipStates(prev => ({ ...prev, [productId]: true }));
+        // Show MIN tooltip when trying to go below minimum
+        setTooltipStates(prev => ({ ...prev, [productId]: 'min' }));
 
         // Hide tooltip after 2 seconds
         setTimeout(() => {
@@ -310,7 +356,8 @@ const Page: React.FC = () => {
       return [...prev, { productId, newQuantity }];
     });
   };
-
+  
+  
   // Show confirmation modal for product removal
   const handleRemoveProduct = async (productId: number) => {
     const itemKey = `product-${productId}`;
@@ -828,7 +875,7 @@ const Page: React.FC = () => {
 
         <div className='flex flex-col lg:flex-row lg:items-start gap-4 sm:gap-6 items-start'>
           <div className='w-full lg:w-2/3'>
-            {cartData.additionalItems.map((itemGroup) => (
+            {cartData.additionalItems.map((itemGroup: AdditionalItems) => (
               <div key={itemGroup.id} className='my-4 sm:my-6 lg:my-8'>
                 {/* Header section with package name on left, total on right */}
                 <div className='flex justify-between items-start mb-4'>
@@ -963,18 +1010,39 @@ const Page: React.FC = () => {
                                       {tooltipStates[item.id] && (
                                         <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 z-10">
                                           <div className="bg-[#191D28] text-white text-xs px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
-                                            Minimum quantity is {(() => {
-                                              const selectedUnit = unitSelection[item.id] || item.unit;
-                                              let startValue = item.startValue || 1;
+                                            {tooltipStates[item.id] === 'min' ? (
+                                              <>
+                                                Minimum quantity is {(() => {
+                                                  const selectedUnit = unitSelection[item.id] || item.unit;
+                                                  let startValue = item.startValue || 1;
 
-                                              if (selectedUnit === 'g' && item.unit === 'kg') {
-                                                startValue = parseFloat((startValue * 1000).toFixed(3));
-                                              } else if (selectedUnit === 'kg' && item.unit === 'g') {
-                                                startValue = parseFloat((startValue / 1000).toFixed(3));
-                                              }
+                                                  if (selectedUnit === 'g' && item.unit === 'kg') {
+                                                    startValue = parseFloat((startValue * 1000).toFixed(3));
+                                                  } else if (selectedUnit === 'kg' && item.unit === 'g') {
+                                                    startValue = parseFloat((startValue / 1000).toFixed(3));
+                                                  }
 
-                                              return parseFloat(startValue.toFixed(3));
-                                            })()} {unitSelection[item.id] || item.unit}
+                                                  return parseFloat(startValue.toFixed(3));
+                                                })()} {unitSelection[item.id] || item.unit}
+                                              </>
+                                            ) : (
+                                              <>
+                                                Maximum quantity is {(() => {
+                                                  const selectedUnit = unitSelection[item.id] || item.unit;
+                                                  let maxValue = item.maxQuantity || Infinity;
+
+                                                  if (maxValue !== Infinity && selectedUnit !== item.unit) {
+                                                    if (selectedUnit === 'g' && item.unit === 'kg') {
+                                                      maxValue = parseFloat((maxValue * 1000).toFixed(3));
+                                                    } else if (selectedUnit === 'kg' && item.unit === 'g') {
+                                                      maxValue = parseFloat((maxValue / 1000).toFixed(3));
+                                                    }
+                                                  }
+
+                                                  return parseFloat(maxValue.toFixed(3));
+                                                })()} {unitSelection[item.id] || item.unit}
+                                              </>
+                                            )}
 
                                             {/* Tooltip arrow */}
                                             <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-red-600"></div>

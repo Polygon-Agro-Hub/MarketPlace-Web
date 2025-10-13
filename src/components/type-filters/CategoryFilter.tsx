@@ -177,94 +177,95 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
     }
 
     return (
-        <div className='mx-auto w-full'>
-            <div className='flex flex-col'>
-                {/* Only show the Types section and category tiles when not searching */}
+        <>
+            <div className="flex items-center justify-center gap-2 w-full my-4 md:my-8 px-2 md:px-20 max-w-[1800px] mx-auto">
+                <div className="w-1/2 border-t-2 border-[#D7D7D7]"></div>
+                <span className="bg-[#FF8F6666] text-[#FF4421] rounded-lg text-xs md:text-sm px-3 md:px-6 py-1">
+                    Types
+                </span>
+                <div className="w-1/2 border-t-2 border-[#D7D7D7]"></div>
+            </div>
 
-                <div className="flex items-center justify-center gap-2 w-full my-4 md:my-8 px-2 md:px-20">
-                    <div className="w-1/2 border-t-2 border-[#D7D7D7]"></div>
-                    <span className="bg-[#FF8F6666] text-[#FF4421] rounded-lg text-xs md:text-sm px-3 md:px-6 py-1">
-                        Types
-                    </span>
-                    <div className="w-1/2 border-t-2 border-[#D7D7D7]"></div>
+            <div className='mx-auto w-full max-w-[1600px]'>
+                <div className='flex flex-col'>
+                    {/* Only show the Types section and category tiles when not searching */}
+                    {!isSearchActive && (
+                        <>
+
+                            {countsLoading ? (
+                                <div className="flex justify-center items-center py-4">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#3E206D]"></div>
+                                </div>
+                            ) : (
+                                <div className='grid grid-cols-4'>
+                                    {categories.map((category) => (
+                                        <div key={category.id} className="aspect-[4/5] md:aspect-square">
+                                            <CategoryTile
+                                                id={category.id}
+                                                name={category.name}
+                                                imageUrl={category.imageUrl}
+                                                itemCount={category.itemCount}
+                                                isSelected={selectedCategory === category.id}
+                                                onSelect={handleCategorySelect}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </>
+                    )}
+
+                    {/* Show search indicator if search is active */}
+                    {isSearchActive && (
+                        <div className="text-center mb-4">
+                            <p className="text-sm text-gray-600">
+                                Searching for "{searchTerm}"
+                            </p>
+                        </div>
+                    )}
                 </div>
 
-                {!isSearchActive && (
-                    <>
-
-                        {countsLoading ? (
-                            <div className="flex justify-center items-center py-4">
-                                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#3E206D]"></div>
-                            </div>
-                        ) : (
-                            <div className='grid grid-cols-4'>
-                                {categories.map((category) => (
-                                    <div key={category.id} className="aspect-[4/5] md:aspect-square">
-                                        <CategoryTile
-                                            id={category.id}
-                                            name={category.name}
-                                            imageUrl={category.imageUrl}
-                                            itemCount={category.itemCount}
-                                            isSelected={selectedCategory === category.id}
-                                            onSelect={handleCategorySelect}
+                <div className="container mx-auto px-2 py-6 max-w-7xl mt-4 md:mt-0">
+                    {loading ? (
+                        <div className="flex justify-center items-center py-10">
+                            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#3E206D]"></div>
+                        </div>
+                    ) : error ? (
+                        <div className="flex justify-center items-center py-10">
+                            <p className="text-red-500">{error}</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-4 lg:gap-6">
+                            {products.length > 0 ? (
+                                products.map((product) => (
+                                    <div key={product.id} className="w-full flex justify-center">
+                                        <ItemCard
+                                            id={product.id}
+                                            name={product.displayName}
+                                            originalPrice={product.normalPrice}
+                                            currentPrice={product.discountedPrice}
+                                            image={product.image}
+                                            discount={product.discount}
+                                            unitType={product.unitType}
+                                            startValue={product.startValue}
+                                            changeby={product.changeby}
                                         />
                                     </div>
-                                ))}
-                            </div>
-                        )}
-                    </>
-                )}
-
-                {/* Show search indicator if search is active */}
-                {isSearchActive && (
-                    <div className="text-center mb-4">
-                        <p className="text-sm text-gray-600">
-                            Searching for "{searchTerm}"
-                        </p>
-                    </div>
-                )}
-            </div>
-
-            <div className="container mx-auto px-2 py-6">
-                {loading ? (
-                    <div className="flex justify-center items-center py-10">
-                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#3E206D]"></div>
-                    </div>
-                ) : error ? (
-                    <div className="flex justify-center items-center py-10">
-                        <p className="text-red-500">{error}</p>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-4 lg:gap-6">
-                        {products.length > 0 ? (
-                            products.map((product) => (
-                                <div key={product.id} className="w-full flex justify-center">
-                                    <ItemCard
-                                        id={product.id}
-                                        name={product.displayName}
-                                        originalPrice={product.normalPrice}
-                                        currentPrice={product.discountedPrice}
-                                        image={product.image}
-                                        discount={product.discount}
-                                        unitType={product.unitType}
-                                        startValue={product.startValue}
-                                        changeby={product.changeby}
-                                    />
+                                ))
+                            ) : (
+                                <div className="col-span-full text-center py-10">
+                                    <p className="text-gray-500">
+                                        {isSearchActive
+                                            ? `No products found for "${searchTerm}" in ${selectedCategory}.`
+                                            : 'No products found in this category.'
+                                        }
+                                    </p>
                                 </div>
-                            ))
-                        ) : (
-                            <div className="col-span-full text-center py-10">
-                                <p className="text-gray-500">
-                                    {isSearchActive
-                                        ? `No products found for "${searchTerm}" in ${selectedCategory}.`
-                                        : 'No products found in this category.'
-                                    }
-                                </p>
-                            </div>
-                        )}
-                    </div>
-                )}
+                            )}
+                        </div>
+                    )}
+                </div>
             </div>
-        </div>
+        </>
     );
 }

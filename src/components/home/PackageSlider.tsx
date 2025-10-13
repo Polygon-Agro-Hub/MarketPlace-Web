@@ -27,10 +27,10 @@ const NextArrow = (props: any) => {
     return (
         <button
             onClick={onClick}
-            className="absolute right-0 top-1/2 z-10 -translate-y-1/2 transform rounded-full bg-white p-2 shadow-lg hover:bg-gray-100 focus:outline-none cursor-pointer"
+            className="absolute right-[-10] lg:right-[-40] top-1/2 z-10 -translate-y-1/2 transform rounded-full bg-gray-200 p-2 lg:p-3 shadow-lg hover:bg-gray-100 focus:outline-none cursor-pointer"
             aria-label="Next"
         >
-            <ChevronRight className="h-6 w-6 text-[#FF4421]" />
+            <ChevronRight className="h-6 w-6 text-gray-500" />
         </button>
     );
 };
@@ -40,10 +40,10 @@ const PrevArrow = (props: any) => {
     return (
         <button
             onClick={onClick}
-            className="absolute left-0 top-1/2 z-10 -translate-y-1/2 transform rounded-full bg-white p-2 shadow-lg hover:bg-gray-100 focus:outline-none cursor-pointer"
+            className="absolute left-[-10] lg:left-[-40] top-1/2 z-10 -translate-y-1/2 transform rounded-full bg-gray-200 p-2 lg:p-3 shadow-lg hover:bg-gray-100 focus:outline-none cursor-pointer"
             aria-label="Previous"
         >
-            <ChevronLeft className="h-6 w-6 text-[#FF4421]" />
+            <ChevronLeft className="h-6 w-6 text-gray-500" />
         </button>
     );
 };
@@ -66,7 +66,7 @@ const PackageSlider: React.FC<packagesProps> = ({ productData, onShowConfirmModa
     // Update the handlePackageAddToCartSuccess function
     const handlePackageAddToCartSuccess = (message: string) => {
         setShowLoading(true);
-        
+
         // Show loading for 1.5 seconds before showing success
         setTimeout(() => {
             setShowLoading(false);
@@ -78,7 +78,7 @@ const PackageSlider: React.FC<packagesProps> = ({ productData, onShowConfirmModa
 
     const PurpleLoadingPopup = ({ isVisible }: { isVisible: boolean }) => {
         if (!isVisible) return null;
-        
+
         return (
             <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
                 <div className="bg-white rounded-lg p-8 flex flex-col items-center justify-center shadow-2xl">
@@ -154,7 +154,7 @@ const PackageSlider: React.FC<packagesProps> = ({ productData, onShowConfirmModa
     // Dynamic settings based on productData length
     const getSliderSettings = () => {
         const itemCount = productData.length;
-        
+
         // Base settings - dots disabled for all screen sizes
         const baseSettings = {
             dots: false, // Disabled pagination dots
@@ -207,7 +207,7 @@ const PackageSlider: React.FC<packagesProps> = ({ productData, onShowConfirmModa
             ]
         };
     };
-    
+
     // If we have very few items, render them without slider
     if (productData.length <= 1) {
         return (
@@ -285,58 +285,45 @@ const PackageSlider: React.FC<packagesProps> = ({ productData, onShowConfirmModa
 
     return (
         <div className="flex flex-col items-center w-full my-5 package-slider-container" ref={containerRef}>
-            {/* Custom CSS for slider styling */}
-            <style jsx global>{`
-                .package-slider-container .slick-dots {
-                    display: none !important; /* Hide dots completely */
-                }
-                
-                .package-slider-container .slick-slider {
-                    position: relative !important;
-                }
-
-                /* Fix for few items - ensure proper alignment */
-                .package-slider-container .slick-track {
-                    display: flex !important;
-                    align-items: center !important;
-                }
-                
-                .package-slider-container .slick-slide {
-                    height: auto !important;
-                    display: flex !important;
-                    align-items: center !important;
-                }
-            `}</style>
-
-            <div className="flex items-center justify-center gap-2 w-full my-4 md:my-8 px-2 md:px-20">
-                <div className="w-1/2 border-t-2 border-[#D7D7D7]"></div>
-                <span className="bg-[#FF8F6666] text-[#FF4421] rounded-lg text-xs md:text-sm px-3 md:px-6 py-1">
+            {/* Section Title */}
+            <div className="flex items-center justify-center gap-2 w-full my-4 md:my-8 px-2 md:px-20 max-w-[1800px] mx-auto">
+                <div className="flex-1 border-t-2 border-[#D7D7D7]"></div>
+                <span className="bg-[#FF8F6666] text-[#FF4421] rounded-lg text-xs md:text-sm px-3 md:px-6 py-1 whitespace-nowrap">
                     Packages
                 </span>
-                <div className="w-1/2 border-t-2 border-[#D7D7D7]"></div>
+                <div className="flex-1 border-t-2 border-[#D7D7D7]"></div>
             </div>
 
-            <div className="w-full relative sm:px-3 md:px-10">
-                <Slider {...getSliderSettings()}>
-                    {productData.map((packageItem) => (
-                        <div key={packageItem.id} className="md:pr-14 md:pl-32 sm:px-8 pl-6 px-4 py-3">
-                            <PackageCard
-                                packageItem={packageItem}
-                                isSelected={selectedPackageId === packageItem.id && !isMobile}
-                                packageDetails={selectedPackageId === packageItem.id ? packageDetails : undefined}
-                                onPackageClick={handlePackageClick}
-                                onClosePopup={handleClosePopup}
-                                onAddToCartSuccess={handlePackageAddToCartSuccess}
-                                onAddToCartError={handlePackageAddToCartError}
-                                isLoadingDetails={isLoadingDetails && selectedPackageId === packageItem.id}
-                                errorDetails={selectedPackageId === packageItem.id ? errorDetails : undefined}
-                                onShowConfirmModal={onShowConfirmModal}
-                                onShowLoginPopup={onShowLoginPopup}
-                            />
-                        </div>
-                    ))}
-                </Slider>
+            {/* Slider Container with Max Width */}
+            <div className="w-full relative px-3 sm:px-6 md:px-10">
+                <div className="max-w-7xl mx-auto w-full">
+                    <Slider {...getSliderSettings()}>
+                        {productData.map((packageItem) => (
+                            <div
+                                key={packageItem.id}
+                                className="px-3 sm:px-4 md:px-6 py-3 mx-auto flex justify-center items-center"
+                            >
+                                <div className="">
+                                    <PackageCard
+                                        packageItem={packageItem}
+                                        isSelected={selectedPackageId === packageItem.id && !isMobile}
+                                        packageDetails={selectedPackageId === packageItem.id ? packageDetails : undefined}
+                                        onPackageClick={handlePackageClick}
+                                        onClosePopup={handleClosePopup}
+                                        onAddToCartSuccess={handlePackageAddToCartSuccess}
+                                        onAddToCartError={handlePackageAddToCartError}
+                                        isLoadingDetails={isLoadingDetails && selectedPackageId === packageItem.id}
+                                        errorDetails={selectedPackageId === packageItem.id ? errorDetails : undefined}
+                                        onShowConfirmModal={onShowConfirmModal}
+                                        onShowLoginPopup={onShowLoginPopup}
+                                    />
+                                </div>
+                            </div>
+                        ))}
+                    </Slider>
+                </div>
             </div>
+
 
             {isMobile && selectedPackageId && (
                 <div

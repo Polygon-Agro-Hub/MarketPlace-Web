@@ -148,7 +148,7 @@ const AddMoreItems = () => {
   };
 
   return (
-    <div className="relative z-10 px-4 sm:px-6 md:px-8 min-h-screen mb-10 bg-white blur-effect">
+    <div className="relative z-10 px-4 sm:px-6 md:px-8 min-h-screen bg-white blur-effect py-6">
       <SuccessPopup
         isVisible={showSuccessPopup}
         onClose={() => setShowSuccessPopup(false)}
@@ -156,7 +156,7 @@ const AddMoreItems = () => {
         description="Items have been successfully saved."
       />
       <Loader isVisible={loading} />
-      <h2 className="font-medium text-sm sm:text-base md:text-[18px] mb-2 mt-2">
+      <h2 className="font-medium text-sm sm:text-base md:text-[18px] mb-2">
         Add More Items
       </h2>
       <p className="text-xs sm:text-sm md:text-[16px] text-[#626D76] mb-3">
@@ -179,60 +179,58 @@ const AddMoreItems = () => {
               aria-label="Search icon"
             />
           </div>
-{loading && <p className="text-center text-[#4C5160] text-sm md:text-base">Loading...</p>}
-{error && <p className="text-center text-red-500 text-sm md:text-base">{error}</p>}
+          {loading && <p className="text-center text-[#4C5160] text-sm md:text-base">Loading...</p>}
+          {error && <p className="text-center text-red-500 text-sm md:text-base">{error}</p>}
 
-{!loading && !error && filteredItems.length === 0 && (
-  <p className="text-center text-[#4C5160] text-sm md:text-base">No items found</p>
-)}
+          {!loading && !error && filteredItems.length === 0 && (
+            <p className="text-center text-[#4C5160] text-sm md:text-base">No items found</p>
+          )}
 
-{!loading && !error && filteredItems.length > 0 && (
-  <div className="space-y-2 md:space-y-3">
-    {filteredItems.map((item) => {
-      const isExcluded = excludedNames.includes(item.displayName);
-      return (
-        <div
-          key={item.displayName}
-          className="flex items-center justify-between px-1 md:px-2"
-        >
-          <div className="flex items-center">
-            <button
-              onClick={() => handleToggle(item.displayName)}
-              className={`w-4 h-4 md:w-5 md:h-5 rounded-full border-2 mr-2 md:mr-3 flex items-center justify-center ${
-                selectedItems.includes(item.displayName)
-                  ? 'bg-red-500 border-red-500 cursor-pointer'
-                  : isExcluded
-                  ? 'bg-gray-300 border-gray-300 cursor-not-allowed'
-                  : 'border-[#A3A3A3] cursor-pointer'
-              }`}
-              disabled={isExcluded}
-              aria-label={`Toggle exclude ${item.displayName}`}
-            >
-              {selectedItems.includes(item.displayName) && (
-                <span className="text-white text-[10px] md:text-xs font-bold">×</span>
-              )}
-            </button>
-            <span
-              className={`text-sm md:text-[16px] font-medium ${
-                isExcluded ? 'text-gray-400' : 'text-black'
-              }`}
-            >
-              {item.displayName}
-            </span>
-          </div>
-          <img
-            src={item.image}
-            alt={item.displayName}
-            className="w-8 h-8 md:w-10 md:h-10 object-contain"
-            onError={(e) => {
-              e.currentTarget.src = '/images/fallback.png';
-            }}
-          />
-        </div>
-      );
-    })}
-  </div>
-)}
+          {!loading && !error && filteredItems.length > 0 && (
+            <div className="space-y-2 md:space-y-3">
+              {filteredItems.map((item) => {
+                const isExcluded = excludedNames.includes(item.displayName);
+                return (
+                  <div
+                    key={item.displayName}
+                    className="flex items-center justify-between px-1 md:px-2"
+                  >
+                    <div className="flex items-center">
+                      <button
+                        onClick={() => handleToggle(item.displayName)}
+                        className={`w-4 h-4 md:w-5 md:h-5 rounded-full border-2 mr-2 md:mr-3 flex items-center justify-center ${selectedItems.includes(item.displayName)
+                          ? 'bg-red-500 border-red-500 cursor-pointer'
+                          : isExcluded
+                            ? 'bg-gray-300 border-gray-300 cursor-not-allowed'
+                            : 'border-[#A3A3A3] cursor-pointer'
+                          }`}
+                        disabled={isExcluded}
+                        aria-label={`Toggle exclude ${item.displayName}`}
+                      >
+                        {selectedItems.includes(item.displayName) && (
+                          <span className="text-white text-[10px] md:text-xs font-bold">×</span>
+                        )}
+                      </button>
+                      <span
+                        className={`text-sm md:text-[16px] font-medium ${isExcluded ? 'text-gray-400' : 'text-black'
+                          }`}
+                      >
+                        {item.displayName}
+                      </span>
+                    </div>
+                    <img
+                      src={item.image}
+                      alt={item.displayName}
+                      className="w-8 h-8 md:w-10 md:h-10 object-contain"
+                      onError={(e) => {
+                        e.currentTarget.src = '/images/fallback.png';
+                      }}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
 
           <button

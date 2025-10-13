@@ -37,14 +37,6 @@ interface CustomDropdownProps {
   className?: string;
 }
 
-interface CustomDropdownProps {
-  options: { value: string; label: string; flag?: string }[];
-  selectedValue: string;
-  onSelect: (value: string) => void;
-  placeholder: string;
-  className?: string;
-}
-
 const CustomDropdown: React.FC<CustomDropdownProps> = ({
   options,
   selectedValue,
@@ -61,22 +53,22 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`h-10 w-full border rounded-md px-2 py-2 focus:outline-none focus:ring-1 cursor-pointer border-gray-300 focus:ring-purple-500 focus:border-purple-500 ${className} ${selectedValue ? "text-black" : "text-gray-500"} flex items-center justify-between bg-white`}
+        className={`h-10 w-full border rounded-md px-1 py-2 focus:outline-none focus:ring-1 cursor-pointer border-gray-300 focus:ring-purple-500 focus:border-purple-500 ${className} ${selectedValue ? "text-black" : "text-gray-500"} flex items-center justify-between bg-white`}
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-1">
           {selectedOption?.flag && (
-            <img 
-              src={selectedOption.flag} 
-              alt="" 
-              className="w-5 h-4 object-cover"
+            <img
+              src={selectedOption.flag}
+              alt=""
+              className="w-7 h-6 object-cover flex-shrink-0"
             />
           )}
-          <span className="truncate">
+          <span className="font-medium text-m mr-1">
             {selectedOption ? selectedOption.label : placeholder}
           </span>
         </div>
         <svg
-          className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          className={`w-4 h-4 transition-transform flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -101,18 +93,20 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
                 onSelect(option.value);
                 setIsOpen(false);
               }}
-              className={`w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center gap-2 ${
-                selectedValue === option.value ? 'bg-purple-50 text-purple-700' : 'text-gray-900'
+              className={`w-full text-left px-1 py-3 hover:bg-gray-100 flex items-center gap-2 transition-colors ${
+                selectedValue === option.value 
+                  ? 'bg-purple-50 text-purple-700 border-l-4 border-purple-700' 
+                  : 'text-gray-900'
               }`}
             >
               {option.flag && (
-                <img 
-                  src={option.flag} 
-                  alt="" 
+                <img
+                  src={option.flag}
+                  alt=""
                   className="w-5 h-4 object-cover flex-shrink-0"
                 />
               )}
-              <span className="truncate">{option.value}</span>
+              <span className="truncate font-medium text-m">{option.label}</span>
             </button>
           ))}
         </div>
@@ -120,8 +114,8 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
 
       {/* Click outside to close */}
       {isOpen && (
-        <div 
-          className="fixed inset-0 z-40" 
+        <div
+          className="fixed inset-0 z-40"
           onClick={() => setIsOpen(false)}
         />
       )}
@@ -179,9 +173,12 @@ export default function SignupForm() {
 
   const countryOptions = countries.map(country => ({
     value: country.dialCode,
-    label: `${country.dialCode}`,
-    flag: getFlagUrl(country.code)
+    label: country.dialCode,
+    flag: getFlagUrl(country.code),
+    countryName: country.name
   }));
+
+
 
 
 
@@ -428,180 +425,220 @@ export default function SignupForm() {
   }
 
   return (
-    <div className="flex w-full bg-gray-100 min-h-screen overflow-auto">
-      <div className="flex min-w-full mx-auto shadow-lg rounded-lg bg-white overflow-auto">
-        <SuccessPopup
-          isVisible={showSuccessPopup}
-          onClose={() => setShowSuccessPopup(false)}
-          title={
-            success
-              ? "OTP Sent Successfully"
-              : "Your account created successfully!"
-          }
-          description={success as any}
-        />
+    <div className="flex lg:bg-gray-100 justify-center items-center w-full min-h-screen lg:py-10 lg:px-2">
+      <div className="flex w-full lg:max-w-7xl">
+        <div className="flex min-w-full mx-auto shadow-lg rounded-lg bg-white overflow-auto">
+          <SuccessPopup
+            isVisible={showSuccessPopup}
+            onClose={() => setShowSuccessPopup(false)}
+            title={
+              success
+                ? "OTP Sent Successfully"
+                : "Your account created successfully!"
+            }
+            description={success as any}
+          />
 
-        <ErrorPopup
-          isVisible={showErrorPopup}
-          onClose={() => setShowErrorPopup(false)}
-          title="Error!"
-          description={errorMessage}
-        />
+          <ErrorPopup
+            isVisible={showErrorPopup}
+            onClose={() => setShowErrorPopup(false)}
+            title="Error!"
+            description={errorMessage}
+          />
 
-        {/* Left side - Form */}
-        <div className="w-full md:w-5/11 px-6 pt-8 md:px-10 md:pt-8">
-          <h1 className="text-4xl font-bold text-[#3E206D] mb-4 text-center">
-            MyFarm
-          </h1>
-          <h2 className="text-xl font-bold text-center md:text-left text-[#001535] mb-6">
-            Create Your Account
-          </h2>
+          {/* Left side - Form */}
+          <div className="w-full lg:w-1/2 px-6 pt-8 sm:px-10 sm:p-8">
+            <h1 className="text-4xl font-bold text-[#3E206D] mb-4 text-center">
+              MyFarm
+            </h1>
+            <h2 className="text-xl font-bold text-center md:text-left text-[#001535] mb-6">
+              Create Your Account
+            </h2>
 
-          {errors.general && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-              {errors.general}
-            </div>
-          )}
-
-          {success && (
-            <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-              {success}
-            </div>
-          )}
-
-          {/* Account Type Selection */}
-          <div className="flex space-x-3 mb-8 md:mb-10 justify-center">
-            <label className="flex flex-nowrap text-[#3F3F3F] font-medium items-center justify-center w-1/2 border rounded-md px-4 py-2 cursor-pointer bg-white hover:text-[#3E206D]">
-              <input
-                type="radio"
-                name="buyerType"
-                checked={isHome}
-                onChange={() => setIsHome(true)}
-                className="mr-2 h-4 w-4 accent-[#3E206D]"
-              />
-              <span className="whitespace-nowrap text-xs md:text-base">
-                I'm Buying for Home
-              </span>
-            </label>
-
-            <label className="flex flex-nowrap text-[#3F3F3F] font-medium items-center justify-center w-1/2 border rounded-md px-4 py-2 cursor-pointer bg-white hover:text-[#3E206D]">
-              <input
-                type="radio"
-                name="buyerType"
-                checked={!isHome}
-                onChange={() => setIsHome(false)}
-                className="mr-2 h-4 w-4 accent-[#3E206D]"
-              />
-              <span className="whitespace-nowrap text-xs md:text-base">
-                I'm Buying for Business
-              </span>
-            </label>
-          </div>
-
-          {isHome && (
-            <div>
-              <p className="text-[#4C5160] font-medium mb-6 text-center">
-                Welcome! Select method to Signup:
-              </p>
-
-              <div className="flex space-x-3 mb-4 hover:text-[#3E206D]">
-                <button
-                  type="button"
-                  className="cursor-pointer flex items-center justify-center w-1/2 border rounded-md px-4 py-2 hover:bg-gray-50"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5 mr-4"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                      fill="#4285F4"
-                    />
-                    <path
-                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                      fill="#34A853"
-                    />
-                    <path
-                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                      fill="#FBBC05"
-                    />
-                    <path
-                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                      fill="#EA4335"
-                    />
-                  </svg>
-                  Google
-                </button>
-
-                <button
-                  type="button"
-                  className="cursor-pointer flex items-center justify-center w-1/2 border rounded-md px-4 py-2 hover:bg-gray-50"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5 mr-4 text-blue-600"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"
-                      fill="#1877F2"
-                    />
-                  </svg>
-                  Facebook
-                </button>
+            {errors.general && (
+              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                {errors.general}
               </div>
+            )}
 
-              <div className="flex items-center mt-10 mb-8">
-                <div className="flex-grow border-t border-[#8D8D8D]"></div>
-                <span className="px-4 text-sm text-gray-500">
-                  or continue with email
+            {success && (
+              <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+                {success}
+              </div>
+            )}
+
+            {/* Account Type Selection */}
+            <div className="flex space-x-3 mb-8 md:mb-10 justify-center">
+              <label className="flex flex-nowrap text-[#3F3F3F] font-medium items-center justify-center w-1/2 border rounded-md px-4 py-2 cursor-pointer bg-white hover:text-[#3E206D]">
+                <input
+                  type="radio"
+                  name="buyerType"
+                  checked={isHome}
+                  onChange={() => setIsHome(true)}
+                  className="mr-2 h-4 w-4 accent-[#3E206D]"
+                />
+                <span className="whitespace-nowrap text-xs md:text-base">
+                  I'm Buying for Home
                 </span>
-                <div className="flex-grow border-t border-[#8D8D8D]"></div>
+              </label>
+
+              <label className="flex flex-nowrap text-[#3F3F3F] font-medium items-center justify-center w-1/2 border rounded-md px-4 py-2 cursor-pointer bg-white hover:text-[#3E206D]">
+                <input
+                  type="radio"
+                  name="buyerType"
+                  checked={!isHome}
+                  onChange={() => setIsHome(false)}
+                  className="mr-2 h-4 w-4 accent-[#3E206D]"
+                />
+                <span className="whitespace-nowrap text-xs md:text-base">
+                  I'm Buying for Business
+                </span>
+              </label>
+            </div>
+
+            {isHome && (
+              <div>
+                <p className="text-[#4C5160] font-medium mb-6 text-center">
+                  Welcome! Select method to Signup:
+                </p>
+
+                <div className="flex space-x-3 mb-4 hover:text-[#3E206D]">
+                  <button
+                    type="button"
+                    className="cursor-pointer flex items-center justify-center w-1/2 border rounded-md px-4 py-2 hover:bg-gray-50"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5 mr-4"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                        fill="#4285F4"
+                      />
+                      <path
+                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                        fill="#34A853"
+                      />
+                      <path
+                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                        fill="#FBBC05"
+                      />
+                      <path
+                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                        fill="#EA4335"
+                      />
+                    </svg>
+                    Google
+                  </button>
+
+                  <button
+                    type="button"
+                    className="cursor-pointer flex items-center justify-center w-1/2 border rounded-md px-4 py-2 hover:bg-gray-50"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5 mr-4 text-blue-600"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"
+                        fill="#1877F2"
+                      />
+                    </svg>
+                    Facebook
+                  </button>
+                </div>
+
+                <div className="flex items-center mt-10 mb-8">
+                  <div className="flex-grow border-t border-[#8D8D8D]"></div>
+                  <span className="px-4 text-sm text-gray-500">
+                    or continue with email
+                  </span>
+                  <div className="flex-grow border-t border-[#8D8D8D]"></div>
+                </div>
               </div>
+            )}
+
+            <div className="flex items-center mb-4">
+              <div className="text-[#3E206D] mr-4 whitespace-nowrap">
+                Personal Details
+              </div>
+              <div className="flex-grow border-t border-[#E2E2E2]"></div>
             </div>
-          )}
 
-          <div className="flex items-center mb-4">
-            <div className="text-[#3E206D] mr-4 whitespace-nowrap">
-              Personal Details
-            </div>
-            <div className="flex-grow border-t border-[#E2E2E2]"></div>
-          </div>
-
-          <div className="px-2 md:px-0 md:pt-0">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="flex flex-col md:flex-row md:space-x-4 space-y-2 md:space-y-0">
-                <div className="flex flex-row w-full md:w-1/2 space-x-2">
-                  <div className="w-23 md:w-26">
+            <div className="px-2 md:px-0 md:pt-0">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="flex flex-col md:flex-row md:space-x-4 space-y-2 md:space-y-0">
+                  <div className="flex flex-row w-full md:w-1/2 space-x-2">
+                    <div className="w-23 md:w-26">
 
 
-                    <CustomDropdown
-                      options={[
-                        { value: "Rev", label: "Rev." },
-                        { value: "Mr", label: "Mr." },
-                        { value: "Mrs", label: "Mrs." },
-                        { value: "Ms", label: "Ms." },
-                      ]}
-                      selectedValue={formData.title}
-                      onSelect={(value) =>
-                        handleChange({
-                          target: { name: "title", value },
-                        } as React.ChangeEvent<HTMLSelectElement>)
-                      }
-                      placeholder="Title"
-                      className="cursor-pointer"
-                    />
-                    {errors.title && (
-                      <p className="mt-1 text-sm text-red-600">{errors.title}</p>
-                    )}
+                      <CustomDropdown
+                        options={[
+                          { value: "Rev", label: "Rev." },
+                          { value: "Mr", label: "Mr." },
+                          { value: "Mrs", label: "Mrs." },
+                          { value: "Ms", label: "Ms." },
+                        ]}
+                        selectedValue={formData.title}
+                        onSelect={(value) =>
+                          handleChange({
+                            target: { name: "title", value },
+                          } as React.ChangeEvent<HTMLSelectElement>)
+                        }
+                        placeholder="Title"
+                        className="cursor-pointer"
+                      />
+                      {errors.title && (
+                        <p className="mt-1 text-sm text-red-600">{errors.title}</p>
+                      )}
+                    </div>
+
+                    <div className="w-3/4 md:w-7/9">
+                      <input
+                        type="text"
+                        name="firstName"
+                        value={formData.firstName}
+                        onChange={handleChange}
+                        onKeyPress={(e) => {
+                          // Block numbers and special characters while typing
+                          if (!/[A-Za-z\s]/.test(e.key) && e.key !== "Backspace") {
+                            e.preventDefault();
+                          }
+                        }}
+                        onPaste={(e) => {
+                          // Allow paste but filter out invalid characters
+                          e.preventDefault();
+                          const pastedText = e.clipboardData.getData('text');
+                          const filteredText = pastedText
+                            .replace(/[^A-Za-z\s]/g, "")
+                            .split(" ")
+                            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                            .join(" ");
+
+                          handleChange({
+                            target: { name: "firstName", value: filteredText }
+                          } as React.ChangeEvent<HTMLInputElement>);
+                        }}
+                        placeholder="First Name"
+                        className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass(
+                          "firstName"
+                        )}`}
+                      />
+                      {errors.firstName && (
+                        <p className="mt-1 text-sm text-red-600">
+                          {errors.firstName}
+                        </p>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="w-3/4 md:w-7/9">
+                  <div className="w-full md:w-1/2">
                     <input
                       type="text"
-                      name="firstName"
-                      value={formData.firstName}
+                      name="lastName"
+                      value={formData.lastName}
                       onChange={handleChange}
                       onKeyPress={(e) => {
                         // Block numbers and special characters while typing
@@ -620,394 +657,354 @@ export default function SignupForm() {
                           .join(" ");
 
                         handleChange({
-                          target: { name: "firstName", value: filteredText }
+                          target: { name: "lastName", value: filteredText }
                         } as React.ChangeEvent<HTMLInputElement>);
                       }}
-                      placeholder="First Name"
+                      placeholder="Last Name"
                       className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass(
-                        "firstName"
+                        "lastName"
                       )}`}
                     />
-                    {errors.firstName && (
+                    {errors.lastName && (
                       <p className="mt-1 text-sm text-red-600">
-                        {errors.firstName}
+                        {errors.lastName}
                       </p>
                     )}
                   </div>
                 </div>
 
-                <div className="w-full md:w-1/2">
-                  <input
-                    type="text"
-                    name="lastName"
-                    value={formData.lastName}
-                    onChange={handleChange}
-                    onKeyPress={(e) => {
-                      // Block numbers and special characters while typing
-                      if (!/[A-Za-z\s]/.test(e.key) && e.key !== "Backspace") {
-                        e.preventDefault();
-                      }
-                    }}
-                    onPaste={(e) => {
-                      // Allow paste but filter out invalid characters
-                      e.preventDefault();
-                      const pastedText = e.clipboardData.getData('text');
-                      const filteredText = pastedText
-                        .replace(/[^A-Za-z\s]/g, "")
-                        .split(" ")
-                        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-                        .join(" ");
+                <div className="flex flex-col md:flex-row md:space-x-3 space-y-4 md:space-y-0">
+                  <div className="flex flex-row w-full md:w-1/2 space-x-3">
 
-                      handleChange({
-                        target: { name: "lastName", value: filteredText }
-                      } as React.ChangeEvent<HTMLInputElement>);
-                    }}
-                    placeholder="Last Name"
-                    className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass(
-                      "lastName"
-                    )}`}
-                  />
-                  {errors.lastName && (
-                    <p className="mt-1 text-sm text-red-600">
-                      {errors.lastName}
-                    </p>
-                  )}
-                </div>
-              </div>
+                    <div className="w-23 md:w-26">
+                      <CustomDropdown
+                        options={countryOptions}
+                        selectedValue={formData.phoneCode}
+                        onSelect={(value) =>
+                          handleChange({
+                            target: { name: "phoneCode", value },
+                          } as React.ChangeEvent<HTMLSelectElement>)
+                        }
+                        placeholder="Code"
+                        className="cursor-pointer"
+                      />
+                    </div>
 
-              <div className="flex flex-col md:flex-row md:space-x-3 space-y-4 md:space-y-0">
-                <div className="flex flex-row w-full md:w-1/2 space-x-3">
+                    <div className="w-3/4 md:w-7/9">
+                      <input
+                        type="text"
+                        name="phoneNumber"
+                        value={formData.phoneNumber}
+                        onChange={handleChange}
+                        onKeyPress={(e) => {
+                          // Allow only digits
+                          if (!/[\d]/.test(e.key) && e.key !== "Backspace") {
+                            e.preventDefault();
+                          }
+                        }}
+                        onPaste={(e) => {
+                          // Allow paste but filter out non-digits
+                          e.preventDefault();
+                          const pastedText = e.clipboardData.getData('text');
+                          const filteredText = pastedText.replace(/[^\d]/g, "");
 
-                  <div className="w-23 md:w-26">
-                    <CustomDropdown
-                      options={countryOptions}
-                      selectedValue={formData.phoneCode}
-                      onSelect={(value) =>
-                        handleChange({
-                          target: { name: "phoneCode", value },
-                        } as React.ChangeEvent<HTMLSelectElement>)
-                      }
-                      placeholder="Code"
-                      className="cursor-pointer"
-                    />
+                          handleChange({
+                            target: { name: "phoneNumber", value: filteredText }
+                          } as React.ChangeEvent<HTMLInputElement>);
+                        }}
+                        placeholder="7XXXXXXXX"
+                        className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass(
+                          "phoneNumber"
+                        )}`}
+                        maxLength={9}
+                      />
+
+                      {errors.phoneNumber && (
+                        <p className="mt-1 text-sm text-red-600">
+                          {errors.phoneNumber}
+                        </p>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="w-3/4 md:w-7/9">
+                  <div className="w-full md:w-1/2">
                     <input
                       type="text"
-                      name="phoneNumber"
-                      value={formData.phoneNumber}
+                      name="email"
+                      value={formData.email}
                       onChange={handleChange}
                       onKeyPress={(e) => {
-                        // Allow only digits
-                        if (!/[\d]/.test(e.key) && e.key !== "Backspace") {
+                        // Block leading space
+                        if (e.key === " " && formData.email.length === 0) {
                           e.preventDefault();
                         }
                       }}
-                      onPaste={(e) => {
-                        // Allow paste but filter out non-digits
-                        e.preventDefault();
-                        const pastedText = e.clipboardData.getData('text');
-                        const filteredText = pastedText.replace(/[^\d]/g, "");
-
-                        handleChange({
-                          target: { name: "phoneNumber", value: filteredText }
-                        } as React.ChangeEvent<HTMLInputElement>);
-                      }}
-                      placeholder="7XXXXXXXX"
+                      placeholder="Email"
                       className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass(
-                        "phoneNumber"
+                        "email"
                       )}`}
-                      maxLength={9}
                     />
+                    {errors.email && (
+                      <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+                    )}
+                  </div>
+                </div>
 
-                    {errors.phoneNumber && (
+                <div className="flex flex-col md:flex-row md:space-x-3 space-y-4 md:space-y-0">
+                  <div className="w-full md:w-1/2 relative">
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        name="password"
+                        value={formData.password}
+                        onChange={handleChange}
+                        placeholder="Password"
+                        className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass(
+                          "password"
+                        )}`}
+                      />
+                      <button
+                        type="button"
+                        className="absolute top-1/2 right-3 transform -translate-y-1/2"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? (
+                          <EyeOff size={20} className="text-[#3E206D]" />
+                        ) : (
+                          <Eye size={20} className="text-[#3E206D]" />
+                        )}
+                      </button>
+                    </div>
+                    {errors.password && (
                       <p className="mt-1 text-sm text-red-600">
-                        {errors.phoneNumber}
+                        {errors.password}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="w-full md:w-1/2 relative">
+                    <div className="relative">
+                      <input
+                        type={showConfirmPassword ? "text" : "password"}
+                        name="confirmPassword"
+                        value={formData.confirmPassword}
+                        onChange={handleChange}
+                        onPaste={(e) => {
+                          e.preventDefault();
+                          return false;
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          return false;
+                        }}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          return false;
+                        }}
+                        placeholder="Confirm Password"
+                        className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass(
+                          "confirmPassword"
+                        )}`}
+                      />
+                      <button
+                        type="button"
+                        className="absolute top-1/2 right-3 transform -translate-y-1/2"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff size={20} className="text-[#3E206D]" />
+                        ) : (
+                          <Eye size={20} className="text-[#3E206D]" />
+                        )}
+                      </button>
+                    </div>
+                    {errors.confirmPassword && (
+                      <p className="mt-1 text-sm text-red-600">
+                        {errors.confirmPassword}
                       </p>
                     )}
                   </div>
                 </div>
 
-                <div className="w-full md:w-1/2">
-                  <input
-                    type="text"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    onKeyPress={(e) => {
-                      // Block leading space
-                      if (e.key === " " && formData.email.length === 0) {
-                        e.preventDefault();
-                      }
-                    }}
-                    placeholder="Email"
-                    className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass(
-                      "email"
-                    )}`}
-                  />
-                  {errors.email && (
-                    <p className="mt-1 text-sm text-red-600">{errors.email}</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex flex-col md:flex-row md:space-x-3 space-y-4 md:space-y-0">
-                <div className="w-full md:w-1/2 relative">
-                  <div className="relative">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      name="password"
-                      value={formData.password}
-                      onChange={handleChange}
-                      placeholder="Password"
-                      className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass(
-                        "password"
-                      )}`}
-                    />
-                    <button
-                      type="button"
-                      className="absolute top-1/2 right-3 transform -translate-y-1/2"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? (
-                        <EyeOff size={20} className="text-[#3E206D]" />
-                      ) : (
-                        <Eye size={20} className="text-[#3E206D]" />
-                      )}
-                    </button>
-                  </div>
-                  {errors.password && (
-                    <p className="mt-1 text-sm text-red-600">
-                      {errors.password}
-                    </p>
-                  )}
-                </div>
-
-                <div className="w-full md:w-1/2 relative">
-                  <div className="relative">
-                    <input
-                      type={showConfirmPassword ? "text" : "password"}
-                      name="confirmPassword"
-                      value={formData.confirmPassword}
-                      onChange={handleChange}
-                      onPaste={(e) => {
-                        e.preventDefault();
-                        return false;
-                      }}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        return false;
-                      }}
-                      onDragOver={(e) => {
-                        e.preventDefault();
-                        return false;
-                      }}
-                      placeholder="Confirm Password"
-                      className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass(
-                        "confirmPassword"
-                      )}`}
-                    />
-                    <button
-                      type="button"
-                      className="absolute top-1/2 right-3 transform -translate-y-1/2"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    >
-                      {showConfirmPassword ? (
-                        <EyeOff size={20} className="text-[#3E206D]" />
-                      ) : (
-                        <Eye size={20} className="text-[#3E206D]" />
-                      )}
-                    </button>
-                  </div>
-                  {errors.confirmPassword && (
-                    <p className="mt-1 text-sm text-red-600">
-                      {errors.confirmPassword}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {!isPasswordValid && formData.password && (
-                <div className="text-xs text-gray-600 pl-1 flex flex-row gap-2 md:flex-row items-start md:items-center">
-                  <div className="flex-shrink-0 h-5 w-5 rounded-full bg-gray-200 flex items-center justify-center mb-2 md:mb-0 md:mr-1">
-                    <span className="text-xs text-[#ffffff]">i</span>
-                  </div>
-                  <div className="text-[#3E206D] text-xs md:text-sm">
-                    Your password must contain a minimum of 6 characters with 1
-                    Uppercase, Numbers & Special Characters.
-                  </div>
-                </div>
-              )}
-
-              {!isHome && (
-                <div className="mt-8">
-                  <div className="flex items-center mb-4">
-                    <div className="text-[#3E206D] mr-4 whitespace-nowrap">
-                      Company Details
+                {!isPasswordValid && formData.password && (
+                  <div className="text-xs text-gray-600 pl-1 flex flex-row gap-2 md:flex-row items-start md:items-center">
+                    <div className="flex-shrink-0 h-5 w-5 rounded-full bg-gray-200 flex items-center justify-center mb-2 md:mb-0 md:mr-1">
+                      <span className="text-xs text-[#ffffff]">i</span>
                     </div>
-                    <div className="flex-grow border-t border-[#E2E2E2]"></div>
+                    <div className="text-[#3E206D] text-xs md:text-sm">
+                      Your password must contain a minimum of 6 characters with 1
+                      Uppercase, Numbers & Special Characters.
+                    </div>
                   </div>
+                )}
 
-                  <div className="space-y-4">
-                    <div className="flex flex-col md:flex-row md:space-x-3 space-y-4 md:space-y-0">
-                      <div className="w-full md:w-1/2">
-                        <input
-                          type="text"
-                          name="companyName"
-                          value={formData.companyName}
-                          onChange={handleChange}
-                          onKeyPress={(e) => {
-                            // Block leading space
-                            if (e.key === " " && formData.companyName.length === 0) {
-                              e.preventDefault();
-                            }
-                          }}
-                          placeholder="Company Name"
-                          className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass(
-                            "companyName"
-                          )}`}
-                        />
-                        {errors.companyName && (
-                          <p className="mt-1 text-sm text-red-600">
-                            {errors.companyName}
-                          </p>
-                        )}
+                {!isHome && (
+                  <div className="mt-8">
+                    <div className="flex items-center mb-4">
+                      <div className="text-[#3E206D] mr-4 whitespace-nowrap">
+                        Company Details
                       </div>
+                      <div className="flex-grow border-t border-[#E2E2E2]"></div>
+                    </div>
 
-                      <div className="flex flex-row w-full md:w-1/2 space-x-3">
-                        <div className="w-23 md:w-26">
-                          <CustomDropdown
-                            options={countryOptions}
-                            selectedValue={formData.companyPhoneCode}
-                            onSelect={(value) =>
-                              handleChange({
-                                target: { name: "companyPhoneCode", value },
-                              } as React.ChangeEvent<HTMLSelectElement>)
-                            }
-                            placeholder="Code"
-                            className="cursor-pointer"
-                          />
-                        </div>
-
-                        <div className="w-3/4 md:w-7/9">
+                    <div className="space-y-4">
+                      <div className="flex flex-col md:flex-row md:space-x-3 space-y-4 md:space-y-0">
+                        <div className="w-full md:w-1/2">
                           <input
                             type="text"
-                            name="companyPhoneNumber"
-                            value={formData.companyPhoneNumber}
+                            name="companyName"
+                            value={formData.companyName}
                             onChange={handleChange}
                             onKeyPress={(e) => {
-                              // Allow only digits
-                              if (!/[\d]/.test(e.key) && e.key !== "Backspace") {
+                              // Block leading space
+                              if (e.key === " " && formData.companyName.length === 0) {
                                 e.preventDefault();
                               }
                             }}
-                            onPaste={(e) => {
-                              // Allow paste but filter out non-digits
-                              e.preventDefault();
-                              const pastedText = e.clipboardData.getData('text');
-                              const filteredText = pastedText.replace(/[^\d]/g, "");
-
-                              handleChange({
-                                target: { name: "companyPhoneNumber", value: filteredText }
-                              } as React.ChangeEvent<HTMLInputElement>);
-                            }}
-                            placeholder="7XXXXXXXX"
+                            placeholder="Company Name"
                             className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass(
-                              "companyPhoneNumber"
+                              "companyName"
                             )}`}
-                            maxLength={9}
                           />
-                          {errors.companyPhoneNumber && (
+                          {errors.companyName && (
                             <p className="mt-1 text-sm text-red-600">
-                              {errors.companyPhoneNumber}
+                              {errors.companyName}
                             </p>
                           )}
+                        </div>
+
+                        <div className="flex flex-row w-full md:w-1/2 space-x-3">
+                          <div className="w-23 md:w-26">
+                            <CustomDropdown
+                              options={countryOptions}
+                              selectedValue={formData.companyPhoneCode}
+                              onSelect={(value) =>
+                                handleChange({
+                                  target: { name: "companyPhoneCode", value },
+                                } as React.ChangeEvent<HTMLSelectElement>)
+                              }
+                              placeholder="Code"
+                              className="cursor-pointer"
+                            />
+                          </div>
+
+                          <div className="w-3/4 md:w-7/9">
+                            <input
+                              type="text"
+                              name="companyPhoneNumber"
+                              value={formData.companyPhoneNumber}
+                              onChange={handleChange}
+                              onKeyPress={(e) => {
+                                // Allow only digits
+                                if (!/[\d]/.test(e.key) && e.key !== "Backspace") {
+                                  e.preventDefault();
+                                }
+                              }}
+                              onPaste={(e) => {
+                                // Allow paste but filter out non-digits
+                                e.preventDefault();
+                                const pastedText = e.clipboardData.getData('text');
+                                const filteredText = pastedText.replace(/[^\d]/g, "");
+
+                                handleChange({
+                                  target: { name: "companyPhoneNumber", value: filteredText }
+                                } as React.ChangeEvent<HTMLInputElement>);
+                              }}
+                              placeholder="7XXXXXXXX"
+                              className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass(
+                                "companyPhoneNumber"
+                              )}`}
+                              maxLength={9}
+                            />
+                            {errors.companyPhoneNumber && (
+                              <p className="mt-1 text-sm text-red-600">
+                                {errors.companyPhoneNumber}
+                              </p>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              <div className="flex flex-col mt-8 mb-4">
-                <div className="flex items-center">
+                <div className="flex flex-col mt-8 mb-4">
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="terms"
+                      name="agreeToTerms"
+                      checked={formData.agreeToTerms}
+                      onChange={handleChange}
+                      className={`h-4 w-4 accent-[#318831] cursor-pointer focus:ring-purple-500 border-gray-300 rounded ${errors.agreeToTerms ? "border-red-500" : ""
+                        }`}
+                    />
+                    <label
+                      htmlFor="terms"
+                      className="ml-2 block text-md text-[#777A7D]"
+                    >
+                      I agree to the Terms & Conditions
+                    </label>
+                  </div>
+                  {errors.agreeToTerms && (
+                    <p className="mt-1 text-sm text-[#FF0000] ml-6">
+                      {errors.agreeToTerms}
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex items-center mb-8 md:mb-8">
                   <input
                     type="checkbox"
-                    id="terms"
-                    name="agreeToTerms"
-                    checked={formData.agreeToTerms}
+                    id="marketing"
+                    name="agreeToMarketing"
+                    checked={formData.agreeToMarketing}
                     onChange={handleChange}
-                    className={`h-4 w-4 accent-[#318831] cursor-pointer focus:ring-purple-500 border-gray-300 rounded ${errors.agreeToTerms ? "border-red-500" : ""
-                      }`}
+                    className="h-4 w-4 accent-[#318831] cursor-pointer text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
                   />
                   <label
-                    htmlFor="terms"
+                    htmlFor="marketing"
                     className="ml-2 block text-md text-[#777A7D]"
                   >
-                    I agree to the Terms & Conditions
+                    I would prefer receiving promotion E-mails
                   </label>
                 </div>
-                {errors.agreeToTerms && (
-                  <p className="mt-1 text-sm text-[#FF0000] ml-6">
-                    {errors.agreeToTerms}
-                  </p>
-                )}
-              </div>
 
-              <div className="flex items-center mb-8 md:mb-8">
-                <input
-                  type="checkbox"
-                  id="marketing"
-                  name="agreeToMarketing"
-                  checked={formData.agreeToMarketing}
-                  onChange={handleChange}
-                  className="h-4 w-4 accent-[#318831] cursor-pointer text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
-                />
-                <label
-                  htmlFor="marketing"
-                  className="ml-2 block text-md text-[#777A7D]"
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex w-3/5 md:text-lg items-center justify-center bg-[#3E206D] text-[#FFFFFF] rounded-md py-2 hover:bg-purple-800 transition duration-200 mx-auto disabled:opacity-50 cursor-pointer"
                 >
-                  I would prefer receiving promotion E-mails
-                </label>
-              </div>
+                  {loading ? (
+                    <>
+                      <Loader2 size={20} className="mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    "Register"
+                  )}
+                </button>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex w-3/5 md:text-lg items-center justify-center bg-[#3E206D] text-[#FFFFFF] rounded-md py-2 hover:bg-purple-800 transition duration-200 mx-auto disabled:opacity-50 cursor-pointer"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 size={20} className="mr-2 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  "Register"
-                )}
-              </button>
-
-              <p className="text-center text-md text-[#6B6B6B] mt-4 md:mt-2 mb-4 md:mb-0">
-                Already have an account?{" "}
-                <a href="../signin" className="text-[#094EE8] hover:underline">
-                  Login here
-                </a>
-              </p>
-            </form>
+                <p className="text-center text-md text-[#6B6B6B] mt-4 md:mt-2 mb-4 md:mb-0">
+                  Already have an account?{" "}
+                  <a href="../signin" className="text-[#094EE8] hover:underline">
+                    Login here
+                  </a>
+                </p>
+              </form>
+            </div>
           </div>
-        </div>
 
-        <div className="hidden md:block md:w-6/11 md:min-h-screen bg-purple-900 relative overflow-hidden">
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Image
-              src={LoginImg}
-              alt="MyFarm Registration"
-              fill
-              className="object-cover"
-              priority
-            />
-
-
+          <div className="hidden lg:block lg:w-1/2 bg-purple-900 relative overflow-hidden">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Image
+                src={LoginImg}
+                alt="MyFarm Registration"
+                fill
+                className="object-cover"
+                priority
+              />
+            </div>
           </div>
         </div>
       </div>

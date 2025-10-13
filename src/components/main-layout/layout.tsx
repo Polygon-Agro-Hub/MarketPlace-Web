@@ -13,7 +13,7 @@ export default function MainLayout({
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsHeaderLoaded(true)
-    }, 500) 
+    }, 500)
 
     return () => clearTimeout(timer)
   }, [])
@@ -21,7 +21,7 @@ export default function MainLayout({
   return (
     <>
       {isHeaderLoaded ? <Header /> : <HeaderSkeleton />}
-      <main>{children}</main>
+      <main className="pt-20 md:pt-[126px]">{children}</main>
       <Footer />
     </>
   )

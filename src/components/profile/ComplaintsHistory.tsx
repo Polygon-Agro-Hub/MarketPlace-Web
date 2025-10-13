@@ -8,7 +8,7 @@ import { FaAngleDown } from 'react-icons/fa';
 import { RootState } from '@/store';
 import { fetchComplaints } from '@/services/auth-service';
 import EmptyComplaints from '../complaints/No-complaint';
-import Select, { ActionMeta, SingleValue } from 'react-select'; // Import react-select
+import Select, { ActionMeta, SingleValue } from 'react-select';
 import Loader from '@/components/loader-spinner/Loader';
 import Image from 'next/image';
 import noComplaints from '../../../public/icons/no complaints.png';
@@ -131,13 +131,13 @@ const ComplaintsHistory = () => {
 
 
   return (
-    <div>
+    <div className="relative z-10 px-4 sm:px-6 min-h-screen bg-white blur-effect py-4">
       <Loader isVisible={loading} />
       <div
-        className={`relative z-10 px-4 sm:px-6 md:px-8 min-h-screen p-3 ${selectedComplaint ? 'bg-white' : 'bg-white'
+        className={`relative z-10 ${selectedComplaint ? 'bg-white' : 'bg-white'
           } blur-effect`}
       >
-        <h2 className="font-medium text-[14px] text-base md:text-[18px] mb-2 mt-2">
+        <h2 className="font-medium text-[14px] text-base md:text-[17.5px]">
           Complaints History
         </h2>
         <p className="text-[12px] md:text-[16px] text-[#626D76] mb-3">
@@ -147,8 +147,8 @@ const ComplaintsHistory = () => {
 
         {/* Reply Modal Inside First Div */}
         {selectedComplaint && (
-          <div className="absolute inset-0 flex justify-center items-start z-30 pt-10 bg-white/60 backdrop-blur-sm">
-            <div className="bg-white/90 p-6 rounded-lg shadow-lg w-full max-w-[560px] mx-auto">
+          <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60">
+            <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-[560px] mx-4">
               <div className="flex flex-col items-center">
                 <img
                   src="/icons/reply.png"
@@ -194,7 +194,7 @@ const ComplaintsHistory = () => {
                   value={filterOptions.find((option) => option.value === filter)}
                   onChange={handleFilterChange}
                   className="text-xs sm:text-sm"
-                  isSearchable={false} 
+                  isSearchable={false}
                   styles={{
                     control: (base) => ({
                       ...base,
@@ -270,31 +270,28 @@ const ComplaintsHistory = () => {
                         <div className="text-[12px] md:text-[16px] text-[#626D76] font-medium">Date:</div>
                         <div className="text-[12px] md:text-[16px]">{complaint.date}</div>
                       </div>
-                      <div className="flex flex-col items-start sm:items-center">
-                        <div className="text-[12px] md:text-[16px] text-[#626D76] font-medium">Status:</div>
+                      <div className="flex flex-col justify-center sm:items-center">
                         <div className="flex items-center">
                           <span
                             className={`min-w-[100px] sm:min-w-[120px] text-center px-2 py-1 rounded-full text-[12px] md:text-[16px] ${complaint.status === 'Closed'
-                                ? 'bg-[#EDE1FF] text-[#3E206D]'
-                                : complaint.status === 'Opened'
-                                  ? 'bg-[#CFE1FF] text-[#3B82F6]'
-                                  : 'bg-gray-200 text-gray-800'
+                              ? 'bg-[#EDE1FF] text-[#3E206D]'
+                              : complaint.status === 'Opened'
+                                ? 'bg-[#CFE1FF] text-[#3B82F6]'
+                                : 'bg-gray-200 text-gray-800'
                               }`}
                           >
                             {complaint.status || 'Unknown'}
                           </span>
                         </div>
                       </div>
-                      <div className="flex flex-col items-start sm:items-end">
+                      <div className="flex flex-col justify-center sm:items-center">
                         {complaint.status === 'Closed' && (
-                          <div className="flex items-center">
-                            <button
-                              onClick={() => handleViewReply(complaint)}
-                              className="w-20 sm:w-28 h-8 sm:h-9 text-[12px] md:text-[16px] rounded-lg text-white cursor-pointer bg-[#3E206D] hover:bg-[#341a5a] -mt-1 mr-12"
-                            >
-                              View Reply
-                            </button>
-                          </div>
+                          <button
+                            onClick={() => handleViewReply(complaint)}
+                            className="w-20 sm:w-28 h-8 sm:h-9 text-[12px] md:text-[16px] rounded-lg text-white cursor-pointer bg-[#3E206D] hover:bg-[#341a5a]"
+                          >
+                            View Reply
+                          </button>
                         )}
                       </div>
                     </div>

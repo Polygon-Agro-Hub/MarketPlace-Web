@@ -242,6 +242,9 @@ const Page: React.FC = () => {
     label: city.city
   }));
 
+
+
+
   const handleAddressOptionChange = async (value: string) => {
     if (value === 'previous') {
       console.log('fetching last order address');
@@ -269,8 +272,9 @@ const Page: React.FC = () => {
           const data = response.result;
           console.log('fetch last order address data', data);
 
-          // Find the city from the cities list
-          const cityData = cities.find(city => city.city === data.city);
+          const cityData = cities.find(city =>
+            city.city.toLowerCase() === data.city.toLowerCase()
+          );
           if (cityData) {
             setSelectedCity(cityData);
             // Set delivery charge for previous address city
@@ -326,6 +330,16 @@ const Page: React.FC = () => {
       setDeliveryCharge(0);
     }
   };
+
+  useEffect(() => {
+
+    if (searchParamsLoaded && !fetching && !formData.title.trim()) {
+      setErrors(prev => ({
+        ...prev,
+        title: 'Title is required.'
+      }));
+    }
+  }, [searchParamsLoaded, fetching, formData.title]);
 
   const calculateFinalTotal = (): number => {
     const baseTotal = cartData?.grandTotal || 0;
@@ -507,6 +521,7 @@ const Page: React.FC = () => {
   useEffect(() => {
     setIsFormValidState(isFormValid());
   }, [formData, errors]);
+
 
 
   // Updated validateField function - replace the existing one
@@ -813,6 +828,7 @@ const Page: React.FC = () => {
                   </h2>
 
                   {/* Center Selection Dropdown - ABOVE the map */}
+                  {/* Center Selection Dropdown - ABOVE the map */}
                   <div className="mb-4 relative z-50">
                     <label className="block font-semibold mb-2 text-[#2E2E2E]">Select Pickup Center</label>
                     {loadingCenters ? (
@@ -830,6 +846,8 @@ const Page: React.FC = () => {
                           }
                         }}
                         placeholder="Select from here"
+                        searchable={true}
+                        searchPlaceholder="Type to search centers..."
                       />
                     )}
                     {errors.centerId && <p className="text-red-600 text-sm mt-1">{errors.centerId}</p>}
@@ -856,19 +874,21 @@ const Page: React.FC = () => {
               <div className='flex flex-row md:gap-4 gap-2 mb-6'>
                 {/* Title dropdown */}
                 <div className="w-1/4 md:w-1/9 cursor-pointer">
-                  <label htmlFor="title" className='block font-semibold mb-1 text-[#2E2E2E] '>Title *</label>
-                  <div className="w-full ">
-                    <CustomDropdown
-                      options={[
-                        { value: 'Mr', label: 'Mr' },
-                        { value: 'Ms', label: 'Ms' },
-                        { value: 'Mrs', label: 'Mrs' },
-                        { value: 'Rev', label: 'Rev' },
-                      ]}
-                      selectedValue={formData.title}
-                      onSelect={(value) => handleFieldChange('title', value)}
-                      placeholder="Title"
-                    />
+                  <label htmlFor="title" className='block font-semibold mb-1 text-[#2E2E2E]'>Title *</label>
+                  <div className="w-full">
+                    <div className={`rounded-lg ${errors.title ? 'border-2 border-red-500' : ''}`}>
+                      <CustomDropdown
+                        options={[
+                          { value: 'Mr', label: 'Mr' },
+                          { value: 'Ms', label: 'Ms' },
+                          { value: 'Mrs', label: 'Mrs' },
+                          { value: 'Rev', label: 'Rev' },
+                        ]}
+                        selectedValue={formData.title}
+                        onSelect={(value) => handleFieldChange('title', value)}
+                        placeholder="Title"
+                      />
+                    </div>
                     {errors.title && <p className="text-red-600 text-sm mt-1">{errors.title}</p>}
                   </div>
                 </div>
@@ -912,7 +932,7 @@ const Page: React.FC = () => {
                         className='w-full h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2 '
                         value={formData.phone1}
                         onChange={(e) => handleFieldChange('phone1', e.target.value)}
-                        placeholder='7xxxxxxxx'
+                        placeholder='7XXXXXXXX'
                       />
                       {errors.phone1 && (
                         <p className="text-red-600 text-sm mt-1">{errors.phone1}</p>
@@ -942,7 +962,7 @@ const Page: React.FC = () => {
                         className='w-full  h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2 '
                         value={formData.phone2}
                         onChange={(e) => handleFieldChange('phone2', e.target.value)}
-                        placeholder='7xxxxxxxx'
+                        placeholder='7XXXXXXXX'
                       />
                       {errors.phone2 && (
                         <p className="text-red-600 text-sm mt-1">{errors.phone2}</p>
@@ -1059,6 +1079,7 @@ const Page: React.FC = () => {
                     {errors.street && <p className="text-red-600 text-sm mt-1">{errors.street}</p>}
                   </div>
                   {/* City */}
+                  {/* City */}
                   <div className="w-full md:w-1/2 px-2 mb-4">
                     <label className="block font-semibold text-[#2E2E2E] mb-1">Nearest City *</label>
                     {loadingCities ? (
@@ -1076,6 +1097,8 @@ const Page: React.FC = () => {
                           }
                         }}
                         placeholder="Select nearest city"
+                        searchable={true}
+                        searchPlaceholder="Type to search cities..."
                       />
                     )}
                     {errors.cityName && <p className="text-red-600 text-sm mt-1">{errors.cityName}</p>}

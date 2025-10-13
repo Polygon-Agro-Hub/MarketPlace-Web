@@ -57,7 +57,7 @@ export default function CategoryFilterWholesale() {
     const defaultCategories = [
         {
             id: 'Vegetables',
-            name: 'Vegetables',
+            name: 'Vegetables & Mushrooms',
             imageUrl: Vegetables,
             itemCount: 0
         },
@@ -69,7 +69,7 @@ export default function CategoryFilterWholesale() {
         },
         {
             id: 'Cereals',
-            name: 'Cereals',
+            name: 'Cereals & Pulses',
             imageUrl: Grains,
             itemCount: 0
         },
@@ -88,9 +88,16 @@ export default function CategoryFilterWholesale() {
                 const response = await getCategoryCountsWholesale();
 
                 if (response.status && response.counts) {
+                    const categoryMapping: { [key: string]: string } = {
+                        'Vegetables': 'Vegetables',
+                        'Fruits': 'Fruits',
+                        'Cereals': 'Cereals',
+                        'Spices': 'Spices'
+                    };
+
                     const updatedCategories = defaultCategories.map(cat => {
                         const apiCategory = response.counts.find(
-                            (apiCat: any) => apiCat.category.toLowerCase() === cat.name.toLowerCase()
+                            (apiCat: any) => categoryMapping[apiCat.category] === cat.id
                         );
 
                         return {
@@ -146,52 +153,54 @@ export default function CategoryFilterWholesale() {
     }
 
     return (
-        <div className='mx-auto w-full'>
-            <div className='flex flex-col'>
-                <div className="flex items-center justify-center gap-2 w-full my-4 md:my-8 px-2 md:px-20">
-                    <div className="flex-1 border-t-2 border-[#D7D7D7]"></div>
-                    <span className="bg-[#FF8F6666] text-[#FF4421] rounded-lg text-xs md:text-sm px-3 md:px-6 py-1 whitespace-nowrap">
-                        Wholesale Types
-                    </span>
-                    <div className="flex-1 border-t-2 border-[#D7D7D7]"></div>
+        <>
+            <div className="flex items-center justify-center gap-2 w-full my-4 md:my-8 px-2 md:px-20 max-w-[1800px] mx-auto">
+                <div className="w-1/2 border-t-2 border-[#D7D7D7]"></div>
+                <span className="bg-[#FF8F6666] text-[#FF4421] rounded-lg text-xs md:text-sm px-3 md:px-6 py-1 whitespace-nowrap">
+                    Wholesale Types
+                </span>
+                <div className="w-1/2 border-t-2 border-[#D7D7D7]"></div>
+            </div>
+            <div className='mx-auto w-full max-w-[1600px]'>
+                <div className='flex flex-col'>
+
+                    {/* Show search indicator if search is active */}
+                    {isSearchActive && (
+                        <div className="text-center mb-4">
+                            <p className="text-sm text-gray-600">
+                                Searching wholesale for "{searchTerm}" in {selectedCategory}
+                            </p>
+                        </div>
+                    )}
+
+                    {!isSearchActive && (
+                        <>
+                            {countsLoading ? (
+                                <div className="flex justify-center items-center py-4">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#3E206D]"></div>
+                                </div>
+                            ) : (
+                                <div className='grid grid-cols-4'>
+                                    {categories.map((category) => (
+                                        <div key={category.id} className="aspect-[4/5] md:aspect-square">
+                                            <CategoryTile
+                                                id={category.id}
+                                                name={category.name}
+                                                imageUrl={category.imageUrl}
+                                                itemCount={category.itemCount}
+                                                isSelected={selectedCategory === category.id}
+                                                onSelect={handleCategorySelect}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </>
+                    )}
                 </div>
-
-                {/* Show search indicator if search is active */}
-                {isSearchActive && (
-                    <div className="text-center mb-4">
-                        <p className="text-sm text-gray-600">
-                            Searching wholesale for "{searchTerm}" in {selectedCategory}
-                        </p>
-                    </div>
-                )}
-
-                {!isSearchActive && (
-                    <>
-                        {countsLoading ? (
-                            <div className="flex justify-center items-center py-4">
-                                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#3E206D]"></div>
-                            </div>
-                        ) : (
-                            <div className='grid grid-cols-4'>
-                                {categories.map((category) => (
-                                    <div key={category.id} className="aspect-[4/5] md:aspect-square">
-                                        <CategoryTile
-                                            id={category.id}
-                                            name={category.name}
-                                            imageUrl={category.imageUrl}
-                                            itemCount={category.itemCount}
-                                            isSelected={selectedCategory === category.id}
-                                            onSelect={handleCategorySelect}
-                                        />
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </>
-                )}
             </div>
 
-            <div className="container mx-auto px-2 py-6">
+            <div className="container mx-auto px-2 py-6 max-w-7xl mt-4 md:mt-0">
                 {loading ? (
                     <div className="flex justify-center items-center py-10">
                         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#3E206D]"></div>
@@ -231,6 +240,6 @@ export default function CategoryFilterWholesale() {
                     </div>
                 )}
             </div>
-        </div>
+        </>
     );
 }

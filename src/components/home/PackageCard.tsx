@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { useViewport } from './hooks/useViewport';
 import Image from 'next/image';
 import { packageAddToCart } from '@/services/product-service';
-import { getCartInfo } from '@/services/auth-service'; // Add this import
-import { useSelector, useDispatch } from 'react-redux'; // Add useDispatch
+import { getCartInfo } from '@/services/auth-service';
+import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store';
-import { updateCartInfo } from '@/store/slices/authSlice'; // Add this import
+import { updateCartInfo } from '@/store/slices/authSlice';
 import { useRouter } from 'next/navigation';
 import vegebox from '../../../public/Vegetables_Box.png';
 
@@ -53,7 +53,7 @@ const PackageCard: React.FC<PackageProps> = ({
   isSingleCardMobile = false
 }) => {
   const { isMobile } = useViewport();
-  const dispatch = useDispatch(); // Add this
+  const dispatch = useDispatch();
   const token = useSelector((state: RootState) => state.auth.token) as string | null;
   const user = useSelector((state: RootState) => state.auth.user) as string | null;
   const router = useRouter();
@@ -76,20 +76,17 @@ const PackageCard: React.FC<PackageProps> = ({
       return;
     }
 
-
     try {
       const res = await packageAddToCart(packageItem.id, token);
       console.log("res", res);
 
       if (res.status === true) {
-        // Fetch updated cart info after successful add to cart
         try {
           const cartInfo = await getCartInfo(token);
           console.log("Updated cart info:", cartInfo);
           dispatch(updateCartInfo(cartInfo));
         } catch (cartError) {
           console.error('Error fetching cart info:', cartError);
-          // Don't fail the whole operation if cart info fetch fails
         }
 
         if (onAddToCartSuccess) {
@@ -122,61 +119,72 @@ const PackageCard: React.FC<PackageProps> = ({
     // Convert to fixed decimal first, then add commas
     const fixedPrice = Number(price).toFixed(2);
     const [integerPart, decimalPart] = fixedPrice.split('.');
-
-    // Add commas to integer part
     const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-
     return `${formattedInteger}.${decimalPart}`;
   };
 
   // Dynamic height classes based on isSingleCardMobile prop
   const getCardHeight = () => {
     if (isSingleCardMobile) {
-      return 'h-[400px] md:h-[320px] lg:h-[360px]'; // Taller in mobile when single card
+      return 'h-[400px] md:h-[320px] lg:h-[360px]';
     }
-    return 'h-[220px] md:h-[320px] lg:h-[360px]'; // Normal height
+    return 'h-[200px] md:h-[320px] lg:h-[360px]';
   };
 
   const getSelectedCardHeight = () => {
     if (isSingleCardMobile) {
-      return 'h-[500px] md:h-[400px] lg:h-[450px]'; // Taller in mobile when single card
+      return 'h-[500px] md:h-[400px] lg:h-[450px]';
     }
-    return 'h-[380px] md:h-[400px] lg:h-[450px]'; // Normal height
+    return 'h-[380px] md:h-[400px] lg:h-[450px]';
   };
 
   const getScrollAreaHeight = () => {
     if (isSingleCardMobile) {
-      return 'h-[280px] md:h-[200px] lg:h-[250px]'; // Taller scroll area in mobile when single card
+      return 'h-[280px] md:h-[200px] lg:h-[250px]';
     }
-    return 'h-[200px] md:h-[200px] lg:h-[250px]'; // Normal scroll area height
+    return 'h-[200px] md:h-[200px] lg:h-[250px]';
+  };
+
+  // Image container dimensions
+  const getImageContainerHeight = () => {
+    if (isSingleCardMobile) {
+      return 'h-[100px] md:h-[160px] lg:h-[180px]';
+    }
+    return 'h-[100px] md:h-[160px] lg:h-[240px]';
   };
 
   return (
     <div className="w-full h-full">
       {!isSelected ? (
         <div
-          className={`flex flex-col items-center justify-between w-full ${getCardHeight()} border border-[#D7D7D7] rounded-lg shadow-lg py-4 px-2 hover:shadow-xl transition-shadow duration-300 cursor-pointer`}
+          className={`flex flex-col items-center justify-between w-full ${getCardHeight()} border border-[#D7D7D7] rounded-3xl shadow-lg py-4 px-2 hover:shadow-xl transition-shadow duration-300 cursor-pointer`}
           onClick={() => onPackageClick(packageItem.id)}
         >
-          <div className="w-full flex-shrink-0">
-            <img
+          {/* Image container */}
+          <div className={`w-full ${getImageContainerHeight()} flex-shrink-0 overflow-hidden rounded-lg`}>
+            <Image
               src={packageItem.image}
               alt={packageItem.displayName}
-              className="w-full h-auto object-cover rounded-lg"
+              width={400}
+              height={250}
+              className="w-full h-full object-cover"
+              style={{ objectPosition: 'center' }}
             />
           </div>
-          <div className="flex flex-col items-center justify-center w-full flex-grow px-2">
-            <p className="font-bold text-base text-center line-clamp-2">
+
+          {/* Content */}
+          <div className="flex flex-col items-center justify-center w-full flex-grow px-2 min-h-[80px] mt-2">
+            <p className="font-bold text-sm lg:text-xl text-center line-clamp-2 leading-tight mb-2">
               {packageItem.displayName}
             </p>
-            <p className="text-[#3E206D] font-medium text-sm sm:text-base mt-2">
+            <p className="text-[#3E206D] text-xs sm:text-lg font-bold ">
               Rs.{formatPrice(packageItem.subTotal)}
             </p>
           </div>
         </div>
       ) : (
         <div
-          className={`w-full ${getSelectedCardHeight()} bg-[#3E206D] rounded-2xl shadow-lg relative md:max-w-[360px] lg:max-w-[400px] min-w-[280px] border border-gray-200 text-white flex flex-col`}
+          className={`w-full ${getSelectedCardHeight()} bg-[#3E206D] rounded-3xl shadow-lg relative border border-gray-200 text-white flex flex-col mx-auto`}
           data-package-popup={packageItem.id}
         >
           <div className="p-4 h-full flex flex-col flex-grow mt-1">
@@ -203,7 +211,7 @@ const PackageCard: React.FC<PackageProps> = ({
 
             <div className={`px-8 pt-2 overflow-y-auto ${getScrollAreaHeight()} scrollbar mb-4`}>
               {isLoadingDetails ? (
-                <div className="text-center py-8 text-white">Loading products...</div>
+                <div className="">Loading products...</div>
               ) : errorDetails ? (
                 <div className="text-red-200 text-center py-8">{errorDetails}</div>
               ) : (
@@ -213,8 +221,8 @@ const PackageCard: React.FC<PackageProps> = ({
                       key={item.id}
                       className="flex justify-between items-center border-b border-white/30 py-1 text-sm"
                     >
-                      <span className="flex-1 text-start truncate pr-2 mb-7">{item.displayName}</span>
-                      <span className="text-white text-start whitespace-nowrap mb-7">
+                      <span className="flex-1 text-start truncate pr-2 mb-2">{item.displayName}</span>
+                      <span className="text-white text-start whitespace-nowrap mb-2">
                         {item.quantity}
                         {item.quantityType && <span className="ml-1">{item.quantityType}</span>}
                       </span>
@@ -226,10 +234,11 @@ const PackageCard: React.FC<PackageProps> = ({
 
             <div className="flex px-8 mt-4">
               <button
-                className="w-full bg-white text-[#000000] py-2 rounded-xl font-normal hover:bg-gray-100 transition-colors cursor-pointer"
+                className="w-full bg-white text-[#000000] py-2 rounded-xl font-normal hover:bg-gray-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={handleAddToCartClick}
+                disabled={isLoadingDetails}
               >
-                Add to Cart
+                {isLoadingDetails ? 'Loading...' : 'Add to Cart'}
               </button>
             </div>
           </div>

@@ -792,9 +792,9 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
                   <span className="font-semibold">{order.pickupInfo?.centerName || 'N/A'}</span>
                 </div>
                 <div className="flex flex-wrap gap-2 text-sm items-center">
-                  <span>{order.pickupInfo?.buildingNumber || 'N/A'}</span>
-                  <span>{order.pickupInfo?.street || 'N/A'}</span>
-                  <span>{order.pickupInfo?.city || 'N/A'}</span>
+
+                  <span>{order.pickupInfo?.province || 'N/A'} province ,</span>
+                  <span>{order.pickupInfo?.city || 'N/A'}</span><br/>
                   <span>{order.pickupInfo?.district || 'N/A'}</span>
                 </div>
               </div>

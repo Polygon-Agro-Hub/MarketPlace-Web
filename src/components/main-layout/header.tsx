@@ -27,6 +27,8 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
   const [isHydrated, setIsHydrated] = useState(false);
   const categoryRef = useRef<HTMLDivElement | null>(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showHeader, setShowHeader] = useState(true);
+  const lastScrollY = useRef(0);
 
   const user = useSelector((state: RootState) => state.auth.user);
   const token = useSelector((state: RootState) => state.auth.token) as string | null;
@@ -75,6 +77,40 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
     };
   }, []);
 
+  useEffect(() => {
+    if (showSignupModal || showLogoutModal) {
+      // disable scroll
+      document.body.style.overflow = "hidden";
+    } else {
+      // enable scroll back
+      document.body.style.overflow = "";
+    }
+
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [showSignupModal, showLogoutModal]);
+
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+
+      if (currentScrollY > lastScrollY.current && currentScrollY > 120) {
+        // scrolling down
+        setShowHeader(false);
+      } else {
+        // scrolling up
+        setShowHeader(true);
+      }
+
+      lastScrollY.current = currentScrollY;
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   }
@@ -96,16 +132,16 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
       // Use pathname instead of window.location.pathname
       if (pathname !== targetHomePage) {
         console.log(`Header: Redirecting from ${pathname} to ${targetHomePage} with search: ${trimmedSearch}`);
-        
+
         // OPTION 1: Use replace instead of push to avoid RSC issues
         router.replace(`${targetHomePage}?search=${encodeURIComponent(trimmedSearch)}`);
-        
+
         // OPTION 2: Alternative - Navigate first, then set search state
         // router.replace(targetHomePage);
         // setTimeout(() => {
         //   dispatch(resetAndSearch(trimmedSearch));
         // }, 100);
-        
+
         return;
       } else {
         // On the correct page, use resetAndSearch
@@ -296,7 +332,10 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
   };
 
   return (
-    <>
+    <div
+      className={`fixed top-0 left-0 w-full z-50 transition-transform duration-500 ease-in-out ${showHeader ? "translate-y-0" : "-translate-y-full"
+        }`}
+    >
       {/* Your existing JSX remains exactly the same */}
       {!isMobile && (
         <div className="bg-[#2C2C2C] text-gray-300 py-2 px-4 sm:px-7">
@@ -422,43 +461,6 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
             </button>
           )}
         </div>
-
-        {/* Your existing styles remain the same */}
-        <style jsx>{`
-          /* All your existing styles remain unchanged */
-          @media screen and (min-width: 320px) and (max-width: 374px) {
-            header {
-              padding: 8px 10px !important;
-            }
-            header > div {
-              gap: 4px;
-            }
-            header .text-2xl {
-              font-size: 14px !important;
-            }
-            header .bg-\\[\\#502496\\] {
-              padding: 4px 8px !important;
-              gap: 3px !important;
-            }
-            header .bg-\\[\\#502496\\] svg {
-              font-size: 12px !important;
-            }
-            header .bg-\\[\\#502496\\] .text-sm {
-              font-size: 8px !important;
-            }
-            header .w-9 {
-              width: 22px !important;
-              height: 22px !important;
-            }
-            header .text-1xl {
-              font-size: 9px !important;
-            }
-            header .text-2xl.fa-bars {
-              font-size: 16px !important;
-            }
-          }
-          /* ... rest of your styles remain the same ... */
-        `}</style>
       </header>
 
       {/* Mobile Menu and Modals remain the same */}
@@ -516,10 +518,10 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
           </div>
         </div>
       )}
-      
+
       {/* Your existing modals remain the same */}
       {showLogoutModal && (
-        <div className="fixed inset-0 bg-black/60 bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/60 bg-opacity-50 flex min-h-screen items-center justify-center z-50">
           <div className="bg-white p-6 rounded-[25px] shadow-lg w-96 text-center">
             <p className="text-lg font-medium mb-6">
               Are you sure you want to logout?
@@ -542,21 +544,21 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
         </div>
       )}
       {showSignupModal && (
-        <div className="fixed inset-0 bg-black/60 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-[25px] shadow-lg w-96 text-center">
+        <div className="fixed min-h-screen inset-0 bg-black/60 bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-[25px] shadow-lg md:w-96 text-center">
             <p className="text-lg font-medium mb-5">
               Do you want to SignIn as a {selectedBuyerType} buyer?
             </p>
             <div className="flex justify-center gap-4">
               <button
                 onClick={() => setShowSignupModal(false)}
-                className="px-6 py-2 bg-[#F3F4F7] text-gray-800 hover:bg-gray-300 transition-colors rounded-[15px] cursor-pointer"
+                className="px-6 py-2 bg-[#F3F4F7] text-gray-800 hover:bg-gray-300 transition-colors rounded-[15px] cursor-pointer w-28 text-center"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmSignup}
-                className="px-6 py-2 bg-[#3E206D] text-white rounded-[15px] hover:bg-[#502496] transition-colors cursor-pointer"
+                className="px-6 py-2 bg-[#3E206D] text-white rounded-[15px] hover:bg-[#502496] transition-colors cursor-pointer w-28 text-center"
               >
                 Yes
               </button>
@@ -564,7 +566,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
           </div>
         </div>
       )}
-    </>
+    </div>
   )
 }
 
