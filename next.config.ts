@@ -29,12 +29,11 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "pub-79ee03a4a23e4dbbb70c7d799d3cb786.r2.dev",
-        port: "",
-        pathname: "/**",
+        hostname: "**",
       },
     ],
   },
 };
+
 
 export default nextConfig;

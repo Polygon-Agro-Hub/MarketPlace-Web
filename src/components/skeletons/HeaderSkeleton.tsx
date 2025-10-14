@@ -31,17 +31,17 @@ const HeaderSkeleton = () => {
       )}
 
       {/* Main header skeleton */}
-      <header className='bg-[#3E206D] py-5 px-5 shadow-md animate-pulse'>
+      <header className='bg-[#cccccc] py-5 px-5 shadow-md animate-pulse'>
         <div className='mx-auto flex justify-between items-center'>
           {/* Logo skeleton */}
-          <div className="h-8 w-24 bg-purple-400 rounded animate-pulse"></div>
+          <div className="h-8 w-24 bg-gray-400 rounded animate-pulse"></div>
 
           {/* Desktop navigation skeleton */}
           {!isMobile && (
             <nav className='hidden md:flex space-x-6'>
-              <div className="h-5 w-12 bg-purple-400 rounded animate-pulse"></div>
-              <div className="h-5 w-16 bg-purple-400 rounded animate-pulse"></div>
-              <div className="h-5 w-20 bg-purple-400 rounded animate-pulse"></div>
+              <div className="h-5 w-12 bg-gray-400 rounded animate-pulse"></div>
+              <div className="h-5 w-16 bg-gray-400 rounded animate-pulse"></div>
+              <div className="h-5 w-20 bg-gray-400 rounded animate-pulse"></div>
             </nav>
           )}
 
@@ -59,30 +59,30 @@ const HeaderSkeleton = () => {
           {/* Right side elements container */}
           <div className="flex items-center space-x-4">
             {/* Cart skeleton */}
-            <div className="flex items-center space-x-4 bg-[#502496] px-8 py-2 rounded-full animate-pulse">
+            <div className="flex items-center space-x-4 bg-gray-400 px-8 py-2 rounded-full animate-pulse">
               <div className='relative'>
                 {/* Shopping bag icon skeleton */}
-                <div className="w-6 h-6 bg-purple-300 rounded animate-pulse"></div>
+                <div className="w-6 h-6 bg-gray-400 rounded animate-pulse"></div>
                 {/* Cart count badge skeleton */}
                 <div className="absolute top-3 -right-2 bg-[#FF8F66] w-4 h-4 rounded-full animate-pulse"></div>
               </div>
               {/* Cart price skeleton */}
-              <div className="h-4 w-16 bg-purple-300 rounded animate-pulse"></div>
+              <div className="h-4 w-16 bg-gray-400 rounded animate-pulse"></div>
             </div>
 
             {/* Order history icon skeleton - desktop only */}
             {!isMobile && (
-              <div className="w-9 h-9 bg-purple-400 rounded animate-pulse"></div>
+              <div className="w-9 h-9 bg-gray-400 rounded animate-pulse"></div>
             )}
 
             {/* User profile icon skeleton */}
             <div className='border-2 border-white w-9 h-9 flex justify-center items-center rounded-full animate-pulse'>
-              <div className="w-4 h-4 bg-purple-400 rounded animate-pulse"></div>
+              <div className="w-4 h-4 bg-gray-400 rounded animate-pulse"></div>
             </div>
 
             {/* Mobile menu button skeleton */}
             {isMobile && (
-              <div className="w-6 h-6 bg-purple-400 rounded animate-pulse"></div>
+              <div className="w-6 h-6 bg-gray-400 rounded animate-pulse"></div>
             )}
           </div>
         </div>
