@@ -411,6 +411,8 @@ function InvoicePageContent() {
   // Load pdfmake, vfs_fonts scripts, and logo image
   useEffect(() => {
     if (typeof window === 'undefined') return; // Skip on server
+    console.log("Deploy check: 2025/10/14");
+    
 
     const loadScripts = async () => {
       try {
