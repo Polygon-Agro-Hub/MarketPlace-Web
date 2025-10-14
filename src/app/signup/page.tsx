@@ -8,6 +8,7 @@ import ErrorPopup from "@/components/toast-messages/error-message";
 import OTPComponent from "@/components/otp-registration/OTPComponent";
 import Image from "next/image";
 import LoginImg from '../../../public/images/login.png'
+import glogo from '../../../public/glogo.png'
 
 type FormErrors = {
   title?: string;
@@ -93,11 +94,10 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
                 onSelect(option.value);
                 setIsOpen(false);
               }}
-              className={`w-full text-left px-1 py-3 hover:bg-gray-100 flex items-center gap-2 transition-colors ${
-                selectedValue === option.value 
-                  ? 'bg-purple-50 text-purple-700 border-l-4 border-purple-700' 
-                  : 'text-gray-900'
-              }`}
+              className={`w-full text-left px-1 py-3 hover:bg-gray-100 flex items-center gap-2 transition-colors ${selectedValue === option.value
+                ? 'bg-purple-50 text-purple-700 border-l-4 border-purple-700'
+                : 'text-gray-900'
+                }`}
             >
               {option.flag && (
                 <img
@@ -448,9 +448,16 @@ export default function SignupForm() {
 
           {/* Left side - Form */}
           <div className="w-full lg:w-1/2 px-6 pt-8 sm:px-10 sm:p-8">
-            <h1 className="text-4xl font-bold text-[#3E206D] mb-4 text-center">
-              MyFarm
-            </h1>
+            <div className="flex justify-center mb-4">
+              <Image
+                src={glogo}
+                alt="MyFarm Logo"
+                width={150}
+                height={60}
+                className="object-contain"
+                priority
+              />
+            </div>
             <h2 className="text-xl font-bold text-center md:text-left text-[#001535] mb-6">
               Create Your Account
             </h2>

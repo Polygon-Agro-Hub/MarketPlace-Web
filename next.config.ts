@@ -35,6 +35,7 @@ const nextConfig: NextConfig = {
   },
 };
 
+
 export default nextConfig;
 
 //production hostname - hostname: "pub-a5aee6f14995472dbf4fdc3013cf95e4.r2.dev",
