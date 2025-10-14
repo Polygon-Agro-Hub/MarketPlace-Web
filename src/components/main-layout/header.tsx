@@ -11,7 +11,8 @@ import { useRouter, usePathname } from 'next/navigation' // Added usePathname
 import { LogOut } from 'lucide-react';
 import { setSearchTerm, clearSearch, resetAndSearch, } from '../../store/slices/searchSlice';
 import { X } from 'lucide-react';
-import { fetchProfile } from '@/services/auth-service';
+import Image from 'next/image';
+import glogo from '../../../public/glogo.png';
 
 interface HeaderProps {
   onSearch?: (searchTerm: string) => void;
@@ -305,7 +306,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
       return (
         <Link
           href="/logout"
-          className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800 flex items-center gap-2"
+          className="py-4 px-6 border-b border-[#828282] hover:bg-purple-800 flex items-center gap-2"
           onClick={handleLogout}
         >
           Logout
@@ -350,33 +351,41 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
         </div>
       )}
 
-      <header className='bg-[#3E206D] text-white py-5 px-5 shadow-md'>
+      <header className='bg-[#FFFFFF] text-white py-5 px-5 shadow-md'>
         <div className='mx-auto flex justify-between items-center'>
-          <Link href="/" className='text-2xl font-bold'>My Farm</Link>
+          <div className='text-2xl font-bold'>
+            <Link href="/">
+              <Image
+                src={glogo}
+                alt="My Farm Logo"
+                className="h-10 w-auto object-contain"
+              />
+            </Link>
+          </div>
           {!isMobile && (
             <nav className='hidden md:flex space-x-6'>
-              <Link href={getHomeUrl()} className='hover:text-purple-200'>
+              <Link href={getHomeUrl()} className='hover:text-[#383d39]  text-[#000000]'>
                 Home
               </Link>
               {!isAuthenticated() && (
                 <div className='relative cursor-pointer' ref={categoryRef}>
                   <button
-                    className='flex items-center hover:text-purple-200  cursor-pointer'
+                    className='flex items-center text-[#000000] hover:text-[#000000]  cursor-pointer'
                     onClick={toggleDesktopCategory}
                   >
-                    Category <span className='ml-1'><FontAwesomeIcon icon={faAngleDown} /></span>
+                    Category <span className='ml-1 text-[#000000]'><FontAwesomeIcon icon={faAngleDown} /></span>
                   </button>
                   {isDesktopCategoryOpen && (
-                    <div className='absolute bg-[#3E206D] text-white w-48 shadow-lg mt-7 z-10  cursor-pointer'>
+                    <div className='absolute bg-[#ffffff] text-[#000000] w-48 shadow-lg mt-7 z-10  cursor-pointer'>
                       <button
                         onClick={(e) => handleCategoryClick(e, 'Retail')}
-                        className="border-b-1 block px-4 py-2 hover:bg-[#6c5394] w-full text-left"
+                        className="border-b-1 block px-4 py-2 hover:bg-[#ededed] w-full text-left"
                       >
                         Retail
                       </button>
                       <button
                         onClick={(e) => handleCategoryClick(e, 'Wholesale')}
-                        className="block px-4 py-2 hover:bg-[#6c5394] w-full text-left"
+                        className="block px-4 py-2 hover:bg-[#ededed] w-full text-left"
                       >
                         Wholesale
                       </button>
@@ -384,7 +393,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
                   )}
                 </div>
               )}
-              <Link href="/promotions" className="hover:text-purple-200">
+              <Link href="/promotions" className="hover:text-[#383d39] text-[#000000]">
                 Promotions
               </Link>
             </nav>
@@ -393,7 +402,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
           {!isMobile && (
             <div className="flex-1 max-w-xl mx-4">
               <form onSubmit={handleSearchSubmit}>
-                <div className="relative">
+                <div className="relative border border-[#575757] rounded-[10px] ">
                   <input
                     type="text"
                     placeholder="Search for Product"
@@ -424,9 +433,9 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
           )}
 
           <div onClick={handleCartClick} className="cursor-pointer">
-            <div className="flex items-center space-x-4 bg-[#502496] px-8 py-2 rounded-full">
+            <div className="flex items-center space-x-4 bg-[#000000] px-8 py-2 rounded-full">
               <div className='relative'>
-                <FontAwesomeIcon className='text-2xl' icon={faBagShopping} />
+                <FontAwesomeIcon className='text-2xl ' icon={faBagShopping} />
                 <span className="absolute top-3 -right-2 bg-[#FF8F66] text-white rounded-full w-4 h-4 flex items-center justify-center text-xs">
                   {isHydrated ? (cartState.count || 0) : 0}
                 </span>
@@ -437,7 +446,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
 
           {!isMobile && isAuthenticated() && (
             <Link href="/history/order">
-              <FontAwesomeIcon className='text-4xl' icon={faClockRotateLeft} />
+              <FontAwesomeIcon className='text-4xl text-[#000000]' icon={faClockRotateLeft}  />
             </Link>
           )}
 
@@ -457,7 +466,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
 
           {isMobile && (
             <button onClick={toggleMenu} className='md:hidden'>
-              <FontAwesomeIcon className='text-2xl' icon={faBars} />
+              <FontAwesomeIcon className='text-2xl text-[#000000]' icon={faBars} />
             </button>
           )}
         </div>
@@ -467,19 +476,19 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
       {isMobile && isMenuOpen && (
         <div className='relative flex w-full justify-end mobile-menu-container'>
           <div className="absolute z-50">
-            <div className="bg-[#3E206D] text-white w-64 flex flex-col mobile-menu-content">
-              <div className="flex justify-between items-center border-b border-purple-800 px-6 py-4">
+            <div className="bg-[#1c1e1f] text-white w-64 flex flex-col mobile-menu-content">
+              <div className="flex justify-between items-center border-b border-[#828282] px-6 py-4">
                 <button onClick={toggleMenu} className="text-white hover:text-purple-200 ml-[90%]">
                   <FontAwesomeIcon icon={faTimes} className="text-xl" />
                 </button>
               </div>
               <nav className="flex flex-col w-full">
                 {renderMobileAuthButtons()}
-                <Link href={getHomeUrl()} className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800">
+                <Link href={getHomeUrl()} className="py-4 px-6 border-b border-[#828282] hover:bg-purple-800 text-[#FFFFFF] ">
                   Home
                 </Link>
                 {!isAuthenticated() && (
-                  <div className="border-b border-purple-800">
+                  <div className="border-b border-[#828282]">
                     <button
                       className="py-4 px-6 w-full flex justify-between items-center hover:bg-purple-800 text-left"
                       onClick={() => setIsCategoryExpanded(!isCategoryExpanded)}
@@ -505,11 +514,11 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
                     )}
                   </div>
                 )}
-                <Link href="/promotions" className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800">
+                <Link href="/promotions" className="py-4 px-6 border-b border-[#828282] hover:bg-purple-800 text-[#FFFFFF]">
                   Promotions
                 </Link>
                 {isAuthenticated() && (
-                  <Link href="/history/order" className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800">
+                  <Link href="/history/order" className="py-4 px-6 border-b border-[#828282] hover:bg-purple-800">
                     Order History
                   </Link>
                 )}

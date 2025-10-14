@@ -23,18 +23,18 @@ interface Package {
 }
 
 // Separate component to handle search params
-function SearchParamsHandler({ 
-  onSearchFromUrl 
-}: { 
-  onSearchFromUrl: (search: string | null) => void 
+function SearchParamsHandler({
+  onSearchFromUrl
+}: {
+  onSearchFromUrl: (search: string | null) => void
 }) {
   const searchParams = useSearchParams();
-  
+
   useEffect(() => {
     const searchFromUrl = searchParams.get('search');
     onSearchFromUrl(searchFromUrl);
   }, [searchParams, onSearchFromUrl]);
-  
+
   return null;
 }
 
@@ -83,22 +83,20 @@ function HomeContent() {
   const handleSearchFromUrl = (searchFromUrl: string | null) => {
     if (searchFromUrl && searchFromUrl.trim()) {
       console.log('Home: Found search in URL:', searchFromUrl);
-      
+
       // Only update Redux state if it's different and execute search immediately
       if (searchFromUrl.trim() !== searchTerm) {
         console.log('Home: Setting search term from URL:', searchFromUrl.trim());
         dispatch(resetAndSearch(searchFromUrl.trim()));
       }
-      
+
       // Always execute search with URL parameter to ensure it's not undefined
       console.log('Home: Executing immediate search with URL param:', searchFromUrl.trim());
       fetchAllPackages(searchFromUrl.trim());
-      
+
       // Clean URL after search is processed
       setTimeout(() => {
-        const url = new URL(window.location.href);
-        url.searchParams.delete('search');
-        window.history.replaceState({}, '', url.pathname);
+        router.replace(window.location.pathname);
       }, 500);
     }
   };
@@ -180,7 +178,7 @@ function HomeContent() {
       // IMPORTANT: Handle undefined/empty search properly
       const searchParam = search && search.trim() ? search.trim() : undefined;
       console.log('Home: Calling API with search param:', searchParam);
-      
+
       const response = await getAllProduct(searchParam) as any;
 
       if (response && response.product) {
@@ -489,7 +487,7 @@ function HomeContent() {
       <Suspense fallback={<SearchParamsLoader />}>
         <SearchParamsHandler onSearchFromUrl={handleSearchFromUrl} />
       </Suspense>
-      
+
       {loading ? (
         <HomeSkeleton isSearchActive={isSearchActive} />
       ) : (

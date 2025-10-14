@@ -7,6 +7,7 @@ import Facebook from "../../../public/icons/Facebook-Footer.png";
 import Youtube from "../../../public/icons/Youtube-Footer.png";
 import Instagram from "../../../public/icons/Instagram-Footer.png";
 import Mail from "../../../public/icons/Mail-Footer.png"
+import footer from "../../../public/footer.png"
 
 export default function Footer() {
   const [isMobile, setIsMobile] = useState(false);
@@ -35,7 +36,16 @@ function DesktopFooter() {
     <div className="mx-auto">
       <div className="flex flex-wrap justify-between items-start px-24 pt-20 pb-10">
         <div className="w-1/4">
-          <h2 className="text-4xl font-bold mb-6">MyFarm</h2>
+          <div className="flex justify-left mb-4">
+            <Image
+              src={footer}
+              alt="MyFarm Logo"
+              width={150}
+              height={60}
+              className="object-contain"
+              priority
+            />
+          </div>
           <div className="mb-4">
             <div className="flex items-start mb-5">
               <div className="text-[#8492A3] mr-2 mt-1">
@@ -131,7 +141,16 @@ function MobileFooter() {
   return (
     <div className="mx-auto">
       <div className="mb-6  flex flex-col items-center">
-        <h2 className="text-xl text-center font-bold mb-10 mt-5">MyFarm</h2>
+        <div className="flex justify-left mb-4 mt-4">
+          <Image
+            src={footer}
+            alt="MyFarm Logo"
+            width={150}
+            height={60}
+            className="object-contain"
+            priority
+          />
+        </div>
         <div className="px-10">
           <div className="flex items-start mb-8">
             <div className="text-[#8492A3] mr-2 mt-1">
@@ -174,7 +193,7 @@ function MobileFooter() {
           <ul>
             <li className="mb-3"><a href="#" className="text-[#DBDBDB] hover:text-blue-300">Home</a></li>
             <li className="mb-3"><a href="#" className="text-[#DBDBDB] hover:text-blue-300">Privacy Policy</a></li>
-            <li className="mb-3"><a href="#" className="text-[#DBDBDB] hover:text-blue-300">Terms & <br/>Conditions</a></li>
+            <li className="mb-3"><a href="#" className="text-[#DBDBDB] hover:text-blue-300">Terms & <br />Conditions</a></li>
           </ul>
         </div>
 
@@ -206,7 +225,7 @@ function MobileFooter() {
         </a>
       </div>
 
-<div className="border-t border-[#404451] pt-6 pb-4 px-6">
+      <div className="border-t border-[#404451] pt-6 pb-4 px-6">
         <div className="flex justify-between items-center mb-4">
           <p className="text-xs text-[#DBDBDB]">© All rights reserved by Polygon Holdings (Pvt) Ltd</p>
           <div className="flex">

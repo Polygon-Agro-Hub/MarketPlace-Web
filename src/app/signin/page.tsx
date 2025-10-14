@@ -17,6 +17,7 @@ import { Lock, Mail } from 'lucide-react';
 import Link from 'next/link';
 import LoginImg from '../../../public/images/login.png'
 import Image from 'next/image';
+import glogo from '../../../public/glogo.png'
 
 const Page = () => {
   const router = useRouter();
@@ -188,10 +189,19 @@ const Page = () => {
           />
 
           {/* Left Panel (Login Form) */}
+          {/* Left Panel (Login Form) */}
           <div className="w-full lg:w-1/2 px-6 pt-8 sm:px-10 sm:p-8">
-            <h1 className="text-4xl font-bold text-[#3E206D] mb-4 text-center">MyFarm</h1>
+            <div className="flex justify-center mb-4">
+              <Image
+                src={glogo}
+                alt="MyFarm Logo"
+                width={150}
+                height={60}
+                className="object-contain"
+                priority
+              />
+            </div>
             <h2 className="text-xl font-bold text-center md:text-left text-[#001535] mb-6">Log in to your Account</h2>
-
             {/* Buyer Type Toggle - Updated for better mobile responsiveness */}
             <div className="flex mb-6 space-x-2">
               <button
