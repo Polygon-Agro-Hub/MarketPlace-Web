@@ -393,9 +393,6 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
                   )}
                 </div>
               )}
-              <Link href="/promotions" className="hover:text-[#383d39] text-[#000000]">
-                Promotions
-              </Link>
             </nav>
           )}
 
@@ -446,12 +443,12 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
 
           {!isMobile && isAuthenticated() && (
             <Link href="/history/order">
-              <FontAwesomeIcon className='text-4xl text-[#000000]' icon={faClockRotateLeft}  />
+              <FontAwesomeIcon className='text-4xl text-[#000000]' icon={faClockRotateLeft} />
             </Link>
           )}
 
           {isAuthenticated() && (
-            <Link className='border-2 w-12 h-12 flex justify-center items-center rounded-full overflow-hidden' href="/account">
+            <Link className='border-2 border-black w-12 h-12 flex justify-center items-center rounded-full overflow-hidden' href="/account">
               {profileImage ? (
                 <img
                   src={profileImage}
@@ -459,14 +456,14 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <FontAwesomeIcon className='text-1xl' icon={faUser} />
+                <FontAwesomeIcon className='text-2xl text-black' icon={faUser} />
               )}
             </Link>
           )}
 
           {isMobile && (
             <button onClick={toggleMenu} className='md:hidden'>
-              <FontAwesomeIcon className='text-2xl text-[#000000]' icon={faBars} />
+              <FontAwesomeIcon className='text-2xl text-[#FFFFFF]' icon={faBars} />
             </button>
           )}
         </div>
