@@ -503,7 +503,7 @@ export default function SignupForm() {
               </label>
             </div>
 
-            {isHome && (
+            {/* {isHome && (
               <div>
                 <p className="text-[#4C5160] font-medium mb-6 text-center">
                   Welcome! Select method to Signup:
@@ -565,7 +565,7 @@ export default function SignupForm() {
                   <div className="flex-grow border-t border-[#8D8D8D]"></div>
                 </div>
               </div>
-            )}
+            )} */}
 
             <div className="flex items-center mb-4">
               <div className="text-[#3E206D] mr-4 whitespace-nowrap">
