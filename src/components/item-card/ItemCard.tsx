@@ -113,12 +113,14 @@ const ItemCard = ({
         return parsedChangeby;
     };
 
-    // Display quantity based on selected unit
     const getDisplayQuantity = () => {
         if (unit === 'kg') {
-            return (quantity / 1000).toFixed(3).replace(/\.?0+$/, ''); // Remove trailing zeros
+            const kgValue = quantity / 1000;
+            // Round to 3 decimal places to avoid floating point issues, then remove trailing zeros
+            return kgValue.toFixed(3).replace(/\.?0+$/, '');
         }
-        return quantity.toString();
+        // For grams, round to avoid floating point precision issues
+        return Math.round(quantity).toString();
     };
 
     const incrementQuantity = () => {
