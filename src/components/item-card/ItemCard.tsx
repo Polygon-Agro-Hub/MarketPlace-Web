@@ -113,12 +113,14 @@ const ItemCard = ({
         return parsedChangeby;
     };
 
-    // Display quantity based on selected unit
     const getDisplayQuantity = () => {
         if (unit === 'kg') {
-            return (quantity / 1000).toFixed(3).replace(/\.?0+$/, ''); // Remove trailing zeros
+            const kgValue = quantity / 1000;
+            // Round to 3 decimal places to avoid floating point issues, then remove trailing zeros
+            return kgValue.toFixed(3).replace(/\.?0+$/, '');
         }
-        return quantity.toString();
+        // For grams, round to avoid floating point precision issues
+        return Math.round(quantity).toString();
     };
 
     const incrementQuantity = () => {
@@ -349,8 +351,9 @@ const ItemCard = ({
             {/* Main content container with flexible height management */}
             <div className={`w-full h-full flex flex-col items-center justify-between p-2`}>
                 {/* Product image - adjusted height based on quantity selector */}
+                {/* Product image - adjusted height based on quantity selector */}
                 <div className={`w-full flex items-center justify-center ${discount ? 'mt-4' : 'mt-0'} ${showQuantitySelector ? 'h-20' : 'flex-grow max-h-36'}`}>
-                    {!addedToCart && (
+                    {!addedToCart && !showQuantitySelector && (
                         <div className="w-full h-full flex items-center justify-center">
                             <Image
                                 src={image}
@@ -382,7 +385,7 @@ const ItemCard = ({
 
                 {/* Quantity selector - positioned to not interfere with button */}
                 {token && user && showQuantitySelector && buyerType !== 'Wholesale' && !isInCart && (
-                    <div className="w-full space-y-2 mb-2 flex flex-col items-center justify-center flex-shrink-0">
+                    <div className="w-full space-y-2 mb-2 flex flex-col items-center justify-center flex-grow">
                         <div className="flex justify-center">
                             <div className="flex rounded overflow-hidden gap-2 cursor-pointer">
                                 <button

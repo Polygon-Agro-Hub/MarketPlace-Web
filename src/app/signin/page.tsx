@@ -237,10 +237,9 @@ const Page = () => {
               </button>
             </div>
 
-            {userType === 'Retail' && (
+            {/* {userType === 'Retail' && (
               <p className="mb-4 text-gray-600 text-center">Welcome! Select method to log in:</p>
             )}
-            {/* Social Login Buttons */}
             <div className="mb-6">
               {userType === 'Retail' && (
                 <div className="flex space-x-4">
@@ -284,12 +283,12 @@ const Page = () => {
                   </button>
                 </div>
               )}
-            </div>
+            </div> */}
 
             {userType === 'Retail' && (
               <div className="flex items-center mb-6">
                 <div className="flex-grow h-px bg-gray-300" />
-                <span className="mx-2 text-sm text-gray-400">or continue with email</span>
+                <span className="mx-2 text-sm text-gray-400">continue with email</span>
                 <div className="flex-grow h-px bg-gray-300" />
               </div>
             )}
