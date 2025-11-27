@@ -8,6 +8,7 @@ import Youtube from "../../../public/icons/Youtube-Footer.png";
 import Instagram from "../../../public/icons/Instagram-Footer.png";
 import Mail from "../../../public/icons/Mail-Footer.png"
 import footer from "../../../public/footer.png"
+import Link from "next/link";
 
 export default function Footer() {
   const [isMobile, setIsMobile] = useState(false);
@@ -83,7 +84,7 @@ function DesktopFooter() {
         <div className="w-1/4 pl-32">
           <h3 className="text-2xl text-[#FFFFFF] font-semibold mb-5">Quick Links</h3>
           <ul>
-            <li className="mb-2"><a href="#" className="text-[#DBDBDB] hover:text-blue-300">Home</a></li>
+            <li className="mb-2"><a href="/" className="text-[#DBDBDB] hover:text-blue-300">Home</a></li>
             <li className="mb-2"><a href="#" className="text-[#DBDBDB] hover:text-blue-300">Privacy Policy</a></li>
             <li className="mb-2"><a href="#" className="text-[#DBDBDB] hover:text-blue-300">Terms & Conditions</a></li>
           </ul>
@@ -92,9 +93,21 @@ function DesktopFooter() {
         <div className="w-1/4 pl-32">
           <h3 className="text-2xl text-[#FFFFFF] font-semibold mb-5">My Accounts</h3>
           <ul>
-            <li className="mb-2"><a href="#" className="text-[#DBDBDB] hover:text-blue-300">My Account</a></li>
-            <li className="mb-2"><a href="#" className="text-[#DBDBDB] hover:text-blue-300">My Cart</a></li>
-            <li className="mb-2"><a href="#" className="text-[#DBDBDB] hover:text-blue-300">My Order History</a></li>
+            <li className="mb-2">
+              <Link href="/account" className="text-[#DBDBDB] hover:text-blue-300">
+                My Account
+              </Link>
+            </li>
+            <li className="mb-2">
+              <Link href="/cart" className="text-[#DBDBDB] hover:text-blue-300">
+                My Cart
+              </Link>
+            </li>
+            <li className="mb-2">
+              <Link href="/history/order" className="text-[#DBDBDB] hover:text-blue-300">
+                My Order History
+              </Link>
+            </li>
           </ul>
         </div>
 
@@ -191,7 +204,7 @@ function MobileFooter() {
         <div>
           <h3 className="text-lg font-semibold mb-5 text-[#FFFFFF]">Quick Links</h3>
           <ul>
-            <li className="mb-3"><a href="#" className="text-[#DBDBDB] hover:text-blue-300">Home</a></li>
+            <li className="mb-3"><a href="" className="text-[#DBDBDB] hover:text-blue-300">Home</a></li>
             <li className="mb-3"><a href="#" className="text-[#DBDBDB] hover:text-blue-300">Privacy Policy</a></li>
             <li className="mb-3"><a href="#" className="text-[#DBDBDB] hover:text-blue-300">Terms & <br />Conditions</a></li>
           </ul>
@@ -200,9 +213,21 @@ function MobileFooter() {
         <div>
           <h3 className="text-lg font-semibold mb-5 text-[#FFFFFF]">My Accounts</h3>
           <ul>
-            <li className="mb-3"><a href="#" className="text-[#DBDBDB] hover:text-blue-300">My Account</a></li>
-            <li className="mb-3"><a href="#" className="text-[#DBDBDB] hover:text-blue-300">My Cart</a></li>
-            <li className="mb-3"><a href="#" className="text-[#DBDBDB] hover:text-blue-300">My Order History</a></li>
+            <li className="mb-3">
+              <Link href="/account" className="text-[#DBDBDB] hover:text-blue-300">
+                My Account
+              </Link>
+            </li>
+            <li className="mb-3">
+              <Link href="/cart" className="text-[#DBDBDB] hover:text-blue-300">
+                My Cart
+              </Link>
+            </li>
+            <li className="mb-3">
+              <Link href="/history/order" className="text-[#DBDBDB] hover:text-blue-300">
+                My Order History
+              </Link>
+            </li>
           </ul>
         </div>
       </div>

@@ -128,6 +128,34 @@ const getStatusClass = (status: string): string => {
   }
 };
 
+function formatAmount(amount: string | number, decimals: number = 2): string {
+  if (amount === null || amount === undefined || amount === 'N/A') {
+    return 'N/A';
+  }
+
+  let numValue: number;
+  if (typeof amount === 'string') {
+    const cleanAmount = amount.replace(/Rs\.\s*/g, '').trim();
+    numValue = parseFloat(cleanAmount);
+  } else {
+    numValue = amount;
+  }
+
+  if (isNaN(numValue)) {
+    return 'N/A';
+  }
+
+  return numValue.toLocaleString('en-US', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  });
+}
+
+function formatCurrency(amount: string | number, decimals: number = 2): string {
+  const formatted = formatAmount(amount, decimals);
+  return formatted === 'N/A' ? 'N/A' : `Rs. ${formatted}`;
+}
+
 
 
 // Define filter options for react-select
@@ -160,6 +188,7 @@ export default function OrderHistoryPage() {
       return;
     }
 
+
     const fetchOrders = async () => {
       try {
         setLoading(true);
@@ -179,7 +208,7 @@ export default function OrderHistoryPage() {
           scheduleDate: order.scheduleDate ? formatDateTime(order.scheduleDate, 'date') : 'N/A',
           scheduleTime: order.scheduleTime || 'N/A',
           deliveryType: order.delivaryMethod || 'N/A',
-          total: order.fullTotal || 'N/A',
+          total: formatCurrency(order.fullTotal || '0'),
           orderPlaced: order.createdAt ? formatDateTime(order.createdAt, 'date') : 'N/A',
           status: order.processStatus || 'Pending',
         }));
@@ -228,7 +257,7 @@ export default function OrderHistoryPage() {
           scheduleDate: apiOrder.sheduleDate ? formatDateTime(apiOrder.sheduleDate, 'date') : 'N/A',
           scheduleTime: apiOrder.sheduleTime || 'N/A',
           deliveryType: apiOrder.delivaryMethod || 'N/A',
-          total: apiOrder.fullTotal ? `Rs. ${parseFloat(apiOrder.fullTotal || '0').toFixed(2)}` : 'Rs. 0.00',
+          total: formatCurrency(apiOrder.fullTotal || 0, 2),
           orderPlaced: apiOrder.createdAt ? formatDateTime(apiOrder.createdAt, 'date') : 'N/A',
           status: apiOrder.processStatus || 'Pending',
           fullName: apiOrder.fullName || 'N/A',
@@ -274,10 +303,10 @@ export default function OrderHistoryPage() {
                 id: item.id || 0,
                 name: item.typeName || 'Unknown',
                 weight: item.weight || '1 kg',
-                price: item.price ? `Rs. ${parseFloat(item.price || '0').toFixed(2)}` : 'Rs. 0.00',
+                price: formatCurrency(parseFloat(item.price || '0'), 2),
                 quantity: item.qty ? String(item.qty).padStart(2, '0') : '01',
               })) || [],
-              totalPrice: pack.productPrice || 'Rs. 0.00',
+              totalPrice: formatCurrency(pack.productPrice || 0, 2),
             }))
             : [],
           additionalItems: additionalItemsData.status && additionalItemsData.data
@@ -287,14 +316,17 @@ export default function OrderHistoryPage() {
               quantity: String(item.qty || 1).padStart(2, '0'),
               unit: item.unit || 'kg',
               weight: `${item.qty || '1'} ${item.unit || 'kg'}`,
-              price: item.price ? `Rs. ${parseFloat(item.price || '0').toFixed(2)}` : 'Rs. 0.00',
+              price: formatCurrency(parseFloat(item.price || '0'), 2),
               image: item.image || undefined,
-              amount: item.price && item.qty
-                ? `Rs. ${(parseFloat(item.price) * parseFloat(item.qty)).toFixed(2)}`
-                : 'Rs. 0.00',
+              amount: formatCurrency(
+                item.price && item.qty
+                  ? parseFloat(item.price) * parseFloat(item.qty)
+                  : 0,
+                2
+              ),
             }))
             : [],
-          discount: totalDiscount > 0 ? `Rs. ${totalDiscount.toFixed(2)}` : 'Rs. 0.00',
+          discount: formatCurrency(totalDiscount > 0 ? ` ${totalDiscount.toFixed(2)}` : ' 0.00'),
         };
         setSelectedOrder(detailedOrder);
       }
@@ -584,15 +616,19 @@ export default function OrderHistoryPage() {
 }
 
 function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: () => void }) {
-  const familyPackTotal = order.familyPackItems?.reduce(
-    (sum, pack) => sum + parseFloat(pack.totalPrice.replace('Rs. ', '') || '0'),
+  const familyPackTotalNum = order.familyPackItems?.reduce(
+    (sum, pack) => sum + parseFloat(pack.totalPrice.replace('Rs. ', '').replace(/,/g, '') || '0'),
     0
-  ).toFixed(2) || '0.00';
-  const additionalItemsTotal = order.additionalItems?.reduce(
-    (sum, item) => sum + parseFloat(item.price.replace('Rs. ', '') || '0') * parseFloat(item.quantity),
+  ) || 0;
+
+  const additionalItemsTotalNum = order.additionalItems?.reduce(
+    (sum, item) => sum + parseFloat(item.price.replace('Rs. ', '').replace(/,/g, '') || '0') * parseFloat(item.quantity),
     0
-  ).toFixed(2) || '0.00';
-  const totalPrice = (parseFloat(familyPackTotal) + parseFloat(additionalItemsTotal)).toFixed(2);
+  ) || 0;
+
+  const familyPackTotal = formatAmount(familyPackTotalNum, 2);
+  const additionalItemsTotal = formatAmount(additionalItemsTotalNum, 2);
+  const totalPrice = formatAmount(familyPackTotalNum + additionalItemsTotalNum, 2);
 
   return (
     <div className="w-full">
@@ -794,7 +830,7 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
                 <div className="flex flex-wrap gap-2 text-sm items-center">
 
                   <span>{order.pickupInfo?.province || 'N/A'} province ,</span>
-                  <span>{order.pickupInfo?.city || 'N/A'}</span><br/>
+                  <span>{order.pickupInfo?.city || 'N/A'}</span><br />
                   <span>{order.pickupInfo?.district || 'N/A'}</span>
                 </div>
               </div>
@@ -924,15 +960,19 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
 }
 
 function DeliveryOrderView({ order, onClose }: { order: DetailedOrder, onClose: () => void }) {
-  const familyPackTotal = order.familyPackItems?.reduce(
-    (sum, pack) => sum + parseFloat(pack.totalPrice.replace('Rs. ', '') || '0'),
+  const familyPackTotalNum = order.familyPackItems?.reduce(
+    (sum, pack) => sum + parseFloat(pack.totalPrice.replace('Rs. ', '').replace(/,/g, '') || '0'),
     0
-  ).toFixed(2) || '0.00';
-  const additionalItemsTotal = order.additionalItems?.reduce(
-    (sum, item) => sum + parseFloat(item.price.replace('Rs. ', '') || '0') * parseFloat(item.quantity),
+  ) || 0;
+
+  const additionalItemsTotalNum = order.additionalItems?.reduce(
+    (sum, item) => sum + parseFloat(item.price.replace('Rs. ', '').replace(/,/g, '') || '0') * parseFloat(item.quantity),
     0
-  ).toFixed(2) || '0.00';
-  const totalPrice = (parseFloat(familyPackTotal) + parseFloat(additionalItemsTotal)).toFixed(2);
+  ) || 0;
+
+  const familyPackTotal = formatAmount(familyPackTotalNum, 2);
+  const additionalItemsTotal = formatAmount(additionalItemsTotalNum, 2);
+  const totalPrice = formatAmount(familyPackTotalNum + additionalItemsTotalNum, 2);
 
   return (
     <div className="w-full">
