@@ -153,7 +153,7 @@ export const updateCartProductQuantity = async (
 };
 
 export const bulkRemoveCartProducts = async (
-  productIds: number[], 
+  productIds: number[],
   token: string | null
 ): Promise<void> => {
   if (!token) {
@@ -169,7 +169,7 @@ export const bulkRemoveCartProducts = async (
   const validIds = productIds
     .map(id => parseInt(String(id), 10))
     .filter(id => !isNaN(id) && id > 0);
-  
+
   if (validIds.length === 0) {
     throw new Error('No valid product IDs provided');
   }
@@ -203,7 +203,7 @@ export const bulkRemoveCartProducts = async (
     console.error('Error object:', error);
     console.error('Error response:', error.response?.data);
     console.error('Error status:', error.response?.status);
-    
+
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
@@ -333,7 +333,6 @@ export const removeCartPackage = async (
 
 
 export interface OrderPayload {
-  // Remove items array - backend gets it from cartId
   cartId: number;
   checkoutDetails: {
     deliveryMethod: string;
@@ -348,15 +347,18 @@ export interface OrderPayload {
     timeSlot: string;
     buildingNo?: string;
     buildingName?: string;
-    flatNumber?: string;  // Maps to unitNo in backend
-    floorNumber?: string; // Maps to floorNo in backend
+    flatNumber?: string;
+    floorNumber?: string;
     houseNo?: string;
-    street?: string;      // Maps to streetName in backend
-    cityName: string;     // Maps to city in backend
+    street?: string;
+    cityName: string;
     scheduleType: string;
     centerId?: number | null;
     couponValue: number;
     isCoupon: boolean;
+    couponCode?: string;
+    geoLatitude?: number | null;
+    geoLongitude?: number | null;  
   };
   paymentMethod: 'card' | 'cash';
   discountAmount: number;
@@ -374,7 +376,7 @@ export const submitOrderToBackend = async (
 
   try {
     console.log('Submitting order payload:', payload);
-    
+
     const response = await axios.post('/cart/create-order', payload, {
       headers: {
         'Content-Type': 'application/json',
@@ -387,9 +389,9 @@ export const submitOrderToBackend = async (
   } catch (error) {
     if (error instanceof AxiosError) {
       console.error('Order service error:', error.response?.data || error.message);
-      const errorMessage = error.response?.data?.error || 
-                          error.response?.data?.message || 
-                          error.message;
+      const errorMessage = error.response?.data?.error ||
+        error.response?.data?.message ||
+        error.message;
       throw new Error(`Order submission failed: ${errorMessage}`);
     }
     console.error('Order service error:', error);
@@ -534,11 +536,11 @@ export const validateOrderData = (payload: OrderPayload): { isValid: boolean; er
 // Helper function to format validation errors for display
 export const formatValidationErrors = (errors: string[]): string => {
   if (errors.length === 0) return '';
-  
+
   if (errors.length === 1) {
     return errors[0];
   }
-  
+
   return errors.map((error, index) => `${index + 1}. ${error}`).join('\n');
 };
 
@@ -611,13 +613,13 @@ export interface CouponValidationResponse {
 }
 
 export const validateCoupon = async (
-  couponCode: string, 
-  token: string, 
+  couponCode: string,
+  token: string,
   deliveryMethod: string
 ): Promise<CouponValidationResponse> => {
   try {
-    const response = await axios.post('/retail-order/check-coupon-avalability', 
-      { 
+    const response = await axios.post('/retail-order/check-coupon-avalability',
+      {
         coupon: couponCode,
         deliveryMethod: deliveryMethod
       },
@@ -629,12 +631,12 @@ export const validateCoupon = async (
       }
     );
 
-    console.log('coupon details',response.data)
+    console.log('coupon details', response.data)
 
     return response.data;
   } catch (error: any) {
     console.error('Error validating coupon:', error);
-    
+
     // Handle axios error response
     const errorMessage = error.response?.data?.message || 'Failed to validate coupon';
     throw new Error(errorMessage);

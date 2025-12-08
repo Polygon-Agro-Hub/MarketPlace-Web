@@ -83,19 +83,13 @@ const Page: React.FC = () => {
     }));
   };
 
-  // Updated prepareOrderPayload function
   const prepareOrderPayload = (): OrderPayload => {
     const calculatedSummary = cartItems.calculatedSummary;
     const originalGrandTotal = calculatedSummary?.finalTotal || 0;
     const discountAmount = calculatedSummary?.totalDiscount || 0;
 
-    // Ensure couponDiscount is a valid number
     const couponDiscountAmount = isCouponApplied ? (Number(couponDiscount) || 0) : 0;
-
-    // Only apply delivery charge if delivery method is 'home'
     const shouldApplyDeliveryCharge = checkoutDetails.deliveryMethod === 'home';
-
-    // Handle Free Delivery coupon type - only applicable for home delivery
     const effectiveDeliveryCharge = shouldApplyDeliveryCharge
       ? ((isCouponApplied && couponType === 'Free Delivary') ? 0 : deliveryCharge)
       : 0;
@@ -124,10 +118,11 @@ const Page: React.FC = () => {
       cityName: '',
       scheduleType: checkoutDetails.scheduleType || 'One Time',
       centerId: null as number | null,
-      // Updated coupon fields - send coupon value for ALL coupon types, not just free delivery
       couponValue: isCouponApplied ? Number(couponDiscountAmount) : 0,
       isCoupon: isCouponApplied,
       couponCode: isCouponApplied ? couponCode : '',
+      geoLatitude: checkoutDetails.geoLatitude || null,    // Add this
+      geoLongitude: checkoutDetails.geoLongitude || null,  // Add this
     };
 
     // ... rest of the address handling code remains the same
