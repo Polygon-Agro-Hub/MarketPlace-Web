@@ -269,7 +269,7 @@ const Page: React.FC = () => {
     }));
   };
 
-  
+
 
 
 
@@ -1246,9 +1246,8 @@ const Page: React.FC = () => {
                   <label className='block font-semibold mb-4'>Time Slot *</label>
                   <CustomDropdown
                     options={[
-                      { value: 'Within 8-12 PM', label: 'Within 8 - 12 PM' },
-                      { value: 'Within 12-4 PM', label: 'Within 12 - 4 PM' },
-                      { value: 'Within  4-8 PM', label: 'Within 4 - 8 PM' },
+                      { value: 'Within 8AM - 2PM', label: 'Within 8AM - 2PM' },
+                      { value: 'Within 2PM - 8PM', label: 'Within 2PM - 8PM' },
                     ]}
                     selectedValue={formData.timeSlot}
                     onSelect={(value) => handleFieldChange('timeSlot', value)}
