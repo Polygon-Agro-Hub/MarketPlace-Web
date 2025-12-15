@@ -7,7 +7,7 @@ import { RootState } from '@/store';
 import { useDispatch } from 'react-redux';
 import { logout } from '../../store/slices/authSlice';
 import { clearCart } from '@/store/slices/cartSlice';
-import { useRouter, usePathname } from 'next/navigation' // Added usePathname
+import { useRouter, usePathname } from 'next/navigation'
 import { LogOut } from 'lucide-react';
 import { setSearchTerm, clearSearch, resetAndSearch, } from '../../store/slices/searchSlice';
 import { X } from 'lucide-react';
@@ -36,7 +36,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
   const cartState = useSelector((state: RootState) => state.auth.cart) || { count: 0, price: 0 };
 
   const router = useRouter();
-  const pathname = usePathname(); // Use Next.js hook instead of window.location
+  const pathname = usePathname();
   const [showSignupModal, setShowSignupModal] = useState(false);
   const [selectedBuyerType, setSelectedBuyerType] = useState('');
 
@@ -80,10 +80,8 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
 
   useEffect(() => {
     if (showSignupModal || showLogoutModal) {
-      // disable scroll
       document.body.style.overflow = "hidden";
     } else {
-      // enable scroll back
       document.body.style.overflow = "";
     }
 
@@ -92,16 +90,13 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
     };
   }, [showSignupModal, showLogoutModal]);
 
-
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
 
       if (currentScrollY > lastScrollY.current && currentScrollY > 120) {
-        // scrolling down
         setShowHeader(false);
       } else {
-        // scrolling up
         setShowHeader(true);
       }
 
@@ -120,7 +115,6 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
     setLocalSearchInput(e.target.value);
   };
 
-  // FIXED: Updated search submit function with better routing logic
   const handleSearchSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     const trimmedSearch = localSearchInput.trim();
@@ -130,22 +124,11 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
       const isWholesaleUser = user?.buyerType === 'Wholesale';
       const targetHomePage = isWholesaleUser ? '/wholesale/home' : '/';
 
-      // Use pathname instead of window.location.pathname
       if (pathname !== targetHomePage) {
         console.log(`Header: Redirecting from ${pathname} to ${targetHomePage} with search: ${trimmedSearch}`);
-
-        // OPTION 1: Use replace instead of push to avoid RSC issues
         router.replace(`${targetHomePage}?search=${encodeURIComponent(trimmedSearch)}`);
-
-        // OPTION 2: Alternative - Navigate first, then set search state
-        // router.replace(targetHomePage);
-        // setTimeout(() => {
-        //   dispatch(resetAndSearch(trimmedSearch));
-        // }, 100);
-
         return;
       } else {
-        // On the correct page, use resetAndSearch
         dispatch(resetAndSearch(trimmedSearch));
       }
     }
@@ -153,7 +136,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
     if (onSearch) {
       onSearch(trimmedSearch);
     }
-  }, [localSearchInput, dispatch, onSearch, router, user?.buyerType, pathname]); // Added pathname to dependencies
+  }, [localSearchInput, dispatch, onSearch, router, user?.buyerType, pathname]);
 
   const handleSearchKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -188,22 +171,18 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
     dispatch(logout());
     dispatch(clearCart());
     setShowLogoutModal(false);
-    // Use replace instead of push for logout
     router.replace('/signin');
   };
 
-  // Helper function to get the correct home URL
   const getHomeUrl = () => {
     if (!isHydrated) return '/';
     return user?.buyerType === 'Wholesale' ? '/wholesale/home' : '/';
   };
 
-  // Helper function to check if user is authenticated
   const isAuthenticated = () => {
     return isHydrated && token;
   };
 
-  // Helper function to get user info safely
   const getUserInfo = () => {
     return isHydrated ? user : null;
   };
@@ -218,7 +197,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
   const confirmSignup = () => {
     setShowSignupModal(false);
     if (selectedBuyerType === 'Wholesale') {
-      router.replace('/wholesale/home'); // Use replace instead of push
+      router.replace('/wholesale/home');
     } else {
       router.replace('/');
     }
@@ -235,14 +214,13 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
     e.preventDefault();
 
     if (!isAuthenticated()) {
-      router.replace('/signin'); // Use replace instead of push
+      router.replace('/signin');
       return;
     }
 
     router.push('/cart');
   };
 
-  // Rest of your component remains the same...
   const renderAuthButtons = () => {
     if (!isHydrated) {
       return (
@@ -337,7 +315,6 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
       className={`fixed top-0 left-0 w-full z-50 transition-transform duration-500 ease-in-out ${showHeader ? "translate-y-0" : "-translate-y-full"
         }`}
     >
-      {/* Your existing JSX remains exactly the same */}
       {!isMobile && (
         <div className="bg-[#2C2C2C] text-gray-300 py-2 px-4 sm:px-7">
           <div className="mx-auto flex flex-col sm:flex-row justify-between items-center gap-2 sm:gap-0">
@@ -352,8 +329,8 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
       )}
 
       <header className='bg-[#FFFFFF] text-white py-5 px-5 shadow-md'>
-        <div className='mx-auto flex justify-between items-center'>
-          <div className='text-2xl font-bold'>
+        <div className='mx-auto flex justify-between items-center gap-3'>
+          <div className='text-2xl font-bold flex items-center'>
             <Link href="/">
               <Image
                 src={glogo}
@@ -430,9 +407,9 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
           )}
 
           <div onClick={handleCartClick} className="cursor-pointer">
-            <div className="flex items-center space-x-4 bg-[#000000] px-8 py-2 rounded-full">
+            <div className="flex items-center space-x-4 bg-[#000000] px-8 py-2 rounded-full h-12">
               <div className='relative'>
-                <FontAwesomeIcon className='text-2xl ' icon={faBagShopping} />
+                <FontAwesomeIcon className='text-2xl' icon={faBagShopping} />
                 <span className="absolute top-3 -right-2 bg-[#FF8F66] text-white rounded-full w-4 h-4 flex items-center justify-center text-xs">
                   {isHydrated ? (cartState.count || 0) : 0}
                 </span>
@@ -448,7 +425,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
           )}
 
           {isAuthenticated() && (
-            <Link className='border-2 border-black w-12 h-12 flex justify-center items-center rounded-full overflow-hidden' href="/account">
+            <Link className='border-2 border-black w-12 h-12 flex justify-center items-center rounded-full overflow-hidden flex-shrink-0' href="/account">
               {profileImage ? (
                 <img
                   src={profileImage}
@@ -463,13 +440,12 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
 
           {isMobile && (
             <button onClick={toggleMenu} className='md:hidden'>
-              <FontAwesomeIcon className='text-2xl text-[#FFFFFF]' icon={faBars} />
+              <FontAwesomeIcon className='text-2xl text-[#000000]' icon={faBars} />
             </button>
           )}
         </div>
       </header>
 
-      {/* Mobile Menu and Modals remain the same */}
       {isMobile && isMenuOpen && (
         <div className='relative flex w-full justify-end mobile-menu-container'>
           <div className="absolute z-50">
@@ -525,7 +501,6 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
         </div>
       )}
 
-      {/* Your existing modals remain the same */}
       {showLogoutModal && (
         <div className="fixed inset-0 bg-black/60 bg-opacity-50 flex min-h-screen items-center justify-center z-50">
           <div className="bg-white p-6 rounded-[25px] shadow-lg w-96 text-center">

@@ -18,6 +18,8 @@ import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import summary from '../../../public/summary.png'
 import { getCities, City } from '@/services/cart-service';
+import GeoLocationModal from '@/components/delivery-map/GeoLocationModal';
+import { LocateFixed } from 'lucide-react';
 
 const OpenStreetMap = dynamic(() => import('@/components/open-map/OpenStreetMap'), {
   ssr: false,
@@ -25,7 +27,7 @@ const OpenStreetMap = dynamic(() => import('@/components/open-map/OpenStreetMap'
 });
 
 interface FormData {
-  centerId: number | null, // Added centerId
+  centerId: number | null,
   deliveryMethod: any;
   title: string;
   fullName: string;
@@ -44,10 +46,12 @@ interface FormData {
   street: string;
   cityName: string;
   scheduleType: string;
+  geoLatitude: number | null;   // Add this
+  geoLongitude: number | null;  // Add this
 }
 
 interface FormErrors {
-  centerId: string; // Added centerId
+  centerId: string;
   deliveryMethod: string;
   title: string;
   fullName: string;
@@ -66,11 +70,13 @@ interface FormErrors {
   street: string;
   cityName: string;
   scheduleType: string;
+  geoLatitude: string;   // Add this
+  geoLongitude: string;  // Add this
 }
 
 const initialFormState: FormData = {
   centerId: null,
-  deliveryMethod: 'home', // This will be overridden by query params if present
+  deliveryMethod: 'home',
   title: '',
   fullName: '',
   phone1: '',
@@ -88,6 +94,8 @@ const initialFormState: FormData = {
   street: '',
   cityName: '',
   scheduleType: 'One Time',
+  geoLatitude: null,    // Add this
+  geoLongitude: null,   // Add this
 };
 
 
@@ -123,6 +131,8 @@ const Page: React.FC = () => {
     street: '',
     cityName: '',
     scheduleType: '',
+    geoLatitude: '',
+    geoLongitude: '',
   });
 
   const token = useSelector((state: RootState) => state.auth.token) as string | null;
@@ -149,6 +159,7 @@ const Page: React.FC = () => {
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
   const [deliveryCharge, setDeliveryCharge] = useState<number>(0); // Default charge
   const [hasPreviousAddress, setHasPreviousAddress] = useState(true);
+  const [isGeoModalOpen, setIsGeoModalOpen] = useState(false);
 
   useEffect(() => {
     // Only run on client side
@@ -241,6 +252,23 @@ const Page: React.FC = () => {
     value: city.id.toString(),
     label: city.city
   }));
+
+
+  const handleLocationSelect = (lat: number, lng: number) => {
+    setFormDataLocal(prev => ({
+      ...prev,
+      geoLatitude: lat,
+      geoLongitude: lng
+    }));
+
+    // Clear any geo location errors
+    setErrors(prev => ({
+      ...prev,
+      geoLatitude: '',
+      geoLongitude: ''
+    }));
+  };
+
 
 
 
@@ -432,6 +460,8 @@ const Page: React.FC = () => {
         street: '',
         cityName: '',
         scheduleType: '',
+        geoLatitude: '',
+        geoLongitude: '',
       });
 
       if (value === 'home') {
@@ -443,7 +473,6 @@ const Page: React.FC = () => {
         setUsePreviousAddress(false);
         setSelectedCity(null); // Clear city selection
         setDeliveryCharge(0); // Reset delivery charge
-        // Reset form to initial state but keep delivery method and basic info
         const basicInfo = {
           title: formData.title,
           fullName: formData.fullName,
@@ -557,13 +586,12 @@ const Page: React.FC = () => {
           if (value === null || value === undefined) {
             return 'Please select a pickup center.';
           }
-          // Additional check: ensure the value is a valid number
           if (typeof value === 'number' && value > 0) {
             return '';
           }
           return 'Please select a pickup center.';
         }
-        return ''; // Not required for home delivery
+        return '';
 
       case 'fullName':
         if (!trimmed) return 'Full Name is required.';
@@ -626,11 +654,15 @@ const Page: React.FC = () => {
         }
         return '';
 
+      case 'geoLatitude':
+      case 'geoLongitude':
+
+        return '';
+
       default:
         return '';
     }
   };
-
   const capitalizeFirstLetter = (value: string): string => {
     if (!value) return value;
     return value.charAt(0).toUpperCase() + value.slice(1);
@@ -681,6 +713,9 @@ const Page: React.FC = () => {
         deliveryDate: formData.deliveryDate,
         timeSlot: formData.timeSlot,
         scheduleType: formData.scheduleType,
+        // Include geo location coordinates
+        geoLatitude: formData.geoLatitude,
+        geoLongitude: formData.geoLongitude,
       };
 
       if (formData.deliveryMethod === 'home') {
@@ -695,6 +730,7 @@ const Page: React.FC = () => {
             houseNo: formData.houseNo,
             street: formData.street,
             cityName: formData.cityName,
+            // Geo location already included above
           };
         } else if (formData.buildingType === 'House') {
           dataToSubmit = {
@@ -703,10 +739,10 @@ const Page: React.FC = () => {
             houseNo: formData.houseNo,
             street: formData.street,
             cityName: formData.cityName,
+            // Geo location already included above
           };
         }
       } else if (formData.deliveryMethod === 'pickup') {
-        // Include centerId for pickup delivery
         dataToSubmit = {
           ...dataToSubmit,
           centerId: formData.centerId,
@@ -1078,7 +1114,7 @@ const Page: React.FC = () => {
                     />
                     {errors.street && <p className="text-red-600 text-sm mt-1">{errors.street}</p>}
                   </div>
-                  {/* City */}
+
                   {/* City */}
                   <div className="w-full md:w-1/2 px-2 mb-4">
                     <label className="block font-semibold text-[#2E2E2E] mb-1">Nearest City *</label>
@@ -1103,7 +1139,34 @@ const Page: React.FC = () => {
                     )}
                     {errors.cityName && <p className="text-red-600 text-sm mt-1">{errors.cityName}</p>}
                   </div>
+
+                  <div className="w-full md:w-1/2 px-2 mb-4">
+                    <label className="block font-semibold text-[#2E2E2E] mb-1">Geo Location *</label>
+                    <button
+                      type="button"
+                      onClick={() => setIsGeoModalOpen(true)}
+                      className="w-full h-[39px] border-2 border-[#F2F4F7] bg-[#E6D9F5] rounded-lg flex items-center justify-center gap-2 text-[#3E206D] font-medium hover:bg-[#d9c9ed] transition-colors"
+                    >
+                      <LocateFixed size={20} />
+                      Attach My Geo Location
+                    </button>
+                    {formData.geoLatitude && formData.geoLongitude && (
+                      <p className="text-xs text-green-600 mt-1">
+                        Location attached: {formData.geoLatitude.toFixed(6)}, {formData.geoLongitude.toFixed(6)}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Geo Location Modal */}
+                  <GeoLocationModal
+                    isOpen={isGeoModalOpen}
+                    onClose={() => setIsGeoModalOpen(false)}
+                    onLocationSelect={handleLocationSelect}
+                    initialCenter={mapCenter}
+                  />
                 </div>
+
+
               )}
 
               <div className='border-t border-gray-300 my-6'></div>
@@ -1183,9 +1246,8 @@ const Page: React.FC = () => {
                   <label className='block font-semibold mb-4'>Time Slot *</label>
                   <CustomDropdown
                     options={[
-                      { value: 'Within 8-12 PM', label: 'Within 8 - 12 PM' },
-                      { value: 'Within 12-4 PM', label: 'Within 12 - 4 PM' },
-                      { value: 'Within  4-8 PM', label: 'Within 4 - 8 PM' },
+                      { value: 'Within 8AM - 2PM', label: 'Within 8AM - 2PM' },
+                      { value: 'Within 2PM - 8PM', label: 'Within 2PM - 8PM' },
                     ]}
                     selectedValue={formData.timeSlot}
                     onSelect={(value) => handleFieldChange('timeSlot', value)}
