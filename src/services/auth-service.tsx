@@ -1,5 +1,5 @@
 import axios from '@/lib/axios';
-import { environment } from '@/environment/environment';    
+import { environment } from '@/environment/environment';
 
 interface LoginPayload {
   email: string;
@@ -13,8 +13,8 @@ interface LoginResponse {
   firstName?: string;
   user?: any;
   message?: string;
-  cart:any;
-  tokenExpiration:any
+  cart: any;
+  tokenExpiration: any
 }
 
 // Signup interface
@@ -68,15 +68,15 @@ interface ApiComplaint {
 
 interface Profile {
   companyName: string;
- buyerType?: string;
+  buyerType?: string;
   title: string;
   firstName: string;
   lastName: string;
   email: string;
-  
+
   phoneCode: string;
   phoneNumber: string;
-    phoneCode2: string;
+  phoneCode2: string;
   phoneNumber2: string;
   image?: string;
   profileImageURL?: string;
@@ -130,6 +130,10 @@ export interface BillingAddress {
   lastName?: string;
   phoneCode?: string;
   phoneNumber?: string;
+  phoneCode2?:string;
+  phoneNumber2?:string;
+  geoLatitude?: number;    // Add this
+  geoLongitude?: number;
 }
 
 export interface BillingDetails {
@@ -142,8 +146,10 @@ export interface BillingDetails {
   phoneNumber: string;
   buildingType: string;
   address: BillingAddress;
-  phoneCode2?: string | null; 
+  phoneCode2?: string | null;
   phoneNumber2?: string | null;
+  geoLatitude?: number;    // Add this
+  geoLongitude?: number;
 }
 
 interface FetchComplaintsPayload {
@@ -353,10 +359,10 @@ export const sendResetEmail = async (email: string): Promise<{ message: string }
 
 
 // auth-service.ts
-export const validateResetToken = async (token: string): Promise<{ 
-  success: boolean; 
-  message: string; 
-  email?: string 
+export const validateResetToken = async (token: string): Promise<{
+  success: boolean;
+  message: string;
+  email?: string
 }> => {
   try {
     const response = await axios.get(`/auth/validate-reset-token/${token}`);
@@ -373,13 +379,13 @@ export const validateResetToken = async (token: string): Promise<{
 };
 
 export const resetPassword = async (
-  token: string, 
+  token: string,
   newPassword: string
 ): Promise<{ success: boolean; message: string }> => {
   try {
-    const response = await axios.put('/auth/reset-password', { 
-      token, 
-      newPassword 
+    const response = await axios.put('/auth/reset-password', {
+      token,
+      newPassword
     });
     return response.data;
   } catch (error: any) {
@@ -424,7 +430,7 @@ export const sendOTP = async (
         const checkResponse = await axios.post("/auth/check-phone", {
           phoneNumber: formattedPhone,
         });
-        console.log('phone number',formattedPhone)
+        console.log('phone number', formattedPhone)
         console.log("Check phone response:", checkResponse.data);
 
         if (!checkResponse.data.exists) {
@@ -453,7 +459,7 @@ export const sendOTP = async (
     };
 
     const response = await axios.post(apiUrl, body, { headers });
-    
+
     console.log("OTP response:", response.data);
 
     if (response.data.referenceId) {
@@ -486,7 +492,7 @@ export const sendOTPInSignup = async (
     const formattedPhone = phoneNumber.replace(/\s+/g, "");
     const fullPhoneNumber = `${countryCode}${formattedPhone}`;
 
-    console.log('phone numbers ',formattedPhone,fullPhoneNumber)
+    console.log('phone numbers ', formattedPhone, fullPhoneNumber)
 
     // Default options
     const {
@@ -511,7 +517,7 @@ export const sendOTPInSignup = async (
     };
 
     const response = await axios.post(apiUrl, body, { headers });
-    
+
     console.log("OTP response:", response.data);
 
     if (response.data.referenceId) {
@@ -539,7 +545,7 @@ export const verifyOTP = async (code: string, referenceId: string) => {
       'Content-Type': 'application/json',
     };
     const body = { code, referenceId };
-    
+
     const response = await axios.post(url, body, { headers });
     return response.data;
   } catch (error) {
@@ -639,7 +645,7 @@ export const updateProfile = async (payload: UpdateProfilePayload): Promise<void
     }
 
     const formData = new FormData();
-    
+
     // Required fields
     formData.append('title', payload.data.title);
     formData.append('firstName', payload.data.firstName);
@@ -652,11 +658,11 @@ export const updateProfile = async (payload: UpdateProfilePayload): Promise<void
     if (payload.data.phoneCode2) {
       formData.append('phoneCode2', payload.data.phoneCode2);
     }
-    
+
     if (payload.data.phoneNumber2) {
       formData.append('phoneNumber2', payload.data.phoneNumber2);
     }
-    
+
     if (payload.data.companyName) {
       formData.append('companyName', payload.data.companyName);
     }
@@ -665,7 +671,7 @@ export const updateProfile = async (payload: UpdateProfilePayload): Promise<void
     if (payload.data.companyPhoneCode) {
       formData.append('companyPhoneCode', payload.data.companyPhoneCode);
     }
-    
+
     if (payload.data.companyPhone) {
       formData.append('companyPhone', payload.data.companyPhone);
     }
@@ -758,10 +764,10 @@ export const fetchBillingDetails = async (payload: FetchBillingDetailsPayload): 
       if (resData.status && resData.data) {
         const apiData = resData.data;
 
-       
+
 
         return {
-         billingName: apiData.billingName || undefined,  // removed fallback to firstName + lastName
+          billingName: apiData.billingName || undefined,  // removed fallback to firstName + lastName
           billingTitle: apiData.billingTitle || undefined, // removed fallback to title
           title: apiData.title || '',
           firstName: apiData.firstName || '',
@@ -822,10 +828,11 @@ export const saveBillingDetails = async (payload: SaveBillingDetailsPayload): Pr
       lastName: payload.data.lastName || '',
       phoneCode: payload.data.phoneCode,
       phoneNumber: payload.data.phoneNumber,
-        phoneCode2: payload.data.phoneCode2,
+      phoneCode2: payload.data.phoneCode2,
       phoneNumber2: payload.data.phoneNumber2,
-      
       buildingType: payload.data.buildingType.toLowerCase(),
+      geoLatitude: payload.data.geoLatitude || null,    // ADD THIS at root level
+      geoLongitude: payload.data.geoLongitude || null,  // ADD THIS at root level
       address: {
         houseNo: payload.data.address.houseNo || null,
         buildingNo: payload.data.address.buildingNo || null,
@@ -834,9 +841,9 @@ export const saveBillingDetails = async (payload: SaveBillingDetailsPayload): Pr
         floorNo: payload.data.address.floorNo || null,
         streetName: payload.data.address.streetName || null,
         city: payload.data.address.city || null,
+        geoLatitude: payload.data.address.geoLatitude || null,    // Keep this too
+        geoLongitude: payload.data.address.geoLongitude || null,  // Keep this too
       },
-      // phonecode2: payload.data.address.phoneCode2 || null,
-      // phone2: payload.data.address.phoneNumber2 || null,
     };
 
     const response = await axios.post('/auth/billing-details', apiPayload, {
@@ -954,12 +961,12 @@ export const submitComplaint = async (payload: ComplaintPayload): Promise<Compla
     const formData = new FormData();
     formData.append('complaintCategoryId', payload.complaintCategoryId.toString());
     formData.append('complaint', payload.complaint);
-    
+
     // Only append images if they exist
     if (payload.images && payload.images.length > 0) {
       payload.images.forEach((image) => formData.append('images', image));
     }
-    
+
     if (payload.imagesToDelete?.length) {
       formData.append('imagesToDelete', JSON.stringify(payload.imagesToDelete));
     }
@@ -967,7 +974,7 @@ export const submitComplaint = async (payload: ComplaintPayload): Promise<Compla
     // Updated URL to match your backend endpoint
     const url = payload.complaintId
       ? `/auth/complaints/update/${payload.complaintId}` // Updated path
-      : `/auth/submit`;                                    
+      : `/auth/submit`;
 
     console.log('Making request to:', url);
 
@@ -1025,17 +1032,17 @@ export const submitComplaint = async (payload: ComplaintPayload): Promise<Compla
       }
 
       // Extract error message from response
-      const errorMessage = error.response.data?.message || 
-                          error.response.data?.error || 
-                          `Server error with status ${error.response.status}`;
-      
+      const errorMessage = error.response.data?.message ||
+        error.response.data?.error ||
+        `Server error with status ${error.response.status}`;
+
       throw new Error(errorMessage);
 
     } else if (error.request) {
       // Request was made but no response received
       console.error('No response received from server:', error.request);
       throw new Error('No response received from server. Please check your network connection and try again.');
-      
+
     } else {
       // Something else happened in setting up the request
       console.error('Request setup error:', error.message);
@@ -1096,7 +1103,7 @@ export const unsubscribeUser = async (token: string, email: string): Promise<any
   }
 };
 
-export const getCartInfo = async ( token: string | null): Promise<any> => {
+export const getCartInfo = async (token: string | null): Promise<any> => {
   if (!token) {
     throw new Error('Authentication required');
   }
@@ -1110,12 +1117,12 @@ export const getCartInfo = async ( token: string | null): Promise<any> => {
         },
       }
     );
-      console.log("cart responce",response);
+    console.log("cart responce", response);
 
     if (response.status >= 200 && response.status < 300) {
-      console.log("cart responce",response);
-      
-      return response.data; 
+      console.log("cart responce", response);
+
+      return response.data;
     }
     throw new Error(response.data?.message || 'Failed to update package quantity');
   } catch (error: any) {
