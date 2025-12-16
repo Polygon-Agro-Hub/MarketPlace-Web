@@ -144,9 +144,12 @@ const Page = () => {
     return '';
   };
 
+  // Update the handlePhoneChange function
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    setPhoneNumber(value);
+    // Only allow digits
+    const cleanedValue = value.replace(/[^\d]/g, '');
+    setPhoneNumber(cleanedValue);
 
     // Clear error when user starts typing
     if (phoneError) {
@@ -495,17 +498,103 @@ const Page = () => {
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
           <div className="bg-white p-4 md:p-8 rounded-xl text-center w-full max-w-md shadow-xl">
-            <Image
-              src={isError ? error : success}
-              alt={isError ? 'Error' : 'Success'}
-              className="w-16 h-16 md:w-20 md:h-20 mx-auto mb-4"
-            />
+            {isError ? (
+              /* Error Icon with Animation */
+              <div className="flex justify-center mb-4">
+                <div className="relative w-20 h-20 md:w-28 md:h-28">
+                  {/* Animated Circle Background */}
+                  <div
+                    className="absolute inset-0 rounded-full bg-red-500 transition-all duration-700 ease-out scale-100 opacity-100"
+                    style={{
+                      transformOrigin: 'center',
+                      animationDelay: '0.2s'
+                    }}
+                  />
 
-            <h2 className="text-lg md:text-xl font-bold mb-2">
+                  {/* Animated X Icon */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <svg
+                      className="w-12 h-12 md:w-16 md:h-16 text-white"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <path
+                        className="opacity-100 transition-all duration-700 ease-out"
+                        d="M18 6L6 18M6 6L18 18"
+                        stroke="currentColor"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        style={{
+                          strokeDasharray: '24',
+                          strokeDashoffset: '0',
+                          transitionDelay: '0.6s'
+                        }}
+                      />
+                    </svg>
+                  </div>
+
+                  {/* Pulse Animation */}
+                  <div
+                    className="absolute inset-0 rounded-full bg-red-500 scale-125 opacity-0 transition-all duration-1000"
+                    style={{
+                      animationDelay: '0.8s'
+                    }}
+                  />
+                </div>
+              </div>
+            ) : (
+              /* Success Icon with Animation */
+              <div className="flex justify-center mb-4">
+                <div className="relative w-20 h-20 md:w-28 md:h-28">
+                  {/* Animated Circle */}
+                  <div
+                    className="absolute inset-0 rounded-full border-4 border-green-500 scale-100 opacity-100 transition-all duration-700 ease-out"
+                    style={{
+                      transformOrigin: 'center',
+                      animationDelay: '0.2s'
+                    }}
+                  />
+
+                  {/* Animated Checkmark */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <svg
+                      className="w-10 h-10 md:w-14 md:h-14 text-green-500"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <path
+                        className="opacity-100 transition-all duration-700 ease-out"
+                        d="M20 6L9 17L4 12"
+                        stroke="currentColor"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        style={{
+                          strokeDasharray: '20',
+                          strokeDashoffset: '0',
+                          transitionDelay: '0.6s'
+                        }}
+                      />
+                    </svg>
+                  </div>
+
+                  {/* Pulse Animation */}
+                  <div
+                    className="absolute inset-0 rounded-full bg-green-500 scale-125 opacity-0 transition-all duration-1000"
+                    style={{
+                      animationDelay: '0.8s'
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
+            <h2 className="text-lg md:text-xl font-bold mb-2 text-gray-900">
               {isError ? 'Error' : resetMethod === 'email' ? 'Email has been sent!' : 'OTP Sent Successfully'}
             </h2>
 
-            <p className="text-gray-700 mb-4 text-sm md:text-base">{modalMessage}</p>
+            <p className="text-gray-500 mb-4 text-sm md:text-base">{modalMessage}</p>
 
             <button
               onClick={() => setIsModalOpen(false)}

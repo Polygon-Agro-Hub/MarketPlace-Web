@@ -92,7 +92,6 @@ const Page = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black/40">
-        <div className="text-white text-xl">Validating token...</div>
       </div>
     );
   }

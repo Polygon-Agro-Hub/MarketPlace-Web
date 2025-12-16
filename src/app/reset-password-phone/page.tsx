@@ -41,17 +41,34 @@ const Page = () => {
       return;
     }
 
-    if (newPassword !== confirmPassword) {
+    // Check if fields are empty
+    if (!newPassword.trim()) {
       setIsError(true);
-      setModalMessage('Passwords do not match');
+      setModalMessage('Please enter a new password');
       setIsModalOpen(true);
       return;
     }
 
+    if (!confirmPassword.trim()) {
+      setIsError(true);
+      setModalMessage('Please confirm your password');
+      setIsModalOpen(true);
+      return;
+    }
+
+    // Check password validation first
     const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{6,}$/;
     if (!passwordRegex.test(newPassword)) {
       setIsError(true);
       setModalMessage('Password must contain at least 6 characters with 1 uppercase, number, and special character');
+      setIsModalOpen(true);
+      return;
+    }
+
+    // Then check if passwords match
+    if (newPassword !== confirmPassword) {
+      setIsError(true);
+      setModalMessage('Passwords do not match');
       setIsModalOpen(true);
       return;
     }

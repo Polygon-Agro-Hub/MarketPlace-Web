@@ -432,7 +432,7 @@ export const sendOTP = async (
         }
       } catch (error) {
         console.error("Error checking phone:", error);
-        throw new Error("Failed to verify phone number");
+        throw new Error("No account found with this number. Please check the number and try again");
       }
     }
 

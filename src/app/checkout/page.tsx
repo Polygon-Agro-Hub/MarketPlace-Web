@@ -135,6 +135,9 @@ const Page: React.FC = () => {
     geoLongitude: '',
   });
 
+  // Add this new state for duplicate phone error
+  const [duplicatePhoneError, setDuplicatePhoneError] = useState('');
+
   const token = useSelector((state: RootState) => state.auth.token) as string | null;
   const [usePreviousAddress, setUsePreviousAddress] = useState(false);
   const cartData = useSelector(selectCartForOrder);
@@ -216,6 +219,17 @@ const Page: React.FC = () => {
 
     fetchPickupCenters();
   }, [formData.deliveryMethod, token]);
+
+  useEffect(() => {
+    // Check if both phone numbers are filled and identical
+    if (formData.phone1 && formData.phone2 &&
+      formData.phone1.trim() === formData.phone2.trim() &&
+      formData.phoneCode1 === formData.phoneCode2) {
+      setDuplicatePhoneError('Phone Number 1 and Phone Number 2 cannot be the same');
+    } else {
+      setDuplicatePhoneError('');
+    }
+  }, [formData.phone1, formData.phone2, formData.phoneCode1, formData.phoneCode2]);
 
   useEffect(() => {
     const fetchCities = async () => {
@@ -497,6 +511,11 @@ const Page: React.FC = () => {
     const isHomeDelivery = formData.deliveryMethod === 'home';
     const isPickup = formData.deliveryMethod === 'pickup';
     const isApartment = formData.buildingType === 'Apartment';
+
+    // Check for duplicate phone numbers
+    if (duplicatePhoneError) {
+      return false;
+    }
 
     // Check required fields based on delivery method
     const requiredFields = [
@@ -983,9 +1002,9 @@ const Page: React.FC = () => {
                     <div className='w-24'>
                       <CustomDropdown
                         options={[
-                          { value: '94', label: '+94' },
-                          { value: '91', label: '+91' },
-                          { value: '1', label: '+1' }
+                          { value: '+94', label: '+94' },
+                          { value: '+91', label: '+91' },
+                          { value: '+1', label: '+1' }
                         ]}
                         selectedValue={formData.phoneCode2}
                         onSelect={(value) => handleFieldChange('phoneCode2', value)}
@@ -995,13 +1014,16 @@ const Page: React.FC = () => {
                     <div className="w-full">
                       <input
                         type="text"
-                        className='w-full  h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2 '
+                        className={`w-full h-[39px] border-2 ${duplicatePhoneError ? 'border-red-500' : 'border-[#F2F4F7]'} bg-[#F9FAFB] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2`}
                         value={formData.phone2}
                         onChange={(e) => handleFieldChange('phone2', e.target.value)}
                         placeholder='7XXXXXXXX'
                       />
                       {errors.phone2 && (
                         <p className="text-red-600 text-sm mt-1">{errors.phone2}</p>
+                      )}
+                      {duplicatePhoneError && !errors.phone2 && (
+                        <p className="text-red-600 text-sm mt-1">{duplicatePhoneError}</p>
                       )}
                     </div>
                   </div>

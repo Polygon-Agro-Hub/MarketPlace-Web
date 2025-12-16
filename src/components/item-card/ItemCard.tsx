@@ -119,6 +119,11 @@ const ItemCard = ({
             // Round to 3 decimal places to avoid floating point issues, then remove trailing zeros
             return kgValue.toFixed(3).replace(/\.?0+$/, '');
         }
+        if (unit === 'g') {
+            const kgValue = quantity
+            // Round to 3 decimal places to avoid floating point issues, then remove trailing zeros
+            return kgValue.toFixed(3).replace(/\.?0+$/, '');
+        }
         // For grams, round to avoid floating point precision issues
         return Math.round(quantity).toString();
     };
