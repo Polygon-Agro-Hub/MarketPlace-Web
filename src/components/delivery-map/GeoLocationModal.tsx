@@ -16,13 +16,15 @@ interface GeoLocationModalProps {
     onClose: () => void;
     onLocationSelect: (lat: number, lng: number) => void;
     initialCenter?: [number, number];
+    savedLocation?: [number, number] | null; // ADD THIS
 }
 
 const GeoLocationModal: React.FC<GeoLocationModalProps> = ({
     isOpen,
     onClose,
     onLocationSelect,
-    initialCenter = [6.9271, 79.8612]
+    initialCenter = [6.9271, 79.8612],
+    savedLocation = null // ADD THIS
 }) => {
     const mapRef = useRef<HTMLDivElement>(null);
     const mapInstanceRef = useRef<L.Map | null>(null);
@@ -35,24 +37,25 @@ const GeoLocationModal: React.FC<GeoLocationModalProps> = ({
     useEffect(() => {
         if (!isOpen || !mapRef.current) return;
 
-        // Initialize the map
         const map = L.map(mapRef.current).setView(initialCenter, 13);
 
-        // Add OpenStreetMap tiles
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
 
         mapInstanceRef.current = map;
 
-        // Add click handler to map
+        // ADD THIS: If there's a saved location, show it immediately
+        if (savedLocation) {
+            updateMarker(savedLocation[0], savedLocation[1]);
+        }
+
         map.on('click', (e: L.LeafletMouseEvent) => {
             const { lat, lng } = e.latlng;
             updateMarker(lat, lng);
-            setLocationError(''); // Clear any error when user manually selects
+            setLocationError('');
         });
 
-        // Cleanup function
         return () => {
             if (mapInstanceRef.current) {
                 mapInstanceRef.current.remove();
@@ -60,7 +63,7 @@ const GeoLocationModal: React.FC<GeoLocationModalProps> = ({
             }
             markerRef.current = null;
         };
-    }, [isOpen]);
+    }, [isOpen, savedLocation]);
 
     // Auto-close success modal after 5 seconds
     useEffect(() => {
@@ -241,7 +244,9 @@ const GeoLocationModal: React.FC<GeoLocationModalProps> = ({
                 <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
                     {/* Header */}
                     <div className="flex justify-between items-center p-3 sm:p-4 border-b border-gray-200 flex-shrink-0">
-                        <h2 className="text-base sm:text-xl font-bold text-[#252525]">Select Your Location</h2>
+                        <h2 className="text-base sm:text-xl font-bold text-[#252525]">
+                            {savedLocation ? 'View & Edit Your Saved Location' : 'Select Your Location'}
+                        </h2>
                         <button
                             type="button"
                             onClick={onClose}
@@ -294,7 +299,7 @@ const GeoLocationModal: React.FC<GeoLocationModalProps> = ({
                             </button>
 
                             <button
-                                type="button" 
+                                type="button"
                                 onClick={handleConfirm}
                                 disabled={!selectedLocation}
                                 className="w-full bg-[#10B981] text-white font-semibold rounded-lg px-4 py-2.5 sm:py-3 hover:bg-[#059669] transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed text-sm sm:text-base"

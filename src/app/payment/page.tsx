@@ -90,8 +90,13 @@ const Page: React.FC = () => {
 
     const couponDiscountAmount = isCouponApplied ? (Number(couponDiscount) || 0) : 0;
     const shouldApplyDeliveryCharge = checkoutDetails.deliveryMethod === 'home';
+
+    // FIXED: Check for both possible spellings
+    const isFreeDeliveryCoupon = isCouponApplied &&
+      (couponType === 'Free Delivery' || couponType === 'Free Delivary');
+
     const effectiveDeliveryCharge = shouldApplyDeliveryCharge
-      ? ((isCouponApplied && couponType === 'Free Delivary') ? 0 : deliveryCharge)
+      ? (isFreeDeliveryCoupon ? 0 : deliveryCharge)
       : 0;
 
     const finalGrandTotal = isCouponApplied ?
@@ -380,9 +385,13 @@ const Page: React.FC = () => {
     // Only show delivery charges if delivery method is 'home' (delivery)
     const shouldShowDeliveryCharge = checkoutDetails.deliveryMethod === 'home';
 
+    // FIXED: Check for both possible spellings of Free Delivery
+    const isFreeDeliveryCoupon = isCouponApplied &&
+      (couponType === 'Free Delivery' || couponType === 'Free Delivary');
+
     // Handle Free Delivery coupon type - only applicable for home delivery
     const effectiveDeliveryCharge = shouldShowDeliveryCharge
-      ? ((isCouponApplied && couponType === 'Free Delivary') ? 0 : deliveryCharge)
+      ? (isFreeDeliveryCoupon ? 0 : deliveryCharge)
       : 0;
 
     // Ensure couponDiscount is a valid number
@@ -400,7 +409,7 @@ const Page: React.FC = () => {
       couponDiscount: couponDiscountAmount,
       grandTotal: finalGrandTotal,
       deliveryCharges: effectiveDeliveryCharge,
-      isFreeDelivery: isCouponApplied && couponType === 'Free Delivary' && shouldShowDeliveryCharge,
+      isFreeDelivery: isFreeDeliveryCoupon && shouldShowDeliveryCharge,
       showDeliveryCharges: shouldShowDeliveryCharge,
     };
   };

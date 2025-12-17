@@ -163,6 +163,7 @@ const Page: React.FC = () => {
   const [deliveryCharge, setDeliveryCharge] = useState<number>(0); // Default charge
   const [hasPreviousAddress, setHasPreviousAddress] = useState(true);
   const [isGeoModalOpen, setIsGeoModalOpen] = useState(false);
+  const [viewingSavedLocation, setViewingSavedLocation] = useState(false);
 
   useEffect(() => {
     // Only run on client side
@@ -344,6 +345,9 @@ const Page: React.FC = () => {
             buildingName: data.buildingName || '',
             flatNumber: data.unitNo || '',
             floorNumber: data.floorNo || '',
+            // Geo location coordinates
+            geoLatitude: data.latitude ? parseFloat(data.latitude) : null,
+            geoLongitude: data.longitude ? parseFloat(data.longitude) : null,
           }));
         }
       } catch (error: any) {
@@ -533,6 +537,8 @@ const Page: React.FC = () => {
 
     if (isHomeDelivery) {
       requiredFields.push('buildingType', 'houseNo', 'street', 'cityName');
+      // ADD THESE LINES:
+      requiredFields.push('geoLatitude', 'geoLongitude');
 
       // Add apartment specific required fields
       if (isApartment) {
@@ -545,7 +551,7 @@ const Page: React.FC = () => {
       const value = formData[field as keyof FormData];
 
       // Check if field is empty
-      if (field === 'centerId') {
+      if (field === 'centerId' || field === 'geoLatitude' || field === 'geoLongitude') {
         if (value === null || value === undefined) return false;
       } else {
         if (!value || (typeof value === 'string' && !value.trim())) return false;
@@ -563,6 +569,7 @@ const Page: React.FC = () => {
 
     return true;
   };
+
 
   const [isFormValidState, setIsFormValidState] = useState(false);
 
@@ -592,7 +599,6 @@ const Page: React.FC = () => {
     }
   };
 
-  // Updated validateField function - ensure cityName validation
   const validateField = (field: keyof FormData, value: string | number | null, formData: FormData): string => {
     const trimmed = typeof value === 'string' ? value.trim() : '';
     const isHomeDelivery = formData.deliveryMethod === 'home';
@@ -675,13 +681,20 @@ const Page: React.FC = () => {
 
       case 'geoLatitude':
       case 'geoLongitude':
-
+        // UPDATED: Make geo location required for home delivery
+        if (isHomeDelivery) {
+          if (value === null || value === undefined) {
+            return 'Geo location is required. Please attach your location.';
+          }
+        }
         return '';
 
       default:
         return '';
     }
   };
+
+
   const capitalizeFirstLetter = (value: string): string => {
     if (!value) return value;
     return value.charAt(0).toUpperCase() + value.slice(1);
@@ -1166,25 +1179,67 @@ const Page: React.FC = () => {
                     <label className="block font-semibold text-[#2E2E2E] mb-1">Geo Location *</label>
                     <button
                       type="button"
-                      onClick={() => setIsGeoModalOpen(true)}
+                      onClick={() => {
+                        setViewingSavedLocation(false);
+                        setIsGeoModalOpen(true);
+                      }}
                       className="w-full h-[39px] border-2 border-[#F2F4F7] bg-[#E6D9F5] rounded-lg flex items-center justify-center gap-2 text-[#3E206D] font-medium hover:bg-[#d9c9ed] transition-colors"
                     >
                       <LocateFixed size={20} />
-                      Attach My Geo Location
+                      {formData.geoLatitude && formData.geoLongitude
+                        ? 'Reattach My Geo Location'
+                        : 'Attach My Geo Location'
+                      }
                     </button>
-                    {formData.geoLatitude && formData.geoLongitude && (
-                      <p className="text-xs text-green-600 mt-1">
-                        Location attached: {formData.geoLatitude.toFixed(6)}, {formData.geoLongitude.toFixed(6)}
+
+                    {(errors.geoLatitude || errors.geoLongitude) && (
+                      <p className="text-red-600 text-sm mt-1">
+                        {errors.geoLatitude || errors.geoLongitude}
                       </p>
                     )}
-                  </div>
 
+                    {/* Show current attached location */}
+                    {formData.geoLatitude && formData.geoLongitude && (
+                      <div className="mt-2 space-y-1">
+                        <p className="text-xs text-green-600">
+                          Location attached: {formData.geoLatitude.toFixed(6)}, {formData.geoLongitude.toFixed(6)}
+                        </p>
+
+                        {/* View Here link - only show if this is from saved address */}
+                        {usePreviousAddress && formData.geoLatitude && formData.geoLongitude && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setViewingSavedLocation(true);
+                              setIsGeoModalOpen(true);
+                            }}
+                            className="flex items-center gap-1 text-red-600 hover:text-red-700 transition-colors text-sm font-medium group"
+                          >
+                            <LocateFixed size={16} className="group-hover:scale-110 transition-transform" />
+                            <span className="underline">View here</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
                   {/* Geo Location Modal */}
                   <GeoLocationModal
                     isOpen={isGeoModalOpen}
-                    onClose={() => setIsGeoModalOpen(false)}
+                    onClose={() => {
+                      setIsGeoModalOpen(false);
+                      setViewingSavedLocation(false);
+                    }}
                     onLocationSelect={handleLocationSelect}
-                    initialCenter={mapCenter}
+                    initialCenter={
+                      viewingSavedLocation && formData.geoLatitude && formData.geoLongitude
+                        ? [formData.geoLatitude, formData.geoLongitude]
+                        : mapCenter
+                    }
+                    savedLocation={
+                      viewingSavedLocation && formData.geoLatitude && formData.geoLongitude
+                        ? [formData.geoLatitude, formData.geoLongitude]
+                        : null
+                    }
                   />
                 </div>
 
