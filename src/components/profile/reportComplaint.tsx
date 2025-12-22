@@ -199,15 +199,16 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
     setIsDragging(false);
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+ const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const filesArray = Array.from(e.target.files);
       const validImages: File[] = [];
-      let hasInvalidFiles = false;
+      let hasInvalidType = false;
+      let hasInvalidSize = false;
       let hasDuplicates = false;
 
       filesArray.forEach((file) => {
-        const isValidType = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'].includes(file.type);
+        const isValidType = ['image/jpeg', 'image/png'].includes(file.type);
         const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB limit
 
         // More reliable duplicate check - just check name and size
@@ -215,8 +216,10 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
 
         if (isDuplicate) {
           hasDuplicates = true;
-        } else if (!isValidType || !isValidSize) {
-          hasInvalidFiles = true;
+        } else if (!isValidType) {
+          hasInvalidType = true;
+        } else if (!isValidSize) {
+          hasInvalidSize = true;
         } else {
           // Only add if it's valid and not a duplicate
           validImages.push(file);
@@ -233,14 +236,14 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
         return;
       }
 
-      if (hasDuplicates && hasInvalidFiles) {
-        setErrorMessage('You have already uploaded some of these images. Some files were also invalid (unsupported type or too large). Max size: 5MB.');
+      if (hasInvalidType) {
+        setErrorMessage('Invalid file type. Please upload only JPEG or PNG images.');
+        setShowErrorPopup(true);
+      } else if (hasInvalidSize) {
+        setErrorMessage('File size too large. Maximum size allowed is 5MB.');
         setShowErrorPopup(true);
       } else if (hasDuplicates) {
         setErrorMessage('You have already uploaded this image.');
-        setShowErrorPopup(true);
-      } else if (hasInvalidFiles) {
-        setErrorMessage('Some files were invalid (unsupported type or too large). Max size: 5MB.');
         setShowErrorPopup(true);
       }
 

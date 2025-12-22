@@ -10,6 +10,7 @@ import { getOrderHistory, getOrderDetails } from '@/services/retail-order-servic
 import { useRouter } from 'next/navigation';
 import Select, { ActionMeta, SingleValue } from 'react-select'; // Import react-select
 import Loader from '@/components/loader-spinner/Loader';
+import cart from '../../../../public/images/History.jpg'
 
 
 // Define interfaces based on the API responses
@@ -406,6 +407,7 @@ export default function OrderHistoryPage() {
                   options={filterOptions}
                   value={filterOptions.find((option) => option.value === filter)}
                   onChange={handleFilterChange}
+                  isSearchable={false}
                   className="text-xs lg:text-sm"
                   styles={{
                     control: (base) => ({
@@ -445,8 +447,6 @@ export default function OrderHistoryPage() {
                       textAlign: 'center',
                       width: '100%',
                       color: 'rgb(31,41,55)',
-
-
                     }),
                     dropdownIndicator: (base) => ({
                       ...base,
@@ -582,7 +582,7 @@ export default function OrderHistoryPage() {
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-[70vh] text-center text-[rgb(75,85,99)] -mt-32">
-                <Image src="/images/History.jpg" alt="No
+                <Image src={cart} alt="No
 
  Orders" width={200} height={200} />
                 <p className="mt-4 text-sm italic">--No orders available here--</p>
@@ -593,7 +593,7 @@ export default function OrderHistoryPage() {
       </main>
 
       {(selectedOrder || isFetchingDetails) && (
-        <div className="absolute inset-0 bg-[rgba(255,255,255,0.5)] backdrop-blur-sm flex justify-end items-start z-30">
+        <div className="absolute inset-0 bg-[rgba(255,255,255,0.5)] backdrop-blur-[2px] flex justify-end items-start z-30">
           <div
             ref={modalContentRef}
             className="relative bg-[rgb(255,255,255)] sm:rounded-l-xl w-full max-w-5xl h-full sm:p-8 overflow-y-auto shadow-2xl animate-slideInRight"
@@ -731,7 +731,7 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
                         {pack.name} ({pack.items?.length || 0} Items)
                       </span>
                       <span className="font-semibold text-[#3E206D]">
-                        Rs. {parseFloat(pack.totalPrice.replace('Rs. ', '') || '0').toFixed(2)}
+                        Rs. {familyPackTotal}
                       </span>
                     </div>
                     <div className="space-y-3">
@@ -872,7 +872,7 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
                           {pack.name} ({pack.items?.length || 0} items)
                         </td>
                         <td className="text-right font-semibold py-2 p-4" style={{ color: 'rgb(62,32,109)' }}>
-                          Rs. {parseFloat(pack.totalPrice.replace('Rs. ', '') || '0').toFixed(2)}
+                         Rs.  {familyPackTotal}
                         </td>
                       </tr>
                       <tr>
@@ -1084,7 +1084,7 @@ function DeliveryOrderView({ order, onClose }: { order: DetailedOrder, onClose: 
                         {pack.name} ({pack.items?.length || 0} Items)
                       </span>
                       <span className="font-semibold text-[#3E206D]">
-                        Rs. {parseFloat(pack.totalPrice.replace('Rs. ', '') || '0').toFixed(2)}
+                        Rs. {familyPackTotal}
                       </span>
                     </div>
                     <div className="space-y-3">
@@ -1243,7 +1243,7 @@ function DeliveryOrderView({ order, onClose }: { order: DetailedOrder, onClose: 
                           {pack.name} ({pack.items?.length || 0} Items)
                         </td>
                         <td className="text-right font-semibold py-2 p-4" style={{ color: 'rgb(62,32,109)' }}>
-                          Rs. {parseFloat(pack.totalPrice.replace('Rs. ', '') || '0').toFixed(2)}
+                          Rs. {familyPackTotal}
                         </td>
                       </tr>
                       <tr>
