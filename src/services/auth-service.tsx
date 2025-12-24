@@ -64,6 +64,7 @@ interface ApiComplaint {
   reply?: string;
   replyDate?: string | null;
   customerName?: string;
+  replyTime?:string | null;
 }
 
 interface Profile {
@@ -901,6 +902,7 @@ export const fetchComplaints = async (payload: FetchComplaintsPayload): Promise<
           createdAt: new Date(item.createdAt),
           reply: item.reply || 'No reply available yet.',
           replyDate: item.replyDate || null,
+          replyTime:item.replyTime || null,
           customerName: item.customerName || 'Unknown Customer',
         }));
         return mappedComplaints;

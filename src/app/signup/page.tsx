@@ -81,11 +81,6 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
       {/* Dropdown Options */}
       {isOpen && (
         <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
-          {!selectedValue && (
-            <div className="px-3 py-2 text-gray-500 text-sm">
-              {placeholder}
-            </div>
-          )}
           {options.map((option) => (
             <button
               key={option.value}
@@ -835,8 +830,8 @@ export default function SignupForm() {
 
                 {!isPasswordValid && formData.password && (
                   <div className="text-xs text-gray-600 pl-1 flex flex-row gap-2 md:flex-row items-start md:items-center">
-                    <div className="flex-shrink-0 h-5 w-5 rounded-full bg-gray-200 flex items-center justify-center mb-2 md:mb-0 md:mr-1">
-                      <span className="text-xs text-[#ffffff]">i</span>
+                    <div className="flex-shrink-0 h-5 w-5 rounded-full bg-gray-500 flex items-center justify-center mb-2 md:mb-0 md:mr-1">
+                      <span className="text-xs text-[#ffffff] font-semibold">i</span>
                     </div>
                     <div className="text-[#3E206D] text-xs md:text-sm">
                       Your password must contain a minimum of 6 characters with 1

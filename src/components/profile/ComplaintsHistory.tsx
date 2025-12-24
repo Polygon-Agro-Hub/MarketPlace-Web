@@ -26,6 +26,7 @@ interface Complaint {
   reply?: string;
   replyDate?: string | null;
   customerName?: string;
+  replyTime?: string | null;
 }
 
 // Define filter options for react-select
@@ -119,6 +120,21 @@ const ComplaintsHistory = () => {
     setSelectedComplaint(null);
   };
 
+  const formatReplyTime = (replyTime: string | null | undefined): string => {
+    if (!replyTime) return 'Not replied yet';
+
+    const date = new Date(replyTime);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    }) + ' at ' + date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+
   // Handle filter change for react-select
   const handleFilterChange = (
     newValue: SingleValue<{ value: string; label: string }>,
@@ -165,9 +181,9 @@ const ComplaintsHistory = () => {
                   </p>
                   <p className="text-sm">Sincerely,</p>
                   <p className="text-sm">Support Team</p>
-                  {/* <p className="text-sm">
-                    {selectedComplaint.replyDate}
-                  </p> */}
+                  <p className="text-sm">
+                    {formatReplyTime(selectedComplaint.replyTime)}
+                  </p>
                 </div>
                 <button
                   onClick={handleGoBack}

@@ -356,8 +356,8 @@ const Page: React.FC = () => {
       return [...prev, { productId, newQuantity }];
     });
   };
-  
-  
+
+
   // Show confirmation modal for product removal
   const handleRemoveProduct = async (productId: number) => {
     const itemKey = `product-${productId}`;
@@ -1165,7 +1165,9 @@ const Page: React.FC = () => {
                       className="object-contain"
                     />
                   </div>
-                  <p className="text-sm sm:text-base">{dynamicSummary.totalItems} items</p>
+                  <p className="text-sm sm:text-base">
+                    {dynamicSummary.totalItems} {dynamicSummary.totalItems === 1 ? 'item' : 'items'}
+                  </p>
                 </div>
                 <p className='font-semibold text-sm sm:text-base'>Rs.{formatPrice(dynamicSummary.grandTotal)}</p>
               </div>

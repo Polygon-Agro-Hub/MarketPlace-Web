@@ -1350,7 +1350,9 @@ const Page: React.FC = () => {
                         className="object-contain"
                       />
                     </div>
-                    <p className="text-gray-600">{cartData?.totalItems || 0} items</p>
+                    <p className="text-gray-600">
+                      {cartData?.totalItems || 0} {(cartData?.totalItems || 0) === 1 ? 'item' : 'items'}
+                    </p>
                   </div>
                   <p className='font-semibold'>Rs.{formatPrice(cartData?.grandTotal || 0)}</p>
                 </div>
