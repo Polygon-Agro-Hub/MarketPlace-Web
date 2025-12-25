@@ -513,10 +513,11 @@ const PersonalDetailsForm = () => {
   ];
 
   const titleOptions = [
-    { value: 'Rev', label: 'Rev' },
     { value: 'Mr', label: 'Mr' },
-    { value: 'Ms', label: 'Ms' },
     { value: 'Mrs', label: 'Mrs' },
+    { value: 'Ms', label: 'Ms' },
+    { value: 'Rev', label: 'Rev' },
+
   ];
 
   return (

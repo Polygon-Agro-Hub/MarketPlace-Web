@@ -194,13 +194,11 @@ const BillingDetailsForm = () => {
   };
 
 
-
-  // Options for dropdowns
   const billingTitleOptions = [
-    { value: 'Rev.', label: 'Rev.' },
-    { value: 'Mr.', label: 'Mr.' },
-    { value: 'Ms.', label: 'Ms.' },
-    { value: 'Mrs.', label: 'Mrs.' },
+    { value: 'Mr.', label: 'Mr' },
+    { value: 'Mrs.', label: 'Mrs' },
+    { value: 'Ms.', label: 'Ms' },
+    { value: 'Rev.', label: 'Rev' },
   ];
 
   const buildingTypeOptions = [
@@ -419,7 +417,7 @@ const BillingDetailsForm = () => {
     }
 
     if (!data.billingTitle || !['Rev.', 'Mr.', 'Ms.', 'Mrs.'].includes(data.billingTitle)) {
-      setErrorMessage('Please select a valid billing title (Rev., Mr., Ms., or Mrs.).');
+      setErrorMessage('Please select a valid billing title ( Mr., Ms., or Mrs. ,Rev.).');
       setShowErrorPopup(true);
       setIsLoading(false);
       return;
