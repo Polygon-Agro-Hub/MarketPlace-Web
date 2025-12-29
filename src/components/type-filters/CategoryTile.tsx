@@ -22,6 +22,8 @@ const CategoryTile: React.FC<CategoryTileProps> = ({
     isSelected,
     onSelect
 }) => {
+    const hasMultipleWords = name.trim().split(/\s+/).length > 1;
+
     return (
         <div
             className={`
@@ -55,8 +57,21 @@ const CategoryTile: React.FC<CategoryTileProps> = ({
                 />
             </div>
 
-            <div className="flex flex-col items-center mt-auto mb-7">
-                <h3 className="font-medium text-sm md:text-lg lg:text-xl text-center">{name}</h3>
+            <div className="flex flex-col items-center mt-auto mb-7 w-full">
+                {hasMultipleWords ? (
+                    <div className="w-full overflow-hidden md:overflow-visible">
+                        <h3 className="font-medium text-sm md:text-lg lg:text-xl text-center md:block">
+                            <span className="inline-block md:hidden animate-marquee whitespace-nowrap">
+                                {name}
+                            </span>
+                            <span className="hidden md:inline">
+                                {name}
+                            </span>
+                        </h3>
+                    </div>
+                ) : (
+                    <h3 className="font-medium text-sm md:text-lg lg:text-xl text-center">{name}</h3>
+                )}
                 <p className="text-lg text-gray-500 text-center">{itemCount} items</p>
             </div>
 
@@ -73,6 +88,25 @@ const CategoryTile: React.FC<CategoryTileProps> = ({
                     </div>
                 </div>
             )}
+
+            <style jsx>{`
+                @keyframes marquee {
+                    0% {
+                        transform: translateX(0%);
+                    }
+                    100% {
+                        transform: translateX(-100%);
+                    }
+                }
+                
+                .animate-marquee {
+                    animation: marquee 8s linear infinite;
+                }
+                
+                .animate-marquee:hover {
+                    animation-play-state: paused;
+                }
+            `}</style>
         </div>
     );
 };
