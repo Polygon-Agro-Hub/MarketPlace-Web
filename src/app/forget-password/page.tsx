@@ -182,8 +182,9 @@ const Page = () => {
         setModalMessage(res.message || 'If an account exists, a password reset link has been sent.');
 
         // Check if the response indicates no account found
-        if (res.message && res.message.includes("dont have a account with us")) {
+        if (res.message && (res.message.includes("dont have a account with us") || res.message.includes("do not have a account with us"))) {
           setIsError(true);
+          setIsEmailSent(false); // Don't set email as sent - prevents resend button
         } else {
           setIsEmailSent(true);
           setIsError(false);
@@ -225,6 +226,7 @@ const Page = () => {
     } catch (err: any) {
       setModalMessage(err.message || 'Failed to send reset code');
       setIsError(true);
+      setIsEmailSent(false); // Ensure resend button doesn't show on error
       setIsModalOpen(true);
       console.error(err);
     } finally {
@@ -247,12 +249,21 @@ const Page = () => {
     try {
       setIsSendingEmail(true);
       const res = await sendResetEmail(email);
-      setModalMessage(res.message || 'Password reset link has been resent.');
-      setIsError(false);
-      startResendTimer();
+      
+      // Check if account doesn't exist on resend too
+      if (res.message && (res.message.includes("dont have a account with us") || res.message.includes("do not have a account with us"))) {
+        setModalMessage(res.message);
+        setIsError(true);
+        setIsEmailSent(false); // Hide resend button
+      } else {
+        setModalMessage(res.message || 'Password reset link has been resent.');
+        setIsError(false);
+        startResendTimer();
+      }
     } catch (err: any) {
       setModalMessage(err.message || 'Failed to resend reset code');
       setIsError(true);
+      setIsEmailSent(false); // Hide resend button on error
       console.error(err);
     } finally {
       setIsSendingEmail(false);
@@ -471,7 +482,7 @@ const Page = () => {
               {getSendButtonText()}
             </button>
 
-            {/* Resend section remains mostly the same with small text adjustments */}
+            {/* Resend section - now only shows when isEmailSent is true */}
             {resetMethod === 'email' && isEmailSent && (
               <div className="flex flex-col items-center space-y-2 mt-4">
                 {isResendDisabled && (

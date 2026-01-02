@@ -593,24 +593,24 @@ export default function OrderHistoryPage() {
       </main>
 
       {(selectedOrder || isFetchingDetails) && (
-        <div className="absolute inset-0 bg-[rgba(255,255,255,0.5)] backdrop-blur-[2px] flex justify-end items-start z-30">
-          <div
-            ref={modalContentRef}
-            className="relative bg-[rgb(255,255,255)] sm:rounded-l-xl w-full max-w-5xl h-full sm:p-8 overflow-y-auto shadow-2xl animate-slideInRight"
-          >
-            <Loader isVisible={isFetchingDetails} />
-            {selectedOrder && !isFetchingDetails && (
-              <>
-                {selectedOrder.deliveryType.toLowerCase() === 'pickup' ? (
-                  <PickupOrderView order={selectedOrder} onClose={() => setSelectedOrder(null)} />
-                ) : (
-                  <DeliveryOrderView order={selectedOrder} onClose={() => setSelectedOrder(null)} />
-                )}
-              </>
-            )}
-          </div>
-        </div>
+  <div className="fixed inset-0 bg-[rgba(255,255,255,0.5)] backdrop-blur-[2px] flex justify-end items-center z-30 overflow-y-auto">
+    <div
+      ref={modalContentRef}
+      className="relative bg-[rgb(255,255,255)] sm:rounded-l-xl w-full max-w-5xl min-h-screen sm:p-8 shadow-2xl animate-slideInRight my-auto"
+    >
+      <Loader isVisible={isFetchingDetails} />
+      {selectedOrder && !isFetchingDetails && (
+        <>
+          {selectedOrder.deliveryType.toLowerCase() === 'pickup' ? (
+            <PickupOrderView order={selectedOrder} onClose={() => setSelectedOrder(null)} />
+          ) : (
+            <DeliveryOrderView order={selectedOrder} onClose={() => setSelectedOrder(null)} />
+          )}
+        </>
       )}
+    </div>
+  </div>
+)}
     </div>
   );
 }
@@ -752,7 +752,7 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
           {order.additionalItems && order.additionalItems.length > 0 && (
             <div className="border-t border-gray-200">
               <div className="p-4">
-                <div className="flex flex-col space-y-2 mb-2">
+                <div className="flex flex-col space-y-4 mb-2">
                   <span className="font-medium text-black">
                     Additional Items ({order.additionalItems.length} Items)
                   </span>
@@ -853,7 +853,7 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
         </div>
         <div className="border-[rgb(229,231,235)] mb-8" />
         <div className="mb-4">
-          <div className="mb-4" style={{ border: '1px solid rgb(215,215,215)', borderRadius: '0.5rem' }}>
+          <div className="mb-4" style={{ border: '1px solid rgb(215,215,215)', borderRadius: '15px', overflow: 'hidden' }}>
             <table className="w-full text-sm">
               <tbody>
                 <tr className="w-full border-b border-[rgb(229,231,235)]" style={{ backgroundColor: 'rgb(248,248,248)' }}>
@@ -872,7 +872,7 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
                           {pack.name} ({pack.items?.length || 0} items)
                         </td>
                         <td className="text-right font-semibold py-2 p-4" style={{ color: 'rgb(62,32,109)' }}>
-                         Rs.  {familyPackTotal}
+                          Rs.  {familyPackTotal}
                         </td>
                       </tr>
                       <tr>
@@ -1105,7 +1105,7 @@ function DeliveryOrderView({ order, onClose }: { order: DetailedOrder, onClose: 
           {order.additionalItems && order.additionalItems.length > 0 && (
             <div className="border-t border-gray-200">
               <div className="p-4">
-                <div className="flex flex-col space-y-2 mb-2">
+                <div className="flex flex-col space-y-7 mb-2">
                   <span className="font-medium text-black">
                     Additional Items ({order.additionalItems.length} Items)
                   </span>
@@ -1224,7 +1224,7 @@ function DeliveryOrderView({ order, onClose }: { order: DetailedOrder, onClose: 
         </div>
         <div className="border-[rgb(229,231,235)] mb-8"></div>
         <div className="mb-4" style={{ borderColor: 'rgb(215,215,215)' }}>
-          <div className="mb-4" style={{ border: '1px solid rgb(215,215,215)', borderRadius: '0.5rem' }}>
+          <div className="mb-4" style={{ border: '1px solid rgb(215,215,215)', borderRadius: '15px', overflow: 'hidden' }}>
             <table className="w-full text-sm" style={{ borderColor: 'rgb(215,215,215)' }}>
               <tbody>
                 <tr className="w-full border-b border-[rgb(229,231,235)]" style={{ backgroundColor: 'rgb(248,248,248)' }}>

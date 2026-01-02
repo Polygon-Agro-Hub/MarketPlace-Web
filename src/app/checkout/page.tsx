@@ -1,6 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
-import { Plus, Minus, Trash2 } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
 import TopNavigation from '@/components/top-navigation/TopNavigation';
 import CustomDropdown from '../../components/home/CustomDropdown';
 import Swal from 'sweetalert2';
@@ -12,7 +11,6 @@ import SuccessPopup from '@/components/toast-messages/success-message-with-butto
 import ErrorPopup from '@/components/toast-messages/error-message';
 import { getLastOrderAddress } from '@/services/retail-service';
 import { selectCartForOrder } from '../../store/slices/cartItemsSlice';
-import { useSearchParams } from 'next/navigation';
 import { getPickupCenters, PickupCenter } from '@/services/cart-service'
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
@@ -164,6 +162,7 @@ const Page: React.FC = () => {
   const [hasPreviousAddress, setHasPreviousAddress] = useState(true);
   const [isGeoModalOpen, setIsGeoModalOpen] = useState(false);
   const [viewingSavedLocation, setViewingSavedLocation] = useState(false);
+  const memoizedPickupCenters = useMemo(() => pickupCenters, [pickupCenters]);
 
   useEffect(() => {
     // Only run on client side
@@ -928,7 +927,7 @@ const Page: React.FC = () => {
                       zoom={mapZoom}
                       height="300px"
                       onCenterSelect={handleCenterSelect}
-                      pickupCenters={pickupCenters} // Pass centers to map component
+                      pickupCenters={memoizedPickupCenters} // Use memoized version
                       selectedCenterId={selectedPickupCenter?.id?.toString()}
                     />
                   </div>
@@ -1262,20 +1261,43 @@ const Page: React.FC = () => {
       .date-input::-webkit-inner-spin-button {
         cursor: pointer;
       }
+      /* Firefox-specific styles */
+      .date-input::-moz-calendar-picker-indicator {
+        cursor: pointer;
+      }
+      /* Hide native placeholder in webkit browsers when showing custom one */
+      .date-input::-webkit-datetime-edit-text,
+      .date-input::-webkit-datetime-edit-month-field,
+      .date-input::-webkit-datetime-edit-day-field,
+      .date-input::-webkit-datetime-edit-year-field {
+        color: transparent;
+      }
+      .date-input.has-value::-webkit-datetime-edit-text,
+      .date-input.has-value::-webkit-datetime-edit-month-field,
+      .date-input.has-value::-webkit-datetime-edit-day-field,
+      .date-input.has-value::-webkit-datetime-edit-year-field {
+        color: #3D3D3D;
+      }
+      /* Hide custom placeholder in Firefox */
+      @-moz-document url-prefix() {
+        .custom-date-placeholder {
+          display: none !important;
+        }
+      }
     `
                   }} />
                   <label className='block text-[#2E2E2E] font-semibold mb-4'>Date *</label>
                   <div className="relative">
                     <input
                       type="date"
-                      className={`date-input w-full border h-[39px] border-gray-300 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2 bg-white ${formData.deliveryDate ? 'text-[#3D3D3D]' : 'text-transparent'}`}
+                      className={`date-input w-full border h-[39px] border-gray-300 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2 bg-white ${formData.deliveryDate ? 'has-value' : ''}`}
                       style={{
                         colorScheme: 'light',
                       }}
                       value={formData.deliveryDate}
                       onChange={(e) => {
                         const selectedValue = e.target.value;
-                        // Additional client-side validation for iOS
+                        // Additional client-side validation
                         if (selectedValue) {
                           const selectedDate = new Date(selectedValue);
                           const today = new Date();
@@ -1295,24 +1317,22 @@ const Page: React.FC = () => {
                         }
                       }}
                       onClick={(e) => {
-                        // Ensure the date picker opens on click
+                        // Ensure the date picker opens on click (Chrome, Edge, Safari)
                         const target = e.target as HTMLInputElement;
-                        if (target.showPicker) {
-                          target.showPicker();
+                        if (target.showPicker && typeof target.showPicker === 'function') {
+                          try {
+                            target.showPicker();
+                          } catch (error) {
+                            // Silently fail if showPicker is not supported
+                            console.log('showPicker not supported');
+                          }
                         }
                       }}
-                      onFocus={(e) => {
-                        // Alternative fallback for browsers that don't support showPicker
-                        const target = e.target as HTMLInputElement;
-                        target.click();
-                      }}
                       min={getMinDate()}
-                      pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}"
-                      placeholder="mm/dd/yyyy"
                     />
-                    {/* Show placeholder text when no date is selected */}
+                    {/* Show placeholder text when no date is selected - hidden in Firefox */}
                     {!formData.deliveryDate && (
-                      <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none text-base">
+                      <div className="custom-date-placeholder absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none text-base">
                         mm/dd/yyyy
                       </div>
                     )}
