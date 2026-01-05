@@ -557,7 +557,6 @@ function HomeContent() {
                 )}
               </div>
             )}
-            <button className='px-5 py-2 bg-[#3E206D] text-white rounded hover:bg-[#2D1850] transition-colors cursor-pointer' >Test app</button>
           </div>
 
           {showConfirmModal && selectedPackageForCart && (
