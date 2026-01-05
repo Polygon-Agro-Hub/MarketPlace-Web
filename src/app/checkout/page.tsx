@@ -1182,7 +1182,7 @@ const Page: React.FC = () => {
                         setViewingSavedLocation(false);
                         setIsGeoModalOpen(true);
                       }}
-                      className="w-full h-[39px] border-2 border-[#F2F4F7] bg-[#E6D9F5] rounded-lg flex items-center justify-center gap-2 text-[#3E206D] font-medium hover:bg-[#d9c9ed] transition-colors"
+                      className="w-full h-[39px] border-2 border-[#F2F4F7] bg-[#E6D9F5] rounded-lg flex items-center justify-center gap-2 text-[#3E206D] font-medium hover:bg-[#d9c9ed] transition-colors cursor-pointer"
                     >
                       <LocateFixed size={20} />
                       {formData.geoLatitude && formData.geoLongitude
@@ -1212,7 +1212,7 @@ const Page: React.FC = () => {
                               setViewingSavedLocation(true);
                               setIsGeoModalOpen(true);
                             }}
-                            className="flex items-center gap-1 text-red-600 hover:text-red-700 transition-colors text-sm font-medium group"
+                            className="flex items-center gap-1 text-red-600 hover:text-red-700 transition-colors text-sm font-medium group cursor-pointer"
                           >
                             <LocateFixed size={16} className="group-hover:scale-110 transition-transform" />
                             <span className="underline">View here</span>

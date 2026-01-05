@@ -15,7 +15,7 @@ import SuccessPopup from '@/components/toast-messages/success-message';
 import ErrorPopup from '@/components/toast-messages/error-message';
 import { Lock, Mail } from 'lucide-react';
 import Link from 'next/link';
-import LoginImg from '../../../public/images/login.png'
+import LoginImg from '../../../public/newbg.png'
 import Image from 'next/image';
 import glogo from '../../../public/glogo.png'
 

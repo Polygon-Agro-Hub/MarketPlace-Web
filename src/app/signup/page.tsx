@@ -7,7 +7,7 @@ import SuccessPopup from "@/components/toast-messages/success-message";
 import ErrorPopup from "@/components/toast-messages/error-message";
 import OTPComponent from "@/components/otp-registration/OTPComponent";
 import Image from "next/image";
-import LoginImg from '../../../public/images/login.png'
+import LoginImg from '../../../public/newbg.png'
 import glogo from '../../../public/glogo.png'
 
 type FormErrors = {
@@ -54,7 +54,7 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`h-10 w-full border rounded-md px-1 py-2 focus:outline-none focus:ring-1 cursor-pointer border-gray-300 focus:ring-purple-500 focus:border-purple-500 ${className} ${selectedValue ? "text-black" : "text-gray-500"} flex items-center justify-between bg-white`}
+        className={`h-10 w-full border rounded-md px-4 py-2 focus:outline-none focus:ring-1 cursor-pointer border-gray-300 focus:ring-purple-500 focus:border-purple-500 ${className} ${selectedValue ? "text-black" : "text-gray-500"} flex items-center justify-between bg-white`}
       >
         <div className="flex items-center gap-2 flex-1">
           {selectedOption?.flag && (
@@ -89,7 +89,7 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
                 onSelect(option.value);
                 setIsOpen(false);
               }}
-              className={`w-full text-left px-1 py-3 hover:bg-gray-100 flex items-center gap-2 transition-colors ${selectedValue === option.value
+              className={`w-full text-left px-3 py-3 hover:bg-gray-100 flex items-center gap-2 transition-colors ${selectedValue === option.value
                 ? 'bg-purple-50 text-purple-700 border-l-4 border-purple-700'
                 : 'text-gray-900'
                 }`}
@@ -573,7 +573,7 @@ export default function SignupForm() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="flex flex-col md:flex-row md:space-x-4 space-y-2 md:space-y-0">
                   <div className="flex flex-row w-full md:w-1/2 space-x-2">
-                    <div className="w-23 md:w-26">
+                    <div className="w-24 md:w-28">
 
 
                       <CustomDropdown
@@ -678,7 +678,7 @@ export default function SignupForm() {
                 <div className="flex flex-col md:flex-row md:space-x-3 space-y-4 md:space-y-0">
                   <div className="flex flex-row w-full md:w-1/2 space-x-3">
 
-                    <div className="w-23 md:w-26">
+                    <div className="w-24 md:w-28">
                       <CustomDropdown
                         options={countryOptions}
                         selectedValue={formData.phoneCode}
