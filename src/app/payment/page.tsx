@@ -689,7 +689,7 @@ const Page: React.FC = () => {
                   <div className="text-gray-700 space-y-6">
                     <p>- You may pay in cash to our courier upon receiving your parcel at the doorstep.</p>
                     <p>- Before agreeing to receive the parcel, check if your delivery status has been updated to "Out of Delivery".</p>
-                    <p>- Before receiving, confirm that the airway bill shows that the parcel from Agro World.</p>
+                    <p>- Before receiving, confirm that the airway bill shows that the parcel from Polygon Holdings.</p>
                     <p>- Before you make the payment to the courier, confirm your order number, sender information, and tracking number on the parcel.</p>
                   </div>
                 </div>

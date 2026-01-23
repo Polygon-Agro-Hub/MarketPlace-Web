@@ -221,7 +221,7 @@ const AddMoreItems = () => {
                     <img
                       src={item.image}
                       alt={item.displayName}
-                      className="w-8 h-8 md:w-10 md:h-10 object-contain"
+                      className="w-8 h-8 md:w-14 md:h-14 object-contain"
                       onError={(e) => {
                         e.currentTarget.src = '/images/fallback.png';
                       }}
@@ -232,15 +232,17 @@ const AddMoreItems = () => {
             </div>
           )}
 
-
-          <button
-            onClick={handleContinue}
-            className="w-full bg-[#3E206D] cursor-pointer text-white p-2 rounded mt-6 font-semibold text-sm md:text-base"
-            aria-label="Continue with selected exclusions"
-          >
-            Save
-          </button>
+          {filteredItems.length !== 0 && (
+            <button
+              onClick={handleContinue}
+              className="w-full bg-[#3E206D] cursor-pointer text-white p-2 rounded mt-6 font-semibold text-sm md:text-base"
+              aria-label="Continue with selected exclusions"
+            >
+              Save
+            </button>
+          )}
         </div>
+
       </div>
     </div>
   );

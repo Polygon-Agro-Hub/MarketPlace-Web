@@ -757,7 +757,7 @@ const PersonalDetailsForm = () => {
         <div className="w-full border-t border-[#BDBDBD] mb-6 mt-6"></div>
         <h2 className="font-medium text-base text-[14px] md:text-[18px] mt-0 mb-1">Password</h2>
         <p className="text-[12px] md:text-[16px] text-[#626D76] mb-6">
-          Modify your password at any time.
+          Modify your current password
         </p>
         <div className="md:w-[50%]">
           <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">Current Password</label>

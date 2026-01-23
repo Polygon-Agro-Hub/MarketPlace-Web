@@ -164,7 +164,7 @@ const ComplaintsHistory = () => {
         {/* Reply Modal Inside First Div */}
         {selectedComplaint && (
           <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60">
-            <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-[560px] mx-4">
+            <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-[560px] mt-36">
               <div className="flex flex-col items-center">
                 <img
                   src="/icons/reply.png"
@@ -276,7 +276,7 @@ const ComplaintsHistory = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                       <div className="flex flex-col items-start">
                         <div className="text-[12px] md:text-[16px] text-[#626D76] font-medium">Complaint ID:</div>
-                        <div className="text-[12px] md:text-[16px]">{complaint.id}</div>
+                        <div className="text-[12px] md:text-[16px]">#{complaint.id}</div>
                       </div>
                       <div className="flex flex-col items-start">
                         <div className="text-[12px] md:text-[16px] text-[#626D76] font-medium">Category:</div>

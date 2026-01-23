@@ -793,7 +793,7 @@ const Page: React.FC = () => {
             <div className="flex justify-center gap-4">
               <button
                 onClick={() => setShowConfirmModal(null)}
-                className="px-6 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors"
+                className="px-6 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors cursor-pointer"
               >
                 Cancel
               </button>
@@ -807,7 +807,7 @@ const Page: React.FC = () => {
                   setShowConfirmModal(null);
                 }}
                 disabled={showConfirmModal.type === 'bulk' && bulkDeleteLoading}
-                className="px-6 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors disabled:opacity-50"
+                className="px-6 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors disabled:opacity-50 cursor-pointer"
               >
                 {showConfirmModal.type === 'bulk' && bulkDeleteLoading ? 'Removing...' : 'Remove'}
               </button>
