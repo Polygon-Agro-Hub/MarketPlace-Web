@@ -292,7 +292,7 @@ const GeoLocationModal: React.FC<GeoLocationModalProps> = ({
                                 type="button"
                                 onClick={handleGetCurrentLocation}
                                 disabled={isLocating}
-                                className="w-full flex items-center justify-center gap-2 bg-[#3E206D] text-white font-semibold rounded-lg px-4 py-2.5 sm:py-3 hover:bg-[#2d1850] transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed text-sm sm:text-base"
+                                className="w-full flex items-center justify-center gap-2 bg-[#3E206D] text-white font-semibold rounded-lg px-4 py-2.5 sm:py-3 hover:bg-[#2d1850] transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed text-sm sm:text-base cursor-pointer"
                             >
                                 <MapPin size={18} className="sm:w-5 sm:h-5" />
                                 <span className="truncate">{isLocating ? 'Locating...' : 'Use My Current Location'}</span>
@@ -302,7 +302,7 @@ const GeoLocationModal: React.FC<GeoLocationModalProps> = ({
                                 type="button"
                                 onClick={handleConfirm}
                                 disabled={!selectedLocation}
-                                className="w-full bg-[#10B981] text-white font-semibold rounded-lg px-4 py-2.5 sm:py-3 hover:bg-[#059669] transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed text-sm sm:text-base"
+                                className="w-full bg-[#10B981] text-white font-semibold rounded-lg px-4 py-2.5 sm:py-3 hover:bg-[#059669] transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed text-sm sm:text-base cursor-pointer"
                             >
                                 Confirm Location
                             </button>

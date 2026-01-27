@@ -717,7 +717,7 @@ const BillingDetailsForm = () => {
                 <button
                   type="button"
                   onClick={() => setIsGeoModalOpen(true)}
-                  className="w-full h-[42px] border-2 border-[#CECECE] bg-[#E6D9F5] rounded-lg flex items-center justify-center gap-2 text-[#3E206D] font-medium hover:bg-[#d9c9ed] transition-colors"
+                  className="w-full h-[42px] border-2 border-[#CECECE] bg-[#E6D9F5] rounded-lg flex items-center justify-center gap-2 text-[#3E206D] font-medium hover:bg-[#d9c9ed] transition-colors whitespace-nowrap px-2 cursor-pointer"
                 >
                   <LocateFixed size={18} />
                   <span className="text-[12px] md:text-[14px]">Attach My Geo Location</span>

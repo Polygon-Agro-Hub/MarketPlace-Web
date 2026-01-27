@@ -728,7 +728,7 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
                   <div className="p-4">
                     <div className="flex justify-between items-center mb-4">
                       <span className="font-medium text-black">
-                        {pack.name} ({pack.items?.length || 0} Items)
+                        {pack.name} ({String(pack.items?.length ?? 0).padStart(2, '0')} Items)
                       </span>
                       <span className="font-semibold text-[#3E206D]">
                         Rs. {familyPackTotal}
@@ -754,7 +754,7 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
               <div className="p-4">
                 <div className="flex flex-col space-y-4 mb-2">
                   <span className="font-medium text-black">
-                    Additional Items ({order.additionalItems.length} Items)
+                    Additional Items ({String(order.additionalItems.length ?? 0).padStart(2, '0')} Items)
                   </span>
                   {order.discount && order.discount !== 'Rs. 0.00' && (
                     <div className="text-sm text-[#3E206D]">
@@ -869,7 +869,7 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
                     <React.Fragment key={packIndex}>
                       <tr className="border-b border-t border-[rgb(229,231,235)]">
                         <td colSpan={3} className="font-medium py-2 p-4">
-                          {pack.name} ({pack.items?.length || 0} items)
+                          {pack.name} ({String(pack.items?.length ?? 0).padStart(2, '0')} items)
                         </td>
                         <td className="text-right font-semibold py-2 p-4" style={{ color: 'rgb(62,32,109)' }}>
                           Rs.  {familyPackTotal}
@@ -898,7 +898,7 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
                   <>
                     <tr className="border-b border-t border-[rgb(229,231,235)]">
                       <td colSpan={3} className="font-medium py-2 p-4">
-                        Additional Items ({order.additionalItems.length} Items)
+                        Additional Items ({String(order.additionalItems.length ?? 0).padStart(2, '0')} Items)
                       </td>
                       <td className="text-right font-semibold py-2 p-4">
                         <div className="flex justify-end items-center gap-2">
@@ -1081,7 +1081,7 @@ function DeliveryOrderView({ order, onClose }: { order: DetailedOrder, onClose: 
                   <div className="p-4">
                     <div className="flex justify-between items-center mb-4">
                       <span className="font-medium text-black">
-                        {pack.name} ({pack.items?.length || 0} Items)
+                        {pack.name} ({String(pack.items?.length ?? 0).padStart(2, '0')} Items)
                       </span>
                       <span className="font-semibold text-[#3E206D]">
                         Rs. {familyPackTotal}
@@ -1107,7 +1107,7 @@ function DeliveryOrderView({ order, onClose }: { order: DetailedOrder, onClose: 
               <div className="p-4">
                 <div className="flex flex-col space-y-7 mb-2">
                   <span className="font-medium text-black">
-                    Additional Items ({order.additionalItems.length} Items)
+                    Additional Items ({String(order.additionalItems.length ?? 0).padStart(2, '0')} Items)
                   </span>
                   {order.discount && order.discount !== 'Rs. 0.00' && (
                     <div className="text-sm text-purple-700">
@@ -1240,7 +1240,7 @@ function DeliveryOrderView({ order, onClose }: { order: DetailedOrder, onClose: 
                     <React.Fragment key={packIndex}>
                       <tr className="border-b border-t border-[rgb(229,231,235)]">
                         <td colSpan={3} className="font-medium py-2 p-4">
-                          {pack.name} ({pack.items?.length || 0} Items)
+                          {pack.name} ({String(pack.items?.length ?? 0).padStart(2, '0')} Items)
                         </td>
                         <td className="text-right font-semibold py-2 p-4" style={{ color: 'rgb(62,32,109)' }}>
                           Rs. {familyPackTotal}
@@ -1269,7 +1269,7 @@ function DeliveryOrderView({ order, onClose }: { order: DetailedOrder, onClose: 
                   <>
                     <tr className="border-b border-t border-[rgb(229,231,235)]">
                       <td colSpan={3} className="font-medium py-2 p-4">
-                        Additional Items ({order.additionalItems.length} Items)
+                        Additional Items ({String(order.additionalItems.length ?? 0).padStart(2, '0')} Items)
                       </td>
                       <td className="text-right font-semibold py-2 p-4">
                         <div className="flex justify-end items-center gap-2">

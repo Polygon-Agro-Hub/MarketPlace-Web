@@ -142,13 +142,13 @@ const SuccessPopup = ({
                 >
                     <button
                         onClick={onCancel || handleOk}
-                        className="px-8 py-3 text-gray-500 font-medium text-lg hover:text-gray-700 transition-colors duration-200"
+                        className="px-8 py-3 text-gray-500 font-medium text-lg hover:text-gray-700 transition-colors duration-200 cursor-pointer"
                     >
                         Ok
                     </button>
                     <button
                         onClick={onCancel || handleClose}
-                        className="px-8 py-3 text-gray-500 font-medium text-lg hover:text-gray-700 transition-colors duration-200"
+                        className="px-8 py-3 text-gray-500 font-medium text-lg hover:text-gray-700 transition-colors duration-200 cursor-pointer"
                     >
                         Cancel
                     </button>
@@ -157,7 +157,7 @@ const SuccessPopup = ({
                 {/* Close Button */}
                 <button
                     onClick={handleClose}
-                    className={`absolute top-6 right-6 w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-all duration-200 ${animate ? 'opacity-60 hover:opacity-100' : 'opacity-0'
+                    className={`absolute top-6 right-6 w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-all duration-200 cursor-pointer ${animate ? 'opacity-60 hover:opacity-100' : 'opacity-0'
                         }`}
                     style={{ transitionDelay: '0.8s' }}
                 >
