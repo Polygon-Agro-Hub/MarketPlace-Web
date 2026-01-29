@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
@@ -108,6 +107,16 @@ function formatDateTime(dateTimeStr: string, type: 'date' | 'time' = 'date'): st
     timeZone: 'Asia/Colombo',
     dateStyle: 'medium',
   });
+}
+
+// Helper function to format quantity - removes unnecessary decimal zeros
+function formatQuantity(quantity: string | number, unit: string = ''): string {
+  const numQty = typeof quantity === 'string' ? parseFloat(quantity) : quantity;
+  if (isNaN(numQty)) return `${quantity}${unit}`;
+  
+  // If it's a whole number, display without decimals
+  const formattedQty = numQty % 1 === 0 ? numQty.toString() : numQty.toFixed(2).replace(/\.?0+$/, '');
+  return unit ? `${formattedQty}${unit}` : formattedQty;
 }
 
 const getStatusClass = (status: string): string => {
@@ -305,7 +314,7 @@ export default function OrderHistoryPage() {
                 name: item.typeName || 'Unknown',
                 weight: item.weight || '1 kg',
                 price: formatCurrency(parseFloat(item.price || '0'), 2),
-                quantity: item.qty ? String(item.qty).padStart(2, '0') : '01',
+                quantity: String(item.qty || 1),
               })) || [],
               totalPrice: formatCurrency(pack.productPrice || 0, 2),
             }))
@@ -314,7 +323,7 @@ export default function OrderHistoryPage() {
             ? additionalItemsData.data.map((item: any) => ({
               id: item.id || 0,
               name: item.displayName || 'Unknown',
-              quantity: String(item.qty || 1).padStart(2, '0'),
+              quantity: String(item.qty || 1),
               unit: item.unit || 'kg',
               weight: `${item.qty || '1'} ${item.unit || 'kg'}`,
               price: formatCurrency(parseFloat(item.price || '0'), 2),
@@ -738,7 +747,7 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
                       {pack.items.map((item, itemIndex) => (
                         <div key={`${packIndex}-${itemIndex}`} className="flex justify-between items-center py-2">
                           <span className="text-gray-700">{item.name}</span>
-                          <span className="text-gray-600 font-medium">{item.quantity}</span>
+                          <span className="text-gray-600 font-medium">{formatQuantity(item.quantity)}</span>
                         </div>
                       ))}
                     </div>
@@ -781,7 +790,7 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
                         <div className="font-medium text-black">{item.name}</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-sm text-gray-600">{item.quantity}{item.unit}</div>
+                        <div className="text-sm text-gray-600">{formatQuantity(item.quantity, item.unit)}</div>
                       </div>
                       <div className="text-right">
                         <div className="font-semibold text-black">{item.price}</div>
@@ -882,7 +891,7 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
                               {pack.items.map((item, itemIndex) => (
                                 <tr key={`${packIndex}-${itemIndex}`} className="grid grid-cols-[1fr_1fr_1fr] gap-8 text-sm items-center py-4 ml-6">
                                   <td>{item.name}</td>
-                                  <td>{item.quantity}</td>
+                                  <td>{formatQuantity(item.quantity)}</td>
                                 </tr>
                               ))}
                             </tbody>
@@ -936,7 +945,7 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
                                   <div className="font-medium text-gray-900 truncate">{item.name}</div>
                                 </div>
                                 <div className="text-center min-w-[80px]">
-                                  <div className="text-sm text-gray-600">{item.quantity}{item.unit}</div>
+                                  <div className="text-sm text-gray-600">{formatQuantity(item.quantity, item.unit)}</div>
                                 </div>
                                 <div className="text-right min-w-[80px]">
                                   <div className="font-semibold text-gray-900">{item.price}</div>
@@ -1091,7 +1100,7 @@ function DeliveryOrderView({ order, onClose }: { order: DetailedOrder, onClose: 
                       {pack.items.map((item, itemIndex) => (
                         <div key={`${packIndex}-${itemIndex}`} className="flex justify-between items-center py-2">
                           <span className="text-gray-700">{item.name}</span>
-                          <span className="text-gray-600 font-medium">{item.quantity}</span>
+                          <span className="text-gray-600 font-medium">{formatQuantity(item.quantity)}</span>
                         </div>
                       ))}
                     </div>
@@ -1134,7 +1143,7 @@ function DeliveryOrderView({ order, onClose }: { order: DetailedOrder, onClose: 
                         <div className="font-medium text-black">{item.name}</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-sm text-gray-600">{item.quantity}{item.unit}</div>
+                        <div className="text-sm text-gray-600">{formatQuantity(item.quantity, item.unit)}</div>
                       </div>
                       <div className="text-right">
                         <div className="font-semibold text-black">{item.price}</div>
@@ -1253,7 +1262,7 @@ function DeliveryOrderView({ order, onClose }: { order: DetailedOrder, onClose: 
                               {pack.items.map((item, itemIndex) => (
                                 <tr key={`${packIndex}-${itemIndex}`} className="grid grid-cols-[1fr_1fr_1fr] gap-8 text-sm items-center py-4 ml-6">
                                   <td>{item.name}</td>
-                                  <td>{item.quantity}</td>
+                                  <td>{formatQuantity(item.quantity)}</td>
                                 </tr>
                               ))}
                             </tbody>
@@ -1307,7 +1316,7 @@ function DeliveryOrderView({ order, onClose }: { order: DetailedOrder, onClose: 
                                   <div className="font-medium text-gray-900 truncate">{item.name}</div>
                                 </div>
                                 <div className="text-center min-w-[80px]">
-                                  <div className="text-sm text-gray-600">{item.quantity}{item.unit}</div>
+                                  <div className="text-sm text-gray-600">{formatQuantity(item.quantity, item.unit)}</div>
                                 </div>
                                 <div className="text-right min-w-[80px]">
                                   <div className="font-semibold text-gray-900">{item.price}</div>

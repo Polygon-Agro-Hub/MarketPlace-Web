@@ -289,7 +289,7 @@ const Page = () => {
     } else {
       if (isSendingOTP) return 'Sending...';
       if (isOTPSent) return 'Sent !';
-      return 'Send OTP via SMS';
+      return 'Send Password Reset OTP';
     }
   };
 
@@ -366,7 +366,7 @@ const Page = () => {
             </div>
 
             <p className="text-sm md:text-base text-gray-600 mb-4">
-              Enter the {resetMethod === 'email' ? 'Email' : 'Phone Number'} associated with your account
+              Enter the {resetMethod === 'email' ? 'Email' : 'Phone Number'} associated with your Email account.
             </p>
 
             {/* Email input remains the same */}
@@ -376,7 +376,7 @@ const Page = () => {
                   type="email"
                   value={email}
                   onChange={handleEmailChange}
-                  placeholder="Enter the Email"
+                  placeholder="Enter Email Address"
                   className={`w-full px-3 md:px-4 py-2 md:py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600 text-sm md:text-base ${emailError ? 'border-red-500' : 'border-gray-300'
                     }`}
                   disabled={isSendingEmail}
