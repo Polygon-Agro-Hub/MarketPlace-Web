@@ -37,7 +37,10 @@ const GeoLocationModal: React.FC<GeoLocationModalProps> = ({
     useEffect(() => {
         if (!isOpen || !mapRef.current) return;
 
-        const map = L.map(mapRef.current).setView(initialCenter, 13);
+        const map = L.map(mapRef.current).setView(
+            savedLocation || initialCenter, 
+            savedLocation ? 15 : 13
+        );
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -45,7 +48,7 @@ const GeoLocationModal: React.FC<GeoLocationModalProps> = ({
 
         mapInstanceRef.current = map;
 
-        // ADD THIS: If there's a saved location, show it immediately
+        // If there's a saved location, show it immediately
         if (savedLocation) {
             updateMarker(savedLocation[0], savedLocation[1]);
         }
@@ -63,7 +66,7 @@ const GeoLocationModal: React.FC<GeoLocationModalProps> = ({
             }
             markerRef.current = null;
         };
-    }, [isOpen, savedLocation]);
+    }, [isOpen, savedLocation, initialCenter]);
 
     // Auto-close success modal after 5 seconds
     useEffect(() => {
@@ -308,7 +311,7 @@ const GeoLocationModal: React.FC<GeoLocationModalProps> = ({
                             </button>
                         </div>
 
-                        {selectedLocation && (
+                        {selectedLocation && Array.isArray(selectedLocation) && typeof selectedLocation[0] === 'number' && typeof selectedLocation[1] === 'number' && (
                             <div className="mt-3 p-2.5 sm:p-3 bg-green-50 border border-green-200 rounded-lg">
                                 <p className="text-xs sm:text-sm text-green-800 break-all">
                                     <span className="font-semibold">Selected Location:</span> {selectedLocation[0].toFixed(6)}, {selectedLocation[1].toFixed(6)}

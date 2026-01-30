@@ -76,7 +76,7 @@ const Page = () => {
     try {
       const res = await resetPassword(token, newPassword);
       setIsError(false);
-      setModalMessage('Your password has been updated successfully. You will be redirected to the login page.');
+      setModalMessage('Your password has been updated successfully.\nYou will be directing to the login page after few seconds.\n\nEnjoy your shopping!');
       setIsModalOpen(true);
 
       setTimeout(() => {
@@ -135,7 +135,11 @@ const Page = () => {
           <div className="w-full lg:w-1/2 flex justify-center items-center px-6 sm:px-10">
             <div className="w-full max-w-md text-center">
               <h1 className="text-3xl font-bold text-gray-900 mb-2">Reset</h1>
-              <h1 className="text-3xl font-bold text-gray-900 mb-6">Password</h1>
+              <h1 className="text-3xl font-bold text-gray-900 mb-4">Password</h1>
+              
+              <p className="text-[16px] text-[#001535] mb-6">
+                Please enter your new password below and confirm it to complete the reset.
+              </p>
 
               <div className="mb-4 relative">
                 <input
@@ -149,7 +153,7 @@ const Page = () => {
                 <button
                   type="button"
                   onClick={() => setShowNewPassword(!showNewPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
                 >
                   {showNewPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
@@ -168,14 +172,17 @@ const Page = () => {
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
                 >
                   {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
 
-              <p className="text-left text-sm text-gray-500 mb-6">
-                <span className="font-semibold text-red-500">*</span> Your password must contain a minimum of 6 characters with 1 Uppercase, Number & Special character.
+              <p className="text-left text-sm mb-6 flex items-start gap-2" style={{ color: '#3E206D' }}>
+                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-gray-400 flex items-center justify-center text-white text-xs font-bold mt-0.5">
+                  i
+                </span>
+                <span>Your password must contain a minimum of 6 characters with 1 Uppercase, Numbers & Special characters.</span>
               </p>
 
               <button
@@ -191,8 +198,8 @@ const Page = () => {
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-          <div className="bg-white p-8 rounded-xl text-center w-[90%] max-w-md shadow-xl">
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-white p-6 sm:p-8 rounded-2xl text-center w-full max-w-md shadow-2xl mx-4">
             {isError ? (
               /* Error Icon with Animation */
               <div className="flex justify-center mb-4">
@@ -239,67 +246,53 @@ const Page = () => {
                 </div>
               </div>
             ) : (
-              /* Success Icon with Animation */
-              <div className="flex justify-center mb-4">
-                <div className="relative w-20 h-20">
-                  {/* Animated Circle */}
-                  <div
-                    className="absolute inset-0 rounded-full border-4 border-purple-500 scale-100 opacity-100 transition-all duration-700 ease-out"
-                    style={{
-                      transformOrigin: 'center',
-                      animationDelay: '0.2s'
-                    }}
-                  />
-
-                  {/* Animated Checkmark */}
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <svg
-                      className="w-14 h-14 text-[#8746ff]"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                    >
-                      <path
-                        className="opacity-100 transition-all duration-700 ease-out"
-                        d="M20 6L9 17L4 12"
-                        stroke="currentColor"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        style={{
-                          strokeDasharray: '20',
-                          strokeDashoffset: '0',
-                          transitionDelay: '0.6s'
-                        }}
-                      />
-                    </svg>
-                  </div>
-
-                  {/* Pulse Animation */}
-                  <div
-                    className="absolute inset-0 rounded-full bg-[#8746ff] scale-125 opacity-0 transition-all duration-1000"
-                    style={{
-                      animationDelay: '0.8s'
-                    }}
+              /* Success Icon - Using Image */
+              <div className="flex justify-center mb-6">
+                <div className="w-24 h-24 sm:w-28 sm:h-28">
+                  <img 
+                    src="/images/correct.png" 
+                    alt="Success" 
+                    className="w-full h-full object-contain"
                   />
                 </div>
               </div>
             )}
 
-            <h2 className="text-xl font-bold mb-2">
-              {isError ? 'Error' : 'Success'}
-            </h2>
-            <p className="text-gray-700 mb-4">{modalMessage}</p>
-            <button
-              onClick={() => {
-                setIsModalOpen(false);
-                if (!isError) {
-                  router.push('/signin');
-                }
-              }}
-              className="px-6 py-2 bg-gray-200 rounded hover:bg-gray-300 transition"
-            >
-              Close
-            </button>
+            {isError ? (
+              <>
+                <h2 className="text-xl sm:text-2xl font-semibold mb-4" style={{ color: '#000000' }}>
+                  Error
+                </h2>
+                <p className="text-sm sm:text-base mb-6" style={{ color: '#637285' }}>
+                  {modalMessage}
+                </p>
+                <button
+                  onClick={() => {
+                    setIsModalOpen(false);
+                  }}
+                  className="w-full sm:w-auto px-6 py-2.5 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors cursor-pointer text-gray-700 font-medium"
+                >
+                  Close
+                </button>
+              </>
+            ) : (
+              <>
+                {/* Title */}
+                <h2 className="text-xl sm:text-2xl font-semibold mb-3" style={{ color: '#000000' }}>
+                  Password Updated !
+                </h2>
+
+                {/* Description */}
+                <p className="text-sm sm:text-base mb-2" style={{ color: '#637285' }}>
+                  Your password has been updated successfully. You will be directing to the login page after few seconds.
+                </p>
+
+                {/* Enjoy shopping message */}
+                <p className="text-sm sm:text-base font-medium italic" style={{ color: '#3E206D' }}>
+                  Enjoy your shopping!
+                </p>
+              </>
+            )}
           </div>
         </div>
       )}

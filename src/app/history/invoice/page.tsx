@@ -98,6 +98,21 @@ function formatDateTime(dateTimeStr: string, type: 'date' | 'time' = 'date'): st
   });
 }
 
+// Helper function to format quantity - removes unnecessary decimal zeros
+function formatQuantity(quantity: string | number, unit: string = ''): string {
+  const numQty = typeof quantity === 'string' ? parseFloat(quantity) : quantity;
+  if (isNaN(numQty)) return `${quantity}${unit}`;
+  
+  // If it's a whole number, display without decimals
+  const formattedQty = numQty % 1 === 0 ? numQty.toString() : numQty.toFixed(2).replace(/\.?0+$/, '');
+  return `${formattedQty}${unit}`;
+}
+
+// Helper function to format item count - singular vs plural
+function formatItemCount(count: number): string {
+  return count === 1 ? '01 Item' : `${count.toString().padStart(2, '0')} Items`;
+}
+
 function InvoiceView({
   invoice,
   onClose,
@@ -226,7 +241,7 @@ function InvoiceView({
             {invoice.familyPackItems.map((pack, packIndex) => (
               <div key={pack.id} className="mb-4">
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 gap-2">
-                  <h2 className="font-semibold text-sm sm:text-base">{`${pack.name} (${pack.packageDetails?.length || 0} Items)`}</h2>
+                  <h2 className="font-semibold text-sm sm:text-base">{`${pack.name} (${formatItemCount(pack.packageDetails?.length || 0)})`}</h2>
                   <span className="font-semibold text-lg">{formatCurrencyWithCommas(pack.amount)}</span>
                 </div>
                 <div className="border-t mb-4 mt-4 border-gray-300" />
@@ -272,7 +287,7 @@ function InvoiceView({
         <div className="mb-6 sm:mb-8">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 gap-2">
             <h2 className="font-semibold text-sm sm:text-base">
-              {`${buyerType === 'Wholesale' ? 'Selected Items' : 'Additional Items'} (${invoice.additionalItems.length} Items)`}
+              {`${buyerType === 'Wholesale' ? 'Selected Items' : 'Additional Items'} (${formatItemCount(invoice.additionalItems.length)})`}
             </h2>
             <span className="font-semibold text-lg">{formatCurrencyWithCommas(invoice.additionalItemsTotal)}</span>
           </div>
@@ -294,7 +309,7 @@ function InvoiceView({
                     <td className="p-2 sm:p-5 text-left">{`${index + 1}.`}</td>
                     <td className="p-2 sm:p-3 text-left">{item.name}</td>
                     <td className="p-2 sm:p-3 text-left">{formatCurrencyWithCommas(item.unitPrice)}</td>
-                    <td className="p-2 sm:p-3 text-left">{`${item.quantity} ${item.unit}`}</td>
+                    <td className="p-2 sm:p-3 text-left">{formatQuantity(item.quantity, item.unit)}</td>
                     <td className="p-2 sm:p-3 text-left">{formatCurrencyWithCommas(item.amount)}</td>
                   </tr>
                 ))}
@@ -510,7 +525,7 @@ function InvoicePageContent() {
       ? invoice.familyPackItems.map(pack => [
         {
           columns: [
-            { text: `${pack.name} (${pack.packageDetails?.length || 0} Items)`, bold: true, fontSize: 9, margin: [0, 8, 0, 4] },
+            { text: `${pack.name} (${formatItemCount(pack.packageDetails?.length || 0)})`, bold: true, fontSize: 9, margin: [0, 8, 0, 4] },
             { text: formatCurrencyForPDF(pack.amount), bold: true, fontSize: 9, alignment: 'right', margin: [0, 8, 0, 4] }
           ]
         },
@@ -561,7 +576,7 @@ function InvoicePageContent() {
       {
         columns: [
           {
-            text: `${buyerType === 'Wholesale' ? 'Selected Items' : 'Additional Items'} (${invoice.additionalItems.length} Items)`,
+            text: `${buyerType === 'Wholesale' ? 'Selected Items' : 'Additional Items'} (${formatItemCount(invoice.additionalItems.length)})`,
             bold: true,
             fontSize: 9,
             margin: [0, 8, 0, 4]
@@ -590,7 +605,7 @@ function InvoicePageContent() {
               `${i + 1}.`,
               it.name,
               formatCurrencyForPDF(it.unitPrice), // Updated to use comma formatting
-              `${it.quantity} ${it.unit}`,
+              formatQuantity(it.quantity, it.unit),
               formatCurrencyForPDF(it.amount) // Updated to use comma formatting
             ])
           ]

@@ -778,6 +778,8 @@ export const fetchBillingDetails = async (payload: FetchBillingDetailsPayload): 
           phoneCode2: apiData.phoneCode2 || '+94',
           phoneNumber2: apiData.phoneNumber2 || '',
           buildingType: apiData.buildingType?.toLowerCase() || '',
+          geoLatitude: apiData.geoLatitude ? Number(apiData.geoLatitude) : (apiData.address?.geoLatitude ? Number(apiData.address.geoLatitude) : undefined),
+          geoLongitude: apiData.geoLongitude ? Number(apiData.geoLongitude) : (apiData.address?.geoLongitude ? Number(apiData.address.geoLongitude) : undefined),
           address: {
             title: apiData.title || 'Mr.',
             firstName: apiData.firstName || '',
@@ -791,6 +793,8 @@ export const fetchBillingDetails = async (payload: FetchBillingDetailsPayload): 
             floorNo: apiData.address?.floorNo || null,
             streetName: apiData.address?.streetName || undefined,
             city: apiData.address?.city || undefined,
+            geoLatitude: apiData.geoLatitude ? Number(apiData.geoLatitude) : (apiData.address?.geoLatitude ? Number(apiData.address.geoLatitude) : undefined),
+            geoLongitude: apiData.geoLongitude ? Number(apiData.geoLongitude) : (apiData.address?.geoLongitude ? Number(apiData.address.geoLongitude) : undefined),
           },
         };
       } else {

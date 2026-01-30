@@ -786,7 +786,7 @@ const Page: React.FC = () => {
           <div className="bg-white p-6 rounded-lg shadow-lg w-96 text-center">
             <p className="text-lg font-medium mb-6">
               {showConfirmModal.type === 'bulk'
-                ? `Are you sure you want to remove ${showConfirmModal.selectedIds?.length} selected products?`
+                ? `Are you sure you want to remove ${showConfirmModal.selectedIds?.length} selected ${showConfirmModal.selectedIds?.length === 1 ? 'product' : 'products'}?`
                 : `Are you sure you want to remove this package?`
               }
             </p>
@@ -881,7 +881,7 @@ const Page: React.FC = () => {
                 <div className='flex justify-between items-start mb-4'>
                   <div className='flex items-center gap-2'>
                     <p className='text-[20px] font-normal text-gray-700'>
-                      Your {itemGroup.packageName}
+                      Your {itemGroup.packageName == 'Selected Items' ? 'Additional Selections' : 'Selected Items'}
                     </p>
                   </div>
 
