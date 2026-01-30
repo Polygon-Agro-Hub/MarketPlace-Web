@@ -7,7 +7,7 @@ import SuccessPopup from "@/components/toast-messages/success-message";
 import ErrorPopup from "@/components/toast-messages/error-message";
 import OTPComponent from "@/components/otp-registration/OTPComponent";
 import Image from "next/image";
-import LoginImg from '../../../public/images/login.png'
+import LoginImg from '../../../public/newbg.png'
 import glogo from '../../../public/glogo.png'
 
 type FormErrors = {
@@ -54,7 +54,7 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`h-10 w-full border rounded-md px-1 py-2 focus:outline-none focus:ring-1 cursor-pointer border-gray-300 focus:ring-purple-500 focus:border-purple-500 ${className} ${selectedValue ? "text-black" : "text-gray-500"} flex items-center justify-between bg-white`}
+        className={`h-10 w-full border rounded-md px-4 py-2 focus:outline-none focus:ring-1 cursor-pointer border-gray-300 focus:ring-purple-500 focus:border-purple-500 ${className} ${selectedValue ? "text-black" : "text-gray-500"} flex items-center justify-between bg-white`}
       >
         <div className="flex items-center gap-2 flex-1">
           {selectedOption?.flag && (
@@ -81,11 +81,6 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
       {/* Dropdown Options */}
       {isOpen && (
         <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
-          {!selectedValue && (
-            <div className="px-3 py-2 text-gray-500 text-sm">
-              {placeholder}
-            </div>
-          )}
           {options.map((option) => (
             <button
               key={option.value}
@@ -94,7 +89,7 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
                 onSelect(option.value);
                 setIsOpen(false);
               }}
-              className={`w-full text-left px-1 py-3 hover:bg-gray-100 flex items-center gap-2 transition-colors ${selectedValue === option.value
+              className={`w-full text-left px-3 py-3 hover:bg-gray-100 flex items-center gap-2 transition-colors ${selectedValue === option.value
                 ? 'bg-purple-50 text-purple-700 border-l-4 border-purple-700'
                 : 'text-gray-900'
                 }`}
@@ -163,7 +158,7 @@ export default function SignupForm() {
     { code: 'BD', dialCode: '+880', name: 'Bangladesh' },
     { code: 'IN', dialCode: '+91', name: 'India' },
     { code: 'NL', dialCode: '+31', name: 'Netherlands' },
-    { code: 'UK', dialCode: '+44', name: 'United Kingdom' },
+    { code: 'GB', dialCode: '+44', name: 'United Kingdom' },
     { code: 'US', dialCode: '+1', name: 'United States' }
   ];
 
@@ -578,7 +573,7 @@ export default function SignupForm() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="flex flex-col md:flex-row md:space-x-4 space-y-2 md:space-y-0">
                   <div className="flex flex-row w-full md:w-1/2 space-x-2">
-                    <div className="w-23 md:w-26">
+                    <div className="w-24 md:w-28">
 
 
                       <CustomDropdown
@@ -683,7 +678,7 @@ export default function SignupForm() {
                 <div className="flex flex-col md:flex-row md:space-x-3 space-y-4 md:space-y-0">
                   <div className="flex flex-row w-full md:w-1/2 space-x-3">
 
-                    <div className="w-23 md:w-26">
+                    <div className="w-24 md:w-28">
                       <CustomDropdown
                         options={countryOptions}
                         selectedValue={formData.phoneCode}
@@ -835,8 +830,8 @@ export default function SignupForm() {
 
                 {!isPasswordValid && formData.password && (
                   <div className="text-xs text-gray-600 pl-1 flex flex-row gap-2 md:flex-row items-start md:items-center">
-                    <div className="flex-shrink-0 h-5 w-5 rounded-full bg-gray-200 flex items-center justify-center mb-2 md:mb-0 md:mr-1">
-                      <span className="text-xs text-[#ffffff]">i</span>
+                    <div className="flex-shrink-0 h-5 w-5 rounded-full bg-gray-500 flex items-center justify-center mb-2 md:mb-0 md:mr-1">
+                      <span className="text-xs text-[#ffffff] font-semibold">i</span>
                     </div>
                     <div className="text-[#3E206D] text-xs md:text-sm">
                       Your password must contain a minimum of 6 characters with 1

@@ -308,8 +308,8 @@ export default function OTPComponent({
           onClick={handleResendOTP}
           disabled={disabledResend || isResending}
           className={`text-xs sm:text-sm mb-6 ${disabledResend || isResending
-              ? 'text-gray-400 cursor-not-allowed'
-              : 'text-[#3E206D] font-semibold hover:underline cursor-pointer'
+            ? 'text-gray-400 cursor-not-allowed'
+            : 'text-[#3E206D] font-semibold hover:underline cursor-pointer'
             }`}
         >
           {isResending
@@ -325,8 +325,8 @@ export default function OTPComponent({
           onClick={handleVerify}
           disabled={isVerifying || isOtpExpired || !isOtpComplete || isVerified}
           className={`font-semibold w-full max-w-[307px] h-[45px] rounded-[10px] mt-1 transition-colors ${isVerifying || isOtpExpired || !isOtpComplete || isVerified
-              ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
-              : 'bg-[#3E206D] text-white hover:bg-[#2D1A4F] cursor-pointer'
+            ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+            : 'bg-[#3E206D] text-white hover:bg-[#2D1A4F] cursor-pointer'
             }`}
         >
           {isVerifying ? 'Verifying...' :
@@ -348,18 +348,105 @@ export default function OTPComponent({
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
           <div className="bg-white p-8 rounded-xl text-center w-[90%] max-w-md shadow-xl">
-            <img
-              src={isError ? '/images/wrong.png' : '/images/correct.png'}
-              alt={isError ? 'Error' : 'Success'}
-              className="w-20 h-20 mx-auto mb-4"
-            />
-            <h2 className="text-xl font-bold mb-2">
+            {isError ? (
+              /* Error Icon with Animation */
+              <div className="flex justify-center mb-4">
+                <div className="relative w-28 h-28">
+                  {/* Animated Circle Background */}
+                  <div
+                    className="absolute inset-0 rounded-full bg-red-500 transition-all duration-700 ease-out scale-100 opacity-100"
+                    style={{
+                      transformOrigin: 'center',
+                      animationDelay: '0.2s'
+                    }}
+                  />
+
+                  {/* Animated X Icon */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <svg
+                      className="w-16 h-16 text-white"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <path
+                        className="opacity-100 transition-all duration-700 ease-out"
+                        d="M18 6L6 18M6 6L18 18"
+                        stroke="currentColor"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        style={{
+                          strokeDasharray: '24',
+                          strokeDashoffset: '0',
+                          transitionDelay: '0.6s'
+                        }}
+                      />
+                    </svg>
+                  </div>
+
+                  {/* Pulse Animation */}
+                  <div
+                    className="absolute inset-0 rounded-full bg-red-500 scale-125 opacity-0 transition-all duration-1000"
+                    style={{
+                      animationDelay: '0.8s'
+                    }}
+                  />
+                </div>
+              </div>
+            ) : (
+              /* Success Icon with Animation */
+              <div className="flex justify-center mb-4">
+                <div className="relative w-28 h-28">
+                  {/* Animated Circle */}
+                  <div
+                    className="absolute inset-0 rounded-full border-4 border-green-500 scale-100 opacity-100 transition-all duration-700 ease-out"
+                    style={{
+                      transformOrigin: 'center',
+                      animationDelay: '0.2s'
+                    }}
+                  />
+
+                  {/* Animated Checkmark */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <svg
+                      className="w-14 h-14 text-green-500"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <path
+                        className="opacity-100 transition-all duration-700 ease-out"
+                        d="M20 6L9 17L4 12"
+                        stroke="currentColor"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        style={{
+                          strokeDasharray: '20',
+                          strokeDashoffset: '0',
+                          transitionDelay: '0.6s'
+                        }}
+                      />
+                    </svg>
+                  </div>
+
+                  {/* Pulse Animation */}
+                  <div
+                    className="absolute inset-0 rounded-full bg-green-500 scale-125 opacity-0 transition-all duration-1000"
+                    style={{
+                      animationDelay: '0.8s'
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
+            <h2 className="text-xl font-bold mb-2 text-gray-900">
               {isError ? 'Error' : 'OTP Verified'}
             </h2>
-            <p className="text-gray-700 mb-4">{modalMessage}</p>
+            <p className="text-gray-500 mb-6">{modalMessage}</p>
             <button
               onClick={() => setIsModalOpen(false)}
-              className="px-6 py-2 bg-gray-200 rounded hover:bg-gray-300 transition cursor-pointer"
+              className="px-6 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition cursor-pointer text-gray-700 font-medium"
             >
               Close
             </button>

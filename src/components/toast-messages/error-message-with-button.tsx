@@ -117,7 +117,7 @@ const ErrorPopup = ({
                 >
                     <button
                         onClick={handleClose}
-                        className="bg-gray-100 hover:bg-gray-200 text-gray-600 font-medium py-3 px-8 rounded-lg transition-colors duration-200 min-w-24"
+                        className="bg-gray-100 hover:bg-gray-200 text-gray-600 font-medium py-3 px-8 rounded-lg transition-colors duration-200 min-w-24 cursor-pointer"
                     >
                         Cancel
                     </button>

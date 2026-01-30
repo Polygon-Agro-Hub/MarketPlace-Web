@@ -356,8 +356,8 @@ const Page: React.FC = () => {
       return [...prev, { productId, newQuantity }];
     });
   };
-  
-  
+
+
   // Show confirmation modal for product removal
   const handleRemoveProduct = async (productId: number) => {
     const itemKey = `product-${productId}`;
@@ -786,14 +786,14 @@ const Page: React.FC = () => {
           <div className="bg-white p-6 rounded-lg shadow-lg w-96 text-center">
             <p className="text-lg font-medium mb-6">
               {showConfirmModal.type === 'bulk'
-                ? `Are you sure you want to remove ${showConfirmModal.selectedIds?.length} selected products?`
+                ? `Are you sure you want to remove ${showConfirmModal.selectedIds?.length} selected ${showConfirmModal.selectedIds?.length === 1 ? 'product' : 'products'}?`
                 : `Are you sure you want to remove this package?`
               }
             </p>
             <div className="flex justify-center gap-4">
               <button
                 onClick={() => setShowConfirmModal(null)}
-                className="px-6 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors"
+                className="px-6 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors cursor-pointer"
               >
                 Cancel
               </button>
@@ -807,7 +807,7 @@ const Page: React.FC = () => {
                   setShowConfirmModal(null);
                 }}
                 disabled={showConfirmModal.type === 'bulk' && bulkDeleteLoading}
-                className="px-6 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors disabled:opacity-50"
+                className="px-6 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors disabled:opacity-50 cursor-pointer"
               >
                 {showConfirmModal.type === 'bulk' && bulkDeleteLoading ? 'Removing...' : 'Remove'}
               </button>
@@ -881,7 +881,7 @@ const Page: React.FC = () => {
                 <div className='flex justify-between items-start mb-4'>
                   <div className='flex items-center gap-2'>
                     <p className='text-[20px] font-normal text-gray-700'>
-                      Your {itemGroup.packageName}
+                      Your {itemGroup.packageName == 'Selected Items' ? 'Additional Selections' : 'Selected Items'}
                     </p>
                   </div>
 
@@ -1165,7 +1165,9 @@ const Page: React.FC = () => {
                       className="object-contain"
                     />
                   </div>
-                  <p className="text-sm sm:text-base">{dynamicSummary.totalItems} items</p>
+                  <p className="text-sm sm:text-base">
+                    {dynamicSummary.totalItems} {dynamicSummary.totalItems === 1 ? 'item' : 'items'}
+                  </p>
                 </div>
                 <p className='font-semibold text-sm sm:text-base'>Rs.{formatPrice(dynamicSummary.grandTotal)}</p>
               </div>

@@ -284,7 +284,7 @@ function WholesaleHomeContent() {
           </p>
           <button
             onClick={handleResetSearch}
-            className="px-6 py-2 bg-[#3E206D] text-white rounded-lg hover:bg-[#2D1850] transition-colors"
+            className="px-6 py-2 bg-[#3E206D] text-white rounded-lg hover:bg-[#2D1850] transition-colors cursor-pointer"
           >
             Clear Search
           </button>

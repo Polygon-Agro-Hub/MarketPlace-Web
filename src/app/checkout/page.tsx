@@ -1,6 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
-import { Plus, Minus, Trash2 } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
 import TopNavigation from '@/components/top-navigation/TopNavigation';
 import CustomDropdown from '../../components/home/CustomDropdown';
 import Swal from 'sweetalert2';
@@ -12,7 +11,6 @@ import SuccessPopup from '@/components/toast-messages/success-message-with-butto
 import ErrorPopup from '@/components/toast-messages/error-message';
 import { getLastOrderAddress } from '@/services/retail-service';
 import { selectCartForOrder } from '../../store/slices/cartItemsSlice';
-import { useSearchParams } from 'next/navigation';
 import { getPickupCenters, PickupCenter } from '@/services/cart-service'
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
@@ -135,6 +133,9 @@ const Page: React.FC = () => {
     geoLongitude: '',
   });
 
+  // Add this new state for duplicate phone error
+  const [duplicatePhoneError, setDuplicatePhoneError] = useState('');
+
   const token = useSelector((state: RootState) => state.auth.token) as string | null;
   const [usePreviousAddress, setUsePreviousAddress] = useState(false);
   const cartData = useSelector(selectCartForOrder);
@@ -160,6 +161,8 @@ const Page: React.FC = () => {
   const [deliveryCharge, setDeliveryCharge] = useState<number>(0); // Default charge
   const [hasPreviousAddress, setHasPreviousAddress] = useState(true);
   const [isGeoModalOpen, setIsGeoModalOpen] = useState(false);
+  const [viewingSavedLocation, setViewingSavedLocation] = useState(false);
+  const memoizedPickupCenters = useMemo(() => pickupCenters, [pickupCenters]);
 
   useEffect(() => {
     // Only run on client side
@@ -216,6 +219,17 @@ const Page: React.FC = () => {
 
     fetchPickupCenters();
   }, [formData.deliveryMethod, token]);
+
+  useEffect(() => {
+    // Check if both phone numbers are filled and identical
+    if (formData.phone1 && formData.phone2 &&
+      formData.phone1.trim() === formData.phone2.trim() &&
+      formData.phoneCode1 === formData.phoneCode2) {
+      setDuplicatePhoneError('Phone Number 1 and Phone Number 2 cannot be the same');
+    } else {
+      setDuplicatePhoneError('');
+    }
+  }, [formData.phone1, formData.phone2, formData.phoneCode1, formData.phoneCode2]);
 
   useEffect(() => {
     const fetchCities = async () => {
@@ -330,6 +344,9 @@ const Page: React.FC = () => {
             buildingName: data.buildingName || '',
             flatNumber: data.unitNo || '',
             floorNumber: data.floorNo || '',
+            // Geo location coordinates
+            geoLatitude: data.latitude ? parseFloat(data.latitude) : null,
+            geoLongitude: data.longitude ? parseFloat(data.longitude) : null,
           }));
         }
       } catch (error: any) {
@@ -498,6 +515,11 @@ const Page: React.FC = () => {
     const isPickup = formData.deliveryMethod === 'pickup';
     const isApartment = formData.buildingType === 'Apartment';
 
+    // Check for duplicate phone numbers
+    if (duplicatePhoneError) {
+      return false;
+    }
+
     // Check required fields based on delivery method
     const requiredFields = [
       'title',
@@ -514,6 +536,8 @@ const Page: React.FC = () => {
 
     if (isHomeDelivery) {
       requiredFields.push('buildingType', 'houseNo', 'street', 'cityName');
+      // ADD THESE LINES:
+      requiredFields.push('geoLatitude', 'geoLongitude');
 
       // Add apartment specific required fields
       if (isApartment) {
@@ -526,7 +550,7 @@ const Page: React.FC = () => {
       const value = formData[field as keyof FormData];
 
       // Check if field is empty
-      if (field === 'centerId') {
+      if (field === 'centerId' || field === 'geoLatitude' || field === 'geoLongitude') {
         if (value === null || value === undefined) return false;
       } else {
         if (!value || (typeof value === 'string' && !value.trim())) return false;
@@ -544,6 +568,7 @@ const Page: React.FC = () => {
 
     return true;
   };
+
 
   const [isFormValidState, setIsFormValidState] = useState(false);
 
@@ -573,7 +598,6 @@ const Page: React.FC = () => {
     }
   };
 
-  // Updated validateField function - ensure cityName validation
   const validateField = (field: keyof FormData, value: string | number | null, formData: FormData): string => {
     const trimmed = typeof value === 'string' ? value.trim() : '';
     const isHomeDelivery = formData.deliveryMethod === 'home';
@@ -656,13 +680,20 @@ const Page: React.FC = () => {
 
       case 'geoLatitude':
       case 'geoLongitude':
-
+        // UPDATED: Make geo location required for home delivery
+        if (isHomeDelivery) {
+          if (value === null || value === undefined) {
+            return 'Geo location is required. Please attach your location.';
+          }
+        }
         return '';
 
       default:
         return '';
     }
   };
+
+
   const capitalizeFirstLetter = (value: string): string => {
     if (!value) return value;
     return value.charAt(0).toUpperCase() + value.slice(1);
@@ -896,7 +927,7 @@ const Page: React.FC = () => {
                       zoom={mapZoom}
                       height="300px"
                       onCenterSelect={handleCenterSelect}
-                      pickupCenters={pickupCenters} // Pass centers to map component
+                      pickupCenters={memoizedPickupCenters} // Use memoized version
                       selectedCenterId={selectedPickupCenter?.id?.toString()}
                     />
                   </div>
@@ -983,9 +1014,9 @@ const Page: React.FC = () => {
                     <div className='w-24'>
                       <CustomDropdown
                         options={[
-                          { value: '94', label: '+94' },
-                          { value: '91', label: '+91' },
-                          { value: '1', label: '+1' }
+                          { value: '+94', label: '+94' },
+                          { value: '+91', label: '+91' },
+                          { value: '+1', label: '+1' }
                         ]}
                         selectedValue={formData.phoneCode2}
                         onSelect={(value) => handleFieldChange('phoneCode2', value)}
@@ -995,13 +1026,16 @@ const Page: React.FC = () => {
                     <div className="w-full">
                       <input
                         type="text"
-                        className='w-full  h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2 '
+                        className={`w-full h-[39px] border-2 ${duplicatePhoneError ? 'border-red-500' : 'border-[#F2F4F7]'} bg-[#F9FAFB] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2`}
                         value={formData.phone2}
                         onChange={(e) => handleFieldChange('phone2', e.target.value)}
                         placeholder='7XXXXXXXX'
                       />
                       {errors.phone2 && (
                         <p className="text-red-600 text-sm mt-1">{errors.phone2}</p>
+                      )}
+                      {duplicatePhoneError && !errors.phone2 && (
+                        <p className="text-red-600 text-sm mt-1">{duplicatePhoneError}</p>
                       )}
                     </div>
                   </div>
@@ -1144,25 +1178,67 @@ const Page: React.FC = () => {
                     <label className="block font-semibold text-[#2E2E2E] mb-1">Geo Location *</label>
                     <button
                       type="button"
-                      onClick={() => setIsGeoModalOpen(true)}
-                      className="w-full h-[39px] border-2 border-[#F2F4F7] bg-[#E6D9F5] rounded-lg flex items-center justify-center gap-2 text-[#3E206D] font-medium hover:bg-[#d9c9ed] transition-colors"
+                      onClick={() => {
+                        setViewingSavedLocation(false);
+                        setIsGeoModalOpen(true);
+                      }}
+                      className="w-full h-[39px] border-2 border-[#F2F4F7] bg-[#E6D9F5] rounded-lg flex items-center justify-center gap-2 text-[#3E206D] font-medium hover:bg-[#d9c9ed] transition-colors cursor-pointer"
                     >
                       <LocateFixed size={20} />
-                      Attach My Geo Location
+                      {formData.geoLatitude && formData.geoLongitude
+                        ? 'Reattach My Geo Location'
+                        : 'Attach My Geo Location'
+                      }
                     </button>
-                    {formData.geoLatitude && formData.geoLongitude && (
-                      <p className="text-xs text-green-600 mt-1">
-                        Location attached: {formData.geoLatitude.toFixed(6)}, {formData.geoLongitude.toFixed(6)}
+
+                    {(errors.geoLatitude || errors.geoLongitude) && (
+                      <p className="text-red-600 text-sm mt-1">
+                        {errors.geoLatitude || errors.geoLongitude}
                       </p>
                     )}
-                  </div>
 
+                    {/* Show current attached location */}
+                    {formData.geoLatitude && formData.geoLongitude && (
+                      <div className="mt-2 space-y-1">
+                        <p className="text-xs text-green-600">
+                          Location attached: {formData.geoLatitude.toFixed(6)}, {formData.geoLongitude.toFixed(6)}
+                        </p>
+
+                        {/* View Here link - only show if this is from saved address */}
+                        {usePreviousAddress && formData.geoLatitude && formData.geoLongitude && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setViewingSavedLocation(true);
+                              setIsGeoModalOpen(true);
+                            }}
+                            className="flex items-center gap-1 text-red-600 hover:text-red-700 transition-colors text-sm font-medium group cursor-pointer"
+                          >
+                            <LocateFixed size={16} className="group-hover:scale-110 transition-transform" />
+                            <span className="underline">View here</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
                   {/* Geo Location Modal */}
                   <GeoLocationModal
                     isOpen={isGeoModalOpen}
-                    onClose={() => setIsGeoModalOpen(false)}
+                    onClose={() => {
+                      setIsGeoModalOpen(false);
+                      setViewingSavedLocation(false);
+                    }}
                     onLocationSelect={handleLocationSelect}
-                    initialCenter={mapCenter}
+                    initialCenter={
+                      viewingSavedLocation && formData.geoLatitude && formData.geoLongitude
+                        ? [formData.geoLatitude, formData.geoLongitude]
+                        : mapCenter
+                    }
+                    savedLocation={
+                      viewingSavedLocation && formData.geoLatitude && formData.geoLongitude
+                        ? [formData.geoLatitude, formData.geoLongitude]
+                        : null
+                    }
                   />
                 </div>
 
@@ -1185,20 +1261,43 @@ const Page: React.FC = () => {
       .date-input::-webkit-inner-spin-button {
         cursor: pointer;
       }
+      /* Firefox-specific styles */
+      .date-input::-moz-calendar-picker-indicator {
+        cursor: pointer;
+      }
+      /* Hide native placeholder in webkit browsers when showing custom one */
+      .date-input::-webkit-datetime-edit-text,
+      .date-input::-webkit-datetime-edit-month-field,
+      .date-input::-webkit-datetime-edit-day-field,
+      .date-input::-webkit-datetime-edit-year-field {
+        color: transparent;
+      }
+      .date-input.has-value::-webkit-datetime-edit-text,
+      .date-input.has-value::-webkit-datetime-edit-month-field,
+      .date-input.has-value::-webkit-datetime-edit-day-field,
+      .date-input.has-value::-webkit-datetime-edit-year-field {
+        color: #3D3D3D;
+      }
+      /* Hide custom placeholder in Firefox */
+      @-moz-document url-prefix() {
+        .custom-date-placeholder {
+          display: none !important;
+        }
+      }
     `
                   }} />
                   <label className='block text-[#2E2E2E] font-semibold mb-4'>Date *</label>
                   <div className="relative">
                     <input
                       type="date"
-                      className={`date-input w-full border h-[39px] border-gray-300 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2 bg-white ${formData.deliveryDate ? 'text-[#3D3D3D]' : 'text-transparent'}`}
+                      className={`date-input w-full border h-[39px] border-gray-300 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2 bg-white ${formData.deliveryDate ? 'has-value' : ''}`}
                       style={{
                         colorScheme: 'light',
                       }}
                       value={formData.deliveryDate}
                       onChange={(e) => {
                         const selectedValue = e.target.value;
-                        // Additional client-side validation for iOS
+                        // Additional client-side validation
                         if (selectedValue) {
                           const selectedDate = new Date(selectedValue);
                           const today = new Date();
@@ -1218,24 +1317,22 @@ const Page: React.FC = () => {
                         }
                       }}
                       onClick={(e) => {
-                        // Ensure the date picker opens on click
+                        // Ensure the date picker opens on click (Chrome, Edge, Safari)
                         const target = e.target as HTMLInputElement;
-                        if (target.showPicker) {
-                          target.showPicker();
+                        if (target.showPicker && typeof target.showPicker === 'function') {
+                          try {
+                            target.showPicker();
+                          } catch (error) {
+                            // Silently fail if showPicker is not supported
+                            console.log('showPicker not supported');
+                          }
                         }
                       }}
-                      onFocus={(e) => {
-                        // Alternative fallback for browsers that don't support showPicker
-                        const target = e.target as HTMLInputElement;
-                        target.click();
-                      }}
                       min={getMinDate()}
-                      pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}"
-                      placeholder="mm/dd/yyyy"
                     />
-                    {/* Show placeholder text when no date is selected */}
+                    {/* Show placeholder text when no date is selected - hidden in Firefox */}
                     {!formData.deliveryDate && (
-                      <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none text-base">
+                      <div className="custom-date-placeholder absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none text-base">
                         mm/dd/yyyy
                       </div>
                     )}
@@ -1273,7 +1370,9 @@ const Page: React.FC = () => {
                         className="object-contain"
                       />
                     </div>
-                    <p className="text-gray-600">{cartData?.totalItems || 0} items</p>
+                    <p className="text-gray-600">
+                      {cartData?.totalItems || 0} {(cartData?.totalItems || 0) === 1 ? 'item' : 'items'}
+                    </p>
                   </div>
                   <p className='font-semibold'>Rs.{formatPrice(cartData?.grandTotal || 0)}</p>
                 </div>

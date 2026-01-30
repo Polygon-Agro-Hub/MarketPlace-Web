@@ -8,7 +8,7 @@ import {
   getExcludedItems,
   deleteExcludedItems
 } from '@/services/product-service';
-import Loader from '@/components/loader-spinner/Loader'; // Import the Loader component
+import Loader from '@/components/loader-spinner/Loader';
 import Image from 'next/image';
 import noComplaints from '../../../public/icons/no complaints.png';
 
@@ -36,7 +36,7 @@ const ViewMyList = () => {
         return;
       }
 
-      setLoading(true); // Set loading to true before fetching
+      setLoading(true);
       try {
         const data = await getExcludedItems(authToken);
         if (data.status && Array.isArray(data.items)) {
@@ -47,7 +47,7 @@ const ViewMyList = () => {
       } catch (error: any) {
         setError(error.message || 'Failed to fetch items');
       } finally {
-        setLoading(false); // Set loading to false after fetching
+        setLoading(false);
       }
     };
 
@@ -85,12 +85,11 @@ const ViewMyList = () => {
 
   const handleConfirmDelete = async () => {
     if (!authToken) return;
-    setLoading(true); // Show loader during deletion
+    setLoading(true);
     const itemsToDelete = isBulkDelete ? selectedItems : itemToDelete ? [itemToDelete] : [];
 
     try {
       const response = await deleteExcludedItems(itemsToDelete, authToken);
-      // Assuming response indicates success
       setItems((prev) => prev.filter((item) => !itemsToDelete.includes(item.displayName)));
       setSelectedItems((prev) => prev.filter((item) => !itemsToDelete.includes(item)));
       setSubmitStatus('Items deleted successfully!');
@@ -102,7 +101,7 @@ const ViewMyList = () => {
       setItemToDelete(null);
       setIsBulkDelete(false);
       setShowDeleteModal(false);
-      setLoading(false); // Hide loader after deletion
+      setLoading(false);
     }
   };
 
@@ -114,8 +113,8 @@ const ViewMyList = () => {
 
   return (
     <div className="relative z-10 px-4 sm:px-6 md:px-8 min-h-screen bg-white blur-effect py-6">
-      <Loader isVisible={loading} /> {/* Add Loader component */}
-      <h2 className="font-medium text-sm sm:text-base md:text-[18px] mb-2 ">
+      <Loader isVisible={loading} />
+      <h2 className="font-medium text-sm sm:text-base md:text-[18px] mb-2">
         Exclude Item List
       </h2>
       <p className="text-xs sm:text-sm md:text-[16px] text-[#626D76] mb-3">
@@ -124,7 +123,7 @@ const ViewMyList = () => {
       <div className="border-t border-[#BDBDBD] mb-4 sm:mb-6 mt-2" />
 
       {items.length > 0 && (
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-2">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
           <p className="text-[#000000] font-semibold text-sm sm:text-base">
             All ({items.length.toString().padStart(2, '0')})
           </p>
@@ -142,12 +141,11 @@ const ViewMyList = () => {
 
       {error && <p className="text-center text-red-500 text-sm">{error}</p>}
 
-
       {!loading && !error && items.length > 0 && (
         <>
-          {/* Desktop Table (Unchanged) */}
-          <div className="hidden sm:block overflow-x-auto border border-[#CFCFCF] rounded-[15px] p-3 w-full max-w-full sm:max-w-[700px] mx-auto">
-            <table className="w-full min-w-[500px] text-sm">
+          {/* Desktop Table */}
+          <div className="hidden sm:block overflow-x-auto border border-[#CFCFCF] rounded-[15px] p-3 w-full">
+            <table className="w-full text-sm">
               <thead>
                 <tr className="text-[#8492A3] font-semibold text-xs sm:text-sm">
                   <th className="p-2 text-left w-[10%]">
@@ -198,7 +196,7 @@ const ViewMyList = () => {
             </table>
           </div>
           {/* Mobile Table */}
-          <div className="sm:hidden border border-[#CFCFCF] rounded-[15px] p-2">
+          <div className="sm:hidden border border-[#CFCFCF] rounded-[15px] p-2 w-full">
             <table className="w-full text-xs">
               <thead>
                 <tr className="text-[#8492A3] font-semibold text-[10px]">
@@ -207,7 +205,7 @@ const ViewMyList = () => {
                       type="checkbox"
                       checked={selectedItems.length === items.length}
                       onChange={handleSelectAll}
-                      className="accent-[#4C5160] cursor-pointer w3 h-3"
+                      className="accent-[#4C5160] cursor-pointer w-3 h-3"
                     />
                   </th>
                   <th className="p-1 text-left w-[20%]">IMG</th>

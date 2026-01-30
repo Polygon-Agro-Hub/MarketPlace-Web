@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { FaAngleLeft, FaUser, FaAddressCard, FaExclamationTriangle, FaTimes } from 'react-icons/fa';
+import { FaAngleLeft, FaUser, FaAddressCard, FaExclamationTriangle, FaTimes} from 'react-icons/fa';
+import { FaLocationDot } from "react-icons/fa6";
 import { useRouter } from 'next/navigation';
 import { useSelector } from 'react-redux';
 
@@ -121,7 +122,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
           <li onClick={() => handleMenuClick('billingAddress')} className="cursor-pointer">
             <div className={`flex items-center gap-4 px-2 py-2 rounded-md ${isActive('billingAddress') ? 'bg-[#DDDDDD]' : ''}`}>
               <div className="w-[44px] h-[42px] border border-[#D4D8DC] rounded-[10px] flex items-center justify-center bg-white">
-                <FaAddressCard className={isActive('billingAddress') ? 'text-[#3E206D]' : 'text-[#233242]'} />
+                <FaLocationDot className={isActive('billingAddress') ? 'text-[#3E206D]' : 'text-[#233242]'} />
               </div>
               <span className="hidden md:inline font-medium text-[16px]">Billing Address</span>
             </div>

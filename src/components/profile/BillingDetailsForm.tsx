@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -11,6 +9,8 @@ import { fetchBillingDetails, saveBillingDetails, fetchCities, BillingDetails, B
 import SuccessPopup from '@/components/toast-messages/success-message';
 import ErrorPopup from '@/components/toast-messages/error-message';
 import Loader from '@/components/loader-spinner/Loader';
+import GeoLocationModal from '@/components/delivery-map/GeoLocationModal';
+import { LocateFixed } from 'lucide-react';
 
 // Define form data type
 type BillingFormData = {
@@ -34,6 +34,8 @@ type BillingFormData = {
   phone1: string;
   phonecode2?: string;
   phone2?: string;
+  geoLatitude?: number | null;   // Add this
+  geoLongitude?: number | null;  // Add this
 };
 
 // Custom Dropdown Component
@@ -138,6 +140,32 @@ const BillingDetailsForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [cities, setCities] = useState<string[]>([]);
   const [hasFormChanged, setHasFormChanged] = useState(false);
+  const [isGeoModalOpen, setIsGeoModalOpen] = useState(false);
+  const [mapCenter, setMapCenter] = useState<[number, number]>([6.9271, 79.8612]); // Default to Colombo
+  const [isViewingLocation, setIsViewingLocation] = useState(false);
+  const [hasGeoLocation, setHasGeoLocation] = useState(false); // Track if geo location exists
+  const [isMounted, setIsMounted] = useState(false); // Track if component is mounted on client
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Function to view saved location
+  const handleViewLocation = () => {
+    const lat = watch('geoLatitude');
+    const lng = watch('geoLongitude');
+    if (lat && lng) {
+      setMapCenter([lat, lng]);
+      setIsViewingLocation(true); // Set viewing mode
+      setIsGeoModalOpen(true);
+    }
+  };
+
+  // Function to attach new location
+  const handleAttachLocation = () => {
+    setIsViewingLocation(false); // Set to attach mode
+    setIsGeoModalOpen(true);
+  };
 
   useEffect(() => {
     const loadCities = async () => {
@@ -163,7 +191,7 @@ const BillingDetailsForm = () => {
   const compareFormData = (current: BillingFormData, initial: BillingFormData | null): boolean => {
     if (!initial) return false;
 
-    const fieldsToCompare: (keyof BillingFormData)[] = [
+    const stringFieldsToCompare: (keyof BillingFormData)[] = [
       'billingTitle', 'billingName', 'title', 'firstName', 'lastName',
       'houseNo', 'buildingNo', 'buildingType', 'apartmentName', 'flatNumber',
       'apartmentFloor', 'apartmentHouseNo', 'houseStreet', 'houseCity',
@@ -171,21 +199,28 @@ const BillingDetailsForm = () => {
       'phonecode2', 'phone2'
     ];
 
-    return fieldsToCompare.some(field => {
+    // Check string fields
+    const stringFieldsChanged = stringFieldsToCompare.some(field => {
       const currentValue = current[field] || '';
       const initialValue = initial[field] || '';
       return currentValue !== initialValue;
     });
+
+    if (stringFieldsChanged) return true;
+
+    // Check geo location fields separately (number comparison)
+    const geoLatChanged = (current.geoLatitude ?? null) !== (initial.geoLatitude ?? null);
+    const geoLngChanged = (current.geoLongitude ?? null) !== (initial.geoLongitude ?? null);
+
+    return geoLatChanged || geoLngChanged;
   };
 
 
-
-  // Options for dropdowns
   const billingTitleOptions = [
-    { value: 'Rev.', label: 'Rev.' },
-    { value: 'Mr.', label: 'Mr.' },
-    { value: 'Ms.', label: 'Ms.' },
-    { value: 'Mrs.', label: 'Mrs.' },
+    { value: 'Mr.', label: 'Mr' },
+    { value: 'Mrs.', label: 'Mrs' },
+    { value: 'Ms.', label: 'Ms' },
+    { value: 'Rev.', label: 'Rev' },
   ];
 
   const buildingTypeOptions = [
@@ -235,6 +270,8 @@ const BillingDetailsForm = () => {
       phone1: '',
       phonecode2: '+94',
       phone2: '',
+      geoLatitude: null,    // Add this
+      geoLongitude: null,
     },
     mode: 'onChange',
   });
@@ -303,11 +340,28 @@ const BillingDetailsForm = () => {
           phone1: data.phoneNumber || '',
           phonecode2: data.phoneCode2 || '+94',
           phone2: data.phoneNumber2 || '',
+          geoLatitude: data.geoLatitude || data.address?.geoLatitude || null,
+          geoLongitude: data.geoLongitude || data.address?.geoLongitude || null,
         };
         setInitialFormData(formData);
         reset(formData);
         console.log('Form state after reset:', getValues());
-        setValue('buildingType', formData.buildingType); // Ensure buildingType is set
+        console.log('Geo Location loaded:', { lat: formData.geoLatitude, lng: formData.geoLongitude });
+        setValue('buildingType', formData.buildingType); 
+        setTimeout(() => {
+          if (formData.geoLatitude && formData.geoLongitude) {
+            setValue('geoLatitude', formData.geoLatitude, { shouldValidate: false });
+            setValue('geoLongitude', formData.geoLongitude, { shouldValidate: false });
+            setHasGeoLocation(true); 
+            console.log('Geo location values set explicitly:', {
+              lat: formData.geoLatitude,
+              lng: formData.geoLongitude,
+              currentValues: { lat: getValues('geoLatitude'), lng: getValues('geoLongitude') }
+            });
+          } else {
+            setHasGeoLocation(false);
+          }
+        }, 100);
       } catch (error: any) {
         console.error('Fetch error:', error);
         setErrorMessage(error.message || 'Failed to fetch billing details');
@@ -373,7 +427,26 @@ const BillingDetailsForm = () => {
 
     // Register phone code as required
     register('phonecode1', { required: 'Phone code is required' });
+    
+    // Register geo location fields (optional but tracked)
+    register('geoLatitude');
+    register('geoLongitude');
   }, [register, buildingType]);
+
+  // Add this function before the onSubmit function
+  const handleLocationSelect = (lat: number, lng: number) => {
+    setValue('geoLatitude', lat, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
+    setValue('geoLongitude', lng, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
+    setHasGeoLocation(true); // Mark that geo location exists
+    console.log('Location selected and saved to form:', { lat, lng });
+    
+    // Force form change detection
+    if (initialFormData) {
+      const currentData = getValues();
+      const hasChanged = compareFormData(currentData as BillingFormData, initialFormData);
+      setHasFormChanged(hasChanged || true); // Force true since location was just selected
+    }
+  };
 
   const onSubmit: SubmitHandler<BillingFormData> = async (data) => {
     setIsLoading(true);
@@ -393,7 +466,7 @@ const BillingDetailsForm = () => {
     }
 
     if (!data.billingTitle || !['Rev.', 'Mr.', 'Ms.', 'Mrs.'].includes(data.billingTitle)) {
-      setErrorMessage('Please select a valid billing title (Rev., Mr., Ms., or Mrs.).');
+      setErrorMessage('Please select a valid billing title ( Mr., Ms., or Mrs. ,Rev.).');
       setShowErrorPopup(true);
       setIsLoading(false);
       return;
@@ -415,11 +488,7 @@ const BillingDetailsForm = () => {
         setIsLoading(false);
         return;
       }
-    }
-
-    // Add city validation to the existing apartment validation block:
-
-    else if (data.buildingType === 'apartment') {
+    } else if (data.buildingType === 'apartment') {
       if (!data.buildingNo || !data.apartmentName || !data.flatNumber ||
         !data.apartmentFloor || !data.apartmentHouseNo ||
         !data.apartmentStreet || !data.apartmentCity) {
@@ -429,6 +498,7 @@ const BillingDetailsForm = () => {
         return;
       }
     }
+
     // Validate phone number
     if (!data.phonecode1 || !data.phone1) {
       setErrorMessage('Phone number is required.');
@@ -453,6 +523,8 @@ const BillingDetailsForm = () => {
       floorNo: data.buildingType === 'apartment' ? data.apartmentFloor || undefined : undefined,
       streetName: data.buildingType === 'house' ? data.houseStreet || undefined : data.buildingType === 'apartment' ? data.apartmentStreet || undefined : undefined,
       city: data.buildingType === 'house' ? data.houseCity || undefined : data.buildingType === 'apartment' ? data.apartmentCity || undefined : undefined,
+      geoLatitude: data.geoLatitude || undefined,    // Keep this
+      geoLongitude: data.geoLongitude || undefined,  // Keep this
     };
 
     const billingDetails: BillingDetails = {
@@ -467,7 +539,15 @@ const BillingDetailsForm = () => {
       phoneNumber2: data.phone2 || '',
       buildingType: data.buildingType || '',
       address,
+      geoLatitude: data.geoLatitude || undefined,
+      geoLongitude: data.geoLongitude || undefined,
     };
+
+    console.log('Saving billing details with geo location:', {
+      geoLatitude: data.geoLatitude,
+      geoLongitude: data.geoLongitude,
+      fullData: billingDetails
+    });
 
     try {
       await saveBillingDetails({ token, data: billingDetails });
@@ -528,6 +608,11 @@ const BillingDetailsForm = () => {
     if (initialFormData) {
       reset(initialFormData);
       setValue('buildingType', initialFormData.buildingType); // Ensure buildingType is reset
+      // Explicitly reset geo location values
+      if (initialFormData.geoLatitude && initialFormData.geoLongitude) {
+        setValue('geoLatitude', initialFormData.geoLatitude);
+        setValue('geoLongitude', initialFormData.geoLongitude);
+      }
       setHasFormChanged(false); // Reset the change flag
     }
     setTimeout(() => {
@@ -656,36 +741,79 @@ const BillingDetailsForm = () => {
           </div>
 
           {buildingType === 'house' && (
-            <div className="flex flex-col lg:flex-row gap-4 lg:gap-[100px] mb-6">
-              <div className="w-full lg:w-1/2">
-                <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
-                  Street Name
-                </label>
-                <input
-                  {...register('houseStreet')}
-                  className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
-                  placeholder='Street Name'
-                  onKeyDown={handleInputKeyDown}
-                />
+            <>
+              <div className="flex flex-col lg:flex-row gap-4 lg:gap-[100px] mb-6">
+                <div className="w-full lg:w-1/2">
+                  <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
+                    Street Name
+                  </label>
+                  <input
+                    {...register('houseStreet')}
+                    className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
+                    placeholder='Street Name'
+                    onKeyDown={handleInputKeyDown}
+                  />
 
-                <p className="text-red-500 text-xs">{errors.houseStreet?.message}</p>
+                  <p className="text-red-500 text-xs">{errors.houseStreet?.message}</p>
+                </div>
+
+                <div className="w-full lg:w-1/2">
+                  <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
+                    Nearest City <span className="text-red-500">*</span>
+                  </label>
+                  <CustomDropdown
+                    register={register}
+                    setValue={setValue}
+                    name="houseCity"
+                    value={houseCityValue}
+                    errors={errors}
+                    options={cityOptions}
+                    placeholder="Select City"
+                  />
+                </div>
               </div>
 
-              <div className="w-full lg:w-1/2">
-                <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
-                  Nearest City <span className="text-red-500">*</span>
-                </label>
-                <CustomDropdown
-                  register={register}
-                  setValue={setValue}
-                  name="houseCity"
-                  value={houseCityValue}
-                  errors={errors}
-                  options={cityOptions}
-                  placeholder="Select City"
-                />
+              <div className="flex flex-col lg:flex-row gap-4 lg:gap-[100px] mb-6">
+                <div className="w-full lg:w-1/2">
+                  <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
+                    Geo Location
+                  </label>
+                  {isMounted && (hasGeoLocation || (watch('geoLatitude') && watch('geoLongitude'))) ? (
+                    <div className="space-y-2">
+                      <button
+                        type="button"
+                        onClick={handleAttachLocation}
+                        className="w-full h-[42px] border-2 border-[#CECECE] bg-[#E6D9F5] rounded-lg flex items-center justify-center gap-2 text-[#3E206D] font-medium hover:bg-[#d9c9ed] transition-colors cursor-pointer"
+                      >
+                        <LocateFixed size={18} />
+                        <span className="text-[12px] md:text-[14px]">Re-attach My Geo Location</span>
+                      </button>
+                      <div 
+                        className="flex items-start gap-2 text-[#D32F2F] cursor-pointer"
+                        onClick={handleViewLocation}
+                      >
+                        <LocateFixed size={16} className="mt-0.5 flex-shrink-0" />
+                        <span className="text-[11px] md:text-[13px] underline hover:text-[#b02525]">
+                          View Here
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleAttachLocation}
+                      className="w-full h-[42px] border-2 border-[#CECECE] bg-[#E6D9F5] rounded-lg flex items-center justify-center gap-2 text-[#3E206D] font-medium hover:bg-[#d9c9ed] transition-colors cursor-pointer"
+                    >
+                      <LocateFixed size={18} />
+                      <span className="text-[12px] md:text-[14px]">Attach My Geo Location</span>
+                    </button>
+                  )}
+                </div>
+                <div className="w-full lg:w-1/2">
+                  {/* Empty space for alignment */}
+                </div>
               </div>
-            </div>
+            </>
           )}
 
           {buildingType === 'apartment' && (
@@ -776,6 +904,47 @@ const BillingDetailsForm = () => {
                   />
                 </div>
               </div>
+
+              <div className="flex flex-col lg:flex-row gap-4 lg:gap-[100px] mb-6">
+                <div className="w-full lg:w-1/2">
+                  <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
+                    Geo Location
+                  </label>
+                  {isMounted && (hasGeoLocation || (watch('geoLatitude') && watch('geoLongitude'))) ? (
+                    <div className="space-y-2">
+                      <button
+                        type="button"
+                        onClick={handleAttachLocation}
+                        className="w-full h-[42px] border-2 border-[#CECECE] bg-[#E6D9F5] rounded-lg flex items-center justify-center gap-2 text-[#3E206D] font-medium hover:bg-[#d9c9ed] transition-colors cursor-pointer"
+                      >
+                        <LocateFixed size={18} />
+                        <span className="text-[12px] md:text-[14px]">Re-attach My Geo Location</span>
+                      </button>
+                      <div 
+                        className="flex items-start gap-2 text-[#D32F2F] cursor-pointer"
+                        onClick={handleViewLocation}
+                      >
+                        <LocateFixed size={16} className="mt-0.5 flex-shrink-0" />
+                        <span className="text-[11px] md:text-[13px] underline hover:text-[#b02525]">
+                          View Here
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleAttachLocation}
+                      className="w-full h-[42px] border-2 border-[#CECECE] bg-[#E6D9F5] rounded-lg flex items-center justify-center gap-2 text-[#3E206D] font-medium hover:bg-[#d9c9ed] transition-colors cursor-pointer"
+                    >
+                      <LocateFixed size={18} />
+                      <span className="text-[12px] md:text-[14px]">Attach My Geo Location</span>
+                    </button>
+                  )}
+                </div>
+                <div className="w-full lg:w-1/2">
+                  {/* Empty space for alignment */}
+                </div>
+              </div>
             </>
           )}
         </div>
@@ -862,6 +1031,18 @@ const BillingDetailsForm = () => {
             Cancel
           </button>
         </div>
+        <GeoLocationModal
+          isOpen={isGeoModalOpen}
+          onClose={() => {
+            setIsGeoModalOpen(false);
+            setIsViewingLocation(false); // Reset viewing mode when closing
+          }}
+          onLocationSelect={handleLocationSelect}
+          initialCenter={mapCenter}
+          savedLocation={isViewingLocation && watch('geoLatitude') && watch('geoLongitude') 
+            ? [Number(watch('geoLatitude')), Number(watch('geoLongitude'))] 
+            : null}
+        />
       </form>
     </div>
   );

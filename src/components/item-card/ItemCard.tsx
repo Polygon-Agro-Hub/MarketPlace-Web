@@ -119,6 +119,11 @@ const ItemCard = ({
             // Round to 3 decimal places to avoid floating point issues, then remove trailing zeros
             return kgValue.toFixed(3).replace(/\.?0+$/, '');
         }
+        if (unit === 'g') {
+            const kgValue = quantity
+            // Round to 3 decimal places to avoid floating point issues, then remove trailing zeros
+            return kgValue.toFixed(3).replace(/\.?0+$/, '');
+        }
         // For grams, round to avoid floating point precision issues
         return Math.round(quantity).toString();
     };
@@ -434,7 +439,7 @@ const ItemCard = ({
                 <div className="flex justify-center w-full lg:mb-4">
                     <Tooltip />
                     {addedToCart ? (
-                        <button className="w-52 py-2 px-1.5 rounded rounded-lg md:rounded-xl flex items-center justify-center gap-1 text-xs md:text-sm bg-[#EDE1FF] text-purple-900 border border-[#3E206D] transition-colors cursor-pointer">
+                        <button className="w-full max-w-[180px] sm:max-w-[200px] md:max-w-[220px] py-2 px-1.5 rounded rounded-lg md:rounded-xl flex items-center justify-center gap-1 text-xs md:text-sm bg-[#EDE1FF] text-purple-900 border border-[#3E206D] transition-colors cursor-pointer">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                             </svg>
@@ -446,7 +451,7 @@ const ItemCard = ({
                             onMouseEnter={() => setIsHovering(true)}
                             onMouseLeave={() => setIsHovering(false)}
                             disabled={isLoading || isInCart}
-                            className={`w-52 py-2 px-1.5 rounded rounded-lg md:rounded-xl flex items-center justify-center gap-1 text-xs md:text-sm transition-colors ${isInCart
+                            className={`w-full max-w-[180px] sm:max-w-[200px] md:max-w-[220px] py-2 px-1.5 rounded rounded-lg md:rounded-xl flex items-center justify-center gap-1 text-xs md:text-sm transition-colors ${isInCart
                                 ? "bg-[#EDE1FF] text-gray-500 cursor-not-allowed"
                                 : token && user && showQuantitySelector && buyerType !== 'Wholesale'
                                     ? "bg-purple-900 text-white hover:bg-purple-800 cursor-pointer"

@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
@@ -10,6 +9,7 @@ import { getOrderHistory, getOrderDetails } from '@/services/retail-order-servic
 import { useRouter } from 'next/navigation';
 import Select, { ActionMeta, SingleValue } from 'react-select'; // Import react-select
 import Loader from '@/components/loader-spinner/Loader';
+import cart from '../../../../public/images/History.jpg'
 
 
 // Define interfaces based on the API responses
@@ -107,6 +107,16 @@ function formatDateTime(dateTimeStr: string, type: 'date' | 'time' = 'date'): st
     timeZone: 'Asia/Colombo',
     dateStyle: 'medium',
   });
+}
+
+// Helper function to format quantity - removes unnecessary decimal zeros
+function formatQuantity(quantity: string | number, unit: string = ''): string {
+  const numQty = typeof quantity === 'string' ? parseFloat(quantity) : quantity;
+  if (isNaN(numQty)) return `${quantity}${unit}`;
+  
+  // If it's a whole number, display without decimals
+  const formattedQty = numQty % 1 === 0 ? numQty.toString() : numQty.toFixed(2).replace(/\.?0+$/, '');
+  return unit ? `${formattedQty}${unit}` : formattedQty;
 }
 
 const getStatusClass = (status: string): string => {
@@ -304,7 +314,7 @@ export default function OrderHistoryPage() {
                 name: item.typeName || 'Unknown',
                 weight: item.weight || '1 kg',
                 price: formatCurrency(parseFloat(item.price || '0'), 2),
-                quantity: item.qty ? String(item.qty).padStart(2, '0') : '01',
+                quantity: String(item.qty || 1),
               })) || [],
               totalPrice: formatCurrency(pack.productPrice || 0, 2),
             }))
@@ -313,7 +323,7 @@ export default function OrderHistoryPage() {
             ? additionalItemsData.data.map((item: any) => ({
               id: item.id || 0,
               name: item.displayName || 'Unknown',
-              quantity: String(item.qty || 1).padStart(2, '0'),
+              quantity: String(item.qty || 1),
               unit: item.unit || 'kg',
               weight: `${item.qty || '1'} ${item.unit || 'kg'}`,
               price: formatCurrency(parseFloat(item.price || '0'), 2),
@@ -406,6 +416,7 @@ export default function OrderHistoryPage() {
                   options={filterOptions}
                   value={filterOptions.find((option) => option.value === filter)}
                   onChange={handleFilterChange}
+                  isSearchable={false}
                   className="text-xs lg:text-sm"
                   styles={{
                     control: (base) => ({
@@ -445,8 +456,6 @@ export default function OrderHistoryPage() {
                       textAlign: 'center',
                       width: '100%',
                       color: 'rgb(31,41,55)',
-
-
                     }),
                     dropdownIndicator: (base) => ({
                       ...base,
@@ -582,7 +591,7 @@ export default function OrderHistoryPage() {
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-[70vh] text-center text-[rgb(75,85,99)] -mt-32">
-                <Image src="/images/History.jpg" alt="No
+                <Image src={cart} alt="No
 
  Orders" width={200} height={200} />
                 <p className="mt-4 text-sm italic">--No orders available here--</p>
@@ -593,24 +602,24 @@ export default function OrderHistoryPage() {
       </main>
 
       {(selectedOrder || isFetchingDetails) && (
-        <div className="absolute inset-0 bg-[rgba(255,255,255,0.5)] backdrop-blur-sm flex justify-end items-start z-30">
-          <div
-            ref={modalContentRef}
-            className="relative bg-[rgb(255,255,255)] sm:rounded-l-xl w-full max-w-5xl h-full sm:p-8 overflow-y-auto shadow-2xl animate-slideInRight"
-          >
-            <Loader isVisible={isFetchingDetails} />
-            {selectedOrder && !isFetchingDetails && (
-              <>
-                {selectedOrder.deliveryType.toLowerCase() === 'pickup' ? (
-                  <PickupOrderView order={selectedOrder} onClose={() => setSelectedOrder(null)} />
-                ) : (
-                  <DeliveryOrderView order={selectedOrder} onClose={() => setSelectedOrder(null)} />
-                )}
-              </>
-            )}
-          </div>
-        </div>
+  <div className="fixed inset-0 bg-[rgba(255,255,255,0.5)] backdrop-blur-[2px] flex justify-end items-center z-30 overflow-y-auto">
+    <div
+      ref={modalContentRef}
+      className="relative bg-[rgb(255,255,255)] sm:rounded-l-xl w-full max-w-5xl min-h-screen sm:p-8 shadow-2xl animate-slideInRight my-auto"
+    >
+      <Loader isVisible={isFetchingDetails} />
+      {selectedOrder && !isFetchingDetails && (
+        <>
+          {selectedOrder.deliveryType.toLowerCase() === 'pickup' ? (
+            <PickupOrderView order={selectedOrder} onClose={() => setSelectedOrder(null)} />
+          ) : (
+            <DeliveryOrderView order={selectedOrder} onClose={() => setSelectedOrder(null)} />
+          )}
+        </>
       )}
+    </div>
+  </div>
+)}
     </div>
   );
 }
@@ -728,17 +737,17 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
                   <div className="p-4">
                     <div className="flex justify-between items-center mb-4">
                       <span className="font-medium text-black">
-                        {pack.name} ({pack.items?.length || 0} Items)
+                        {pack.name} ({String(pack.items?.length ?? 0).padStart(2, '0')} Items)
                       </span>
                       <span className="font-semibold text-[#3E206D]">
-                        Rs. {parseFloat(pack.totalPrice.replace('Rs. ', '') || '0').toFixed(2)}
+                        Rs. {familyPackTotal}
                       </span>
                     </div>
                     <div className="space-y-3">
                       {pack.items.map((item, itemIndex) => (
                         <div key={`${packIndex}-${itemIndex}`} className="flex justify-between items-center py-2">
                           <span className="text-gray-700">{item.name}</span>
-                          <span className="text-gray-600 font-medium">{item.quantity}</span>
+                          <span className="text-gray-600 font-medium">{formatQuantity(item.quantity)}</span>
                         </div>
                       ))}
                     </div>
@@ -752,9 +761,9 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
           {order.additionalItems && order.additionalItems.length > 0 && (
             <div className="border-t border-gray-200">
               <div className="p-4">
-                <div className="flex flex-col space-y-2 mb-2">
+                <div className="flex flex-col space-y-4 mb-2">
                   <span className="font-medium text-black">
-                    Additional Items ({order.additionalItems.length} Items)
+                    Additional Items ({String(order.additionalItems.length ?? 0).padStart(2, '0')} Items)
                   </span>
                   {order.discount && order.discount !== 'Rs. 0.00' && (
                     <div className="text-sm text-[#3E206D]">
@@ -781,7 +790,7 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
                         <div className="font-medium text-black">{item.name}</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-sm text-gray-600">{item.quantity}{item.unit}</div>
+                        <div className="text-sm text-gray-600">{formatQuantity(item.quantity, item.unit)}</div>
                       </div>
                       <div className="text-right">
                         <div className="font-semibold text-black">{item.price}</div>
@@ -853,7 +862,7 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
         </div>
         <div className="border-[rgb(229,231,235)] mb-8" />
         <div className="mb-4">
-          <div className="mb-4" style={{ border: '1px solid rgb(215,215,215)', borderRadius: '0.5rem' }}>
+          <div className="mb-4" style={{ border: '1px solid rgb(215,215,215)', borderRadius: '15px', overflow: 'hidden' }}>
             <table className="w-full text-sm">
               <tbody>
                 <tr className="w-full border-b border-[rgb(229,231,235)]" style={{ backgroundColor: 'rgb(248,248,248)' }}>
@@ -869,10 +878,10 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
                     <React.Fragment key={packIndex}>
                       <tr className="border-b border-t border-[rgb(229,231,235)]">
                         <td colSpan={3} className="font-medium py-2 p-4">
-                          {pack.name} ({pack.items?.length || 0} items)
+                          {pack.name} ({String(pack.items?.length ?? 0).padStart(2, '0')} items)
                         </td>
                         <td className="text-right font-semibold py-2 p-4" style={{ color: 'rgb(62,32,109)' }}>
-                          Rs. {parseFloat(pack.totalPrice.replace('Rs. ', '') || '0').toFixed(2)}
+                          Rs.  {familyPackTotal}
                         </td>
                       </tr>
                       <tr>
@@ -882,7 +891,7 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
                               {pack.items.map((item, itemIndex) => (
                                 <tr key={`${packIndex}-${itemIndex}`} className="grid grid-cols-[1fr_1fr_1fr] gap-8 text-sm items-center py-4 ml-6">
                                   <td>{item.name}</td>
-                                  <td>{item.quantity}</td>
+                                  <td>{formatQuantity(item.quantity)}</td>
                                 </tr>
                               ))}
                             </tbody>
@@ -898,7 +907,7 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
                   <>
                     <tr className="border-b border-t border-[rgb(229,231,235)]">
                       <td colSpan={3} className="font-medium py-2 p-4">
-                        Additional Items ({order.additionalItems.length} Items)
+                        Additional Items ({String(order.additionalItems.length ?? 0).padStart(2, '0')} Items)
                       </td>
                       <td className="text-right font-semibold py-2 p-4">
                         <div className="flex justify-end items-center gap-2">
@@ -936,7 +945,7 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
                                   <div className="font-medium text-gray-900 truncate">{item.name}</div>
                                 </div>
                                 <div className="text-center min-w-[80px]">
-                                  <div className="text-sm text-gray-600">{item.quantity}{item.unit}</div>
+                                  <div className="text-sm text-gray-600">{formatQuantity(item.quantity, item.unit)}</div>
                                 </div>
                                 <div className="text-right min-w-[80px]">
                                   <div className="font-semibold text-gray-900">{item.price}</div>
@@ -1081,17 +1090,17 @@ function DeliveryOrderView({ order, onClose }: { order: DetailedOrder, onClose: 
                   <div className="p-4">
                     <div className="flex justify-between items-center mb-4">
                       <span className="font-medium text-black">
-                        {pack.name} ({pack.items?.length || 0} Items)
+                        {pack.name} ({String(pack.items?.length ?? 0).padStart(2, '0')} Items)
                       </span>
                       <span className="font-semibold text-[#3E206D]">
-                        Rs. {parseFloat(pack.totalPrice.replace('Rs. ', '') || '0').toFixed(2)}
+                        Rs. {familyPackTotal}
                       </span>
                     </div>
                     <div className="space-y-3">
                       {pack.items.map((item, itemIndex) => (
                         <div key={`${packIndex}-${itemIndex}`} className="flex justify-between items-center py-2">
                           <span className="text-gray-700">{item.name}</span>
-                          <span className="text-gray-600 font-medium">{item.quantity}</span>
+                          <span className="text-gray-600 font-medium">{formatQuantity(item.quantity)}</span>
                         </div>
                       ))}
                     </div>
@@ -1105,9 +1114,9 @@ function DeliveryOrderView({ order, onClose }: { order: DetailedOrder, onClose: 
           {order.additionalItems && order.additionalItems.length > 0 && (
             <div className="border-t border-gray-200">
               <div className="p-4">
-                <div className="flex flex-col space-y-2 mb-2">
+                <div className="flex flex-col space-y-7 mb-2">
                   <span className="font-medium text-black">
-                    Additional Items ({order.additionalItems.length} Items)
+                    Additional Items ({String(order.additionalItems.length ?? 0).padStart(2, '0')} Items)
                   </span>
                   {order.discount && order.discount !== 'Rs. 0.00' && (
                     <div className="text-sm text-purple-700">
@@ -1134,7 +1143,7 @@ function DeliveryOrderView({ order, onClose }: { order: DetailedOrder, onClose: 
                         <div className="font-medium text-black">{item.name}</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-sm text-gray-600">{item.quantity}{item.unit}</div>
+                        <div className="text-sm text-gray-600">{formatQuantity(item.quantity, item.unit)}</div>
                       </div>
                       <div className="text-right">
                         <div className="font-semibold text-black">{item.price}</div>
@@ -1224,7 +1233,7 @@ function DeliveryOrderView({ order, onClose }: { order: DetailedOrder, onClose: 
         </div>
         <div className="border-[rgb(229,231,235)] mb-8"></div>
         <div className="mb-4" style={{ borderColor: 'rgb(215,215,215)' }}>
-          <div className="mb-4" style={{ border: '1px solid rgb(215,215,215)', borderRadius: '0.5rem' }}>
+          <div className="mb-4" style={{ border: '1px solid rgb(215,215,215)', borderRadius: '15px', overflow: 'hidden' }}>
             <table className="w-full text-sm" style={{ borderColor: 'rgb(215,215,215)' }}>
               <tbody>
                 <tr className="w-full border-b border-[rgb(229,231,235)]" style={{ backgroundColor: 'rgb(248,248,248)' }}>
@@ -1240,10 +1249,10 @@ function DeliveryOrderView({ order, onClose }: { order: DetailedOrder, onClose: 
                     <React.Fragment key={packIndex}>
                       <tr className="border-b border-t border-[rgb(229,231,235)]">
                         <td colSpan={3} className="font-medium py-2 p-4">
-                          {pack.name} ({pack.items?.length || 0} Items)
+                          {pack.name} ({String(pack.items?.length ?? 0).padStart(2, '0')} Items)
                         </td>
                         <td className="text-right font-semibold py-2 p-4" style={{ color: 'rgb(62,32,109)' }}>
-                          Rs. {parseFloat(pack.totalPrice.replace('Rs. ', '') || '0').toFixed(2)}
+                          Rs. {familyPackTotal}
                         </td>
                       </tr>
                       <tr>
@@ -1253,7 +1262,7 @@ function DeliveryOrderView({ order, onClose }: { order: DetailedOrder, onClose: 
                               {pack.items.map((item, itemIndex) => (
                                 <tr key={`${packIndex}-${itemIndex}`} className="grid grid-cols-[1fr_1fr_1fr] gap-8 text-sm items-center py-4 ml-6">
                                   <td>{item.name}</td>
-                                  <td>{item.quantity}</td>
+                                  <td>{formatQuantity(item.quantity)}</td>
                                 </tr>
                               ))}
                             </tbody>
@@ -1269,7 +1278,7 @@ function DeliveryOrderView({ order, onClose }: { order: DetailedOrder, onClose: 
                   <>
                     <tr className="border-b border-t border-[rgb(229,231,235)]">
                       <td colSpan={3} className="font-medium py-2 p-4">
-                        Additional Items ({order.additionalItems.length} Items)
+                        Additional Items ({String(order.additionalItems.length ?? 0).padStart(2, '0')} Items)
                       </td>
                       <td className="text-right font-semibold py-2 p-4">
                         <div className="flex justify-end items-center gap-2">
@@ -1307,7 +1316,7 @@ function DeliveryOrderView({ order, onClose }: { order: DetailedOrder, onClose: 
                                   <div className="font-medium text-gray-900 truncate">{item.name}</div>
                                 </div>
                                 <div className="text-center min-w-[80px]">
-                                  <div className="text-sm text-gray-600">{item.quantity}{item.unit}</div>
+                                  <div className="text-sm text-gray-600">{formatQuantity(item.quantity, item.unit)}</div>
                                 </div>
                                 <div className="text-right min-w-[80px]">
                                   <div className="font-semibold text-gray-900">{item.price}</div>

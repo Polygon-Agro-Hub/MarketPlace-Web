@@ -90,8 +90,13 @@ const Page: React.FC = () => {
 
     const couponDiscountAmount = isCouponApplied ? (Number(couponDiscount) || 0) : 0;
     const shouldApplyDeliveryCharge = checkoutDetails.deliveryMethod === 'home';
+
+    // FIXED: Check for both possible spellings
+    const isFreeDeliveryCoupon = isCouponApplied &&
+      (couponType === 'Free Delivery' || couponType === 'Free Delivary');
+
     const effectiveDeliveryCharge = shouldApplyDeliveryCharge
-      ? ((isCouponApplied && couponType === 'Free Delivary') ? 0 : deliveryCharge)
+      ? (isFreeDeliveryCoupon ? 0 : deliveryCharge)
       : 0;
 
     const finalGrandTotal = isCouponApplied ?
@@ -380,9 +385,13 @@ const Page: React.FC = () => {
     // Only show delivery charges if delivery method is 'home' (delivery)
     const shouldShowDeliveryCharge = checkoutDetails.deliveryMethod === 'home';
 
+    // FIXED: Check for both possible spellings of Free Delivery
+    const isFreeDeliveryCoupon = isCouponApplied &&
+      (couponType === 'Free Delivery' || couponType === 'Free Delivary');
+
     // Handle Free Delivery coupon type - only applicable for home delivery
     const effectiveDeliveryCharge = shouldShowDeliveryCharge
-      ? ((isCouponApplied && couponType === 'Free Delivary') ? 0 : deliveryCharge)
+      ? (isFreeDeliveryCoupon ? 0 : deliveryCharge)
       : 0;
 
     // Ensure couponDiscount is a valid number
@@ -400,7 +409,7 @@ const Page: React.FC = () => {
       couponDiscount: couponDiscountAmount,
       grandTotal: finalGrandTotal,
       deliveryCharges: effectiveDeliveryCharge,
-      isFreeDelivery: isCouponApplied && couponType === 'Free Delivary' && shouldShowDeliveryCharge,
+      isFreeDelivery: isFreeDeliveryCoupon && shouldShowDeliveryCharge,
       showDeliveryCharges: shouldShowDeliveryCharge,
     };
   };
@@ -680,7 +689,7 @@ const Page: React.FC = () => {
                   <div className="text-gray-700 space-y-6">
                     <p>- You may pay in cash to our courier upon receiving your parcel at the doorstep.</p>
                     <p>- Before agreeing to receive the parcel, check if your delivery status has been updated to "Out of Delivery".</p>
-                    <p>- Before receiving, confirm that the airway bill shows that the parcel from Agro World.</p>
+                    <p>- Before receiving, confirm that the airway bill shows that the parcel from Polygon Holdings.</p>
                     <p>- Before you make the payment to the courier, confirm your order number, sender information, and tracking number on the parcel.</p>
                   </div>
                 </div>
@@ -703,7 +712,9 @@ const Page: React.FC = () => {
                     className="object-contain"
                   />
                 </div>
-                <p className="text-gray-600">{displayValues.totalItems || 0} items</p>
+                <p className="text-gray-600">
+                  {displayValues.totalItems || 0} {(displayValues.totalItems || 0) === 1 ? 'item' : 'items'}
+                </p>
               </div>
               <p className='font-semibold'>Rs.{formatPrice(displayValues.totalPrice || 0)}</p>
             </div>
