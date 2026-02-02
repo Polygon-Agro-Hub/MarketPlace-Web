@@ -602,7 +602,7 @@ export default function OrderHistoryPage() {
       </main>
 
       {(selectedOrder || isFetchingDetails) && (
-  <div className="fixed inset-0 bg-[rgba(255,255,255,0.5)] backdrop-blur-[2px] flex justify-end items-center z-30 overflow-y-auto">
+  <div className="fixed inset-0 bg-[rgba(255,255,255,0.5)] backdrop-blur-[2px] flex justify-end items-center z-1000 overflow-y-auto">
     <div
       ref={modalContentRef}
       className="relative bg-[rgb(255,255,255)] sm:rounded-l-xl w-full max-w-5xl min-h-screen sm:p-8 shadow-2xl animate-slideInRight my-auto"
@@ -642,7 +642,7 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
   return (
     <div className="w-full">
       {/* Mobile Header */}
-      <div className="sm:hidden bg-white border-b border-gray-200 p-4 sticky top-0 z-10">
+      {/* <div className="sm:hidden bg-white border-b border-gray-200 p-4 sticky top-0 z-10">
         <div className="flex items-center justify-between">
           <button onClick={onClose} className="text-gray-600">
             <span className="text-xl">←</span>
@@ -654,7 +654,7 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
             </span>
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* Desktop Header - hidden on mobile */}
       <div className="hidden sm:flex justify-between items-center mb-4">
