@@ -695,7 +695,7 @@ function InvoicePageContent() {
               { text: 'Polygon Holdings (Private) Ltd', bold: true, fontSize: 11 },
               { text: 'No. 614, Nawam Mawatha, Colombo 02', fontSize: 9 },
               { text: 'Contact No: +94 112 700 900', fontSize: 9 },
-              { text: 'info@polygon.lk', fontSize: 9 },
+              { text: 'Email Address : info@polygon.lk', fontSize: 9 },
             ],
             [
               { image: 'logo', width: 80, alignment: 'right', margin: [80, 0, 0, 0] }

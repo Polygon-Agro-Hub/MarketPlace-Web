@@ -124,11 +124,14 @@ const ComplaintsHistory = () => {
     if (!replyTime) return 'Not replied yet';
 
     const date = new Date(replyTime);
-    return date.toLocaleDateString('en-US', {
+    // Add 5 hours and 30 minutes to UTC time
+    const istDate = new Date(date.getTime() + (5.5 * 60 * 60 * 1000));
+
+    return istDate.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric'
-    }) + ' at ' + date.toLocaleTimeString('en-US', {
+    }) + ' at ' + istDate.toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit'
     });
@@ -209,7 +212,7 @@ const ComplaintsHistory = () => {
                   options={filterOptions}
                   value={filterOptions.find((option) => option.value === filter)}
                   onChange={handleFilterChange}
-                  className="text-xs sm:text-sm"
+                  className="text-xs sm:text-sm text-black"
                   isSearchable={false}
                   styles={{
                     control: (base) => ({
@@ -222,6 +225,7 @@ const ComplaintsHistory = () => {
                       display: 'flex',
                       alignItems: 'center',
                       textAlign: 'center',
+                      
                       paddingRight: '1.5rem',
                       boxShadow: 'none',
                       ':hover': {
@@ -233,7 +237,7 @@ const ComplaintsHistory = () => {
                       ...base,
                       cursor: 'pointer',
                       backgroundColor: isFocused ? '#F3F4F6' : 'white',
-                      color: '#1F2937',
+                      color: '#000000',
                       textAlign: 'center',
                       padding: '8px 12px',
                     }),
@@ -248,7 +252,7 @@ const ComplaintsHistory = () => {
                       ...base,
                       textAlign: 'center',
                       width: '100%',
-                      color: '#1F2937',
+                      color: '#000000',
                     }),
                     dropdownIndicator: (base) => ({
                       ...base,

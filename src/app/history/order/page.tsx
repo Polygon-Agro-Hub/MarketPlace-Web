@@ -113,7 +113,7 @@ function formatDateTime(dateTimeStr: string, type: 'date' | 'time' = 'date'): st
 function formatQuantity(quantity: string | number, unit: string = ''): string {
   const numQty = typeof quantity === 'string' ? parseFloat(quantity) : quantity;
   if (isNaN(numQty)) return `${quantity}${unit}`;
-  
+
   // If it's a whole number, display without decimals
   const formattedQty = numQty % 1 === 0 ? numQty.toString() : numQty.toFixed(2).replace(/\.?0+$/, '');
   return unit ? `${formattedQty}${unit}` : formattedQty;
@@ -122,13 +122,25 @@ function formatQuantity(quantity: string | number, unit: string = ''): string {
 const getStatusClass = (status: string): string => {
   switch (status.toLowerCase()) {
     case 'ordered':
-      return 'bg-[#FFE9E2] text-[#FF5A00]';
+      return 'bg-[#F5FF85] text-[#878216]';
     case 'processing':
       return 'bg-[#CFE1FF] text-[#3B82F6]';
+    case 'out for delivery':
+      return 'bg-[#FCD4FF] text-[#80118A]';
+    case 'collected':
+      return 'bg-[#F8FEA5] text-[#7E8700]';
+    case 'ready to pickup':
+      return 'bg-[#ACFBFF] text-[#00818A]';
+    case 'picked up':
+      return 'bg-[#BBFFC6] text-[#308233]';
     case 'on the way':
-      return 'bg-[#F2DDFF] text-[#3E206D]';
+      return 'bg-[#FFEDCF] text-[#D17A00]';
     case 'delivered':
-      return 'bg-[#DCFCE7] text-[#16A34A]';
+      return 'bg-[#BBFFC6] text-[#308233]';
+    case 'hold':
+      return 'bg-[#FFEDCF] text-[#D17A00]';
+    case 'return':
+      return 'bg-[#FFDCDA] text-[#FF1100]';
     case 'cancelled':
       return 'bg-[#FEE2E2] text-[#DC2626]';
     case 'one time':
@@ -297,7 +309,7 @@ export default function OrderHistoryPage() {
               ? {
                 buildingType: apiOrder.deliveryInfo.buildingType || 'N/A',
                 houseNo: apiOrder.deliveryInfo.houseNo || 'N/A',
-                street: apiOrder.deliveryInfo.streetName || 'N/A',
+                street: apiOrder.deliveryInfo.streetName || apiOrder.deliveryInfo.street  || 'N/A',
                 city: apiOrder.deliveryInfo.city || 'N/A',
                 buildingNo: apiOrder.deliveryInfo.buildingNo || 'N/A',
                 buildingName: apiOrder.deliveryInfo.buildingName || 'N/A',
@@ -602,24 +614,24 @@ export default function OrderHistoryPage() {
       </main>
 
       {(selectedOrder || isFetchingDetails) && (
-  <div className="fixed inset-0 bg-[rgba(255,255,255,0.5)] backdrop-blur-[2px] flex justify-end items-center z-1000 overflow-y-auto">
-    <div
-      ref={modalContentRef}
-      className="relative bg-[rgb(255,255,255)] sm:rounded-l-xl w-full max-w-5xl min-h-screen sm:p-8 shadow-2xl animate-slideInRight my-auto"
-    >
-      <Loader isVisible={isFetchingDetails} />
-      {selectedOrder && !isFetchingDetails && (
-        <>
-          {selectedOrder.deliveryType.toLowerCase() === 'pickup' ? (
-            <PickupOrderView order={selectedOrder} onClose={() => setSelectedOrder(null)} />
-          ) : (
-            <DeliveryOrderView order={selectedOrder} onClose={() => setSelectedOrder(null)} />
-          )}
-        </>
+        <div className="fixed inset-0 bg-[rgba(255,255,255,0.5)] backdrop-blur-[2px] flex justify-end items-center z-1000 overflow-y-auto">
+          <div
+            ref={modalContentRef}
+            className="relative bg-[rgb(255,255,255)] sm:rounded-l-xl w-full max-w-5xl min-h-screen sm:p-8 shadow-2xl animate-slideInRight my-auto"
+          >
+            <Loader isVisible={isFetchingDetails} />
+            {selectedOrder && !isFetchingDetails && (
+              <>
+                {selectedOrder.deliveryType.toLowerCase() === 'pickup' ? (
+                  <PickupOrderView order={selectedOrder} onClose={() => setSelectedOrder(null)} />
+                ) : (
+                  <DeliveryOrderView order={selectedOrder} onClose={() => setSelectedOrder(null)} />
+                )}
+              </>
+            )}
+          </div>
+        </div>
       )}
-    </div>
-  </div>
-)}
     </div>
   );
 }
@@ -737,7 +749,7 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
                   <div className="p-4">
                     <div className="flex justify-between items-center mb-4">
                       <span className="font-medium text-black">
-                        {pack.name} ({String(pack.items?.length ?? 0).padStart(2, '0')} Items)
+                        {pack.name} ({String(pack.items?.length ?? 0).padStart(2, '0')} Item{pack.items?.length > 1 ? 's' : ''})
                       </span>
                       <span className="font-semibold text-[#3E206D]">
                         Rs. {familyPackTotal}
@@ -763,7 +775,7 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
               <div className="p-4">
                 <div className="flex flex-col space-y-4 mb-2">
                   <span className="font-medium text-black">
-                    Additional Items ({String(order.additionalItems.length ?? 0).padStart(2, '0')} Items)
+                    Additional Items ({String(order.additionalItems.length ?? 0).padStart(2, '0')} Item{order.additionalItems.length > 1 ? 's' : ''})
                   </span>
                   {order.discount && order.discount !== 'Rs. 0.00' && (
                     <div className="text-sm text-[#3E206D]">
@@ -878,7 +890,7 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
                     <React.Fragment key={packIndex}>
                       <tr className="border-b border-t border-[rgb(229,231,235)]">
                         <td colSpan={3} className="font-medium py-2 p-4">
-                          {pack.name} ({String(pack.items?.length ?? 0).padStart(2, '0')} items)
+                          {pack.name} ({String(pack.items?.length ?? 0).padStart(2, '0')} item{pack.items?.length > 1 ? 's' : ''})
                         </td>
                         <td className="text-right font-semibold py-2 p-4" style={{ color: 'rgb(62,32,109)' }}>
                           Rs.  {familyPackTotal}
@@ -907,7 +919,7 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
                   <>
                     <tr className="border-b border-t border-[rgb(229,231,235)]">
                       <td colSpan={3} className="font-medium py-2 p-4">
-                        Additional Items ({String(order.additionalItems.length ?? 0).padStart(2, '0')} Items)
+                        Additional Items ({String(order.additionalItems.length ?? 0).padStart(2, '0')} Item{order.additionalItems.length > 1 ? 's' : ''})
                       </td>
                       <td className="text-right font-semibold py-2 p-4">
                         <div className="flex justify-end items-center gap-2">
