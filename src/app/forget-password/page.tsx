@@ -472,7 +472,7 @@ const Page = () => {
               className={`w-full py-2 md:py-3 text-white rounded-md transition-colors mb-4 text-sm md:text-base ${(resetMethod === 'email' && isSendingEmail) ||
                 (resetMethod === 'sms' && isSendingOTP)
                 ? 'bg-[#CEBAF4] text-[#3E206D] cursor-not-allowed'
-                : 'bg-purple-800 hover:bg-purple-900 cursor-pointer'
+                : 'bg-[#3E206D] hover:bg-purple-900 cursor-pointer'
                 }`}
               disabled={
                 (resetMethod === 'email' && isSendingEmail) ||
