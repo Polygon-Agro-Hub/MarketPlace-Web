@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { verifyOTP, sendOTP } from '@/services/auth-service';
 import CorrectImg from '../../../public/images/correct.png'
 import WrongImg from '../../../public/images/wrong.png'
+import Image from 'next/image';
+import logoImg from '../../../public/glogo.png';
 
 export default function Page() {
   const [otp, setOtp] = useState(['', '', '', '', '']);
@@ -51,7 +53,7 @@ export default function Page() {
 
       // Show OTP expired modal
       setIsError(true);
-      setModalMessage('OTP has expired. Please request a new one.');
+      // setModalMessage('OTP has expired. Please request a new one.');
       setIsModalOpen(true);
 
       // Delete expired referenceId from localStorage
@@ -166,7 +168,7 @@ export default function Page() {
     if (isVerifying) return;
 
     const code = otp.join('');
-    
+
     // Check if OTP is complete
     if (code.length !== 5) {
       setIsError(true);
@@ -293,9 +295,10 @@ export default function Page() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#F8F9FB] px-4">
       <div className="bg-white rounded-[10px] shadow-xl flex flex-col items-center p-10 w-full max-w-md">
-        <h1 className="text-[36px] sm:text-[40px] font-[700] text-center text-[#3E206D] font-inter mb-2">
+        {/* <h1 className="text-[36px] sm:text-[40px] font-[700] text-center text-[#3E206D] font-inter mb-2">
           MyFarm
-        </h1>
+        </h1> */}
+        <Image src={logoImg} alt="MyFarm Logo" className="w-44 h-auto mb-6" />
         <h2 className="text-lg sm:text-xl font-semibold text-center mb-1 text-[#001535]">
           Please Verify your OTP
         </h2>
@@ -327,8 +330,8 @@ export default function Page() {
           onClick={handleResendOTP}
           disabled={disabledResend || isResending}
           className={`text-xs sm:text-sm mb-6 ${disabledResend || isResending
-              ? 'text-gray-400 cursor-not-allowed'
-              : 'text-[#3E206D] font-semibold hover:underline cursor-pointer'
+            ? 'text-gray-400 cursor-not-allowed'
+            : 'text-[#3E206D] font-semibold hover:underline cursor-pointer'
             }`}
         >
           {isResending
@@ -343,8 +346,8 @@ export default function Page() {
           onClick={handleVerify}
           disabled={isVerifying || isVerified}
           className={`font-semibold w-full max-w-[307px] h-[45px] rounded-[10px] mt-1 transition-colors ${isVerifying || isVerified
-              ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
-              : 'bg-[#3E206D] text-white hover:bg-[#2D1A4F] cursor-pointer'
+            ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+            : 'bg-[#3E206D] text-white hover:bg-[#2D1A4F] cursor-pointer'
             }`}
         >
           {isVerifying ? 'Verifying...' :
