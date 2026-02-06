@@ -116,7 +116,7 @@ const Page: React.FC = () => {
   const [errors, setErrors] = useState<FormErrors>({
     centerId: '',
     deliveryMethod: '',
-    title: '',
+    title: 'Title is required.',
     fullName: '',
     phone1: '',
     phone2: '',
