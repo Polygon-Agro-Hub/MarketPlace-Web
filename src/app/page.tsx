@@ -327,7 +327,7 @@ function HomeContent() {
 
           <div className="text-center mb-6">
             <h2 className="text-xl font-bold text-[#000000] mb-4">
-              Welcome, Guest! 👋
+              Welcome, Guest! <span className='text-3xl'>👋</span>
             </h2>
             <p className="text-[#8492A3] text-base leading-relaxed">
               We're excited to have you here!<br />

@@ -1322,11 +1322,11 @@ function DeliveryOrderView({ order, onClose }: { order: DetailedOrder, onClose: 
                       <td className="text-right font-semibold py-2 p-4">
                         <div className="flex justify-end items-center gap-2">
                           {order.discount && order.discount !== 'Rs. 0.00' && (
-                            <span className="text-xs font-normal" style={{ color: 'rgb(62,32,109)' }}>
+                            <span className="text-sm font-normal mx-8 text-[#3E206D]">
                               You have saved {order.discount} with us!
                             </span>
                           )}
-                          <span style={{ color: 'rgb(62,32,109)' }}>
+                          <span className='text-[#3E206D]'>
                             Rs. {additionalItemsTotal}
                           </span>
                         </div>
