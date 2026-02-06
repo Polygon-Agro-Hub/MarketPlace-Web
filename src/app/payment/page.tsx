@@ -62,15 +62,15 @@ const Page: React.FC = () => {
 
 
   useEffect(() => {
-    console.log('Cart Items:', cartItems);
+    // console.log('Cart Items:', cartItems);
     console.log('Checkout Details:', checkoutDetails);
-    console.log('Calculated Summary:', cartItems.calculatedSummary);
+    // console.log('Calculated Summary:', cartItems.calculatedSummary);
   }, [cartItems, checkoutDetails]);
 
   useEffect(() => {
     // Load delivery charge from localStorage if available
     const savedCharge = localStorage.getItem('deliveryCharge');
-    console.log('delivery charge', savedCharge);
+    // console.log('delivery charge', savedCharge);
     if (savedCharge) {
       setDeliveryCharge(parseFloat(savedCharge));
     }
@@ -127,7 +127,8 @@ const Page: React.FC = () => {
       isCoupon: isCouponApplied,
       couponCode: isCouponApplied ? couponCode : '',
       geoLatitude: checkoutDetails.geoLatitude || null,    // Add this
-      geoLongitude: checkoutDetails.geoLongitude || null,  // Add this
+      geoLongitude: checkoutDetails.geoLongitude || null, 
+      companycenterId: checkoutDetails.companycenterId || null,
     };
 
     // ... rest of the address handling code remains the same
@@ -192,8 +193,8 @@ const Page: React.FC = () => {
         const discountValue = parseFloat(response.discount.toString().replace(/,/g, '')) || 0;
         setCouponDiscount(discountValue);
         setCouponType(response.type || '');
-        console.log('Coupon applied successfully:', response);
-        console.log('Parsed discount value:', discountValue);
+        // console.log('Coupon applied successfully:', response);
+        // console.log('Parsed discount value:', discountValue);
       } else {
         setCouponError(response.message);
         setIsCouponApplied(false);
@@ -274,9 +275,9 @@ const Page: React.FC = () => {
     return { isValid: true };
   };
 
-  console.log('cartId', cartItems.cartId);
-  console.log('Total items:', cartItems.calculatedSummary?.totalItems);
-  console.log('Grand total:', cartItems.calculatedSummary?.finalTotal);
+  // console.log('cartId', cartItems.cartId);
+  // console.log('Total items:', cartItems.calculatedSummary?.totalItems);
+  // console.log('Grand total:', cartItems.calculatedSummary?.finalTotal);
 
   const handleSubmitOrder = async (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
@@ -313,10 +314,10 @@ const Page: React.FC = () => {
         return;
       }
 
-      console.log('Prepared Order Payload:', payload);
+      // console.log('Prepared Order Payload:', payload);
 
       const result = await submitOrderToBackend(payload, token);
-      console.log('Order submitted successfully:', result);
+      // console.log('Order submitted successfully:', result);
 
       // Check if the response has the expected structure
       if (result.status && result.processOrderId) {
@@ -332,7 +333,7 @@ const Page: React.FC = () => {
         // Fetch updated cart info after successful order creation
         try {
           const cartInfo = await getCartInfo(token);
-          console.log("Updated cart info:", cartInfo);
+          // console.log("Updated cart info:", cartInfo);
           dispatch(updateCartInfo(cartInfo));
         } catch (cartError) {
           console.error('Error fetching cart info:', cartError);
@@ -365,7 +366,7 @@ const Page: React.FC = () => {
   // Handle view invoice
   const handleViewInvoice = () => {
     setIsModalOpen(false);
-    console.log('Navigating to invoice with orderId:', orderId); // Debug log
+    // console.log('Navigating to invoice with orderId:', orderId); // Debug log
 
     if (orderId) {
       router.push(`/history/invoice/?orderId=${orderId}`);
