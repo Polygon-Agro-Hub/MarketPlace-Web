@@ -573,7 +573,7 @@ export default function SignupForm() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="flex flex-col md:flex-row md:space-x-4 space-y-2 md:space-y-0">
                   <div className="flex flex-row w-full md:w-1/2 space-x-2">
-                    <div className="w-24 md:w-28">
+                    <div className="w-42 md:w-42">
 
 
                       <CustomDropdown
@@ -678,7 +678,7 @@ export default function SignupForm() {
                 <div className="flex flex-col md:flex-row md:space-x-3 space-y-4 md:space-y-0">
                   <div className="flex flex-row w-full md:w-1/2 space-x-3">
 
-                    <div className="w-24 md:w-28">
+                    <div className="w-42 md:w-28">
                       <CustomDropdown
                         options={countryOptions}
                         selectedValue={formData.phoneCode}

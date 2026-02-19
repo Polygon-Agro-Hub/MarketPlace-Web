@@ -46,6 +46,7 @@ interface FormData {
   scheduleType: string;
   geoLatitude: number | null;   // Add this
   geoLongitude: number | null;  // Add this
+  companycenterId?: any; // Add this to store companycenterId for later use
 }
 
 interface FormErrors {
@@ -70,6 +71,8 @@ interface FormErrors {
   scheduleType: string;
   geoLatitude: string;   // Add this
   geoLongitude: string;  // Add this
+  companycenterId?: any; // Add this to store companycenterId for later use
+
 }
 
 const initialFormState: FormData = {
@@ -94,6 +97,7 @@ const initialFormState: FormData = {
   scheduleType: 'One Time',
   geoLatitude: null,    // Add this
   geoLongitude: null,   // Add this
+  companycenterId:null,
 };
 
 
@@ -112,7 +116,7 @@ const Page: React.FC = () => {
   const [errors, setErrors] = useState<FormErrors>({
     centerId: '',
     deliveryMethod: '',
-    title: '',
+    title: 'Title is required.',
     fullName: '',
     phone1: '',
     phone2: '',
@@ -161,6 +165,7 @@ const Page: React.FC = () => {
   const [deliveryCharge, setDeliveryCharge] = useState<number>(0); // Default charge
   const [hasPreviousAddress, setHasPreviousAddress] = useState(true);
   const [isGeoModalOpen, setIsGeoModalOpen] = useState(false);
+  const [companycenterId, setCompanycenterId] = useState<number | null>(null);
   const [viewingSavedLocation, setViewingSavedLocation] = useState(false);
   const memoizedPickupCenters = useMemo(() => pickupCenters, [pickupCenters]);
 
@@ -264,7 +269,8 @@ const Page: React.FC = () => {
   // 5. Create city dropdown options
   const cityOptions = cities.map(city => ({
     value: city.id.toString(),
-    label: city.city
+    label: city.city,
+    comCenId: city.companycenterId
   }));
 
 
@@ -322,6 +328,7 @@ const Page: React.FC = () => {
             // Set delivery charge for previous address city
             const charge = parseFloat(cityData.charge);
             setDeliveryCharge(charge);
+            setCompanycenterId(cityData.companycenterId);
           }
 
           // Update form data based on building type
@@ -589,6 +596,7 @@ const Page: React.FC = () => {
       // Set delivery charge based on selected city
       const charge = parseFloat(selectedCityData.charge);
       setDeliveryCharge(charge);
+      setCompanycenterId(selectedCityData.companycenterId); // Store companycenterId for later use
 
       // Clear any existing cityName error
       setErrors(prev => ({ ...prev, cityName: '' }));
@@ -747,6 +755,7 @@ const Page: React.FC = () => {
         // Include geo location coordinates
         geoLatitude: formData.geoLatitude,
         geoLongitude: formData.geoLongitude,
+        companycenterId: companycenterId, // Include companycenterId for later use
       };
 
       if (formData.deliveryMethod === 'home') {

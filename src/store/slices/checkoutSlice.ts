@@ -23,6 +23,7 @@ interface FormState {
     scheduleType: string;
     geoLatitude: number | null;
     geoLongitude: number | null;
+    companycenterId?: any; // Add this to store companycenterId for later use
 }
 
 const initialState: FormState = {
@@ -47,6 +48,7 @@ const initialState: FormState = {
   centerId: null,
   geoLatitude: null,
   geoLongitude: null,
+  companycenterId: null,
 };
 
 const checkoutSlice = createSlice({

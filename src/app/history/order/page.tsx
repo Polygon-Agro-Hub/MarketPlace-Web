@@ -113,7 +113,7 @@ function formatDateTime(dateTimeStr: string, type: 'date' | 'time' = 'date'): st
 function formatQuantity(quantity: string | number, unit: string = ''): string {
   const numQty = typeof quantity === 'string' ? parseFloat(quantity) : quantity;
   if (isNaN(numQty)) return `${quantity}${unit}`;
-  
+
   // If it's a whole number, display without decimals
   const formattedQty = numQty % 1 === 0 ? numQty.toString() : numQty.toFixed(2).replace(/\.?0+$/, '');
   return unit ? `${formattedQty}${unit}` : formattedQty;
@@ -122,13 +122,25 @@ function formatQuantity(quantity: string | number, unit: string = ''): string {
 const getStatusClass = (status: string): string => {
   switch (status.toLowerCase()) {
     case 'ordered':
-      return 'bg-[#FFE9E2] text-[#FF5A00]';
+      return 'bg-[#F5FF85] text-[#878216]';
     case 'processing':
       return 'bg-[#CFE1FF] text-[#3B82F6]';
+    case 'out for delivery':
+      return 'bg-[#FCD4FF] text-[#80118A]';
+    case 'collected':
+      return 'bg-[#F8FEA5] text-[#7E8700]';
+    case 'ready to pickup':
+      return 'bg-[#ACFBFF] text-[#00818A]';
+    case 'picked up':
+      return 'bg-[#BBFFC6] text-[#308233]';
     case 'on the way':
-      return 'bg-[#F2DDFF] text-[#3E206D]';
+      return 'bg-[#FFEDCF] text-[#D17A00]';
     case 'delivered':
-      return 'bg-[#DCFCE7] text-[#16A34A]';
+      return 'bg-[#BBFFC6] text-[#308233]';
+    case 'hold':
+      return 'bg-[#FFEDCF] text-[#D17A00]';
+    case 'return':
+      return 'bg-[#FFDCDA] text-[#FF1100]';
     case 'cancelled':
       return 'bg-[#FEE2E2] text-[#DC2626]';
     case 'one time':
@@ -297,11 +309,11 @@ export default function OrderHistoryPage() {
               ? {
                 buildingType: apiOrder.deliveryInfo.buildingType || 'N/A',
                 houseNo: apiOrder.deliveryInfo.houseNo || 'N/A',
-                street: apiOrder.deliveryInfo.streetName || 'N/A',
+                street: apiOrder.deliveryInfo.streetName || apiOrder.deliveryInfo.street || 'N/A',
                 city: apiOrder.deliveryInfo.city || 'N/A',
                 buildingNo: apiOrder.deliveryInfo.buildingNo || 'N/A',
                 buildingName: apiOrder.deliveryInfo.buildingName || 'N/A',
-                flatNo: apiOrder.deliveryInfo.unitNo || 'N/A',
+                flatNo: apiOrder.deliveryInfo.flatNo || 'N/A',
                 floorNo: apiOrder.deliveryInfo.floorNo || 'N/A',
               }
               : undefined,
@@ -602,24 +614,24 @@ export default function OrderHistoryPage() {
       </main>
 
       {(selectedOrder || isFetchingDetails) && (
-  <div className="fixed inset-0 bg-[rgba(255,255,255,0.5)] backdrop-blur-[2px] flex justify-end items-center z-30 overflow-y-auto">
-    <div
-      ref={modalContentRef}
-      className="relative bg-[rgb(255,255,255)] sm:rounded-l-xl w-full max-w-5xl min-h-screen sm:p-8 shadow-2xl animate-slideInRight my-auto"
-    >
-      <Loader isVisible={isFetchingDetails} />
-      {selectedOrder && !isFetchingDetails && (
-        <>
-          {selectedOrder.deliveryType.toLowerCase() === 'pickup' ? (
-            <PickupOrderView order={selectedOrder} onClose={() => setSelectedOrder(null)} />
-          ) : (
-            <DeliveryOrderView order={selectedOrder} onClose={() => setSelectedOrder(null)} />
-          )}
-        </>
+        <div className="fixed inset-0 bg-[rgba(255,255,255,0.5)] backdrop-blur-[2px] flex justify-end items-center z-1000 overflow-y-auto">
+          <div
+            ref={modalContentRef}
+            className="relative bg-[rgb(255,255,255)] sm:rounded-l-xl w-full max-w-5xl min-h-screen sm:p-8 shadow-2xl animate-slideInRight my-auto"
+          >
+            <Loader isVisible={isFetchingDetails} />
+            {selectedOrder && !isFetchingDetails && (
+              <>
+                {selectedOrder.deliveryType.toLowerCase() === 'pickup' ? (
+                  <PickupOrderView order={selectedOrder} onClose={() => setSelectedOrder(null)} />
+                ) : (
+                  <DeliveryOrderView order={selectedOrder} onClose={() => setSelectedOrder(null)} />
+                )}
+              </>
+            )}
+          </div>
+        </div>
       )}
-    </div>
-  </div>
-)}
     </div>
   );
 }
@@ -642,7 +654,7 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
   return (
     <div className="w-full">
       {/* Mobile Header */}
-      <div className="sm:hidden bg-white border-b border-gray-200 p-4 sticky top-0 z-10">
+      {/* <div className="sm:hidden bg-white border-b border-gray-200 p-4 sticky top-0 z-10">
         <div className="flex items-center justify-between">
           <button onClick={onClose} className="text-gray-600">
             <span className="text-xl">←</span>
@@ -654,7 +666,7 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
             </span>
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* Desktop Header - hidden on mobile */}
       <div className="hidden sm:flex justify-between items-center mb-4">
@@ -737,7 +749,7 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
                   <div className="p-4">
                     <div className="flex justify-between items-center mb-4">
                       <span className="font-medium text-black">
-                        {pack.name} ({String(pack.items?.length ?? 0).padStart(2, '0')} Items)
+                        {pack.name} ({String(pack.items?.length ?? 0).padStart(2, '0')} Item{pack.items?.length > 1 ? 's' : ''})
                       </span>
                       <span className="font-semibold text-[#3E206D]">
                         Rs. {familyPackTotal}
@@ -763,7 +775,7 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
               <div className="p-4">
                 <div className="flex flex-col space-y-4 mb-2">
                   <span className="font-medium text-black">
-                    Additional Items ({String(order.additionalItems.length ?? 0).padStart(2, '0')} Items)
+                    Additional Items ({String(order.additionalItems.length ?? 0).padStart(2, '0')} Item{order.additionalItems.length > 1 ? 's' : ''})
                   </span>
                   {order.discount && order.discount !== 'Rs. 0.00' && (
                     <div className="text-sm text-[#3E206D]">
@@ -878,7 +890,7 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
                     <React.Fragment key={packIndex}>
                       <tr className="border-b border-t border-[rgb(229,231,235)]">
                         <td colSpan={3} className="font-medium py-2 p-4">
-                          {pack.name} ({String(pack.items?.length ?? 0).padStart(2, '0')} items)
+                          {pack.name} ({String(pack.items?.length ?? 0).padStart(2, '0')} item{pack.items?.length > 1 ? 's' : ''})
                         </td>
                         <td className="text-right font-semibold py-2 p-4" style={{ color: 'rgb(62,32,109)' }}>
                           Rs.  {familyPackTotal}
@@ -907,7 +919,7 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
                   <>
                     <tr className="border-b border-t border-[rgb(229,231,235)]">
                       <td colSpan={3} className="font-medium py-2 p-4">
-                        Additional Items ({String(order.additionalItems.length ?? 0).padStart(2, '0')} Items)
+                        Additional Items ({String(order.additionalItems.length ?? 0).padStart(2, '0')} Item{order.additionalItems.length > 1 ? 's' : ''})
                       </td>
                       <td className="text-right font-semibold py-2 p-4">
                         <div className="flex justify-end items-center gap-2">
@@ -1046,14 +1058,21 @@ function DeliveryOrderView({ order, onClose }: { order: DetailedOrder, onClose: 
               <div className="mt-1">
                 <span className="font-semibold text-black">{order.deliveryInfo?.buildingType || 'N/A'}</span>
                 <div className="text-sm text-gray-700 mt-1 space-y-1">
-                  <div>House No: {order.deliveryInfo?.houseNo || 'N/A'}</div>
-                  <div>Street: {order.deliveryInfo?.street || 'N/A'}</div>
-                  <div>City: {order.deliveryInfo?.city || 'N/A'}</div>
-                  {order.deliveryInfo?.buildingType === 'Apartment' && (
+                  {order.deliveryInfo?.buildingType === 'Apartment' ? (
                     <>
-                      <div>Building No: {order.deliveryInfo?.buildingNo || 'N/A'}</div>
-                      <div>Building Name: {order.deliveryInfo?.buildingName || 'N/A'}</div>
-                      <div>Floor: {order.deliveryInfo?.floorNo || 'N/A'}</div>
+                      <div>No : {order.deliveryInfo?.buildingNo || '--'}</div>
+                      <div>Name : {order.deliveryInfo?.buildingName || '--'}</div>
+                      <div>Flat : {order.deliveryInfo?.flatNo || '--'}</div>
+                      <div>Floor : {order.deliveryInfo?.floorNo || '--'}</div>
+                      <div>House No: {order.deliveryInfo?.houseNo || '--'}</div>
+                      <div>Street: {order.deliveryInfo?.street || '--'}</div>
+                      <div>City: {order.deliveryInfo?.city || '--'}</div>
+                    </>
+                  ) : (
+                    <>
+                      <div>House No: {order.deliveryInfo?.houseNo || '--'}</div>
+                      <div>Street: {order.deliveryInfo?.street || '--'}</div>
+                      <div>City: {order.deliveryInfo?.city || '--'}</div>
                     </>
                   )}
                 </div>
@@ -1187,31 +1206,51 @@ function DeliveryOrderView({ order, onClose }: { order: DetailedOrder, onClose: 
                 <div>
                   <span className="font-semibold">{order.deliveryInfo?.buildingType || 'N/A'}</span>
                 </div>
-                <div className="flex gap-2">
-                  <span className="font-medium text-[rgb(146,146,146)]">House No:</span>
-                  <span>{order.deliveryInfo?.houseNo || 'N/A'}</span>
-                </div>
-                <div className="flex gap-2">
-                  <span className="font-medium text-[rgb(146,146,146)]">Street:</span>
-                  <span>{order.deliveryInfo?.street || 'N/A'}</span>
-                </div>
-                <div className="flex gap-2">
-                  <span className="font-medium text-[rgb(146,146,146)]">City:</span>
-                  <span>{order.deliveryInfo?.city || 'N/A'}</span>
-                </div>
-                {order.deliveryInfo?.buildingType === 'Apartment' && (
+
+                {order.deliveryInfo?.buildingType === 'Apartment' ? (
                   <>
                     <div className="flex gap-2">
-                      <span className="font-medium text-[rgb(146,146,146)]">Building No:</span>
-                      <span>{order.deliveryInfo?.buildingNo || 'N/A'}</span>
+                      <span className="font-medium text-[rgb(146,146,146)]">No :</span>
+                      <span>{order.deliveryInfo?.buildingNo || '--'}</span>
                     </div>
                     <div className="flex gap-2">
-                      <span className="font-medium text-[rgb(146,146,146)]">Building Name:</span>
-                      <span>{order.deliveryInfo?.buildingName || 'N/A'}</span>
+                      <span className="font-medium text-[rgb(146,146,146)]">Name :</span>
+                      <span>{order.deliveryInfo?.buildingName || '--'}</span>
                     </div>
                     <div className="flex gap-2">
-                      <span className="font-medium text-[rgb(146,146,146)]">Floor:</span>
-                      <span>{order.deliveryInfo?.floorNo || 'N/A'}</span>
+                      <span className="font-medium text-[rgb(146,146,146)]">Flat :</span>
+                      <span>{order.deliveryInfo?.flatNo || '--'}</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <span className="font-medium text-[rgb(146,146,146)]">Floor :</span>
+                      <span>{order.deliveryInfo?.floorNo || '--'}</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <span className="font-medium text-[rgb(146,146,146)]">House No :</span>
+                      <span>{order.deliveryInfo?.houseNo || 'N/A'}</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <span className="font-medium text-[rgb(146,146,146)]">Street :</span>
+                      <span>{order.deliveryInfo?.street || 'N/A'}</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <span className="font-medium text-[rgb(146,146,146)]">City :</span>
+                      <span>{order.deliveryInfo?.city || 'N/A'}</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex gap-2">
+                      <span className="font-medium text-[rgb(146,146,146)]">House No :</span>
+                      <span>{order.deliveryInfo?.houseNo || 'N/A'}</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <span className="font-medium text-[rgb(146,146,146)]">Street :</span>
+                      <span>{order.deliveryInfo?.street || 'N/A'}</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <span className="font-medium text-[rgb(146,146,146)]">City :</span>
+                      <span>{order.deliveryInfo?.city || 'N/A'}</span>
                     </div>
                   </>
                 )}
@@ -1283,11 +1322,11 @@ function DeliveryOrderView({ order, onClose }: { order: DetailedOrder, onClose: 
                       <td className="text-right font-semibold py-2 p-4">
                         <div className="flex justify-end items-center gap-2">
                           {order.discount && order.discount !== 'Rs. 0.00' && (
-                            <span className="text-xs font-normal" style={{ color: 'rgb(62,32,109)' }}>
+                            <span className="text-sm font-normal mx-8 text-[#3E206D]">
                               You have saved {order.discount} with us!
                             </span>
                           )}
-                          <span style={{ color: 'rgb(62,32,109)' }}>
+                          <span className='text-[#3E206D]'>
                             Rs. {additionalItemsTotal}
                           </span>
                         </div>
