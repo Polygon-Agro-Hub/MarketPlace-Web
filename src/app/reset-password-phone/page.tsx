@@ -51,7 +51,7 @@ const Page = () => {
 
     if (!confirmPassword.trim()) {
       setIsError(true);
-      setModalMessage('Please confirm your password');
+      setModalMessage('Please re-enter your password.');
       setIsModalOpen(true);
       return;
     }

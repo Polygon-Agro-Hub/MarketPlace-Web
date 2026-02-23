@@ -124,19 +124,23 @@ const ComplaintsHistory = () => {
     if (!replyTime) return 'Not replied yet';
 
     const date = new Date(replyTime);
-    // Add 5 hours and 30 minutes to UTC time
-    const istDate = new Date(date.getTime() + (5.5 * 60 * 60 * 1000));
 
-    return istDate.toLocaleDateString('en-US', {
+    const formattedDate = date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
-    }) + ' at ' + istDate.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit'
+      day: 'numeric',
+      timeZone: 'Asia/Colombo'
     });
-  };
 
+    const formattedTime = date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: 'Asia/Colombo'
+    });
+
+    return `${formattedDate} at ${formattedTime}`;
+  };
 
   // Handle filter change for react-select
   const handleFilterChange = (

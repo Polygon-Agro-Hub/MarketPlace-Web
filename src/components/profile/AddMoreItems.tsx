@@ -13,6 +13,8 @@ import {
 import Loader from '@/components/loader-spinner/Loader';
 import { FiSearch } from 'react-icons/fi';
 import SuccessPopup from '@/components/toast-messages/success-message';
+import Lottie from 'react-lottie';
+import noAddItemAnimation from '../../../public/noAddItem.json';
 
 interface Item {
   displayName: string;
@@ -183,7 +185,21 @@ const AddMoreItems = () => {
           {error && <p className="text-center text-red-500 text-sm md:text-base">{error}</p>}
 
           {!loading && !error && filteredItems.length === 0 && (
-            <p className="text-center text-[#4C5160] text-sm md:text-base">No items found</p>
+            <div className="flex flex-col items-center justify-center py-8">
+              <Lottie
+                options={{
+                  loop: false,
+                  autoplay: true,
+                  animationData: noAddItemAnimation,
+                  rendererSettings: {
+                    preserveAspectRatio: 'xMidYMid slice'
+                  }
+                }}
+                height={200}
+                width={200}
+              />
+              <p className="text-center text-[#4C5160] text-sm md:text-base italic mt-4">No Search Results Found</p>
+            </div>
           )}
 
           {!loading && !error && filteredItems.length > 0 && (

@@ -39,6 +39,7 @@ const ItemCard = ({
     const [showLoginPopup, setShowLoginPopup] = useState(false);
     const [isInCart, setIsInCart] = useState(false);
     const [showTooltip, setShowTooltip] = useState(false);
+    const [showMinQuantityTooltip, setShowMinQuantityTooltip] = useState(false);
 
     const getInitialQuantity = () => {
         const parsedStartValue = typeof startValue === 'string' ? parseFloat(startValue) : startValue;
@@ -116,15 +117,11 @@ const ItemCard = ({
     const getDisplayQuantity = () => {
         if (unit === 'kg') {
             const kgValue = quantity / 1000;
-            // Round to 3 decimal places to avoid floating point issues, then remove trailing zeros
             return kgValue.toFixed(3).replace(/\.?0+$/, '');
         }
         if (unit === 'g') {
-            const kgValue = quantity
-            // Round to 3 decimal places to avoid floating point issues, then remove trailing zeros
-            return kgValue.toFixed(3).replace(/\.?0+$/, '');
+            return Math.round(quantity).toString();
         }
-        // For grams, round to avoid floating point precision issues
         return Math.round(quantity).toString();
     };
 
@@ -318,6 +315,21 @@ const ItemCard = ({
         );
     };
 
+    const MinQuantityTooltip = () => {
+        if (!showMinQuantityTooltip) return null;
+
+        const minQty = getMinQuantity();
+        const displayMinQty = unit === 'kg' ? minQty / 1000 : minQty;
+        const displayUnit = unit;
+
+        return (
+            <div className="absolute bottom-full left-0 transform -translate-y-1 mb-1 px-2 py-1 bg-gray-800 text-white text-[10px] rounded shadow-lg z-30 whitespace-nowrap">
+                Minimum quantity is {displayMinQty} {displayUnit}
+                <div className="absolute top-full left-4 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
+            </div>
+        );
+    };
+
     return (
         <div className={`relative bg-white rounded-xl md:rounded-3xl shadow-sm border border-gray-200 w-full flex flex-col items-center transition-all duration-300 hover:shadow-md cursor-default ${showQuantitySelector
             ? 'h-[260px] sm:h-[300px] md:h-[320px]'
@@ -413,11 +425,21 @@ const ItemCard = ({
                         </div>
 
                         <div className="flex items-center justify-center w-full">
-                            <div className="flex w-full max-w-28 rounded-lg bg-white border-1 border-[#3E206D]">
+                            <div className="flex w-full max-w-28 rounded-lg bg-white border-1 border-[#3E206D] relative">
+                                <MinQuantityTooltip />
                                 <button
-                                    onClick={decrementQuantity}
-                                    disabled={quantity <= getMinQuantity()}
-                                    className="flex-none px-2 py-1 bg-[#3E206D] text-white font-bold rounded-l-md hover:bg-purple-800 disabled:opacity-50 cursor-pointer"
+                                    onClick={() => {
+                                        if (quantity > getMinQuantity()) {
+                                            decrementQuantity();
+                                        }
+                                    }}
+                                    onMouseEnter={() => {
+                                        if (quantity <= getMinQuantity()) {
+                                            setShowMinQuantityTooltip(true);
+                                        }
+                                    }}
+                                    onMouseLeave={() => setShowMinQuantityTooltip(false)}
+                                    className={`flex-none px-2 py-1 bg-[#3E206D] text-white font-bold rounded-l-md hover:bg-purple-800 cursor-pointer ${quantity <= getMinQuantity() ? 'opacity-50' : ''}`}
                                 >
                                     −
                                 </button>
