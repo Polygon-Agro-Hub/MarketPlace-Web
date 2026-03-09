@@ -97,7 +97,6 @@ const PackageSlider: React.FC<packagesProps> = ({ productData, onShowConfirmModa
 
         try {
             const res = await getPackageDetails(packageId);
-            console.log('pkg details', res)
             setPackageDetails(res.packageItems);
         } catch (error: any) {
             setErrorDetails(error.message || 'Failed to load package details');

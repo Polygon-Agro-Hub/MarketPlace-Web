@@ -70,8 +70,6 @@ const Page = () => {
       setIsModalOpen(true);
       return;
     }
-    console.log('Resetting password with token:', token);
-    console.log('New password:', newPassword);
 
     try {
       const res = await resetPassword(token, newPassword);

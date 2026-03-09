@@ -1,14 +1,18 @@
 "use client";
 import React, { useState, FormEvent } from "react";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
-import { sendOTPInSignup, signup, verifyUserDetails } from "@/services/auth-service";
+import {
+  sendOTPInSignup,
+  signup,
+  verifyUserDetails,
+} from "@/services/auth-service";
 import { useRouter } from "next/navigation";
 import SuccessPopup from "@/components/toast-messages/success-message";
 import ErrorPopup from "@/components/toast-messages/error-message";
 import OTPComponent from "@/components/otp-registration/OTPComponent";
 import Image from "next/image";
-import LoginImg from '../../../public/newbg.png'
-import glogo from '../../../public/glogo.png'
+import LoginImg from "../../../public/newbg.png";
+import glogo from "../../../public/glogo.png";
 
 type FormErrors = {
   title?: string;
@@ -46,7 +50,9 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
   className = "",
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const selectedOption = options.find(option => option.value === selectedValue);
+  const selectedOption = options.find(
+    (option) => option.value === selectedValue,
+  );
 
   return (
     <div className="relative">
@@ -69,12 +75,17 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
           </span>
         </div>
         <svg
-          className={`w-4 h-4 transition-transform flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`}
+          className={`w-4 h-4 transition-transform flex-shrink-0 ${isOpen ? "rotate-180" : ""}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M19 9l-7 7-7-7"
+          />
         </svg>
       </button>
 
@@ -89,10 +100,11 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
                 onSelect(option.value);
                 setIsOpen(false);
               }}
-              className={`w-full text-left px-3 py-3 hover:bg-gray-100 flex items-center gap-2 transition-colors ${selectedValue === option.value
-                ? 'bg-purple-50 text-purple-700 border-l-4 border-purple-700'
-                : 'text-gray-900'
-                }`}
+              className={`w-full text-left px-3 py-3 hover:bg-gray-100 flex items-center gap-2 transition-colors ${
+                selectedValue === option.value
+                  ? "bg-purple-50 text-purple-700 border-l-4 border-purple-700"
+                  : "text-gray-900"
+              }`}
             >
               {option.flag && (
                 <img
@@ -101,7 +113,9 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
                   className="w-5 h-4 object-cover flex-shrink-0"
                 />
               )}
-              <span className="truncate font-medium text-m">{option.label}</span>
+              <span className="truncate font-medium text-m">
+                {option.label}
+              </span>
             </button>
           ))}
         </div>
@@ -109,10 +123,7 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
 
       {/* Click outside to close */}
       {isOpen && (
-        <div
-          className="fixed inset-0 z-40"
-          onClick={() => setIsOpen(false)}
-        />
+        <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
       )}
     </div>
   );
@@ -133,7 +144,7 @@ export default function SignupForm() {
   const [showOTPVerification, setShowOTPVerification] = useState(false);
   const [otpReferenceId, setOtpReferenceId] = useState("");
   const [fullPhoneNumber, setFullPhoneNumber] = useState("");
-  const [currentReferenceId, setCurrentReferenceId] = useState('');
+  const [currentReferenceId, setCurrentReferenceId] = useState("");
 
   const [formData, setFormData] = useState({
     title: "",
@@ -152,33 +163,29 @@ export default function SignupForm() {
   });
 
   const countries: PhoneCode[] = [
-    { code: 'LK', dialCode: '+94', name: 'Sri Lanka' },
-    { code: 'VN', dialCode: '+84', name: 'Vietnam' },
-    { code: 'KH', dialCode: '+855', name: 'Cambodia' },
-    { code: 'BD', dialCode: '+880', name: 'Bangladesh' },
-    { code: 'IN', dialCode: '+91', name: 'India' },
-    { code: 'NL', dialCode: '+31', name: 'Netherlands' },
-    { code: 'GB', dialCode: '+44', name: 'United Kingdom' },
-    { code: 'US', dialCode: '+1', name: 'United States' }
+    { code: "LK", dialCode: "+94", name: "Sri Lanka" },
+    { code: "VN", dialCode: "+84", name: "Vietnam" },
+    { code: "KH", dialCode: "+855", name: "Cambodia" },
+    { code: "BD", dialCode: "+880", name: "Bangladesh" },
+    { code: "IN", dialCode: "+91", name: "India" },
+    { code: "NL", dialCode: "+31", name: "Netherlands" },
+    { code: "GB", dialCode: "+44", name: "United Kingdom" },
+    { code: "US", dialCode: "+1", name: "United States" },
   ];
 
   const getFlagUrl = (countryCode: string): string => {
     return `https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png`;
   };
 
-  const countryOptions = countries.map(country => ({
+  const countryOptions = countries.map((country) => ({
     value: country.dialCode,
     label: country.dialCode,
     flag: getFlagUrl(country.code),
-    countryName: country.name
+    countryName: country.name,
   }));
 
-
-
-
-
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value, type } = e.target;
     const checked =
@@ -199,7 +206,9 @@ export default function SignupForm() {
       // Capitalize first letter of each word
       processedValue = letterOnlyValue
         .split(" ")
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .map(
+          (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
+        )
         .join(" ");
     }
 
@@ -233,7 +242,6 @@ export default function SignupForm() {
       checkPasswordLive(processedValue);
     }
   };
-
 
   const checkPasswordLive = (password: string) => {
     const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{6,}$/;
@@ -270,7 +278,8 @@ export default function SignupForm() {
     if (!formData.email) {
       newErrors.email = "Email is required";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = "Please enter a valid email in the format: example@domain.com";
+      newErrors.email =
+        "Please enter a valid email in the format: example@domain.com";
     }
 
     if (!formData.password) {
@@ -278,11 +287,13 @@ export default function SignupForm() {
     } else if (formData.password.length < 6) {
       newErrors.password = "Password must be at least 6 characters";
     } else if (!/(?=.*[A-Z])/.test(formData.password)) {
-      newErrors.password = "Password must contain at least one uppercase letter";
+      newErrors.password =
+        "Password must contain at least one uppercase letter";
     } else if (!/(?=.*[0-9])/.test(formData.password)) {
       newErrors.password = "Password must contain at least one number";
     } else if (!/(?=.*[!@#$%^&*])/.test(formData.password)) {
-      newErrors.password = "Password must contain at least one special character";
+      newErrors.password =
+        "Password must contain at least one special character";
     }
 
     if (!formData.confirmPassword) {
@@ -321,12 +332,20 @@ export default function SignupForm() {
     setLoading(true);
 
     try {
-
-      await verifyUserDetails(formData.email, formData.phoneNumber, formData.phoneCode);
+      await verifyUserDetails(
+        formData.email,
+        formData.phoneNumber,
+        formData.phoneCode,
+      );
 
       // If verification passes, proceed with OTP sending
-      const res = await sendOTPInSignup(formData.phoneNumber, formData.phoneCode);
-      setSuccess(`OTP code has been sent to ${formData.phoneCode}${formData.phoneNumber}`);
+      const res = await sendOTPInSignup(
+        formData.phoneNumber,
+        formData.phoneCode,
+      );
+      setSuccess(
+        `OTP code has been sent to ${formData.phoneCode}${formData.phoneNumber}`,
+      );
       setShowSuccessPopup(true);
 
       if (res && res.referenceId) {
@@ -341,11 +360,14 @@ export default function SignupForm() {
       if (err.message) {
         errorMessage = err.message;
       } else if (err.type === "email_exists") {
-        errorMessage = "This email address is already registered. Please use a different email or try logging in.";
+        errorMessage =
+          "This email address is already registered. Please use a different email or try logging in.";
       } else if (err.type === "phone_exists") {
-        errorMessage = "This phone number is already registered. Please use a different phone number or try logging in.";
+        errorMessage =
+          "This phone number is already registered. Please use a different phone number or try logging in.";
       } else {
-        errorMessage = err.message || "Failed to process request. Please try again.";
+        errorMessage =
+          err.message || "Failed to process request. Please try again.";
       }
 
       setErrorMessage(errorMessage);
@@ -392,8 +414,7 @@ export default function SignupForm() {
   };
 
   const handleOTPExpired = () => {
-    setCurrentReferenceId(''); // Clear the reference ID
-    console.log('OTP expired, reference ID cleared');
+    setCurrentReferenceId(""); // Clear the reference ID
   };
 
   const handleOTPResend = (newReferenceId: string) => {
@@ -498,70 +519,6 @@ export default function SignupForm() {
               </label>
             </div>
 
-            {/* {isHome && (
-              <div>
-                <p className="text-[#4C5160] font-medium mb-6 text-center">
-                  Welcome! Select method to Signup:
-                </p>
-
-                <div className="flex space-x-3 mb-4 hover:text-[#3E206D]">
-                  <button
-                    type="button"
-                    className="cursor-pointer flex items-center justify-center w-1/2 border rounded-md px-4 py-2 hover:bg-gray-50"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5 mr-4"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                        fill="#4285F4"
-                      />
-                      <path
-                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                        fill="#34A853"
-                      />
-                      <path
-                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                        fill="#FBBC05"
-                      />
-                      <path
-                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                        fill="#EA4335"
-                      />
-                    </svg>
-                    Google
-                  </button>
-
-                  <button
-                    type="button"
-                    className="cursor-pointer flex items-center justify-center w-1/2 border rounded-md px-4 py-2 hover:bg-gray-50"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5 mr-4 text-blue-600"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"
-                        fill="#1877F2"
-                      />
-                    </svg>
-                    Facebook
-                  </button>
-                </div>
-
-                <div className="flex items-center mt-10 mb-8">
-                  <div className="flex-grow border-t border-[#8D8D8D]"></div>
-                  <span className="px-4 text-sm text-gray-500">
-                    or continue with email
-                  </span>
-                  <div className="flex-grow border-t border-[#8D8D8D]"></div>
-                </div>
-              </div>
-            )} */}
-
             <div className="flex items-center mb-4">
               <div className="text-[#3E206D] mr-4 whitespace-nowrap">
                 Personal Details
@@ -574,8 +531,6 @@ export default function SignupForm() {
                 <div className="flex flex-col md:flex-row md:space-x-4 space-y-2 md:space-y-0">
                   <div className="flex flex-row w-full md:w-1/2 space-x-2">
                     <div className="w-42 md:w-42">
-
-
                       <CustomDropdown
                         options={[
                           { value: "Rev", label: "Rev." },
@@ -593,7 +548,9 @@ export default function SignupForm() {
                         className="cursor-pointer"
                       />
                       {errors.title && (
-                        <p className="mt-1 text-sm text-red-600">{errors.title}</p>
+                        <p className="mt-1 text-sm text-red-600">
+                          {errors.title}
+                        </p>
                       )}
                     </div>
 
@@ -605,27 +562,34 @@ export default function SignupForm() {
                         onChange={handleChange}
                         onKeyPress={(e) => {
                           // Block numbers and special characters while typing
-                          if (!/[A-Za-z\s]/.test(e.key) && e.key !== "Backspace") {
+                          if (
+                            !/[A-Za-z\s]/.test(e.key) &&
+                            e.key !== "Backspace"
+                          ) {
                             e.preventDefault();
                           }
                         }}
                         onPaste={(e) => {
                           // Allow paste but filter out invalid characters
                           e.preventDefault();
-                          const pastedText = e.clipboardData.getData('text');
+                          const pastedText = e.clipboardData.getData("text");
                           const filteredText = pastedText
                             .replace(/[^A-Za-z\s]/g, "")
                             .split(" ")
-                            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                            .map(
+                              (word) =>
+                                word.charAt(0).toUpperCase() +
+                                word.slice(1).toLowerCase(),
+                            )
                             .join(" ");
 
                           handleChange({
-                            target: { name: "firstName", value: filteredText }
+                            target: { name: "firstName", value: filteredText },
                           } as React.ChangeEvent<HTMLInputElement>);
                         }}
                         placeholder="First Name"
                         className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass(
-                          "firstName"
+                          "firstName",
                         )}`}
                       />
                       {errors.firstName && (
@@ -644,27 +608,34 @@ export default function SignupForm() {
                       onChange={handleChange}
                       onKeyPress={(e) => {
                         // Block numbers and special characters while typing
-                        if (!/[A-Za-z\s]/.test(e.key) && e.key !== "Backspace") {
+                        if (
+                          !/[A-Za-z\s]/.test(e.key) &&
+                          e.key !== "Backspace"
+                        ) {
                           e.preventDefault();
                         }
                       }}
                       onPaste={(e) => {
                         // Allow paste but filter out invalid characters
                         e.preventDefault();
-                        const pastedText = e.clipboardData.getData('text');
+                        const pastedText = e.clipboardData.getData("text");
                         const filteredText = pastedText
                           .replace(/[^A-Za-z\s]/g, "")
                           .split(" ")
-                          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                          .map(
+                            (word) =>
+                              word.charAt(0).toUpperCase() +
+                              word.slice(1).toLowerCase(),
+                          )
                           .join(" ");
 
                         handleChange({
-                          target: { name: "lastName", value: filteredText }
+                          target: { name: "lastName", value: filteredText },
                         } as React.ChangeEvent<HTMLInputElement>);
                       }}
                       placeholder="Last Name"
                       className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass(
-                        "lastName"
+                        "lastName",
                       )}`}
                     />
                     {errors.lastName && (
@@ -677,7 +648,6 @@ export default function SignupForm() {
 
                 <div className="flex flex-col md:flex-row md:space-x-3 space-y-4 md:space-y-0">
                   <div className="flex flex-row w-full md:w-1/2 space-x-3">
-
                     <div className="w-42 md:w-28">
                       <CustomDropdown
                         options={countryOptions}
@@ -707,16 +677,19 @@ export default function SignupForm() {
                         onPaste={(e) => {
                           // Allow paste but filter out non-digits
                           e.preventDefault();
-                          const pastedText = e.clipboardData.getData('text');
+                          const pastedText = e.clipboardData.getData("text");
                           const filteredText = pastedText.replace(/[^\d]/g, "");
 
                           handleChange({
-                            target: { name: "phoneNumber", value: filteredText }
+                            target: {
+                              name: "phoneNumber",
+                              value: filteredText,
+                            },
                           } as React.ChangeEvent<HTMLInputElement>);
                         }}
                         placeholder="7XXXXXXXX"
                         className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass(
-                          "phoneNumber"
+                          "phoneNumber",
                         )}`}
                         maxLength={9}
                       />
@@ -743,11 +716,13 @@ export default function SignupForm() {
                       }}
                       placeholder="Email"
                       className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass(
-                        "email"
+                        "email",
                       )}`}
                     />
                     {errors.email && (
-                      <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+                      <p className="mt-1 text-sm text-red-600">
+                        {errors.email}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -762,7 +737,7 @@ export default function SignupForm() {
                         onChange={handleChange}
                         placeholder="Password"
                         className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass(
-                          "password"
+                          "password",
                         )}`}
                       />
                       <button
@@ -805,13 +780,15 @@ export default function SignupForm() {
                         }}
                         placeholder="Confirm Password"
                         className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass(
-                          "confirmPassword"
+                          "confirmPassword",
                         )}`}
                       />
                       <button
                         type="button"
                         className="absolute top-1/2 right-3 transform -translate-y-1/2"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        onClick={() =>
+                          setShowConfirmPassword(!showConfirmPassword)
+                        }
                       >
                         {showConfirmPassword ? (
                           <EyeOff size={20} className="text-[#3E206D]" />
@@ -831,11 +808,13 @@ export default function SignupForm() {
                 {!isPasswordValid && formData.password && (
                   <div className="text-xs text-gray-600 pl-1 flex flex-row gap-2 md:flex-row items-start md:items-center">
                     <div className="flex-shrink-0 h-5 w-5 rounded-full bg-gray-500 flex items-center justify-center mb-2 md:mb-0 md:mr-1">
-                      <span className="text-xs text-[#ffffff] font-semibold">i</span>
+                      <span className="text-xs text-[#ffffff] font-semibold">
+                        i
+                      </span>
                     </div>
                     <div className="text-[#3E206D] text-xs md:text-sm">
-                      Your password must contain a minimum of 6 characters with 1
-                      Uppercase, Numbers & Special Characters.
+                      Your password must contain a minimum of 6 characters with
+                      1 Uppercase, Numbers & Special Characters.
                     </div>
                   </div>
                 )}
@@ -859,13 +838,16 @@ export default function SignupForm() {
                             onChange={handleChange}
                             onKeyPress={(e) => {
                               // Block leading space
-                              if (e.key === " " && formData.companyName.length === 0) {
+                              if (
+                                e.key === " " &&
+                                formData.companyName.length === 0
+                              ) {
                                 e.preventDefault();
                               }
                             }}
                             placeholder="Company Name"
                             className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass(
-                              "companyName"
+                              "companyName",
                             )}`}
                           />
                           {errors.companyName && (
@@ -898,23 +880,33 @@ export default function SignupForm() {
                               onChange={handleChange}
                               onKeyPress={(e) => {
                                 // Allow only digits
-                                if (!/[\d]/.test(e.key) && e.key !== "Backspace") {
+                                if (
+                                  !/[\d]/.test(e.key) &&
+                                  e.key !== "Backspace"
+                                ) {
                                   e.preventDefault();
                                 }
                               }}
                               onPaste={(e) => {
                                 // Allow paste but filter out non-digits
                                 e.preventDefault();
-                                const pastedText = e.clipboardData.getData('text');
-                                const filteredText = pastedText.replace(/[^\d]/g, "");
+                                const pastedText =
+                                  e.clipboardData.getData("text");
+                                const filteredText = pastedText.replace(
+                                  /[^\d]/g,
+                                  "",
+                                );
 
                                 handleChange({
-                                  target: { name: "companyPhoneNumber", value: filteredText }
+                                  target: {
+                                    name: "companyPhoneNumber",
+                                    value: filteredText,
+                                  },
                                 } as React.ChangeEvent<HTMLInputElement>);
                               }}
                               placeholder="7XXXXXXXX"
                               className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass(
-                                "companyPhoneNumber"
+                                "companyPhoneNumber",
                               )}`}
                               maxLength={9}
                             />
@@ -938,8 +930,9 @@ export default function SignupForm() {
                       name="agreeToTerms"
                       checked={formData.agreeToTerms}
                       onChange={handleChange}
-                      className={`h-4 w-4 accent-[#318831] cursor-pointer focus:ring-purple-500 border-gray-300 rounded ${errors.agreeToTerms ? "border-red-500" : ""
-                        }`}
+                      className={`h-4 w-4 accent-[#318831] cursor-pointer focus:ring-purple-500 border-gray-300 rounded ${
+                        errors.agreeToTerms ? "border-red-500" : ""
+                      }`}
                     />
                     <label
                       htmlFor="terms"
@@ -989,7 +982,10 @@ export default function SignupForm() {
 
                 <p className="text-center text-md text-[#6B6B6B] mt-4 md:mt-2 mb-4 md:mb-0">
                   Already have an account?{" "}
-                  <a href="../signin" className="text-[#094EE8] hover:underline">
+                  <a
+                    href="../signin"
+                    className="text-[#094EE8] hover:underline"
+                  >
                     Login here
                   </a>
                 </p>

@@ -1,16 +1,21 @@
-'use client';
-import { useSelector, useDispatch } from 'react-redux';
-import { RootState } from '@/store';
-import { setSearchTerm, setPackageResults, resetAndSearch, clearSearch } from '@/store/slices/searchSlice';
-import { useEffect, useState, useRef, Suspense } from 'react';
+"use client";
+import { useSelector, useDispatch } from "react-redux";
+import { RootState } from "@/store";
+import {
+  setSearchTerm,
+  setPackageResults,
+  resetAndSearch,
+  clearSearch,
+} from "@/store/slices/searchSlice";
+import { useEffect, useState, useRef, Suspense } from "react";
 import CategoryFilter from "@/components/type-filters/CategoryFilterWholesale";
 import { getAllProduct } from "@/services/product-service";
-import TopBanner from '@/components/home/TopBanner';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons';
-import { X } from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import animationData from '../../../../public/noResults.json';
+import TopBanner from "@/components/home/TopBanner";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
+import { X } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import animationData from "../../../../public/noResults.json";
 
 interface Package {
   id: number;
@@ -21,14 +26,14 @@ interface Package {
 
 // Separate component to handle search params
 function SearchParamsHandler({
-  onSearchFromUrl
+  onSearchFromUrl,
 }: {
-  onSearchFromUrl: (search: string | null) => void
+  onSearchFromUrl: (search: string | null) => void;
 }) {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    const searchFromUrl = searchParams.get('search');
+    const searchFromUrl = searchParams.get("search");
     onSearchFromUrl(searchFromUrl);
   }, [searchParams, onSearchFromUrl]);
 
@@ -50,16 +55,20 @@ function WholesaleHomeContent() {
   const cartState = useSelector((state: RootState) => state.cart);
   const cartItemsState = useSelector((state: RootState) => state.cartItems);
   const authState = useSelector((state: RootState) => state.auth);
-  const hasPackageResults = useSelector((state: RootState) => state.search.hasPackageResults);
-  const hasCategoryResults = useSelector((state: RootState) => state.search.hasCategoryResults);
+  const hasPackageResults = useSelector(
+    (state: RootState) => state.search.hasPackageResults,
+  );
+  const hasCategoryResults = useSelector(
+    (state: RootState) => state.search.hasCategoryResults,
+  );
 
   // Local state
   const [data, setData] = useState<{ message: string } | null>(null);
   const [productData, setProductData] = useState<Package[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState('fruits');
-  const [localSearchInput, setLocalSearchInput] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState("fruits");
+  const [localSearchInput, setLocalSearchInput] = useState("");
 
   const router = useRouter();
 
@@ -69,13 +78,12 @@ function WholesaleHomeContent() {
   }, [searchTerm]);
 
   const checkBuyerTypeAndRedirect = () => {
-    console.log('Checking buyer type for user:', user?.buyerType);
     if (user && user.buyerType) {
-      if (user.buyerType === 'Retail') {
-        router.push('/');
+      if (user.buyerType === "Retail") {
+        router.push("/");
         return;
-      } else if (user.buyerType === 'Wholesale') {
-        router.push('/wholesale/home')
+      } else if (user.buyerType === "Wholesale") {
+        router.push("/wholesale/home");
         return;
       }
     }
@@ -88,23 +96,19 @@ function WholesaleHomeContent() {
   // Handle search from URL parameters
   const handleSearchFromUrl = (searchFromUrl: string | null) => {
     if (searchFromUrl && searchFromUrl.trim()) {
-      console.log('Wholesale: Found search in URL:', searchFromUrl);
-
       // Only update Redux state if it's different and execute search immediately
       if (searchFromUrl.trim() !== searchTerm) {
-        console.log('Wholesale: Setting search term from URL:', searchFromUrl.trim());
         dispatch(resetAndSearch(searchFromUrl.trim()));
       }
 
       // Always execute search with URL parameter to ensure it's not undefined
-      console.log('Wholesale: Executing immediate search with URL param:', searchFromUrl.trim());
       fetchAllPackages(searchFromUrl.trim());
 
       // Clean URL after search is processed
       setTimeout(() => {
         const url = new URL(window.location.href);
-        url.searchParams.delete('search');
-        window.history.replaceState({}, '', url.pathname);
+        url.searchParams.delete("search");
+        window.history.replaceState({}, "", url.pathname);
       }, 500);
     }
   };
@@ -112,7 +116,6 @@ function WholesaleHomeContent() {
   // Initial data fetch
   useEffect(() => {
     fetchAllPackages();
-    console.log("Cart:", cart);
   }, []);
 
   // Fetch products when search term changes (not from URL)
@@ -120,30 +123,15 @@ function WholesaleHomeContent() {
     if (searchTerm && searchTerm.trim()) {
       // Handle regular search term changes with debouncing
       const timeoutId = setTimeout(() => {
-        console.log('Wholesale: Executing debounced search for:', searchTerm.trim());
         fetchAllPackages(searchTerm.trim());
       }, 300);
 
       return () => clearTimeout(timeoutId);
-    } else if (searchTerm === '' || !searchTerm) {
+    } else if (searchTerm === "" || !searchTerm) {
       // Handle empty search - fetch all products
-      console.log('Wholesale: No search term, fetching all packages');
       fetchAllPackages(); // This will call API with undefined, which should get all products
     }
   }, [searchTerm]);
-
-  useEffect(() => {
-    console.log(`Category changed to: ${selectedCategory}`);
-  }, [selectedCategory]);
-
-  // Console log Redux data whenever it changes
-  useEffect(() => {
-    console.log('=== REDUX STATE UPDATE (WHOLESALE) ===');
-    console.log('Auth State:', authState);
-    console.log('Search Term:', searchTerm);
-    console.log('Search Active:', isSearchActive);
-    console.log('======================================');
-  }, [cartState, cartItemsState, authState, searchTerm, isSearchActive]);
 
   // Mobile search handlers
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -153,21 +141,19 @@ function WholesaleHomeContent() {
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmedSearch = localSearchInput.trim();
-    console.log('Wholesale mobile search submitted:', trimmedSearch);
     dispatch(setSearchTerm(trimmedSearch));
   };
 
   const handleSearchKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       handleSearchSubmit(e as any);
     }
   };
 
   // Reset search function
   const handleResetSearch = () => {
-    setLocalSearchInput('');
+    setLocalSearchInput("");
     dispatch(clearSearch());
-    console.log('Wholesale search reset');
   };
 
   // Fetch packages function - you might want to create a wholesale-specific version
@@ -176,26 +162,22 @@ function WholesaleHomeContent() {
       setLoading(true);
       // IMPORTANT: Handle undefined/empty search properly
       const searchParam = search && search.trim() ? search.trim() : undefined;
-      console.log('Wholesale: Calling API with search param:', searchParam);
-
-      const response = await getAllProduct(searchParam) as any;
+      const response = (await getAllProduct(searchParam)) as any;
 
       if (response && response.product) {
-        console.log('Wholesale: API response received:', response.product.length, 'products');
         setProductData(response.product);
         // Update package results state
         dispatch(setPackageResults(response.product.length > 0));
         setError(null);
       } else {
-        console.log('Wholesale: No products in API response');
         setProductData([]);
-        setError('No products found');
+        setError("No products found");
         // Update package results state for no products
         dispatch(setPackageResults(false));
       }
     } catch (error) {
-      console.error('Error fetching wholesale packages:', error);
-      setError('Failed to fetch packages');
+      console.error("Error fetching wholesale packages:", error);
+      setError("Failed to fetch packages");
       setProductData([]);
       // Update package results state for error
       dispatch(setPackageResults(false));
@@ -217,14 +199,14 @@ function WholesaleHomeContent() {
           if (isLoadedRef.current || !animationContainer.current) return;
 
           // Clear any existing content first
-          animationContainer.current.innerHTML = '';
+          animationContainer.current.innerHTML = "";
           isLoadedRef.current = true;
 
-          const lottie = await import('lottie-web');
+          const lottie = await import("lottie-web");
 
           animationInstance = lottie.default.loadAnimation({
             container: animationContainer.current,
-            renderer: 'svg',
+            renderer: "svg",
             loop: true,
             autoplay: true,
             animationData: animationData,
@@ -233,7 +215,8 @@ function WholesaleHomeContent() {
           // Additional cleanup of duplicate elements after animation loads
           setTimeout(() => {
             if (animationContainer.current) {
-              const svgElements = animationContainer.current.querySelectorAll('svg');
+              const svgElements =
+                animationContainer.current.querySelectorAll("svg");
               if (svgElements.length > 1) {
                 // Keep only the first SVG element
                 for (let i = 1; i < svgElements.length; i++) {
@@ -243,7 +226,7 @@ function WholesaleHomeContent() {
             }
           }, 100);
         } catch (error) {
-          console.error('Error loading Lottie animation:', error);
+          console.error("Error loading Lottie animation:", error);
           isLoadedRef.current = false;
         }
       };
@@ -255,7 +238,7 @@ function WholesaleHomeContent() {
           animationInstance.destroy();
         }
         if (animationContainer.current) {
-          animationContainer.current.innerHTML = '';
+          animationContainer.current.innerHTML = "";
         }
         isLoadedRef.current = false;
       };
@@ -270,9 +253,9 @@ function WholesaleHomeContent() {
               ref={animationContainer}
               className="w-full h-full"
               style={{
-                maxWidth: '200px',
-                maxHeight: '200px',
-                overflow: 'hidden'
+                maxWidth: "200px",
+                maxHeight: "200px",
+                overflow: "hidden",
               }}
             />
           </div>
@@ -302,7 +285,7 @@ function WholesaleHomeContent() {
       <main className="flex min-h-screen flex-col">
         {/* Top banner - hide when search is active */}
         {!isSearchActive && (
-          <div className='mt-0 my-8 w-full'>
+          <div className="mt-0 my-8 w-full">
             <TopBanner />
           </div>
         )}
@@ -326,14 +309,18 @@ function WholesaleHomeContent() {
                     onClick={handleResetSearch}
                     className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-[#3E206D] transition-colors"
                   >
-                    <X size={16} color='#3E206D' className='cursor-pointer' />
+                    <X size={16} color="#3E206D" className="cursor-pointer" />
                   </button>
                 ) : (
                   <button
                     type="submit"
                     className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-[#3E206D]"
                   >
-                    <FontAwesomeIcon icon={faMagnifyingGlass} color='#3E206D' className='cursor-pointer' />
+                    <FontAwesomeIcon
+                      icon={faMagnifyingGlass}
+                      color="#3E206D"
+                      className="cursor-pointer"
+                    />
                   </button>
                 )}
               </div>

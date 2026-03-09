@@ -1,7 +1,6 @@
 import Image from 'next/image';
 import NotFound from '../../../../public/404.jpg'
 
-
 export default function Error404() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-white text-center">

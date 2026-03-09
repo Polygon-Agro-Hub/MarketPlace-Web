@@ -150,8 +150,6 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
             setError(null);
 
             try {
-                console.log('Fetching products with:', { selectedCategory, searchTerm });
-
                 const response = await getProductsByCategory(selectedCategory, searchTerm || undefined);
                 setProducts(response.products);
 

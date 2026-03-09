@@ -35,9 +35,6 @@ export default function Page() {
     const phone = localStorage.getItem('otpPhoneOnly');
     const country = localStorage.getItem('otpCountryCode');
 
-    console.log('Phone:', phone);
-    console.log('Country Code:', country);
-
     if (refId) setReferenceId(refId);
     if (phone) setPhoneNumber(phone);
     if (country) setCountryCode(country);

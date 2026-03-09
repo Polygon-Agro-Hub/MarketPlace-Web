@@ -45,7 +45,6 @@ const AddMoreItems = () => {
       setLoading(true);
       try {
         const excludedData = await getExcludedItems(authToken);
-        console.log('Excluded Items:', excludedData);
 
         if (excludedData.status && Array.isArray(excludedData.items)) {
           setExcludedItems(excludedData.items);
@@ -54,7 +53,6 @@ const AddMoreItems = () => {
         }
 
         const suggestionsRes = await getMarketplaceSuggestionsProfile(authToken);
-        console.log('Marketplace Suggestions:', suggestionsRes);
 
         if (suggestionsRes.status && Array.isArray(suggestionsRes.items)) {
           setMarketplaceSuggestions(suggestionsRes.items);
@@ -93,7 +91,6 @@ const AddMoreItems = () => {
   };
 
   const handleContinue = async () => {
-    console.log('handleContinue called. Selected items:', selectedItems);
 
     if (!authToken) {
       setSubmitStatus('Authentication token is missing');

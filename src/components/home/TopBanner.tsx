@@ -41,7 +41,6 @@ const TopBanner: React.FC = () => {
     try {
       setLoading(true);
       const data = await getRetaildBanners();
-      console.log(data, "banner data");
 
       if (data && data.slides) {
         // Map the response data to the expected format

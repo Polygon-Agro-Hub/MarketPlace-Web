@@ -126,8 +126,6 @@ export default function CategoryFilterWholesale() {
             setError(null);
 
             try {
-                console.log('Fetching wholesale products with:', { selectedCategory, searchTerm });
-
                 const response = await getProductsByCategoryWholesale(selectedCategory, searchTerm || undefined);
                 setProducts(response.products);
 

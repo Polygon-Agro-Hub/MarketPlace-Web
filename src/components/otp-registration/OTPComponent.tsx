@@ -229,9 +229,6 @@ export default function OTPComponent({
     try {
       const countryCode = phoneNumber.substring(0, phoneNumber.length - 10);
       const phone = phoneNumber.substring(countryCode.length);
-
-      console.log('send otp', phone, countryCode);
-
       const res = await sendOTPInSignup(phone, countryCode);
 
       if (res.referenceId) {

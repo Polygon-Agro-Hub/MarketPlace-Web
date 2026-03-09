@@ -78,12 +78,10 @@ const PackageCard: React.FC<PackageProps> = ({
 
     try {
       const res = await packageAddToCart(packageItem.id, token);
-      console.log("res", res);
 
       if (res.status === true) {
         try {
           const cartInfo = await getCartInfo(token);
-          console.log("Updated cart info:", cartInfo);
           dispatch(updateCartInfo(cartInfo));
         } catch (cartError) {
           console.error('Error fetching cart info:', cartError);
@@ -94,7 +92,6 @@ const PackageCard: React.FC<PackageProps> = ({
         }
         onClosePopup();
       } else {
-        console.log(res.message);
         if (onAddToCartError) {
           onAddToCartError(res.message || 'Failed to add package to cart');
         }

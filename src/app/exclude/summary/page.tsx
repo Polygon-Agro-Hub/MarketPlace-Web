@@ -1,17 +1,16 @@
-'use client';
+"use client";
 
-import { RootState } from '@/store';
-import { useState, useEffect } from 'react';
-import { useSelector } from 'react-redux';
-
-import {Trash } from 'lucide-react';
+import { RootState } from "@/store";
+import { useState, useEffect } from "react";
+import { useSelector } from "react-redux";
+import { Trash } from "lucide-react";
 import {
   excludeItems,
   getExcludedItems,
   deleteExcludedItems,
-  updateUserStatus
-} from '@/services/product-service';
-import { useRouter } from 'next/navigation';
+  updateUserStatus,
+} from "@/services/product-service";
+import { useRouter } from "next/navigation";
 
 interface Item {
   displayName: string;
@@ -23,7 +22,7 @@ export default function ExcludedItems() {
   const authToken = useSelector((state: RootState) => state.auth.token) || null;
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [items, setItems] = useState<Item[]>([]);
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [submitStatus, setSubmitStatus] = useState<string | null>(null);
@@ -34,7 +33,7 @@ export default function ExcludedItems() {
   useEffect(() => {
     const fetchExcludedItems = async () => {
       if (!authToken) {
-        setError('Authentication token is missing');
+        setError("Authentication token is missing");
         setLoading(false);
         return;
       }
@@ -43,7 +42,7 @@ export default function ExcludedItems() {
       if (data.status && Array.isArray(data.items)) {
         setItems(data.items);
       } else {
-        setError(data.message || 'Failed to fetch excluded items');
+        setError(data.message || "Failed to fetch excluded items");
       }
       setLoading(false);
     };
@@ -55,7 +54,7 @@ export default function ExcludedItems() {
     setSelectedItems((prev) =>
       prev.includes(itemName)
         ? prev.filter((i) => i !== itemName)
-        : [...prev, itemName]
+        : [...prev, itemName],
     );
   };
 
@@ -74,12 +73,16 @@ export default function ExcludedItems() {
 
   const handleConfirmDelete = async () => {
     if (!authToken) {
-      setSubmitStatus('Authentication token is missing');
+      setSubmitStatus("Authentication token is missing");
       setShowDeleteModal(false);
       return;
     }
 
-    const itemsToDelete = isBulkDelete ? selectedItems : itemToDelete ? [itemToDelete] : [];
+    const itemsToDelete = isBulkDelete
+      ? selectedItems
+      : itemToDelete
+        ? [itemToDelete]
+        : [];
     if (itemsToDelete.length === 0) {
       setShowDeleteModal(false);
       return;
@@ -87,16 +90,22 @@ export default function ExcludedItems() {
 
     const response = await deleteExcludedItems(itemsToDelete, authToken);
     if (response.status) {
-      const remaining = items.filter((item) => !itemsToDelete.includes(item.displayName));
+      const remaining = items.filter(
+        (item) => !itemsToDelete.includes(item.displayName),
+      );
       setItems(remaining);
-      setSelectedItems((prev) => prev.filter((name) => !itemsToDelete.includes(name)));
+      setSelectedItems((prev) =>
+        prev.filter((name) => !itemsToDelete.includes(name)),
+      );
       setSubmitStatus(
         isBulkDelete
-          ? 'Selected items removed from exclude list!'
-          : `Item "${itemToDelete}" removed from exclude list!`
+          ? "Selected items removed from exclude list!"
+          : `Item "${itemToDelete}" removed from exclude list!`,
       );
     } else {
-      setSubmitStatus(response.message || 'Failed to remove items from exclude list.');
+      setSubmitStatus(
+        response.message || "Failed to remove items from exclude list.",
+      );
     }
     setShowDeleteModal(false);
     setItemToDelete(null);
@@ -110,7 +119,7 @@ export default function ExcludedItems() {
   };
 
   const filteredItems = items.filter((item) =>
-    item.displayName.toLowerCase().includes(searchQuery.trim().toLowerCase())
+    item.displayName.toLowerCase().includes(searchQuery.trim().toLowerCase()),
   );
 
   const handleSelectAll = () => {
@@ -124,45 +133,45 @@ export default function ExcludedItems() {
   const allSelected =
     selectedItems.length === filteredItems.length && filteredItems.length > 0;
 
-const handleContinue = async () => {
-  console.log('handleContinue called. Selected items:', selectedItems, 'Token:', authToken);
-
-  if (!authToken) {
-    setSubmitStatus('Authentication token is missing');
-    console.log('No auth token, stopping');
-    return;
-  }
-
-  setSubmitStatus(null);
-  setLoading(true);
-
-  try {
-    if (selectedItems.length > 0) {
-      const excludeResponse = await excludeItems(selectedItems, authToken);
-      if (!excludeResponse.status) {
-        setSubmitStatus(excludeResponse.message || 'Failed to exclude items.');
-        setLoading(false);
-        return;
-      }
-    }
-
-    const statusResponse = await updateUserStatus(authToken);
-    if (!statusResponse.status) {
-      setSubmitStatus(statusResponse.message || 'Failed to update user status.');
-      setLoading(false);
+  const handleContinue = async () => {
+    if (!authToken) {
+      setSubmitStatus("Authentication token is missing");
       return;
     }
 
-    setSelectedItems([]);
-    console.log('Navigating to /home');
-    router.push('/');
-  } catch (error) {
-    console.error('Error in handleContinue:', error);
-    setSubmitStatus('An unexpected error occurred.');
-  } finally {
-    setLoading(false);
-  }
-};
+    setSubmitStatus(null);
+    setLoading(true);
+
+    try {
+      if (selectedItems.length > 0) {
+        const excludeResponse = await excludeItems(selectedItems, authToken);
+        if (!excludeResponse.status) {
+          setSubmitStatus(
+            excludeResponse.message || "Failed to exclude items.",
+          );
+          setLoading(false);
+          return;
+        }
+      }
+
+      const statusResponse = await updateUserStatus(authToken);
+      if (!statusResponse.status) {
+        setSubmitStatus(
+          statusResponse.message || "Failed to update user status.",
+        );
+        setLoading(false);
+        return;
+      }
+
+      setSelectedItems([]);
+      router.push("/");
+    } catch (error) {
+      console.error("Error in handleContinue:", error);
+      setSubmitStatus("An unexpected error occurred.");
+    } finally {
+      setLoading(false);
+    }
+  };
   return (
     <div className="w-full flex flex-col justify-center items-center min-h-screen p-6 bg-white">
       <h2 className="text-[20px] md:text-[30px] font-bold mb-2 text-center text-[#001535]">
@@ -175,8 +184,6 @@ const handleContinue = async () => {
       </p>
 
       <div className="w-full max-w-[700px]">
-       
-
         {selectedItems.length > 0 && (
           <div className="w-full flex justify-end mb-2">
             <button
@@ -184,8 +191,7 @@ const handleContinue = async () => {
               className="flex items-center gap-1 text-red-600 cursor-pointer  hover:underline  font-semibold"
               aria-label="Delete selected items"
             >
-            <Trash fill="red" className="w-4 h-4 cursor-pointer" />
-
+              <Trash fill="red" className="w-4 h-4 cursor-pointer" />
               Delete Selected Items
             </button>
           </div>
@@ -212,7 +218,7 @@ const handleContinue = async () => {
                     <div className="flex items-center space-x-2">
                       <span className="text-[#8492A3]">ITEM</span>
                       <span className="text-[#8492A3] text-[12px] md:text-[14px]">
-                        ({filteredItems.length.toString().padStart(2, '0')})
+                        ({filteredItems.length.toString().padStart(2, "0")})
                       </span>
                     </div>
                   </th>
@@ -238,7 +244,7 @@ const handleContinue = async () => {
                         alt={item.displayName}
                         className="w-10 h-10 object-contain"
                         onError={(e) => {
-                          e.currentTarget.src = '/images/fallback.png';
+                          e.currentTarget.src = "/images/fallback.png";
                         }}
                       />
                     </td>
@@ -248,7 +254,8 @@ const handleContinue = async () => {
                       </span>
                     </td>
                     <td className="p-2">
-                      <Trash fill="red"
+                      <Trash
+                        fill="red"
                         onClick={() => handleDeleteClick(item.displayName)}
                         className="text-red-600 cursor-pointer  ml-4 p-1  text-[25px]"
                         aria-label={`Delete ${item.displayName}`}
@@ -282,11 +289,12 @@ const handleContinue = async () => {
             <Trash fill="red" className="mx-auto text-red-600 w-12 h-12 mb-4" />
             <h2 className="text-lg sm:text-xl font-semibold text-black">
               {isBulkDelete
-                ? 'Are you sure you want to remove these items from your exclude list?'
+                ? "Are you sure you want to remove these items from your exclude list?"
                 : `Are you sure you want to remove "${itemToDelete}" from your exclude list?`}
             </h2>
             <p className="text-gray-500 text-sm mt-2">
-              This action will allow {isBulkDelete ? 'these items' : 'this item'} to be included in
+              This action will allow{" "}
+              {isBulkDelete ? "these items" : "this item"} to be included in
               future packages unless re-added to the exclude list.
             </p>
             <div className="mt-6 flex flex-col sm:flex-row justify-center gap-4">

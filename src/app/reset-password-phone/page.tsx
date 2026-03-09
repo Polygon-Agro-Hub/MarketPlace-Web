@@ -8,7 +8,6 @@ import resetImg from '../../../public/images/reset.png'
 import CorrectImg from '../../../public/images/correct.png'
 import { Eye, EyeOff } from 'lucide-react';
 
-
 const Page = () => {
   const router = useRouter();
   const [newPassword, setNewPassword] = useState('');
@@ -23,7 +22,6 @@ const Page = () => {
   // Get phone number from localStorage on component mount
   useEffect(() => {
     const storedPhone = localStorage.getItem('otpPhoneOnly');
-    console.log('Phone:', storedPhone);
     if (!storedPhone) {
       setIsError(true);
       setModalMessage('Phone number not found. Please restart the password reset process.');

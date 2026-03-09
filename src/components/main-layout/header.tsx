@@ -118,14 +118,12 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
   const handleSearchSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     const trimmedSearch = localSearchInput.trim();
-    console.log('Header: Search submitted:', trimmedSearch);
 
     if (trimmedSearch) {
       const isWholesaleUser = user?.buyerType === 'Wholesale';
       const targetHomePage = isWholesaleUser ? '/wholesale/home' : '/';
 
       if (pathname !== targetHomePage) {
-        console.log(`Header: Redirecting from ${pathname} to ${targetHomePage} with search: ${trimmedSearch}`);
         router.replace(`${targetHomePage}?search=${encodeURIComponent(trimmedSearch)}`);
         return;
       } else {
@@ -147,7 +145,6 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
   const handleResetSearch = () => {
     setLocalSearchInput('');
     dispatch(clearSearch());
-    console.log('Header search reset');
   };
 
   const formatPrice = (price: number): string => {

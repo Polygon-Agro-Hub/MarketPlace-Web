@@ -65,12 +65,8 @@ const CustomDropdown = ({ register, setValue, name, value, errors, options, plac
 
   const handleSelect = (optionValue: string) => {
     setValue(name, optionValue, { shouldValidate: true });
-    console.log(`Set ${name} to:`, optionValue);
     setIsOpen(false);
   };
-
-  console.log(`${name} value:`, value);
-  console.log(`${name} options:`, options);
 
   return (
     <div className="relative cursor-pointer" ref={dropdownRef}>
@@ -186,8 +182,6 @@ const BillingDetailsForm = () => {
     }
   }, [token]);
 
-
-
   const compareFormData = (current: BillingFormData, initial: BillingFormData | null): boolean => {
     if (!initial) return false;
 
@@ -284,11 +278,6 @@ const BillingDetailsForm = () => {
   const phonecode1Value = watch('phonecode1');
   const phonecode2Value = watch('phonecode2');
 
-  // Log buildingType for debugging
-  useEffect(() => {
-    console.log('buildingType changed:', buildingType);
-  }, [buildingType]);
-
   // Clear fields based on buildingType
   useEffect(() => {
     if (buildingType !== 'apartment') {
@@ -318,7 +307,6 @@ const BillingDetailsForm = () => {
       setIsLoading(true);
       try {
         const data = await fetchBillingDetails({ token });
-        console.log('API Response:', data);
         const formData: BillingFormData = {
           billingTitle: data.billingTitle || '',
           billingName: data.billingName || '',
@@ -345,19 +333,12 @@ const BillingDetailsForm = () => {
         };
         setInitialFormData(formData);
         reset(formData);
-        console.log('Form state after reset:', getValues());
-        console.log('Geo Location loaded:', { lat: formData.geoLatitude, lng: formData.geoLongitude });
         setValue('buildingType', formData.buildingType); 
         setTimeout(() => {
           if (formData.geoLatitude && formData.geoLongitude) {
             setValue('geoLatitude', formData.geoLatitude, { shouldValidate: false });
             setValue('geoLongitude', formData.geoLongitude, { shouldValidate: false });
             setHasGeoLocation(true); 
-            console.log('Geo location values set explicitly:', {
-              lat: formData.geoLatitude,
-              lng: formData.geoLongitude,
-              currentValues: { lat: getValues('geoLatitude'), lng: getValues('geoLongitude') }
-            });
           } else {
             setHasGeoLocation(false);
           }
@@ -384,8 +365,6 @@ const BillingDetailsForm = () => {
     });
     return () => subscription.unsubscribe();
   }, [watch, initialFormData]);
-
-
 
   useEffect(() => {
     // Register building type as required
@@ -438,7 +417,6 @@ const BillingDetailsForm = () => {
     setValue('geoLatitude', lat, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
     setValue('geoLongitude', lng, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
     setHasGeoLocation(true); // Mark that geo location exists
-    console.log('Location selected and saved to form:', { lat, lng });
     
     // Force form change detection
     if (initialFormData) {
@@ -543,12 +521,6 @@ const BillingDetailsForm = () => {
       geoLongitude: data.geoLongitude || undefined,
     };
 
-    console.log('Saving billing details with geo location:', {
-      geoLatitude: data.geoLatitude,
-      geoLongitude: data.geoLongitude,
-      fullData: billingDetails
-    });
-
     try {
       await saveBillingDetails({ token, data: billingDetails });
       setInitialFormData(data);
@@ -639,7 +611,6 @@ const BillingDetailsForm = () => {
         title="Error!"
         description={errorMessage}
       />
-
 
       <form onSubmit={handleSubmit(onSubmit)} className="bg-white">
         <h2 className="font-medium text-[14px] text-base md:text-[17.5px]">Account Details</h2>
