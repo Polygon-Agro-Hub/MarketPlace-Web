@@ -47,6 +47,17 @@ const SuccessPopup = ({
         }, 300);
     };
 
+    const handleCancel = () => {
+        setAnimate(false);
+        setTimeout(() => {
+            setShow(false);
+            if (onCancel) {
+                onCancel();
+            } else {
+                onClose?.();
+            }
+        }, 300);
+    };
 
     const handleOk = () => {
         setAnimate(false);
@@ -141,14 +152,8 @@ const SuccessPopup = ({
                     style={{ transitionDelay: '0.6s' }}
                 >
                     <button
-                        onClick={onCancel || handleOk}
-                        className="px-8 py-3 text-gray-500 font-medium text-lg hover:text-gray-700 transition-colors duration-200 cursor-pointer"
-                    >
-                        Ok
-                    </button>
-                    <button
-                        onClick={onCancel || handleClose}
-                        className="px-8 py-3 text-gray-500 font-medium text-lg hover:text-gray-700 transition-colors duration-200 cursor-pointer"
+                        onClick={handleCancel}
+                        className="px-8 py-3 bg-[#F3F4F7] text-[#757E87] font-medium text-lg rounded-lg hover:bg-gray-300 transition-colors duration-200 cursor-pointer"
                     >
                         Cancel
                     </button>

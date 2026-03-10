@@ -1,18 +1,30 @@
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import Link from 'next/link'
-import { faAngleDown, faMagnifyingGlass, faBagShopping, faBars, faUser, faClockRotateLeft, faTimes } from '@fortawesome/free-solid-svg-icons'
-import React, { useEffect, useState, useRef, useCallback } from 'react'
-import { useSelector } from 'react-redux';
-import { RootState } from '@/store';
-import { useDispatch } from 'react-redux';
-import { logout } from '../../store/slices/authSlice';
-import { clearCart } from '@/store/slices/cartSlice';
-import { useRouter, usePathname } from 'next/navigation'
-import { LogOut } from 'lucide-react';
-import { setSearchTerm, clearSearch, resetAndSearch, } from '../../store/slices/searchSlice';
-import { X } from 'lucide-react';
-import Image from 'next/image';
-import glogo from '../../../public/glogo.png';
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import Link from "next/link";
+import {
+  faAngleDown,
+  faMagnifyingGlass,
+  faBagShopping,
+  faBars,
+  faUser,
+  faClockRotateLeft,
+  faTimes,
+} from "@fortawesome/free-solid-svg-icons";
+import React, { useEffect, useState, useRef, useCallback } from "react";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store";
+import { useDispatch } from "react-redux";
+import { logout } from "../../store/slices/authSlice";
+import { clearCart } from "@/store/slices/cartSlice";
+import { useRouter, usePathname } from "next/navigation";
+import { LogOut } from "lucide-react";
+import {
+  setSearchTerm,
+  clearSearch,
+  resetAndSearch,
+} from "../../store/slices/searchSlice";
+import { X } from "lucide-react";
+import Image from "next/image";
+import glogo from "../../../public/glogo.png";
 
 interface HeaderProps {
   onSearch?: (searchTerm: string) => void;
@@ -32,19 +44,28 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
   const lastScrollY = useRef(0);
 
   const user = useSelector((state: RootState) => state.auth.user);
-  const token = useSelector((state: RootState) => state.auth.token) as string | null;
-  const cartState = useSelector((state: RootState) => state.auth.cart) || { count: 0, price: 0 };
+  const token = useSelector((state: RootState) => state.auth.token) as
+    | string
+    | null;
+  const cartState = useSelector((state: RootState) => state.auth.cart) || {
+    count: 0,
+    price: 0,
+  };
 
   const router = useRouter();
   const pathname = usePathname();
   const [showSignupModal, setShowSignupModal] = useState(false);
-  const [selectedBuyerType, setSelectedBuyerType] = useState('');
+  const [selectedBuyerType, setSelectedBuyerType] = useState("");
 
   const dispatch = useDispatch();
   const searchTerm = useSelector((state: RootState) => state.search.searchTerm);
-  const [localSearchInput, setLocalSearchInput] = useState('');
-  const isSearchActive = useSelector((state: RootState) => state.search.isSearchActive);
-  const profileImage = useSelector((state: RootState) => state.auth.user?.image || null);
+  const [localSearchInput, setLocalSearchInput] = useState("");
+  const isSearchActive = useSelector(
+    (state: RootState) => state.search.isSearchActive,
+  );
+  const profileImage = useSelector(
+    (state: RootState) => state.auth.user?.image || null,
+  );
 
   useEffect(() => {
     setLocalSearchInput(searchTerm);
@@ -61,20 +82,23 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
     };
     handleResize();
 
-    window.addEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
 
     const handleClickOutside = (event: MouseEvent) => {
-      if (categoryRef.current && !categoryRef.current.contains(event.target as Node)) {
+      if (
+        categoryRef.current &&
+        !categoryRef.current.contains(event.target as Node)
+      ) {
         setIsDesktopCategoryOpen(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
 
     return () => {
       clearTimeout(timer);
-      window.removeEventListener('resize', handleResize);
-      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener("resize", handleResize);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
@@ -109,71 +133,76 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
-  }
+  };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setLocalSearchInput(e.target.value);
   };
 
-  const handleSearchSubmit = useCallback((e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmedSearch = localSearchInput.trim();
+  const handleSearchSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      const trimmedSearch = localSearchInput.trim();
 
-    if (trimmedSearch) {
-      const isWholesaleUser = user?.buyerType === 'Wholesale';
-      const targetHomePage = isWholesaleUser ? '/wholesale/home' : '/';
+      if (trimmedSearch) {
+        const isWholesaleUser = user?.buyerType === "Wholesale";
+        const targetHomePage = isWholesaleUser ? "/wholesale/home" : "/";
 
-      if (pathname !== targetHomePage) {
-        router.replace(`${targetHomePage}?search=${encodeURIComponent(trimmedSearch)}`);
-        return;
-      } else {
-        dispatch(resetAndSearch(trimmedSearch));
+        if (pathname !== targetHomePage) {
+          router.replace(
+            `${targetHomePage}?search=${encodeURIComponent(trimmedSearch)}`,
+          );
+          return;
+        } else {
+          dispatch(resetAndSearch(trimmedSearch));
+        }
       }
-    }
 
-    if (onSearch) {
-      onSearch(trimmedSearch);
-    }
-  }, [localSearchInput, dispatch, onSearch, router, user?.buyerType, pathname]);
+      if (onSearch) {
+        onSearch(trimmedSearch);
+      }
+    },
+    [localSearchInput, dispatch, onSearch, router, user?.buyerType, pathname],
+  );
 
   const handleSearchKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       handleSearchSubmit(e as any);
     }
   };
 
   const handleResetSearch = () => {
-    setLocalSearchInput('');
+    setLocalSearchInput("");
     dispatch(clearSearch());
   };
 
   const formatPrice = (price: number): string => {
     const fixedPrice = Number(price).toFixed(2);
-    const [integerPart, decimalPart] = fixedPrice.split('.');
-    const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    const [integerPart, decimalPart] = fixedPrice.split(".");
+    const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     return `${formattedInteger}.${decimalPart}`;
   };
 
   const toggleDesktopCategory = (e: { preventDefault: () => void }) => {
     e.preventDefault();
     setIsDesktopCategoryOpen(!isDesktopCategoryOpen);
-  }
+  };
 
   const handleLogout = (e: React.MouseEvent) => {
     e.preventDefault();
     setShowLogoutModal(true);
-  }
+  };
 
   const confirmLogout = () => {
     dispatch(logout());
     dispatch(clearCart());
     setShowLogoutModal(false);
-    router.replace('/signin');
+    router.replace("/signin");
   };
 
   const getHomeUrl = () => {
-    if (!isHydrated) return '/';
-    return user?.buyerType === 'Wholesale' ? '/wholesale/home' : '/';
+    if (!isHydrated) return "/";
+    return user?.buyerType === "Wholesale" ? "/wholesale/home" : "/";
   };
 
   const isAuthenticated = () => {
@@ -193,14 +222,17 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
 
   const confirmSignup = () => {
     setShowSignupModal(false);
-    if (selectedBuyerType === 'Wholesale') {
-      router.replace('/wholesale/home');
+    if (selectedBuyerType === "Wholesale") {
+      router.replace("/wholesale/home");
     } else {
-      router.replace('/');
+      router.replace("/");
     }
   };
 
-  const handleMobileCategoryClick = (e: React.MouseEvent, buyerType: string) => {
+  const handleMobileCategoryClick = (
+    e: React.MouseEvent,
+    buyerType: string,
+  ) => {
     e.preventDefault();
     setSelectedBuyerType(buyerType);
     setShowSignupModal(true);
@@ -211,21 +243,27 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
     e.preventDefault();
 
     if (!isAuthenticated()) {
-      router.replace('/signin');
+      router.replace("/signin");
       return;
     }
 
-    router.push('/cart');
+    router.push("/cart");
   };
 
   const renderAuthButtons = () => {
     if (!isHydrated) {
       return (
         <>
-          <Link href="/signup" className="text-sm bg-gray-700 rounded-full px-4 py-1 hover:bg-gray-600">
+          <Link
+            href="/signup"
+            className="text-sm bg-gray-700 rounded-full px-4 py-1 hover:bg-gray-600"
+          >
             Signup
           </Link>
-          <Link href="/signin" className="text-sm bg-gray-700 rounded-full px-4 py-1 hover:bg-gray-600">
+          <Link
+            href="/signin"
+            className="text-sm bg-gray-700 rounded-full px-4 py-1 hover:bg-gray-600"
+          >
             Login
           </Link>
         </>
@@ -247,10 +285,16 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
 
     return (
       <>
-        <Link href="/signup" className="text-sm bg-gray-700 rounded-full px-4 py-1 hover:bg-gray-600">
+        <Link
+          href="/signup"
+          className="text-sm bg-gray-700 rounded-full px-4 py-1 hover:bg-gray-600"
+        >
           Signup
         </Link>
-        <Link href="/signin" className="text-sm bg-gray-700 rounded-full px-4 py-1 hover:bg-gray-600">
+        <Link
+          href="/signin"
+          className="text-sm bg-gray-700 rounded-full px-4 py-1 hover:bg-gray-600"
+        >
           Login
         </Link>
       </>
@@ -309,8 +353,9 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
 
   return (
     <div
-      className={`fixed top-0 left-0 w-full z-50 transition-transform duration-500 ease-in-out ${showHeader ? "translate-y-0" : "-translate-y-full"
-        }`}
+      className={`fixed top-0 left-0 w-full z-50 transition-transform duration-500 ease-in-out ${
+        showHeader ? "translate-y-0" : "-translate-y-full"
+      }`}
     >
       {!isMobile && (
         <div className="bg-[#2C2C2C] text-gray-300 py-2 px-4 sm:px-7">
@@ -318,16 +363,14 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
             <span className="text-xs sm:text-sm italic text-center sm:text-left">
               Call us for any query or help +94 770 111 999
             </span>
-            <div className="flex gap-2">
-              {renderAuthButtons()}
-            </div>
+            <div className="flex gap-2">{renderAuthButtons()}</div>
           </div>
         </div>
       )}
 
-      <header className='bg-[#FFFFFF] text-white py-5 px-5 shadow-md'>
-        <div className='mx-auto flex justify-between items-center gap-3'>
-          <div className='text-2xl font-bold flex items-center'>
+      <header className="bg-[#FFFFFF] text-white py-5 px-5 shadow-md">
+        <div className="mx-auto flex justify-between items-center gap-3">
+          <div className="text-2xl font-bold flex items-center">
             <Link href="/">
               <Image
                 src={glogo}
@@ -337,29 +380,35 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
             </Link>
           </div>
           {!isMobile && (
-            <nav className='hidden md:flex space-x-6'>
-              <Link href={getHomeUrl()} className='hover:text-[#383d39]  text-[#000000]'>
+            <nav className="hidden md:flex space-x-6">
+              <Link
+                href={getHomeUrl()}
+                className={`hover:text-[#383d39] text-[#000000] ${!isAuthenticated() ? "underline underline-offset-4" : "no-underline"}`}
+              >
                 Home
               </Link>
               {!isAuthenticated() && (
-                <div className='relative cursor-pointer' ref={categoryRef}>
+                <div className="relative cursor-pointer" ref={categoryRef}>
                   <button
-                    className='flex items-center text-[#000000] hover:text-[#000000]  cursor-pointer'
+                    className="flex items-center text-[#000000] hover:text-[#000000]  cursor-pointer"
                     onClick={toggleDesktopCategory}
                   >
-                    Category <span className='ml-1 text-[#000000]'><FontAwesomeIcon icon={faAngleDown} /></span>
+                    Category{" "}
+                    <span className="ml-1 text-[#000000]">
+                      <FontAwesomeIcon icon={faAngleDown} />
+                    </span>
                   </button>
                   {isDesktopCategoryOpen && (
-                    <div className='absolute bg-[#ffffff] text-[#000000] w-48 shadow-lg mt-7 z-10  cursor-pointer'>
+                    <div className="absolute bg-[#ffffff] text-[#000000] w-48 shadow-lg mt-7 z-10  cursor-pointer">
                       <button
-                        onClick={(e) => handleCategoryClick(e, 'Retail')}
-                        className="border-b-1 block px-4 py-2 hover:bg-[#ededed] w-full text-left"
+                        onClick={(e) => handleCategoryClick(e, "Retail")}
+                        className="cursor-pointer border-b-1 block px-4 py-2 hover:bg-[#ededed] w-full text-left"
                       >
                         Retail
                       </button>
                       <button
-                        onClick={(e) => handleCategoryClick(e, 'Wholesale')}
-                        className="block px-4 py-2 hover:bg-[#ededed] w-full text-left"
+                        onClick={(e) => handleCategoryClick(e, "Wholesale")}
+                        className="cursor-pointer block px-4 py-2 hover:bg-[#ededed] w-full text-left"
                       >
                         Wholesale
                       </button>
@@ -388,14 +437,17 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
                       onClick={handleResetSearch}
                       className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
                     >
-                      <X size={16} className='cursor-pointer' />
+                      <X size={16} className="cursor-pointer" />
                     </button>
                   ) : (
                     <button
                       type="submit"
                       className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
                     >
-                      <FontAwesomeIcon icon={faMagnifyingGlass} className='cursor-pointer' />
+                      <FontAwesomeIcon
+                        icon={faMagnifyingGlass}
+                        className="cursor-pointer"
+                      />
                     </button>
                   )}
                 </div>
@@ -405,24 +457,32 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
 
           <div onClick={handleCartClick} className="cursor-pointer">
             <div className="flex items-center space-x-4 bg-[#000000] px-8 py-2 rounded-full h-12">
-              <div className='relative'>
-                <FontAwesomeIcon className='text-2xl' icon={faBagShopping} />
+              <div className="relative">
+                <FontAwesomeIcon className="text-2xl" icon={faBagShopping} />
                 <span className="absolute top-3 -right-2 bg-[#FF8F66] text-white rounded-full w-4 h-4 flex items-center justify-center text-xs">
-                  {isHydrated ? (cartState.count || 0) : 0}
+                  {isHydrated ? cartState.count || 0 : 0}
                 </span>
               </div>
-              <div className="text-sm">Rs. {isHydrated ? formatPrice(cartState.price) : '0.00'}</div>
+              <div className="text-sm">
+                Rs. {isHydrated ? formatPrice(cartState.price) : "0.00"}
+              </div>
             </div>
           </div>
 
           {!isMobile && isAuthenticated() && (
             <Link href="/history/order">
-              <FontAwesomeIcon className='text-4xl text-[#000000]' icon={faClockRotateLeft} />
+              <FontAwesomeIcon
+                className="text-4xl text-[#000000]"
+                icon={faClockRotateLeft}
+              />
             </Link>
           )}
 
           {isAuthenticated() && (
-            <Link className='border-2 border-black w-12 h-12 flex justify-center items-center rounded-full overflow-hidden flex-shrink-0' href="/account">
+            <Link
+              className="border-2 border-black w-12 h-12 flex justify-center items-center rounded-full overflow-hidden flex-shrink-0"
+              href="/account"
+            >
               {profileImage ? (
                 <img
                   src={profileImage}
@@ -430,31 +490,43 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <FontAwesomeIcon className='text-2xl text-black' icon={faUser} />
+                <FontAwesomeIcon
+                  className="text-2xl text-black"
+                  icon={faUser}
+                />
               )}
             </Link>
           )}
 
           {isMobile && (
-            <button onClick={toggleMenu} className='md:hidden'>
-              <FontAwesomeIcon className='text-2xl text-[#000000]' icon={faBars} />
+            <button onClick={toggleMenu} className="md:hidden">
+              <FontAwesomeIcon
+                className="text-2xl text-[#000000]"
+                icon={faBars}
+              />
             </button>
           )}
         </div>
       </header>
 
       {isMobile && isMenuOpen && (
-        <div className='relative flex w-full justify-end mobile-menu-container'>
+        <div className="relative flex w-full justify-end mobile-menu-container">
           <div className="absolute z-50">
             <div className="bg-[#1c1e1f] text-white w-64 flex flex-col mobile-menu-content">
               <div className="flex justify-between items-center border-b border-[#828282] px-6 py-4">
-                <button onClick={toggleMenu} className="text-white hover:text-purple-200 ml-[90%]">
+                <button
+                  onClick={toggleMenu}
+                  className="text-white hover:text-purple-200 ml-[90%]"
+                >
                   <FontAwesomeIcon icon={faTimes} className="text-xl" />
                 </button>
               </div>
               <nav className="flex flex-col w-full">
                 {renderMobileAuthButtons()}
-                <Link href={getHomeUrl()} className="py-4 px-6 border-b border-[#828282] hover:bg-purple-800 text-[#FFFFFF] ">
+                <Link
+                  href={getHomeUrl()}
+                  className="py-4 px-6 border-b border-[#828282] hover:bg-purple-800 text-[#FFFFFF] "
+                >
                   Home
                 </Link>
                 {!isAuthenticated() && (
@@ -464,18 +536,24 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
                       onClick={() => setIsCategoryExpanded(!isCategoryExpanded)}
                     >
                       Category
-                      <span className="text-xs">{isCategoryExpanded ? '▲' : '▼'}</span>
+                      <span className="text-xs">
+                        {isCategoryExpanded ? "▲" : "▼"}
+                      </span>
                     </button>
                     {isCategoryExpanded && (
                       <div className="bg-purple-950">
                         <button
-                          onClick={(e) => handleMobileCategoryClick(e, 'Retail')}
+                          onClick={(e) =>
+                            handleMobileCategoryClick(e, "Retail")
+                          }
                           className="block py-3 px-8 hover:bg-purple-800 w-full text-left"
                         >
                           • Retail
                         </button>
                         <button
-                          onClick={(e) => handleMobileCategoryClick(e, 'Wholesale')}
+                          onClick={(e) =>
+                            handleMobileCategoryClick(e, "Wholesale")
+                          }
                           className="block py-3 px-8 hover:bg-purple-800 w-full text-left"
                         >
                           • Wholesale
@@ -484,11 +562,17 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
                     )}
                   </div>
                 )}
-                <Link href="/promotions" className="py-4 px-6 border-b border-[#828282] hover:bg-purple-800 text-[#FFFFFF]">
+                <Link
+                  href="/promotions"
+                  className="py-4 px-6 border-b border-[#828282] hover:bg-purple-800 text-[#FFFFFF]"
+                >
                   Promotions
                 </Link>
                 {isAuthenticated() && (
-                  <Link href="/history/order" className="py-4 px-6 border-b border-[#828282] hover:bg-purple-800">
+                  <Link
+                    href="/history/order"
+                    className="py-4 px-6 border-b border-[#828282] hover:bg-purple-800"
+                  >
                     Order History
                   </Link>
                 )}
@@ -545,7 +629,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default Header
+export default Header;

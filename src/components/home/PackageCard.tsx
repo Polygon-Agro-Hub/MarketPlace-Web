@@ -175,7 +175,7 @@ const PackageCard: React.FC<PackageProps> = ({
               {packageItem.displayName}
             </p>
             <p className="text-[#3E206D] text-xs sm:text-lg font-bold ">
-              Rs.{formatPrice(packageItem.subTotal)}
+              Rs. {formatPrice(packageItem.subTotal)}
             </p>
           </div>
         </div>
@@ -200,7 +200,7 @@ const PackageCard: React.FC<PackageProps> = ({
 
               <div className="flex items-end justify-end mr-4">
                 <h3 className="text-white font-bold text-xl text-center">
-                  Rs.{formatPrice(packageItem.subTotal)}{' '}
+                  Rs. {formatPrice(packageItem.subTotal)}{' '}
                   <span className="text-sm font-normal">/ pack</span>
                 </h3>
               </div>

@@ -125,12 +125,22 @@ const ItemCard = ({
   const getDisplayQuantity = () => {
     if (unit === "kg") {
       const kgValue = quantity / 1000;
+      // Use more decimal places for very small kg values
+      if (kgValue < 0.001) {
+        return kgValue.toFixed(4).replace(/\.?0+$/, "");
+      }
       return kgValue.toFixed(3).replace(/\.?0+$/, "");
     }
+    
     if (unit === "g") {
+      if (quantity < 1) {
+        return quantity.toFixed(3).replace(/\.?0+$/, "");
+      } else if (quantity % 1 !== 0) {
+        return quantity.toFixed(3).replace(/\.?0+$/, "");
+      }
       return Math.round(quantity).toString();
     }
-    return Math.round(quantity).toString();
+    return quantity.toFixed(3).replace(/\.?0+$/, "");
   };
 
   const incrementQuantity = () => {
@@ -422,15 +432,15 @@ const ItemCard = ({
           {originalPrice && originalPrice > currentPrice ? (
             <>
               <span className="text-gray-500 text-xs line-through">
-                Rs.{formatPrice(originalPrice)}
+                Rs. {formatPrice(originalPrice)}
               </span>
               <span className="text-purple-900 text-xs md:text-sm font-semibold">
-                Rs.{formatPrice(currentPrice)}
+                Rs. {formatPrice(currentPrice)}
               </span>
             </>
           ) : (
             <span className="text-purple-900 text-xs md:text-sm font-semibold">
-              Rs.{formatPrice(currentPrice)}
+              Rs. {formatPrice(currentPrice)}
             </span>
           )}
         </div>
@@ -533,7 +543,7 @@ const ItemCard = ({
                       showQuantitySelector &&
                       buyerType !== "Wholesale"
                     ? "bg-purple-900 text-white hover:bg-purple-800 cursor-pointer"
-                    : "bg-white border shadow text-gray-400 hover:bg-[#3E206D] hover:text-white cursor-pointer"
+                    : "bg-white border border-[#D7D7D7] text-gray-400 hover:bg-[#3E206D] hover:text-white cursor-pointer shadow-[0px_1px_0px_0px_#D7D7D7]"
               } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               {!showQuantitySelector && !isInCart && (

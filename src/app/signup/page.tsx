@@ -169,8 +169,6 @@ export default function SignupForm() {
     { code: "BD", dialCode: "+880", name: "Bangladesh" },
     { code: "IN", dialCode: "+91", name: "India" },
     { code: "NL", dialCode: "+31", name: "Netherlands" },
-    { code: "GB", dialCode: "+44", name: "United Kingdom" },
-    { code: "US", dialCode: "+1", name: "United States" },
   ];
 
   const getFlagUrl = (countryCode: string): string => {
@@ -241,11 +239,63 @@ export default function SignupForm() {
     if (name === "password") {
       checkPasswordLive(processedValue);
     }
+
+    if (name === "email") {
+      checkEmailLive(processedValue);
+    }
   };
 
   const checkPasswordLive = (password: string) => {
     const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{6,}$/;
     setIsPasswordValid(passwordRegex.test(password));
+  };
+
+  const checkEmailLive = (email: string) => {
+    if (!email) {
+      return;
+    }
+
+    const trimmedEmail = email.trim();
+    let errorMessage = "";
+
+    // Check for specific invalid patterns with descriptive messages
+    if (trimmedEmail.includes('..')) {
+      errorMessage = "Email cannot contain consecutive dots (..)";
+    } else if (trimmedEmail.startsWith('.')) {
+      errorMessage = "Email cannot start with a dot (.)";
+    } else if (trimmedEmail.includes('.@')) {
+      errorMessage = "Email cannot have a dot (.) immediately before @";
+    } else if (trimmedEmail.includes('@.')) {
+      errorMessage = "Email cannot have a dot (.) immediately after @";
+    } else if (trimmedEmail.endsWith('.')) {
+      errorMessage = "Email cannot end with a dot (.)";
+    } else if (/[!#$%^&*()+=\[\]{};':"\\|,<>\/?]/.test(trimmedEmail.split('@')[0])) {
+      errorMessage = "Email contains invalid special characters";
+    } else if (!trimmedEmail.includes('@')) {
+      errorMessage = "Email must contain @ symbol";
+    } else if (trimmedEmail.split('@').length > 2) {
+      errorMessage = "Email can only contain one @ symbol";
+    } else if (!trimmedEmail.includes('.', trimmedEmail.indexOf('@'))) {
+      errorMessage = "Email domain must contain a dot (.)";
+    } else {
+      const emailRegex = /^[a-zA-Z0-9]+([._-][a-zA-Z0-9]+)*@[a-zA-Z0-9]+([.-][a-zA-Z0-9]+)*\.[a-zA-Z]{2,}$/;
+      if (!emailRegex.test(trimmedEmail)) {
+        errorMessage = "Please enter a valid email (e.g., example@domain.com)";
+      }
+    }
+
+    if (errorMessage) {
+      setErrors((prev) => ({
+        ...prev,
+        email: errorMessage
+      }));
+    } else {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors.email;
+        return newErrors;
+      });
+    }
   };
 
   const validateForm = (): boolean => {
@@ -277,9 +327,39 @@ export default function SignupForm() {
 
     if (!formData.email) {
       newErrors.email = "Email is required";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email =
-        "Please enter a valid email in the format: example@domain.com";
+    } else {
+      const email = formData.email.trim();
+      let emailError = "";
+
+      // Check for specific invalid patterns with descriptive messages
+      if (email.includes('..')) {
+        emailError = "Email cannot contain consecutive dots (..)";
+      } else if (email.startsWith('.')) {
+        emailError = "Email cannot start with a dot (.)";
+      } else if (email.includes('.@')) {
+        emailError = "Email cannot have a dot (.) immediately before @";
+      } else if (email.includes('@.')) {
+        emailError = "Email cannot have a dot (.) immediately after @";
+      } else if (email.endsWith('.')) {
+        emailError = "Email cannot end with a dot (.)";
+      } else if (/[!#$%^&*()+=\[\]{};':"\\|,<>\/?]/.test(email.split('@')[0])) {
+        emailError = "Email contains invalid special characters";
+      } else if (!email.includes('@')) {
+        emailError = "Email must contain @ symbol";
+      } else if (email.split('@').length > 2) {
+        emailError = "Email can only contain one @ symbol";
+      } else if (!email.includes('.', email.indexOf('@'))) {
+        emailError = "Email domain must contain a dot (.)";
+      } else {
+        const emailRegex = /^[a-zA-Z0-9]+([._-][a-zA-Z0-9]+)*@[a-zA-Z0-9]+([.-][a-zA-Z0-9]+)*\.[a-zA-Z]{2,}$/;
+        if (!emailRegex.test(email)) {
+          emailError = "Please enter a valid email (e.g., example@domain.com)";
+        }
+      }
+
+      if (emailError) {
+        newErrors.email = emailError;
+      }
     }
 
     if (!formData.password) {
@@ -377,7 +457,7 @@ export default function SignupForm() {
     }
   };
 
-  const completeSignup = async () => {
+  const completeSignup = async (skipSuccessPopup: boolean = false) => {
     setLoading(true);
     try {
       const response = await signup({
@@ -385,10 +465,14 @@ export default function SignupForm() {
         buyerType: isHome ? "Retail" : "Wholesale",
       });
 
-      setShowSuccessPopup(true);
-      setTimeout(() => {
+      if (skipSuccessPopup) {
         router.push("/signin");
-      }, 2000);
+      } else {
+        setShowSuccessPopup(true);
+        setTimeout(() => {
+          router.push("/signin");
+        }, 2000);
+      }
     } catch (err: any) {
       const errorMessage =
         err.message || "Registration failed. Please try again.";
@@ -399,12 +483,24 @@ export default function SignupForm() {
     }
   };
 
-  const handleOTPVerificationSuccess = () => {
-    setShowOTPVerification(false);
-    // Clear any existing success messages before completing signup
-    setSuccess(null);
-    setShowSuccessPopup(false);
-    completeSignup();
+  const handleOTPVerificationSuccess = async () => {
+    setLoading(true);
+    
+    try {
+      await signup({
+        ...formData,
+        buyerType: isHome ? "Retail" : "Wholesale",
+      });
+      setLoading(false);
+    } catch (err: any) {
+      setLoading(false);
+      setShowOTPVerification(false);
+      const errorMessage =
+        err.message || "Registration failed. Please try again.";
+      setErrorMessage(errorMessage);
+      setShowErrorPopup(true);
+      throw err; 
+    }
   };
 
   const handleOTPVerificationFailure = () => {
@@ -742,7 +838,7 @@ export default function SignupForm() {
                       />
                       <button
                         type="button"
-                        className="absolute top-1/2 right-3 transform -translate-y-1/2"
+                        className="absolute top-1/2 right-3 transform -translate-y-1/2 cursor-pointer"
                         onClick={() => setShowPassword(!showPassword)}
                       >
                         {showPassword ? (
@@ -785,7 +881,7 @@ export default function SignupForm() {
                       />
                       <button
                         type="button"
-                        className="absolute top-1/2 right-3 transform -translate-y-1/2"
+                        className="absolute top-1/2 right-3 transform -translate-y-1/2 cursor-pointer"
                         onClick={() =>
                           setShowConfirmPassword(!showConfirmPassword)
                         }

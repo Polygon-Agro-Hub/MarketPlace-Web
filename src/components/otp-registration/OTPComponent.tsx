@@ -1,7 +1,12 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect, useRef } from 'react';
-import { verifyOTP, sendOTPInSignup } from '@/services/auth-service';
+import React, { useState, useEffect, useRef } from "react";
+import { verifyOTP, sendOTPInSignup } from "@/services/auth-service";
+import Image from "next/image";
+import glogo from "../../../public/glogo.png";
+import checkImg from "../../../public/images/checkImg.png";
+import SuccessPopup from "@/components/toast-messages/success-message";
+import { useRouter } from "next/navigation";
 
 interface OTPComponentProps {
   phoneNumber: string;
@@ -18,9 +23,10 @@ export default function OTPComponent({
   onVerificationSuccess,
   onVerificationFailure,
   onResendOTP,
-  onOTPExpired // Add this
+  onOTPExpired, // Add this
 }: OTPComponentProps) {
-  const [otp, setOtp] = useState(['', '', '', '', '']);
+  const router = useRouter();
+  const [otp, setOtp] = useState(["", "", "", "", ""]);
   const [timer, setTimer] = useState(60);
   const [disabledResend, setDisabledResend] = useState(true);
   const [isVerified, setIsVerified] = useState(false);
@@ -28,7 +34,8 @@ export default function OTPComponent({
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isError, setIsError] = useState(false);
-  const [modalMessage, setModalMessage] = useState('');
+  const [modalMessage, setModalMessage] = useState("");
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
 
   // New states for button protection and OTP expiration
   const [isOtpExpired, setIsOtpExpired] = useState(false);
@@ -36,11 +43,11 @@ export default function OTPComponent({
   const [isResending, setIsResending] = useState(false);
 
   // Helper function to check if OTP is complete
-  const isOtpComplete = otp.every(digit => digit !== '');
+  const isOtpComplete = otp.every((digit) => digit !== "");
 
   useEffect(() => {
     if (timer > 0) {
-      const interval = setInterval(() => setTimer(prev => prev - 1), 1000);
+      const interval = setInterval(() => setTimer((prev) => prev - 1), 1000);
       return () => clearInterval(interval);
     } else {
       // When timer expires, enable resend and mark OTP as expired
@@ -66,25 +73,28 @@ export default function OTPComponent({
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, idx: number) => {
-    if (e.key === 'Backspace') {
+  const handleKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    idx: number,
+  ) => {
+    if (e.key === "Backspace") {
       e.preventDefault();
 
       const newOtp = [...otp];
 
       // If current field has a value, just clear it
-      if (newOtp[idx] !== '') {
-        newOtp[idx] = '';
+      if (newOtp[idx] !== "") {
+        newOtp[idx] = "";
         setOtp(newOtp);
         return;
       }
 
       // If current field is empty, shift all values from right to left
-      if (newOtp[idx] === '') {
+      if (newOtp[idx] === "") {
         // Find the last non-empty field from current position onwards
         let lastFilledIndex = -1;
         for (let i = idx; i < newOtp.length; i++) {
-          if (newOtp[i] !== '') {
+          if (newOtp[i] !== "") {
             lastFilledIndex = i;
           }
         }
@@ -95,26 +105,26 @@ export default function OTPComponent({
           for (let i = idx; i < lastFilledIndex; i++) {
             newOtp[i] = newOtp[i + 1];
           }
-          newOtp[lastFilledIndex] = '';
+          newOtp[lastFilledIndex] = "";
           setOtp(newOtp);
         } else if (idx > 0) {
           // If no values to the right, move to previous field and clear it
-          newOtp[idx - 1] = '';
+          newOtp[idx - 1] = "";
           setOtp(newOtp);
           inputsRef.current[idx - 1]?.focus();
         }
       }
-    } else if (e.key === 'Delete') {
+    } else if (e.key === "Delete") {
       e.preventDefault();
 
       const newOtp = [...otp];
 
       // Clear current field and shift remaining values left
-      if (newOtp[idx] !== '') {
+      if (newOtp[idx] !== "") {
         // Find the last non-empty field from current position onwards
         let lastFilledIndex = -1;
         for (let i = idx; i < newOtp.length; i++) {
-          if (newOtp[i] !== '') {
+          if (newOtp[i] !== "") {
             lastFilledIndex = i;
           }
         }
@@ -124,7 +134,7 @@ export default function OTPComponent({
           newOtp[i] = newOtp[i + 1];
         }
         if (lastFilledIndex >= idx) {
-          newOtp[lastFilledIndex] = '';
+          newOtp[lastFilledIndex] = "";
         }
         setOtp(newOtp);
       }
@@ -133,8 +143,8 @@ export default function OTPComponent({
 
   const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     e.preventDefault();
-    const pastedData = e.clipboardData.getData('text');
-    const digits = pastedData.replace(/\D/g, '').slice(0, 5);
+    const pastedData = e.clipboardData.getData("text");
+    const digits = pastedData.replace(/\D/g, "").slice(0, 5);
 
     if (digits.length > 0) {
       const newOtp = [...otp];
@@ -143,7 +153,7 @@ export default function OTPComponent({
       }
       // Clear remaining fields if pasted data is shorter
       for (let i = digits.length; i < 5; i++) {
-        newOtp[i] = '';
+        newOtp[i] = "";
       }
       setOtp(newOtp);
 
@@ -157,10 +167,10 @@ export default function OTPComponent({
     // Prevent duplicate clicks
     if (isVerifying) return;
 
-    const code = otp.join('');
+    const code = otp.join("");
     if (code.length !== 5) {
       setIsError(true);
-      setModalMessage('Please enter all 5 digits.');
+      setModalMessage("Please enter all 5 digits.");
       setIsModalOpen(true);
       return;
     }
@@ -168,7 +178,7 @@ export default function OTPComponent({
     // Check if OTP has expired or referenceId is empty
     if (isOtpExpired || !referenceId) {
       setIsError(true);
-      setModalMessage('OTP has expired. Please request a new one.');
+      setModalMessage("OTP has expired. Please request a new one.");
       setIsModalOpen(true);
       return;
     }
@@ -179,40 +189,51 @@ export default function OTPComponent({
       const response = await verifyOTP(code, referenceId);
       const { statusCode } = response;
 
-      if (statusCode === '1000') {
+      if (statusCode === "1000") {
         setIsVerified(true);
         setIsError(false);
-        setModalMessage('OTP Verified Successfully!');
-        setIsModalOpen(true);
-        setTimeout(() => {
-          setIsModalOpen(false);
-          onVerificationSuccess();
-        }, 2000);
-      } else if (statusCode === '1001') {
+        
+        // Complete signup first
+        try {
+          await onVerificationSuccess();
+          
+          // After successful signup, show success popup and redirect to login
+          setShowSuccessPopup(true);
+          setTimeout(() => {
+            setShowSuccessPopup(false);
+            router.push("/signin");
+          }, 3000);
+        } catch (error) {
+          // If signup fails, show error
+          setIsError(true);
+          setModalMessage("Account creation failed. Please try again.");
+          setIsModalOpen(true);
+        }
+      } else if (statusCode === "1001") {
         setIsError(true);
-        setModalMessage('Invalid OTP. Please try again.');
+        setModalMessage("Invalid OTP. Please try again.");
         setIsModalOpen(true);
-      } else if (statusCode === '1002' || statusCode === '1003') {
+      } else if (statusCode === "1002" || statusCode === "1003") {
         // Handle expired OTP from server response
         setIsOtpExpired(true);
         setIsError(true);
-        setModalMessage('OTP has expired. Please request a new one.');
+        setModalMessage("OTP has expired. Please request a new one.");
         setIsModalOpen(true);
       } else {
         setIsError(true);
-        setModalMessage('Something went wrong. Please try again.');
+        setModalMessage("Something went wrong. Please try again.");
         setIsModalOpen(true);
       }
     } catch (error: any) {
       // Check if error indicates expired OTP
-      if (error.message && error.message.toLowerCase().includes('expired')) {
+      if (error.message && error.message.toLowerCase().includes("expired")) {
         setIsOtpExpired(true);
         setIsError(true);
-        setModalMessage('OTP has expired. Please request a new one.');
+        setModalMessage("OTP has expired. Please request a new one.");
         setIsModalOpen(true);
       } else {
         setIsError(true);
-        setModalMessage('Failed to verify OTP. Try again later.');
+        setModalMessage("Failed to verify OTP. Try again later.");
         setIsModalOpen(true);
       }
     } finally {
@@ -238,36 +259,43 @@ export default function OTPComponent({
         setTimer(60);
         setDisabledResend(true);
         setIsOtpExpired(false); // Reset expiration status
-        setOtp(['', '', '', '', '']); // Clear current OTP inputs
+        setOtp(["", "", "", "", ""]); // Clear current OTP inputs
 
         // Reset modal states properly before showing success message
         setIsVerified(false); // Reset verification status
         setIsError(false);
-        setModalMessage('New OTP has been sent to your mobile number.');
+        setModalMessage("New OTP has been sent to your mobile number.");
         setIsModalOpen(true);
 
         // Focus on first input field
         inputsRef.current[0]?.focus();
       } else {
-        throw new Error('Failed to get reference ID for new OTP');
+        throw new Error("Failed to get reference ID for new OTP");
       }
     } catch (error: any) {
       setIsError(true);
-      setModalMessage(error.message || 'Failed to resend OTP');
+      setModalMessage(error.message || "Failed to resend OTP");
       setIsModalOpen(true);
     } finally {
       setIsResending(false); // Re-enable button
     }
   };
 
-  const timerText = `${Math.floor(timer / 60)}:${String(timer % 60).padStart(2, '0')}`;
+  const timerText = `${Math.floor(timer / 60)}:${String(timer % 60).padStart(2, "0")}`;
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#F8F9FB] px-4">
       <div className="bg-white rounded-[10px] shadow-xl flex flex-col items-center p-10 w-full max-w-md">
-        <h1 className="text-[36px] sm:text-[40px] font-[700] text-center text-[#3E206D] font-inter mb-2">
-          MyFarm
-        </h1>
+        <div className="flex justify-center mb-4">
+          <Image
+            src={glogo}
+            alt="MyFarm Logo"
+            width={150}
+            height={60}
+            className="object-contain"
+            priority
+          />
+        </div>
         <h2 className="text-lg sm:text-xl font-semibold text-center mb-1 text-[#001535]">
           Please Verify your OTP
         </h2>
@@ -284,12 +312,14 @@ export default function OTPComponent({
           {otp.map((digit, idx) => (
             <input
               key={idx}
-              ref={el => { inputsRef.current[idx] = el; }}
+              ref={(el) => {
+                inputsRef.current[idx] = el;
+              }}
               type="text"
               maxLength={1}
               value={digit}
-              onChange={e => handleChange(e.target.value, idx)}
-              onKeyDown={e => handleKeyDown(e, idx)}
+              onChange={(e) => handleChange(e.target.value, idx)}
+              onKeyDown={(e) => handleKeyDown(e, idx)}
               onPaste={handlePaste}
               placeholder="×"
               className="w-10 sm:w-11 h-10 sm:h-11 text-center border border-gray-300 rounded-md text-xl sm:text-2xl focus:outline-none focus:border-[#3E206D] placeholder:text-[#DCDCDC]"
@@ -304,33 +334,37 @@ export default function OTPComponent({
         <button
           onClick={handleResendOTP}
           disabled={disabledResend || isResending}
-          className={`text-xs sm:text-sm mb-6 ${disabledResend || isResending
-            ? 'text-gray-400 cursor-not-allowed'
-            : 'text-[#3E206D] font-semibold hover:underline cursor-pointer'
-            }`}
+          className={`text-xs sm:text-sm mb-6 ${
+            disabledResend || isResending
+              ? "text-gray-400 cursor-not-allowed"
+              : "text-[#3E206D] font-semibold hover:underline cursor-pointer"
+          }`}
         >
           {isResending
-            ? 'Sending...'
+            ? "Sending..."
             : disabledResend
               ? `Resend in ${timerText}`
-              : 'Resend OTP'
-          }
+              : "Resend OTP"}
         </button>
-
 
         <button
           onClick={handleVerify}
           disabled={isVerifying || isOtpExpired || !isOtpComplete || isVerified}
-          className={`font-semibold w-full max-w-[307px] h-[45px] rounded-[10px] mt-1 transition-colors ${isVerifying || isOtpExpired || !isOtpComplete || isVerified
-            ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
-            : 'bg-[#3E206D] text-white hover:bg-[#2D1A4F] cursor-pointer'
-            }`}
+          className={`font-semibold w-full max-w-[307px] h-[45px] rounded-[10px] mt-1 transition-colors ${
+            isVerifying || isOtpExpired || !isOtpComplete || isVerified
+              ? "bg-gray-400 text-gray-200 cursor-not-allowed"
+              : "bg-[#3E206D] text-white hover:bg-[#2D1A4F] cursor-pointer"
+          }`}
         >
-          {isVerifying ? 'Verifying...' :
-            isVerified ? 'Verified ✓' :
-              isOtpExpired ? 'OTP Expired' :
-                !isOtpComplete ? 'Enter 5 digits' :
-                  'Verify'}
+          {isVerifying
+            ? "Verifying..."
+            : isVerified
+              ? "Verified ✓"
+              : isOtpExpired
+                ? "OTP Expired"
+                : !isOtpComplete
+                  ? "Enter 5 digits"
+                  : "Verify"}
         </button>
 
         <button
@@ -343,7 +377,7 @@ export default function OTPComponent({
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white p-8 rounded-xl text-center w-[90%] max-w-md shadow-xl">
             {isError ? (
               /* Error Icon with Animation */
@@ -353,8 +387,8 @@ export default function OTPComponent({
                   <div
                     className="absolute inset-0 rounded-full bg-red-500 transition-all duration-700 ease-out scale-100 opacity-100"
                     style={{
-                      transformOrigin: 'center',
-                      animationDelay: '0.2s'
+                      transformOrigin: "center",
+                      animationDelay: "0.2s",
                     }}
                   />
 
@@ -373,9 +407,9 @@ export default function OTPComponent({
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         style={{
-                          strokeDasharray: '24',
-                          strokeDashoffset: '0',
-                          transitionDelay: '0.6s'
+                          strokeDasharray: "24",
+                          strokeDashoffset: "0",
+                          transitionDelay: "0.6s",
                         }}
                       />
                     </svg>
@@ -385,7 +419,7 @@ export default function OTPComponent({
                   <div
                     className="absolute inset-0 rounded-full bg-red-500 scale-125 opacity-0 transition-all duration-1000"
                     style={{
-                      animationDelay: '0.8s'
+                      animationDelay: "0.8s",
                     }}
                   />
                 </div>
@@ -398,39 +432,30 @@ export default function OTPComponent({
                   <div
                     className="absolute inset-0 rounded-full border-4 border-green-500 scale-100 opacity-100 transition-all duration-700 ease-out"
                     style={{
-                      transformOrigin: 'center',
-                      animationDelay: '0.2s'
+                      transformOrigin: "center",
+                      animationDelay: "0.2s",
                     }}
                   />
 
                   {/* Animated Checkmark */}
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <svg
-                      className="w-14 h-14 text-green-500"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                    >
-                      <path
-                        className="opacity-100 transition-all duration-700 ease-out"
-                        d="M20 6L9 17L4 12"
-                        stroke="currentColor"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        style={{
-                          strokeDasharray: '20',
-                          strokeDashoffset: '0',
-                          transitionDelay: '0.6s'
-                        }}
-                      />
-                    </svg>
+                    <Image
+                      src={checkImg}
+                      alt="Success"
+                      width={112}
+                      height={112}
+                      className="w-28 h-28 object-contain opacity-100 transition-all duration-700 ease-out"
+                      style={{
+                        transitionDelay: "0.6s",
+                      }}
+                    />
                   </div>
 
                   {/* Pulse Animation */}
                   <div
                     className="absolute inset-0 rounded-full bg-green-500 scale-125 opacity-0 transition-all duration-1000"
                     style={{
-                      animationDelay: '0.8s'
+                      animationDelay: "0.8s",
                     }}
                   />
                 </div>
@@ -438,7 +463,7 @@ export default function OTPComponent({
             )}
 
             <h2 className="text-xl font-bold mb-2 text-gray-900">
-              {isError ? 'Error' : 'OTP Verified'}
+              {isError ? "Error" : "OTP Verified"}
             </h2>
             <p className="text-gray-500 mb-6">{modalMessage}</p>
             <button
@@ -450,6 +475,18 @@ export default function OTPComponent({
           </div>
         </div>
       )}
+
+      {/* Success Popup */}
+      <SuccessPopup
+        isVisible={showSuccessPopup}
+        onClose={() => {
+          setShowSuccessPopup(false);
+          router.push("/signin");
+        }}
+        title="OTP Verified Successfully!"
+        description="Your account has been created."
+        duration={3000}
+      />
     </div>
   );
 }

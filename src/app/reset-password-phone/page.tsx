@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { resetPasswordByPhone } from '@/services/auth-service';
 import Image from 'next/image';
 import wrongImg from '../../../public/images/wrong.png'
-import resetImg from '../../../public/images/reset.png'
+import resetImg from '../../../public/images/resetPasswordImg.png'
 import CorrectImg from '../../../public/images/correct.png'
 import { Eye, EyeOff } from 'lucide-react';
 
@@ -39,7 +39,15 @@ const Page = () => {
       return;
     }
 
-    // Check if fields are empty
+    // Check if both fields are empty first
+    if (!newPassword.trim() && !confirmPassword.trim()) {
+      setIsError(true);
+      setModalMessage('All fields are required');
+      setIsModalOpen(true);
+      return;
+    }
+
+    // Check if individual fields are empty
     if (!newPassword.trim()) {
       setIsError(true);
       setModalMessage('Please enter a new password');
@@ -49,7 +57,7 @@ const Page = () => {
 
     if (!confirmPassword.trim()) {
       setIsError(true);
-      setModalMessage('Please re-enter your password.');
+      setModalMessage('Please re-enter your password');
       setIsModalOpen(true);
       return;
     }
@@ -86,7 +94,17 @@ const Page = () => {
       }, 3000);
     } catch (err: any) {
       setIsError(true);
-      setModalMessage(err.message || 'Failed to reset password');
+      // Check for specific error messages from backend
+      const errorMessage = err.message || 'Failed to reset password';
+      
+      // Handle "same password" error specifically
+      if (errorMessage.toLowerCase().includes('same') || 
+          errorMessage.toLowerCase().includes('current password') ||
+          errorMessage.toLowerCase().includes('old password')) {
+        setModalMessage('New password cannot be the same as your current password. Please choose a different password.');
+      } else {
+        setModalMessage(errorMessage);
+      }
       setIsModalOpen(true);
     }
   };
@@ -120,12 +138,12 @@ const Page = () => {
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
-                required
+                title=""
               />
               <button
                 type="button"
                 onClick={() => setShowNewPassword(!showNewPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                className="absolute cursor-pointer right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
               >
                 {showNewPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
@@ -138,12 +156,12 @@ const Page = () => {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
-                required
+                title=""
               />
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                className="absolute cursor-pointer right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
               >
                 {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
@@ -165,7 +183,7 @@ const Page = () => {
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white p-6 sm:p-8 rounded-2xl text-center w-full max-w-md shadow-2xl mx-4">
             {isError ? (
               /* Error Icon with Animation */

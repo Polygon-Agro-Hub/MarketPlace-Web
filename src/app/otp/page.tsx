@@ -166,11 +166,8 @@ export default function Page() {
 
     const code = otp.join('');
 
-    // Check if OTP is complete
+    // Check if OTP is complete (button should be disabled, but double-check)
     if (code.length !== 5) {
-      setIsError(true);
-      setModalMessage('Please enter all 5 digits.');
-      setIsModalOpen(true);
       return;
     }
 
@@ -341,8 +338,8 @@ export default function Page() {
 
         <button
           onClick={handleVerify}
-          disabled={isVerifying || isVerified}
-          className={`font-semibold w-full max-w-[307px] h-[45px] rounded-[10px] mt-1 transition-colors ${isVerifying || isVerified
+          disabled={!isOtpComplete || isVerifying || isVerified}
+          className={`font-semibold w-full max-w-[307px] h-[45px] rounded-[10px] mt-1 transition-colors ${!isOtpComplete || isVerifying || isVerified
             ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
             : 'bg-[#3E206D] text-white hover:bg-[#2D1A4F] cursor-pointer'
             }`}

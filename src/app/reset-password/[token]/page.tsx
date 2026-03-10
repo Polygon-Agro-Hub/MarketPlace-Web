@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useRouter, useParams } from 'next/navigation';
 import { resetPassword, validateResetToken } from '@/services/auth-service';
 import wrongImg from '../../../../public/images/wrong.png'
-import resetImg from '../../../../public/images/reset.png'
+import resetImg from '../../../../public/images/resetPasswordImg.png'
 import CorrectImg from '../../../../public/images/correct.png'
 import Image from 'next/image';
 import { Eye, EyeOff } from 'lucide-react';
@@ -56,6 +56,14 @@ const Page = () => {
       return;
     }
 
+    // Check if fields are empty first
+    if (!newPassword.trim() || !confirmPassword.trim()) {
+      setIsError(true);
+      setModalMessage('All fields are required');
+      setIsModalOpen(true);
+      return;
+    }
+
     if (newPassword !== confirmPassword) {
       setIsError(true);
       setModalMessage('Passwords do not match');
@@ -82,7 +90,17 @@ const Page = () => {
       }, 3000);
     } catch (err: any) {
       setIsError(true);
-      setModalMessage(err.message || 'Failed to reset password');
+      // Check for specific error messages from backend
+      const errorMessage = err.message || 'Failed to reset password';
+      
+      // Handle "same password" error specifically
+      if (errorMessage.toLowerCase().includes('same') || 
+          errorMessage.toLowerCase().includes('current password') ||
+          errorMessage.toLowerCase().includes('old password')) {
+        setModalMessage('New password cannot be the same as your current password. Please choose a different password.');
+      } else {
+        setModalMessage(errorMessage);
+      }
       setIsModalOpen(true);
     }
   };
@@ -98,16 +116,20 @@ const Page = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black/40">
         <div className="bg-white p-8 rounded-xl text-center w-[90%] max-w-md shadow-xl">
-          <img
-            src={wrongImg as any}
-            alt="Error"
-            className="w-20 h-20 mx-auto mb-4"
-          />
+          <div className="flex justify-center mb-4">
+            <div className="w-20 h-20">
+              <Image
+                src={wrongImg}
+                alt="Error"
+                className="w-full h-full object-contain"
+              />
+            </div>
+          </div>
           <h2 className="text-xl font-bold mb-2">Error</h2>
           <p className="text-gray-700 mb-4">{modalMessage}</p>
           <button
             onClick={() => router.push('/forget-password')}
-            className="px-6 py-2 bg-gray-200 rounded hover:bg-gray-300 transition"
+            className="px-6 py-2 bg-gray-200 rounded hover:bg-gray-300 transition cursor-pointer"
           >
             Request New Reset Link
           </button>
@@ -146,7 +168,7 @@ const Page = () => {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
-                  required
+                  title=""
                 />
                 <button
                   type="button"
@@ -165,7 +187,7 @@ const Page = () => {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
-                  required
+                  title=""
                 />
                 <button
                   type="button"
@@ -196,50 +218,16 @@ const Page = () => {
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white p-6 sm:p-8 rounded-2xl text-center w-full max-w-md shadow-2xl mx-4">
             {isError ? (
-              /* Error Icon with Animation */
-              <div className="flex justify-center mb-4">
-                <div className="relative w-20 h-20">
-                  {/* Animated Circle Background */}
-                  <div
-                    className="absolute inset-0 rounded-full bg-red-500 transition-all duration-700 ease-out scale-100 opacity-100"
-                    style={{
-                      transformOrigin: 'center',
-                      animationDelay: '0.2s'
-                    }}
-                  />
-
-                  {/* Animated X Icon */}
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <svg
-                      className="w-16 h-16 text-white"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                    >
-                      <path
-                        className="opacity-100 transition-all duration-700 ease-out"
-                        d="M18 6L6 18M6 6L18 18"
-                        stroke="currentColor"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        style={{
-                          strokeDasharray: '24',
-                          strokeDashoffset: '0',
-                          transitionDelay: '0.6s'
-                        }}
-                      />
-                    </svg>
-                  </div>
-
-                  {/* Pulse Animation */}
-                  <div
-                    className="absolute inset-0 rounded-full bg-red-500 scale-125 opacity-0 transition-all duration-1000"
-                    style={{
-                      animationDelay: '0.8s'
-                    }}
+              /* Error Icon - Using Image */
+              <div className="flex justify-center mb-6">
+                <div className="w-24 h-24 sm:w-28 sm:h-28">
+                  <Image 
+                    src={wrongImg} 
+                    alt="Error" 
+                    className="w-full h-full object-contain"
                   />
                 </div>
               </div>
@@ -247,8 +235,8 @@ const Page = () => {
               /* Success Icon - Using Image */
               <div className="flex justify-center mb-6">
                 <div className="w-24 h-24 sm:w-28 sm:h-28">
-                  <img 
-                    src="/images/correct.png" 
+                  <Image 
+                    src={CorrectImg} 
                     alt="Success" 
                     className="w-full h-full object-contain"
                   />

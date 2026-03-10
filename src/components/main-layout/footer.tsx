@@ -116,13 +116,13 @@ function DesktopFooter() {
             <a href="#" className="text-blue-400 hover:text-blue-300">
               <Image src={Linkedin} alt="LinkedIn" className='w-auto h-8 object-cover' />
             </a>
-            <a href="#" className="text-blue-400 hover:text-blue-300">
+            <a href="https://www.facebook.com/p/Govimart-61582676188251/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">
               <Image src={Facebook} alt="Facebook" className='w-auto h-8 object-cover' />
             </a>
             <a href="#" className="text-blue-400 hover:text-blue-300">
               <Image src={Youtube} alt="Youtube" className='w-auto h-8 object-cover' />
             </a>
-            <a href="#" className="text-blue-400 hover:text-blue-300">
+            <a href=" https://www.instagram.com/govimart/?hl=en" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">
               <Image src={Instagram} alt="Instagram" className='w-auto h-8 object-cover' />
             </a>
             <a href="#" className="text-blue-400 hover:text-blue-300">
