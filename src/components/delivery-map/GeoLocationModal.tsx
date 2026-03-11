@@ -16,7 +16,8 @@ interface GeoLocationModalProps {
     onClose: () => void;
     onLocationSelect: (lat: number, lng: number) => void;
     initialCenter?: [number, number];
-    savedLocation?: [number, number] | null; // ADD THIS
+    savedLocation?: [number, number] | null;
+    viewOnly?: boolean; 
 }
 
 const GeoLocationModal: React.FC<GeoLocationModalProps> = ({
@@ -24,7 +25,8 @@ const GeoLocationModal: React.FC<GeoLocationModalProps> = ({
     onClose,
     onLocationSelect,
     initialCenter = [6.9271, 79.8612],
-    savedLocation = null // ADD THIS
+    savedLocation = null,
+    viewOnly = false 
 }) => {
     const mapRef = useRef<HTMLDivElement>(null);
     const mapInstanceRef = useRef<L.Map | null>(null);
@@ -53,11 +55,14 @@ const GeoLocationModal: React.FC<GeoLocationModalProps> = ({
             updateMarker(savedLocation[0], savedLocation[1]);
         }
 
-        map.on('click', (e: L.LeafletMouseEvent) => {
-            const { lat, lng } = e.latlng;
-            updateMarker(lat, lng);
-            setLocationError('');
-        });
+        // Only allow map clicks if not in viewOnly mode
+        if (!viewOnly) {
+            map.on('click', (e: L.LeafletMouseEvent) => {
+                const { lat, lng } = e.latlng;
+                updateMarker(lat, lng);
+                setLocationError('');
+            });
+        }
 
         return () => {
             if (mapInstanceRef.current) {
@@ -66,7 +71,7 @@ const GeoLocationModal: React.FC<GeoLocationModalProps> = ({
             }
             markerRef.current = null;
         };
-    }, [isOpen, savedLocation, initialCenter]);
+    }, [isOpen, savedLocation, initialCenter, viewOnly]);
 
     // Auto-close success modal after 5 seconds
     useEffect(() => {
@@ -79,7 +84,7 @@ const GeoLocationModal: React.FC<GeoLocationModalProps> = ({
         }
     }, [showSuccessModal]);
 
-    const updateMarker = (lat: number, lng: number) => {
+    const updateMarker = (lat: number, lng: number, showPopup: boolean = true) => {
         if (!mapInstanceRef.current) return;
 
         // Remove existing marker if any
@@ -99,9 +104,12 @@ const GeoLocationModal: React.FC<GeoLocationModalProps> = ({
 
         // Add new marker
         const marker = L.marker([lat, lng], { icon: customIcon })
-            .addTo(mapInstanceRef.current)
-            .bindPopup('Close to Reselect the location ')
-            .openPopup();
+            .addTo(mapInstanceRef.current);
+        
+        // Only show popup if not in viewOnly mode and showPopup is true
+        if (!viewOnly && showPopup) {
+            marker.bindPopup('Close to Reselect the location ').openPopup();
+        }
 
         markerRef.current = marker;
         setSelectedLocation([lat, lng]);
@@ -177,7 +185,7 @@ const GeoLocationModal: React.FC<GeoLocationModalProps> = ({
         <>
             {/* Success Modal */}
             {showSuccessModal && (
-                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4">
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
                     <div className="bg-white p-6 sm:p-8 rounded-2xl text-center w-full max-w-md shadow-xl mx-4">
                         {/* Success Icon with Animation */}
                         <div className="flex justify-center mb-4">
@@ -243,12 +251,12 @@ const GeoLocationModal: React.FC<GeoLocationModalProps> = ({
             )}
 
             {/* Main Modal */}
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4">
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4 mt-18">
                 <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
                     {/* Header */}
                     <div className="flex justify-between items-center p-3 sm:p-4 border-b border-gray-200 flex-shrink-0">
                         <h2 className="text-base sm:text-xl font-bold text-[#252525]">
-                            {savedLocation ? 'View & Edit Your Saved Location' : 'Select Your Location'}
+                            {viewOnly ? 'View Your Saved Location' : (savedLocation ? 'View & Edit Your Saved Location' : 'Select Your Location')}
                         </h2>
                         <button
                             type="button"
@@ -261,9 +269,11 @@ const GeoLocationModal: React.FC<GeoLocationModalProps> = ({
 
                     {/* Content - Scrollable */}
                     <div className="p-3 sm:p-4 overflow-y-auto flex-1">
-                        <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
-                            Click on the map to select your location or use the button below to get your current location.
-                        </p>
+                        {!viewOnly && (
+                            <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
+                                Click on the map to select your location or use the button below to get your current location.
+                            </p>
+                        )}
 
                         {/* Location Error Alert */}
                         {locationError && (
@@ -289,29 +299,31 @@ const GeoLocationModal: React.FC<GeoLocationModalProps> = ({
                             className="w-full h-[250px] sm:h-[350px] md:h-[400px] rounded-lg border border-gray-300 mb-3 sm:mb-4"
                         />
 
-                        {/* Actions */}
-                        <div className="flex flex-col gap-2 sm:gap-3">
-                            <button
-                                type="button"
-                                onClick={handleGetCurrentLocation}
-                                disabled={isLocating}
-                                className="w-full flex items-center justify-center gap-2 bg-[#3E206D] text-white font-semibold rounded-lg px-4 py-2.5 sm:py-3 hover:bg-[#2d1850] transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed text-sm sm:text-base cursor-pointer"
-                            >
-                                <MapPin size={18} className="sm:w-5 sm:h-5" />
-                                <span className="truncate">{isLocating ? 'Locating...' : 'Use My Current Location'}</span>
-                            </button>
+                        {/* Actions - Hide when viewOnly is true */}
+                        {!viewOnly && (
+                            <div className="flex flex-col gap-2 sm:gap-3">
+                                <button
+                                    type="button"
+                                    onClick={handleGetCurrentLocation}
+                                    disabled={isLocating}
+                                    className="w-full flex items-center justify-center gap-2 bg-[#3E206D] text-white font-semibold rounded-lg px-4 py-2.5 sm:py-3 hover:bg-[#2d1850] transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed text-sm sm:text-base cursor-pointer"
+                                >
+                                    <MapPin size={18} className="sm:w-5 sm:h-5" />
+                                    <span className="truncate">{isLocating ? 'Locating...' : 'Use My Current Location'}</span>
+                                </button>
 
-                            <button
-                                type="button"
-                                onClick={handleConfirm}
-                                disabled={!selectedLocation}
-                                className="w-full bg-[#10B981] text-white font-semibold rounded-lg px-4 py-2.5 sm:py-3 hover:bg-[#059669] transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed text-sm sm:text-base cursor-pointer"
-                            >
-                                Confirm Location
-                            </button>
-                        </div>
+                                <button
+                                    type="button"
+                                    onClick={handleConfirm}
+                                    disabled={!selectedLocation}
+                                    className="w-full bg-[#10B981] text-white font-semibold rounded-lg px-4 py-2.5 sm:py-3 hover:bg-[#059669] transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed text-sm sm:text-base cursor-pointer"
+                                >
+                                    Confirm Location
+                                </button>
+                            </div>
+                        )}
 
-                        {selectedLocation && Array.isArray(selectedLocation) && typeof selectedLocation[0] === 'number' && typeof selectedLocation[1] === 'number' && (
+                        {!viewOnly && selectedLocation && Array.isArray(selectedLocation) && typeof selectedLocation[0] === 'number' && typeof selectedLocation[1] === 'number' && (
                             <div className="mt-3 p-2.5 sm:p-3 bg-green-50 border border-green-200 rounded-lg">
                                 <p className="text-xs sm:text-sm text-green-800 break-all">
                                     <span className="font-semibold">Selected Location:</span> {selectedLocation[0].toFixed(6)}, {selectedLocation[1].toFixed(6)}

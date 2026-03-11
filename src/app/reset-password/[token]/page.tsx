@@ -93,8 +93,15 @@ const Page = () => {
       // Check for specific error messages from backend
       const errorMessage = err.message || 'Failed to reset password';
       
+      // Handle expired token error
+      if (errorMessage.toLowerCase().includes('expired') || 
+          errorMessage.toLowerCase().includes('invalid') ||
+          errorMessage.toLowerCase().includes('token')) {
+        setModalMessage('Your password reset link has expired or is invalid. Please request a new password reset link.');
+        setIsTokenValid(false);
+      }
       // Handle "same password" error specifically
-      if (errorMessage.toLowerCase().includes('same') || 
+      else if (errorMessage.toLowerCase().includes('same') || 
           errorMessage.toLowerCase().includes('current password') ||
           errorMessage.toLowerCase().includes('old password')) {
         setModalMessage('New password cannot be the same as your current password. Please choose a different password.');
@@ -252,14 +259,25 @@ const Page = () => {
                 <p className="text-sm sm:text-base mb-6" style={{ color: '#637285' }}>
                   {modalMessage}
                 </p>
-                <button
-                  onClick={() => {
-                    setIsModalOpen(false);
-                  }}
-                  className="w-full sm:w-auto px-6 py-2.5 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors cursor-pointer text-gray-700 font-medium"
-                >
-                  Close
-                </button>
+                <div className="flex gap-3 justify-center">
+                  {!isTokenValid ? (
+                    <button
+                      onClick={() => router.push('/forget-password')}
+                      className="px-6 py-2.5 bg-purple-800 text-white rounded-lg hover:bg-purple-900 transition-colors cursor-pointer font-medium"
+                    >
+                      Request New Reset Link
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setIsModalOpen(false);
+                      }}
+                      className="w-full sm:w-auto px-6 py-2.5 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors cursor-pointer text-gray-700 font-medium"
+                    >
+                      Close
+                    </button>
+                  )}
+                </div>
               </>
             ) : (
               <>

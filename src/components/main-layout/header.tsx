@@ -114,22 +114,22 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
     };
   }, [showSignupModal, showLogoutModal]);
 
-  useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
+  // useEffect(() => {
+  //   const handleScroll = () => {
+  //     const currentScrollY = window.scrollY;
 
-      if (currentScrollY > lastScrollY.current && currentScrollY > 120) {
-        setShowHeader(false);
-      } else {
-        setShowHeader(true);
-      }
+  //     if (currentScrollY > lastScrollY.current && currentScrollY > 120) {
+  //       setShowHeader(false);
+  //     } else {
+  //       setShowHeader(true);
+  //     }
 
-      lastScrollY.current = currentScrollY;
-    };
+  //     lastScrollY.current = currentScrollY;
+  //   };
 
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  //   window.addEventListener("scroll", handleScroll);
+  //   return () => window.removeEventListener("scroll", handleScroll);
+  // }, []);
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);

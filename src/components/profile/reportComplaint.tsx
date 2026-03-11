@@ -36,28 +36,49 @@ interface CustomDropdownProps {
   onChange: (value: string) => void;
   options: { value: string; label: string }[];
   disabled?: boolean;
+  withSearch?: boolean;
 }
 
-const CustomDropdown = ({ register, name, value, onChange, options, disabled }: CustomDropdownProps) => {
+const CustomDropdown = ({ register, name, value, onChange, options, disabled, withSearch }: CustomDropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Handle clicking outside to close dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
+        setSearchTerm('');
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Auto-focus search input when dropdown opens
+  useEffect(() => {
+    if (isOpen && withSearch && searchInputRef.current) {
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 50);
+    }
+  }, [isOpen, withSearch]);
+
   // Handle option selection
   const handleSelect = (selectedValue: string) => {
     onChange(selectedValue);
     setIsOpen(false);
+    setSearchTerm('');
   };
+
+  // Filter options based on search term
+  const filteredOptions = withSearch && searchTerm
+    ? options.filter(option =>
+        option.label.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    : options;
 
   return (
     <div className="relative cursor-pointer" ref={dropdownRef}>
@@ -78,17 +99,41 @@ const CustomDropdown = ({ register, name, value, onChange, options, disabled }: 
 
       {/* Dropdown Options */}
       {isOpen && (
-        <ul className="absolute z-10 w-full bg-white border border-[#CECECE] rounded-lg mt-1">
-          {options.map((option) => (
-            <li
-              key={option.value}
-              className="p-2 text-[12px] md:text-[14px] cursor-pointer hover:bg-gray-100"
-              onClick={() => handleSelect(option.value)}
-            >
-              {option.label}
-            </li>
-          ))}
-        </ul>
+        <div className="absolute z-10 w-full bg-white border border-[#CECECE] rounded-lg mt-1 shadow-lg max-h-[300px] overflow-hidden">
+          {/* Search Bar */}
+          {withSearch && (
+            <div className="sticky top-0 bg-white p-2 border-b border-[#CECECE]">
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search..."
+                className="w-full p-2 text-[12px] md:text-[14px] border border-[#CECECE] rounded-md focus:outline-none focus:border-[#3E206D]"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+          )}
+
+          {/* Options List */}
+          <ul className="overflow-y-auto" style={{ maxHeight: withSearch ? '252px' : '300px' }}>
+            {filteredOptions.length > 0 ? (
+              filteredOptions.map((option) => (
+                <li
+                  key={option.value}
+                  className="p-2 text-[12px] md:text-[14px] cursor-pointer hover:bg-gray-100"
+                  onClick={() => handleSelect(option.value)}
+                >
+                  {option.label}
+                </li>
+              ))
+            ) : (
+              <li className="p-2 text-[12px] md:text-[14px] text-gray-500 text-center">
+                No results found
+              </li>
+            )}
+          </ul>
+        </div>
       )}
     </div>
   );
@@ -436,6 +481,7 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
               onChange={setCategoryId}
               options={categoryOptions}
               disabled={isLoading}
+              withSearch={true}
             />
             <p id="category-help" className="text-xs text-[#626D76] mt-1 sr-only">
               Select the category that best describes your complaint.

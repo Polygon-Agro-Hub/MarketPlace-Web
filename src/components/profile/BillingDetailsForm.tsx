@@ -45,18 +45,22 @@ interface CustomDropdownProps {
   name: keyof BillingFormData;
   value: string | undefined;
   errors?: FieldErrors<BillingFormData>;
-  options: { value: string; label: string }[];
+  options: { value: string; label: string; countryCode?: string }[];
   placeholder: string;
+  withSearch?: boolean;
+  maxVisibleItems?: number;
 }
 
-const CustomDropdown = ({ register, setValue, name, value, errors, options, placeholder }: CustomDropdownProps) => {
+const CustomDropdown = ({ register, setValue, name, value, errors, options, placeholder, withSearch = false, maxVisibleItems = 6 }: CustomDropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
+        setSearchTerm('');
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -66,7 +70,16 @@ const CustomDropdown = ({ register, setValue, name, value, errors, options, plac
   const handleSelect = (optionValue: string) => {
     setValue(name, optionValue, { shouldValidate: true });
     setIsOpen(false);
+    setSearchTerm('');
   };
+
+  const filteredOptions = withSearch
+    ? options.filter(option =>
+        option.label.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    : options;
+
+  const selectedOption = options.find((opt) => opt.value === value);
 
   return (
     <div className="relative cursor-pointer" ref={dropdownRef}>
@@ -75,21 +88,57 @@ const CustomDropdown = ({ register, setValue, name, value, errors, options, plac
         className="appearance-none border border-[#CECECE] cursor-pointer rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px] pr-8 flex items-center justify-between"
         onClick={() => setIsOpen(!isOpen)}
       >
-        <span>{value && options.find((opt) => opt.value === value)?.label || placeholder}</span>
+        <span className="flex items-center gap-2">
+          {selectedOption?.countryCode && (
+            <img
+              src={`https://flagcdn.com/24x18/${selectedOption.countryCode.toLowerCase()}.png`}
+              alt={selectedOption.countryCode}
+              className="w-5 h-4 object-cover"
+            />
+          )}
+          <span>{value && selectedOption?.label || placeholder}</span>
+        </span>
         <FaAngleDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none" />
       </div>
       {isOpen && (
-        <ul className="absolute z-10 w-full bg-white border border-[#CECECE] rounded-lg mt-1">
-          {options.map((option) => (
-            <li
-              key={option.value}
-              className="p-2 text-[12px] md:text-[14px] cursor-pointer hover:bg-gray-100"
-              onClick={() => handleSelect(option.value)}
-            >
-              {option.label}
-            </li>
-          ))}
-        </ul>
+        <div className="absolute z-10 w-full bg-white border border-[#CECECE] rounded-lg mt-1 shadow-lg">
+          {withSearch && (
+            <div className="p-2 border-b border-[#CECECE]">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search..."
+                className="w-full p-2 text-xs md:text-sm border border-[#CECECE] rounded focus:outline-none focus:ring-1 focus:ring-[#3E206D]"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+          )}
+          <ul className={`overflow-y-auto ${withSearch ? 'max-h-[240px]' : ''}`} style={{ maxHeight: `${maxVisibleItems * 40}px` }}>
+            {filteredOptions.length > 0 ? (
+              filteredOptions.map((option) => (
+                <li
+                  key={option.value}
+                  className="p-2 text-[12px] md:text-[14px] cursor-pointer hover:bg-gray-100 flex items-center gap-2"
+                  onClick={() => handleSelect(option.value)}
+                >
+                  {option.countryCode && (
+                    <img
+                      src={`https://flagcdn.com/24x18/${option.countryCode.toLowerCase()}.png`}
+                      alt={option.countryCode}
+                      className="w-5 h-4 object-cover"
+                    />
+                  )}
+                  <span>{option.label}</span>
+                </li>
+              ))
+            ) : (
+              <li className="p-2 text-[12px] md:text-[14px] text-gray-500 text-center">
+                No options found
+              </li>
+            )}
+          </ul>
+        </div>
       )}
       <p className="text-red-500 text-xs">{errors?.[name]?.message}</p>
     </div>
@@ -226,12 +275,20 @@ const BillingDetailsForm = () => {
     label: city,
   }));
 
-  const phoneCodeOptions = [
-    { value: '+94', label: '+94' },
-    { value: '+91', label: '+91' },
-    { value: '+1', label: '+1' },
-    { value: '+44', label: '+44' },
+  const countries = [
+    { code: "LK", dialCode: "+94", name: "Sri Lanka" },
+    { code: "VN", dialCode: "+84", name: "Vietnam" },
+    { code: "KH", dialCode: "+855", name: "Cambodia" },
+    { code: "BD", dialCode: "+880", name: "Bangladesh" },
+    { code: "IN", dialCode: "+91", name: "India" },
+    { code: "NL", dialCode: "+31", name: "Netherlands" },
   ];
+
+  const phoneCodeOptions = countries.map(country => ({
+    value: country.dialCode,
+    label: country.dialCode,
+    countryCode: country.code
+  }));
 
   const {
     register,
@@ -466,6 +523,13 @@ const BillingDetailsForm = () => {
         setIsLoading(false);
         return;
       }
+      // Validate geo location for house
+      if (!data.geoLatitude || !data.geoLongitude) {
+        setErrorMessage('Geo Location is required. Please attach your geo location.');
+        setShowErrorPopup(true);
+        setIsLoading(false);
+        return;
+      }
     } else if (data.buildingType === 'apartment') {
       if (!data.buildingNo || !data.apartmentName || !data.flatNumber ||
         !data.apartmentFloor || !data.apartmentHouseNo ||
@@ -475,11 +539,18 @@ const BillingDetailsForm = () => {
         setIsLoading(false);
         return;
       }
+      // Validate geo location for apartment
+      if (!data.geoLatitude || !data.geoLongitude) {
+        setErrorMessage('Geo Location is required. Please attach your geo location.');
+        setShowErrorPopup(true);
+        setIsLoading(false);
+        return;
+      }
     }
 
     // Validate phone number
     if (!data.phonecode1 || !data.phone1) {
-      setErrorMessage('Phone number is required.');
+      setErrorMessage('Phone Number 1 is required.');
       setShowErrorPopup(true);
       setIsLoading(false);
       return;
@@ -554,8 +625,6 @@ const BillingDetailsForm = () => {
     }
 
     if (isNumber) {
-      setBillingNameError('Numbers are not allowed in Billing Name');
-      setTimeout(() => setBillingNameError(''), 2000);
       e.preventDefault();
     } else if (isInvalidChar && !['Backspace', 'Tab', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
       e.preventDefault();
@@ -563,16 +632,28 @@ const BillingDetailsForm = () => {
   };
 
   const handlePhoneKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    // Block leading space
-    if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
-      e.preventDefault();
+    // Allow: backspace, delete, tab, escape, enter, arrows
+    const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
+    
+    if (allowedKeys.includes(e.key)) {
       return;
     }
 
-    const invalidKeys = ['e', 'E', '+', '-', '.', ','];
-    if (invalidKeys.includes(e.key)) {
+    // Allow: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+    if ((e.ctrlKey || e.metaKey) && ['a', 'c', 'v', 'x'].includes(e.key.toLowerCase())) {
+      return;
+    }
+
+    // Block everything except numbers 0-9
+    if (!/^[0-9]$/.test(e.key)) {
       e.preventDefault();
     }
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: 'phone1' | 'phone2') => {
+    // Remove all non-numeric characters
+    const numericValue = e.target.value.replace(/\D/g, '');
+    setValue(fieldName, numericValue, { shouldValidate: true });
   };
 
   const handleCancel = () => {
@@ -644,10 +725,10 @@ const BillingDetailsForm = () => {
               </label>
               <input
                 {...register('billingName', {
-                  required: 'Billing Name is required',
+                  required: 'Full Name is required',
                   pattern: {
                     value: /^[A-Za-z\s]+$/,
-                    message: 'Billing Name must contain only letters and spaces',
+                    message: 'Full Name must contain only letters and spaces',
                   },
                 })}
                 className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
@@ -730,7 +811,7 @@ const BillingDetailsForm = () => {
 
                 <div className="w-full lg:w-1/2">
                   <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
-                    Nearest City <span className="text-red-500">*</span>
+                    Nearest City
                   </label>
                   <CustomDropdown
                     register={register}
@@ -740,6 +821,8 @@ const BillingDetailsForm = () => {
                     errors={errors}
                     options={cityOptions}
                     placeholder="Select City"
+                    withSearch={true}
+                    maxVisibleItems={6}
                   />
                 </div>
               </div>
@@ -872,6 +955,8 @@ const BillingDetailsForm = () => {
                     errors={errors}
                     options={cityOptions}
                     placeholder="Select City"
+                    withSearch={true}
+                    maxVisibleItems={6}
                   />
                 </div>
               </div>
@@ -947,10 +1032,10 @@ const BillingDetailsForm = () => {
                   <input
                     type="text"
                     {...register(`phone${num}` as 'phone1' | 'phone2', {
-                      required: num === 1 ? 'Phone number is required' : false,
+                      required: num === 1 ? 'Phone Number 1 is required' : false,
                       pattern: {
                         value: /^[0-9]{9}$/,
-                        message: 'Enter a valid number (9 digits)',
+                        message: 'Please enter a valid Phone Number (format: +947XXXXXXXX)',
                       },
                       validate: num === 2
                         ? {
@@ -968,6 +1053,7 @@ const BillingDetailsForm = () => {
                     inputMode="numeric"
                     maxLength={9}
                     onKeyDown={handlePhoneKeyDown}
+                    onChange={(e) => handlePhoneChange(e, `phone${num}` as 'phone1' | 'phone2')}
                   />
                   <p className="text-red-500 text-xs">
                     {errors[`phone${num}` as 'phone1' | 'phone2']?.message}
@@ -980,17 +1066,6 @@ const BillingDetailsForm = () => {
 
         <div className="flex justify-end gap-4 mt-10">
           <button
-            type="submit"
-            className={`w-[90px] h-[36px] sm:w-[110px] sm:h-[44px] cursor-pointer mb-4 text-[16px] md:text-[20px] font-medium rounded-lg text-white ${isLoading || !hasFormChanged
-              ? 'opacity-50 cursor-not-allowed bg-[#9ca3af]'
-              : 'bg-[#3E206D] hover:bg-[#341a5a]'
-              }`}
-            disabled={isLoading || !hasFormChanged}
-          >
-            Save
-          </button>
-
-          <button
             type="button"
             className={`w-[90px] h-[36px] sm:w-[110px] sm:h-[44px] cursor-pointer text-[16px] md:text-[20px] font-medium rounded-lg ${isLoading || !hasFormChanged
               ? 'opacity-50 cursor-not-allowed text-[#9ca3af] bg-[#f9fafb]'
@@ -1000,6 +1075,17 @@ const BillingDetailsForm = () => {
             disabled={isLoading || !hasFormChanged}
           >
             Cancel
+          </button>
+
+          <button
+            type="submit"
+            className={`w-[90px] h-[36px] sm:w-[110px] sm:h-[44px] cursor-pointer mb-4 text-[16px] md:text-[20px] font-medium rounded-lg text-white ${isLoading || !hasFormChanged
+              ? 'opacity-50 cursor-not-allowed bg-[#9ca3af]'
+              : 'bg-[#3E206D] hover:bg-[#341a5a]'
+              }`}
+            disabled={isLoading || !hasFormChanged}
+          >
+            Save
           </button>
         </div>
         <GeoLocationModal
@@ -1013,6 +1099,7 @@ const BillingDetailsForm = () => {
           savedLocation={isViewingLocation && watch('geoLatitude') && watch('geoLongitude') 
             ? [Number(watch('geoLatitude')), Number(watch('geoLongitude'))] 
             : null}
+          viewOnly={isViewingLocation}
         />
       </form>
     </div>

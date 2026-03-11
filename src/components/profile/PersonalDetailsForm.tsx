@@ -27,6 +27,37 @@ const schema = yup.object().shape({
   email: yup
     .string()
     .transform((value) => value?.trim())
+    .test('no-spaces', 'Email cannot contain spaces', (value) => {
+      if (!value) return true;
+      return !value.includes(' ');
+    })
+    .test('no-consecutive-dots', 'Email cannot contain consecutive dots', (value) => {
+      if (!value) return true;
+      return !value.includes('..');
+    })
+    .test('no-leading-dot', 'Email cannot start with a dot', (value) => {
+      if (!value) return true;
+      const parts = value.split('@');
+      if (parts.length === 0) return true;
+      const localPart = parts[0];
+      return !localPart.startsWith('.');
+    })
+    .test('no-trailing-dot', 'Email cannot end with a dot before @', (value) => {
+      if (!value) return true;
+      const parts = value.split('@');
+      if (parts.length === 0) return true;
+      const localPart = parts[0];
+      return !localPart.endsWith('.');
+    })
+    .test('valid-characters', 'Email contains invalid characters', (value) => {
+      if (!value) return true;
+      const parts = value.split('@');
+      if (parts.length === 0) return true;
+      const localPart = parts[0];
+      // Only allow alphanumeric, dots, hyphens, and underscores in local part
+      const validPattern = /^[a-zA-Z0-9._-]+$/;
+      return validPattern.test(localPart);
+    })
     .email('Please enter a valid Email Address')
     .required('Email Address is required'),
   countryCode: yup.string().required('Country Code is required'),
@@ -38,14 +69,14 @@ const schema = yup.object().shape({
   phoneNumber: yup
     .string()
     .transform((value) => value?.trim())
-    .matches(/^7[0-9]{8}$/, 'Please enter a valid Phone Number (format: +947XXXXXXXX)')
-    .required('Phone Number is required'),
+    .required('Phone Number is required')
+    .matches(/^7[0-9]{8}$/, 'Please enter a valid Phone Number (format: +947XXXXXXXX)'),
   phoneNumber2: yup.string().when('$buyerType', {
     is: 'Wholesale',
     then: (schema) => schema
       .transform((value) => value?.trim())
-      .matches(/^7[0-9]{8}$/, 'Please enter a valid Phone Number (format: +947XXXXXXXX)')
-      .required('Phone Number is required'),
+      .required('Phone Number is required')
+      .matches(/^7[0-9]{8}$/, 'Please enter a valid Phone Number (format: +947XXXXXXXX)'),
     otherwise: (schema) => schema.notRequired(),
   }),
   companyName: yup.string().when('$buyerType', {
@@ -64,20 +95,33 @@ const schema = yup.object().shape({
     is: 'Wholesale',
     then: (schema) => schema
       .transform((value) => value?.trim())
-      .matches(/^7[0-9]{8}$/, 'Please enter a valid Company Phone Number (format: +947XXXXXXXX)')
-      .required('Company Phone Number is required'),
+      .required('Company Phone Number is required')
+      .matches(/^7[0-9]{8}$/, 'Please enter a valid Company Phone Number (format: +947XXXXXXXX)'),
     otherwise: (schema) => schema.notRequired(),
   }),
   currentPassword: yup.string()
     .transform((value) => value?.trim())
-    .when('newPassword', {
-      is: (val: string | undefined) => val && val.length > 0,
-      then: (schema) => schema.required('Current Password is required'),
-      otherwise: (schema) => schema.notRequired(),
+    .test('check-all-password-fields', function (value) {
+      const { newPassword, confirmPassword } = this.parent;
+      const hasAnyPassword = value || newPassword || confirmPassword;
+      
+      if (hasAnyPassword && !value) {
+        return this.createError({ message: 'Current Password is required when updating password' });
+      }
+      return true;
     }),
   newPassword: yup
     .string()
     .transform((value) => value?.trim())
+    .test('check-all-password-fields', function (value) {
+      const { currentPassword, confirmPassword } = this.parent;
+      const hasAnyPassword = value || currentPassword || confirmPassword;
+      
+      if (hasAnyPassword && !value) {
+        return this.createError({ message: 'New Password is required when updating password' });
+      }
+      return true;
+    })
     .test('password-requirements', 'Password must contain a minimum of 6 characters with 1 Uppercase, Numbers & Special Characters', function (value) {
       if (!value) return true; // Allow empty (not required)
 
@@ -88,16 +132,26 @@ const schema = yup.object().shape({
 
       return hasMinLength && hasUppercase && hasNumber && hasSpecialChar;
     })
-    .notRequired(),
+    .test('not-same-as-current', 'New password cannot be the same as your current password', function (value) {
+      const { currentPassword } = this.parent;
+      if (!value || !currentPassword) return true;
+      return value !== currentPassword;
+    }),
   confirmPassword: yup.string()
     .transform((value) => value?.trim())
-    .when('newPassword', {
-      is: (val: string | undefined) => val && val.length > 0,
-      then: (schema) =>
-        schema
-          .required('Please confirm your New Password')
-          .oneOf([yup.ref('newPassword')], 'Passwords must match'),
-      otherwise: (schema) => schema.notRequired(),
+    .test('check-all-password-fields', function (value) {
+      const { currentPassword, newPassword } = this.parent;
+      const hasAnyPassword = value || currentPassword || newPassword;
+      
+      if (hasAnyPassword && !value) {
+        return this.createError({ message: 'Confirm Password is required when updating password' });
+      }
+      return true;
+    })
+    .test('passwords-match', 'Passwords must match', function (value) {
+      const { newPassword } = this.parent;
+      if (!value || !newPassword) return true;
+      return value === newPassword;
     }),
 });
 
@@ -109,7 +163,7 @@ interface CustomDropdownProps {
   name: keyof FormData;
   value: string;
   errors?: FieldErrors<FormData>;
-  options: { value: string; label: string }[];
+  options: { value: string; label: string; countryCode?: string }[];
   placeholder: string;
   onChange: (value: string) => void;
 }
@@ -133,6 +187,8 @@ const CustomDropdown = ({ register, name, value, errors, options, placeholder, o
     setIsOpen(false);
   };
 
+  const selectedOption = options.find((opt) => opt.value === value);
+
   return (
     <div className="relative cursor-pointer" ref={dropdownRef}>
       <input type="hidden" {...register(name)} value={value} />
@@ -140,23 +196,34 @@ const CustomDropdown = ({ register, name, value, errors, options, placeholder, o
         className="appearance-none border border-[#CECECE] cursor-pointer rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm pr-8 flex items-center justify-between"
         onClick={() => setIsOpen(!isOpen)}
       >
-        <span>{value ? options.find((opt) => opt.value === value)?.label || placeholder : placeholder}</span>
+        <span className="flex items-center gap-2">
+          {selectedOption?.countryCode && (
+            <img
+              src={`https://flagcdn.com/24x18/${selectedOption.countryCode.toLowerCase()}.png`}
+              alt={selectedOption.countryCode}
+              className="w-5 h-4 object-cover"
+            />
+          )}
+          <span>{value ? selectedOption?.label || placeholder : placeholder}</span>
+        </span>
         <FaAngleDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none" />
       </div>
       {isOpen && (
-        <ul className="absolute z-10 w-full bg-white border border-[#CECECE] rounded-lg mt-1">
-          {/* <li
-            className="p-2 text-xs sm:text-sm cursor-pointer hover:bg-gray-100"
-            onClick={() => handleSelect('')}
-          >
-          </li> */}
+        <ul className="absolute z-10 w-full bg-white border border-[#CECECE] rounded-lg mt-1 max-h-48 overflow-y-auto shadow-lg">
           {options.map((option) => (
             <li
               key={option.value}
-              className="p-2 text-xs sm:text-sm cursor-pointer hover:bg-gray-100"
+              className="p-2 text-xs sm:text-sm cursor-pointer hover:bg-gray-100 flex items-center gap-2"
               onClick={() => handleSelect(option.value)}
             >
-              {option.label}
+              {option.countryCode && (
+                <img
+                  src={`https://flagcdn.com/24x18/${option.countryCode.toLowerCase()}.png`}
+                  alt={option.countryCode}
+                  className="w-5 h-4 object-cover"
+                />
+              )}
+              <span>{option.label}</span>
             </li>
           ))}
         </ul>
@@ -210,6 +277,7 @@ const PersonalDetailsForm = () => {
   const [originalProfilePic, setOriginalProfilePic] = useState<string | null>(null);
   const [buyerType, setBuyerType] = useState<string>('');
   const dispatch = useDispatch();
+   const [countryCode, setCountryCode] = useState("+94");
 
   const {
     register,
@@ -292,8 +360,8 @@ const PersonalDetailsForm = () => {
   }, [token, reset]);
 
   const handlePasswordInput = (value: string): string => {
-    // Remove leading and trailing spaces, but keep internal spaces if any
-    return value.trim();
+    // Block leading spaces - users cannot enter space before first character
+    return value.trimStart();
   };
 
 
@@ -321,6 +389,11 @@ const PersonalDetailsForm = () => {
   const handleGeneralInput = (value: string): string => {
 
     return value.trimStart();
+  };
+
+  const handleEmailInput = (value: string): string => {
+    // Remove ALL spaces from email (leading, trailing, and internal)
+    return value.replace(/\s/g, '');
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -352,6 +425,40 @@ const PersonalDetailsForm = () => {
       setShowSuccessPopup(false);
       setIsLoading(false);
       return;
+    }
+
+    // Check password fields - if any is filled, all must be filled
+    const hasCurrentPassword = formValues.currentPassword?.trim();
+    const hasNewPassword = formValues.newPassword?.trim();
+    const hasConfirmPassword = formValues.confirmPassword?.trim();
+    const hasAnyPasswordField = hasCurrentPassword || hasNewPassword || hasConfirmPassword;
+
+    if (hasAnyPasswordField) {
+      if (!hasCurrentPassword || !hasNewPassword || !hasConfirmPassword) {
+        setErrorMessage('All password fields must be filled when updating password.');
+        setShowErrorPopup(true);
+        setShowSuccessPopup(false);
+        setIsLoading(false);
+        return;
+      }
+
+      // Check if new password is same as current password
+      if (hasCurrentPassword === hasNewPassword) {
+        setErrorMessage('New password cannot be the same as your current password. Please choose a different password.');
+        setShowErrorPopup(true);
+        setShowSuccessPopup(false);
+        setIsLoading(false);
+        return;
+      }
+
+      // Check if new password and confirm password match
+      if (hasNewPassword !== hasConfirmPassword) {
+        setErrorMessage('New password and confirm password must match.');
+        setShowErrorPopup(true);
+        setShowSuccessPopup(false);
+        setIsLoading(false);
+        return;
+      }
     }
 
     try {
@@ -469,7 +576,6 @@ const PersonalDetailsForm = () => {
     }
   };
 
-
   const handleCancel = () => {
     setIsLoading(true);
 
@@ -505,12 +611,24 @@ const PersonalDetailsForm = () => {
     }, 500);
   };
 
-  const phoneCodeOptions = [
-    { value: '+94', label: '+94' },
-    { value: '+91', label: '+91' },
-    { value: '+1', label: '+1' },
-    { value: '+44', label: '+44' },
+  const countries = [
+    { code: "LK", dialCode: "+94", name: "Sri Lanka" },
+    { code: "VN", dialCode: "+84", name: "Vietnam" },
+    { code: "KH", dialCode: "+855", name: "Cambodia" },
+    { code: "BD", dialCode: "+880", name: "Bangladesh" },
+    { code: "IN", dialCode: "+91", name: "India" },
+    { code: "NL", dialCode: "+31", name: "Netherlands" },
   ];
+
+  const phoneCodeOptions = countries.map(country => ({
+    value: country.dialCode,
+    label: country.dialCode,
+    countryCode: country.code
+  }));
+
+  const getFlagUrl = (countryCode: string): string => {
+    return `https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png`;
+  };
 
   const titleOptions = [
     { value: 'Mr', label: 'Mr' },
@@ -648,10 +766,32 @@ const PersonalDetailsForm = () => {
             <input
               type="email"
               {...register('email')}
+              onKeyDown={(e) => {
+                // Prevent spacebar key
+                if (e.key === ' ' || e.code === 'Space') {
+                  e.preventDefault();
+                }
+              }}
               onChange={(e) => {
-                const trimmedValue = handleGeneralInput(e.target.value);
-                e.target.value = trimmedValue;
-                setValue('email', trimmedValue, { shouldValidate: true });
+                const cleanedValue = handleEmailInput(e.target.value);
+                e.target.value = cleanedValue;
+                setValue('email', cleanedValue, { shouldValidate: true });
+              }}
+              onPaste={(e) => {
+                // Handle paste - remove spaces from pasted content
+                e.preventDefault();
+                const pastedText = e.clipboardData.getData('text');
+                const cleanedText = pastedText.replace(/\s/g, '');
+                const input = e.target as HTMLInputElement;
+                const start = input.selectionStart || 0;
+                const end = input.selectionEnd || 0;
+                const currentValue = input.value;
+                const newValue = currentValue.substring(0, start) + cleanedText + currentValue.substring(end);
+                input.value = newValue;
+                setValue('email', newValue, { shouldValidate: true });
+                // Set cursor position after pasted text
+                const newCursorPos = start + cleanedText.length;
+                input.setSelectionRange(newCursorPos, newCursorPos);
               }}
               className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm"
               placeholder="Enter email address"
@@ -684,9 +824,9 @@ const PersonalDetailsForm = () => {
                   placeholder="7XXXXXXXX"
                   maxLength={9}
                 />
-                <p className="text-red-500 text-xs">{errors.phoneNumber?.message}</p>
               </div>
             </div>
+            <p className="text-red-500 text-xs mt-1">{errors.phoneNumber?.message}</p>
           </div>
         </div>
 
@@ -744,9 +884,9 @@ const PersonalDetailsForm = () => {
                       placeholder="7XXXXXXXX"
                       maxLength={9}
                     />
-                    <p className="text-red-500 text-xs">{errors.companyPhone?.message}</p>
                   </div>
                 </div>
+                <p className="text-red-500 text-xs mt-1">{errors.companyPhone?.message}</p>
               </div>
             </div>
 
@@ -809,11 +949,14 @@ const PersonalDetailsForm = () => {
                 {showNewPassword ? <FiEye className="text-gray-500" /> : <FiEyeOff className="text-gray-500" />}
               </div>
             </div>
-            {/* Password validation message */}
-            <p className="text-[#626D76] text-[10px] md:text-xs mt-1">
-              Your password must contain a minimum of 6 characters with 1 Uppercase, Numbers & Special Characters
-            </p>
-            <p className="text-red-500 text-xs">{errors.newPassword?.message}</p>
+            {/* Show validation error if exists, otherwise show info message only when field has focus or content */}
+            {errors.newPassword?.message ? (
+              <p className="text-red-500 text-xs mt-1">{errors.newPassword?.message}</p>
+            ) : (
+              <p className="text-[#626D76] text-[10px] md:text-xs mt-1">
+                Your password must contain a minimum of 6 characters with 1 Uppercase, Numbers & Special Characters
+              </p>
+            )}
           </div>
 
           <div className="md:w-[47%]">
@@ -843,7 +986,9 @@ const PersonalDetailsForm = () => {
                 {showConfirmPassword ? <FiEye className="text-gray-500" /> : <FiEyeOff className="text-gray-500" />}
               </div>
             </div>
-            <p className="text-red-500 text-xs">{errors.confirmPassword?.message}</p>
+            {errors.confirmPassword?.message && (
+              <p className="text-red-500 text-xs mt-1">{errors.confirmPassword?.message}</p>
+            )}
           </div>
         </div>
 

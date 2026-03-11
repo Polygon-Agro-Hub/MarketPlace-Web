@@ -9,6 +9,7 @@ import {
   deleteExcludedItems
 } from '@/services/product-service';
 import Loader from '@/components/loader-spinner/Loader';
+import SuccessPopup from '@/components/toast-messages/success-message';
 import Image from 'next/image';
 import noComplaints from '../../../public/icons/no complaints.png';
 
@@ -122,22 +123,21 @@ const ViewMyList = () => {
       </p>
       <div className="border-t border-[#BDBDBD] mb-4 sm:mb-6 mt-2" />
 
-      {items.length > 0 && (
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
-          <p className="text-[#000000] font-semibold text-sm sm:text-base">
-            All ({items.length.toString().padStart(2, '0')})
-          </p>
-          {selectedItems.length > 0 && (
-            <button
-              className="flex items-center gap-2 text-red-600 hover:underline font-semibold text-sm sm:text-base"
-              onClick={handleDeleteSelectedClick}
-            >
-              <Trash fill="red" className="w-4 h-4" />
-              Delete Selected Items
-            </button>
-          )}
-        </div>
-      )}
+      {/* show "All (X)" count */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2 mt-2">
+        <p className="text-[#000000] font-semibold text-sm sm:text-base">
+          All ({String(items.length).padStart(2, '0')})
+        </p>
+        {selectedItems.length > 0 && items.length > 0 && (
+          <button
+            className="flex items-center gap-2 text-red-600 hover:underline font-semibold text-sm sm:text-base"
+            onClick={handleDeleteSelectedClick}
+          >
+            <Trash fill="red" className="w-4 h-4" />
+            Delete Selected Items
+          </button>
+        )}
+      </div>
 
       {error && <p className="text-center text-red-500 text-sm">{error}</p>}
 
@@ -156,9 +156,9 @@ const ViewMyList = () => {
                       className="accent-[#4C5160] cursor-pointer"
                     />
                   </th>
-                  <th className="p-2 text-left w-[20%]">IMAGE</th>
-                  <th className="p-2 text-left w-[50%]">ITEM NAME</th>
-                  <th className="p-2 text-left w-[20%]">ACTION</th>
+                  <th className="p-2 text-left w-[20%] text-[#8492A3] font-medium">ITEM ({String(items.length).padStart(2, '0')})</th>
+                  <th className="p-2 text-left w-[50%] text-[#8492A3] font-medium">ITEM NAME</th>
+                  <th className="p-2 text-left w-[20%] text-[#8492A3] font-medium">ACTION</th>
                 </tr>
               </thead>
               <tbody>
@@ -208,9 +208,9 @@ const ViewMyList = () => {
                       className="accent-[#4C5160] cursor-pointer w-3 h-3"
                     />
                   </th>
-                  <th className="p-1 text-left w-[20%]">IMG</th>
-                  <th className="p-1 text-left w-[50%]">NAME</th>
-                  <th className="p-1 text-left w-[20%]">ACT</th>
+                  <th className="p-1 text-left w-[20%] text-[#8492A3] font-medium">ITEM ({String(items.length).padStart(2, '0')})</th>
+                  <th className="p-1 text-left w-[50%] text-[#8492A3] font-medium">NAME</th>
+                  <th className="p-1 text-left w-[20%] text-[#8492A3] font-medium">ACT</th>
                 </tr>
               </thead>
               <tbody>
@@ -255,7 +255,7 @@ const ViewMyList = () => {
           <Image
             src={noComplaints}
             alt="No excluded items"
-            className="w-32 sm:w-48 h-32 sm:h-48 mb-3 sm:mb-4 object-contain"
+            className="w-32 sm:w-48 h-32 sm:h-48 mb-3 sm:mb-4 object-contain mt-10"
           />
           <p className="text-center italic text-[#717171] text-xs sm:text-sm">
             --You have not added any items to the exclude list--
@@ -265,7 +265,7 @@ const ViewMyList = () => {
 
       {/* Delete Modal */}
       {showDeleteModal && (
-        <div className="fixed inset-0 flex justify-center items-center backdrop-blur-sm z-50">
+        <div className="fixed inset-0 flex justify-center items-center bg-black/40 z-50">
           <div className="bg-white rounded-xl p-4 sm:p-8 shadow-xl text-center w-full max-w-[280px] sm:max-w-md">
             <Trash fill="red" className="mx-auto text-red-600 w-8 sm:w-12 h-8 sm:h-12 mb-3 sm:mb-4" />
             <h2 className="text-xs sm:text-xl font-semibold text-black">
@@ -294,6 +294,15 @@ const ViewMyList = () => {
           </div>
         </div>
       )}
+
+      {/* Success Popup */}
+      <SuccessPopup
+        isVisible={!!submitStatus}
+        onClose={() => setSubmitStatus(null)}
+        title="Successfully Deleted!"
+        description={submitStatus || ''}
+        duration={3000}
+      />
     </div>
   );
 };

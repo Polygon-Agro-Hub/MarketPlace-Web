@@ -38,6 +38,7 @@ const filterOptions = [
 const ComplaintsHistory = () => {
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filterLoading, setFilterLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState('This Month');
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
@@ -146,14 +147,20 @@ const ComplaintsHistory = () => {
     actionMeta: ActionMeta<{ value: string; label: string }>
   ): void => {
     if (newValue) {
+      setFilterLoading(true);
       setFilter(newValue.value);
+      
+      // Show loader for a brief moment to indicate filtering is happening
+      setTimeout(() => {
+        setFilterLoading(false);
+      }, 300);
     }
   };
 
 
   return (
     <div className="relative z-10 px-4 sm:px-6 min-h-screen bg-white blur-effect py-4">
-      <Loader isVisible={loading} />
+      <Loader isVisible={loading || filterLoading} />
       <div
         className={`relative z-10 ${selectedComplaint ? 'bg-white' : 'bg-white'
           } blur-effect`}
@@ -185,7 +192,7 @@ const ComplaintsHistory = () => {
                     {selectedComplaint.reply || 'No reply available yet.'}
                   </p>
                   <p className="text-sm">Sincerely,</p>
-                  <p className="text-sm">Support Team</p>
+                  <p className="text-sm">Customer Support Team</p>
                   <p className="text-sm">
                     {formatReplyTime(selectedComplaint.replyTime)}
                   </p>
@@ -208,7 +215,7 @@ const ComplaintsHistory = () => {
               <div className="text-[14px] text-base md:text-[18px] font-bold">
                 All ({String(filteredComplaints.length).padStart(2, '0')})
               </div>
-              <div className="relative w-[140px] sm:w-[180px]">
+              <div className="relative w-[140px] sm:w-[144px]">
                 <Select
                   instanceId="complaints-history-filter"
                   options={filterOptions}
@@ -273,9 +280,9 @@ const ComplaintsHistory = () => {
             </div>
 
             {loading && <div className="text-center text-sm text-[#626D76]">Loading complaints...</div>}
-            {!loading && error && <div className="text-center text-sm text-red-600">Error: {error}</div>}
-            {!loading && !error && filteredComplaints.length === 0 && <EmptyComplaints />}
-            {!loading && !error && filteredComplaints.length > 0 && (
+            {!loading && !filterLoading && error && <div className="text-center text-sm text-red-600">Error: {error}</div>}
+            {!loading && !filterLoading && !error && filteredComplaints.length === 0 && <EmptyComplaints />}
+            {!loading && !filterLoading && !error && filteredComplaints.length > 0 && (
               <div className="space-y-4">
                 {filteredComplaints.map((complaint) => (
                   <div key={complaint.id} className="border border-[#CECECE] rounded-lg p-4">
@@ -286,7 +293,7 @@ const ComplaintsHistory = () => {
                       </div>
                       <div className="flex flex-col items-start">
                         <div className="text-[12px] md:text-[16px] text-[#626D76] font-medium">Category:</div>
-                        <div className="text-[12px] md:text-[16px]">{complaint.category}</div>
+                        <div className="text-[12px] md:text-[16px] break-all max-w-full">{complaint.category}</div>
                       </div>
                       <div className="flex flex-col items-start">
                         <div className="text-[12px] md:text-[16px] text-[#626D76] font-medium">Date:</div>
