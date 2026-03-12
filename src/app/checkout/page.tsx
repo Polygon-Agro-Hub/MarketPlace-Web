@@ -106,21 +106,10 @@ const initialFormState: FormData = {
   companycenterId: null,
 };
 
-const Page: React.FC = () => {
-  const NavArray = [
-    { name: "Cart", path: "/cart", status: true },
-    { name: "Checkout", path: "/checkout", status: true },
-    { name: "Payment", path: "/payment", status: false },
-  ];
-  const dispatch = useDispatch<AppDispatch>();
-  // const storedFormData = useSelector((state: RootState) => state.checkout);
-
-  const [formData, setFormDataLocal] = useState<FormData>(initialFormState);
-
-  const [errors, setErrors] = useState<FormErrors>({
+const initioalError = {
     centerId: "",
     deliveryMethod: "",
-    title: "Title is required.",
+    title: "",
     fullName: "",
     phone1: "",
     phone2: "",
@@ -139,7 +128,20 @@ const Page: React.FC = () => {
     scheduleType: "",
     geoLatitude: "",
     geoLongitude: "",
-  });
+  }
+
+const Page: React.FC = () => {
+  const NavArray = [
+    { name: "Cart", path: "/cart", status: true },
+    { name: "Checkout", path: "/checkout", status: true },
+    { name: "Payment", path: "/payment", status: false },
+  ];
+  const dispatch = useDispatch<AppDispatch>();
+  // const storedFormData = useSelector((state: RootState) => state.checkout);
+
+  const [formData, setFormDataLocal] = useState<FormData>(initialFormState);
+
+  const [errors, setErrors] = useState<FormErrors>(initioalError);
 
   // Add this new state for duplicate phone error
   const [duplicatePhoneError, setDuplicatePhoneError] = useState("");
@@ -176,6 +178,7 @@ const Page: React.FC = () => {
   const [isGeoModalOpen, setIsGeoModalOpen] = useState(false);
   const [companycenterId, setCompanycenterId] = useState<number | null>(null);
   const [viewingSavedLocation, setViewingSavedLocation] = useState(false);
+  const [isViewOnly, setIsViewOnly] = useState(false);
   const memoizedPickupCenters = useMemo(() => pickupCenters, [pickupCenters]);
 
   useEffect(() => {
@@ -308,6 +311,7 @@ const Page: React.FC = () => {
     if (value === "previous") {
       setUsePreviousAddress(true);
       setFetching(true);
+      setErrors(initioalError)
 
       try {
         const response = await getLastOrderAddress(token);
@@ -843,6 +847,28 @@ const Page: React.FC = () => {
     return `${formattedInteger}.${decimalPart}`;
   };
 
+  const countries: any[] = [
+    { code: "LK", dialCode: "+94", name: "Sri Lanka" },
+    { code: "VN", dialCode: "+84", name: "Vietnam" },
+    { code: "KH", dialCode: "+855", name: "Cambodia" },
+    { code: "BD", dialCode: "+880", name: "Bangladesh" },
+    { code: "IN", dialCode: "+91", name: "India" },
+    { code: "NL", dialCode: "+31", name: "Netherlands" },
+  ];
+
+  const getFlagUrl = (countryCode: string): string => {
+    return `https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png`;
+  };
+
+  const countryOptions = countries.map((country) => ({
+    value: country.dialCode,
+    label: country.dialCode,
+    flag: getFlagUrl(country.code),
+    countryName: country.name,
+  }));
+
+
+
   return (
     <div>
       <SuccessPopup
@@ -1024,7 +1050,7 @@ const Page: React.FC = () => {
                   >
                     Full name *
                   </label>
-                  <input
+                  {/* <input
                     type="text"
                     className="w-full border-2 border-[#F2F4F7] bg-[#F9FAFB] h-[39px] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-3 text-base capitalize"
                     placeholder="Enter your full name"
@@ -1033,6 +1059,40 @@ const Page: React.FC = () => {
                       const capitalizedValue = capitalizeFirstLetter(
                         e.target.value,
                       );
+                      handleFieldChange("fullName", capitalizedValue);
+                    }}
+                  /> */}
+                  <input
+                    type="text"
+                    className="w-full border-2 border-[#F2F4F7] bg-[#F9FAFB] h-[39px] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-3 text-base capitalize"
+                    placeholder="Enter your full name"
+                    value={formData.fullName}
+                    onChange={(e) => {
+                      // Remove leading spaces and numbers
+                      const value = e.target.value
+                        .replace(/^\s+/, '')           // Remove leading spaces
+                        .replace(/[0-9]/g, '');        // Remove all numbers
+
+                      const capitalizedValue = capitalizeFirstLetter(value);
+                      handleFieldChange("fullName", capitalizedValue);
+                    }}
+                    onKeyDown={(e) => {
+                      // Prevent space at beginning and numbers
+                      const isNumber = /[0-9]/.test(e.key);
+                      if ((e.key === ' ' && e.currentTarget.selectionStart === 0) || isNumber) {
+                        e.preventDefault();
+                      }
+                    }}
+                    onPaste={(e) => {
+                      // Handle paste events
+                      e.preventDefault();
+                      const pastedText = e.clipboardData.getData('text');
+                      const cleanedText = pastedText
+                        .replace(/^\s+/, '')           // Remove leading spaces
+                        .replace(/[0-9]/g, '')         // Remove all numbers
+                        .replace(/\s+/g, ' ');         // Replace multiple spaces with single space
+
+                      const capitalizedValue = capitalizeFirstLetter(cleanedText);
                       handleFieldChange("fullName", capitalizedValue);
                     }}
                   />
@@ -1050,15 +1110,11 @@ const Page: React.FC = () => {
                     Phone Number 1 *
                   </label>
                   <div className="flex gap-2">
-                    <div className="w-24">
-                      <CustomDropdown
-                        options={[
-                          { value: "+94", label: "+94" },
-                          { value: "+91", label: "+91" },
-                          { value: "1", label: "+1" },
-                        ]}
+                    <div className="w-28">
+                      <PhoneCustomDropdown
+                        options={countryOptions}
                         selectedValue={formData.phoneCode1}
-                        onSelect={(value) =>
+                        onSelect={(value: any) =>
                           handleFieldChange("phoneCode1", value)
                         }
                         placeholder="+94"
@@ -1066,7 +1122,7 @@ const Page: React.FC = () => {
                     </div>
                     <div className="w-full">
                       <input
-                        type="text"
+                        type="number"
                         className="w-full h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2 "
                         value={formData.phone1}
                         onChange={(e) =>
@@ -1088,15 +1144,11 @@ const Page: React.FC = () => {
                     Phone Number 2
                   </label>
                   <div className="flex gap-2">
-                    <div className="w-24">
-                      <CustomDropdown
-                        options={[
-                          { value: "+94", label: "+94" },
-                          { value: "+91", label: "+91" },
-                          { value: "+1", label: "+1" },
-                        ]}
+                    <div className="w-28">
+                      <PhoneCustomDropdown
+                        options={countryOptions}
                         selectedValue={formData.phoneCode2}
-                        onSelect={(value) =>
+                        onSelect={(value: any) =>
                           handleFieldChange("phoneCode2", value)
                         }
                         placeholder="+94"
@@ -1104,7 +1156,7 @@ const Page: React.FC = () => {
                     </div>
                     <div className="w-full">
                       <input
-                        type="text"
+                        type="number"
                         className={`w-full h-[39px] border-2 ${duplicatePhoneError ? "border-red-500" : "border-[#F2F4F7]"} bg-[#F9FAFB] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2`}
                         value={formData.phone2}
                         onChange={(e) =>
@@ -1352,8 +1404,9 @@ const Page: React.FC = () => {
                     {formData.geoLatitude && formData.geoLongitude && (
                       <div className="mt-2 space-y-1">
                         <p className="text-xs text-green-600">
-                          Location attached: {formData.geoLatitude.toFixed(6)},{" "}
-                          {formData.geoLongitude.toFixed(6)}
+                          Location attached
+                          {/* : {formData.geoLatitude.toFixed(6)},{" "} */}
+                          {/* {formData.geoLongitude.toFixed(6)} */}
                         </p>
 
                         {/* View Here link - only show if this is from saved address */}
@@ -1365,6 +1418,7 @@ const Page: React.FC = () => {
                               onClick={() => {
                                 setViewingSavedLocation(true);
                                 setIsGeoModalOpen(true);
+                                setIsViewOnly(true);
                               }}
                               className="flex items-center gap-1 text-red-600 hover:text-red-700 transition-colors text-sm font-medium group cursor-pointer"
                             >
@@ -1384,22 +1438,24 @@ const Page: React.FC = () => {
                     onClose={() => {
                       setIsGeoModalOpen(false);
                       setViewingSavedLocation(false);
+                      setIsViewOnly(false);
                     }}
                     onLocationSelect={handleLocationSelect}
                     initialCenter={
                       viewingSavedLocation &&
-                      formData.geoLatitude &&
-                      formData.geoLongitude
+                        formData.geoLatitude &&
+                        formData.geoLongitude
                         ? [formData.geoLatitude, formData.geoLongitude]
                         : mapCenter
                     }
                     savedLocation={
                       viewingSavedLocation &&
-                      formData.geoLatitude &&
-                      formData.geoLongitude
+                        formData.geoLatitude &&
+                        formData.geoLongitude
                         ? [formData.geoLatitude, formData.geoLongitude]
                         : null
                     }
+                    viewOnly={isViewOnly}
                   />
                 </div>
               )}
@@ -1501,13 +1557,14 @@ const Page: React.FC = () => {
                       }}
                       min={getMinDate()}
                     />
-                    {/* Show placeholder text when no date is selected - hidden in Firefox */}
                     {!formData.deliveryDate && (
                       <div className="custom-date-placeholder absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none text-base">
                         mm/dd/yyyy
                       </div>
                     )}
                   </div>
+
+                  
                   {errors.deliveryDate && (
                     <p className="text-red-600 text-sm mt-1">
                       {errors.deliveryDate}
@@ -1557,7 +1614,7 @@ const Page: React.FC = () => {
                     </p>
                   </div>
                   <p className="font-semibold">
-                    Rs.{formatPrice(cartData?.grandTotal || 0)}
+                    Rs. {formatPrice(cartData?.grandTotal || 0)}
                   </p>
                 </div>
 
@@ -1566,14 +1623,14 @@ const Page: React.FC = () => {
                 <div className="flex justify-between text-sm mb-2">
                   <p className="text-gray-600">Total</p>
                   <p className="font-semibold">
-                    Rs.{formatPrice(cartData?.grandTotal || 0)}
+                    Rs. {formatPrice(cartData?.grandTotal || 0)}
                   </p>
                 </div>
 
                 <div className="flex justify-between text-sm mb-2">
                   <p className="text-gray-600">Discount</p>
                   <p className="text-gray-600">
-                    Rs.{formatPrice(cartData?.discountAmount || 0)}
+                    Rs. {formatPrice(cartData?.discountAmount || 0)}
                   </p>
                 </div>
 
@@ -1581,7 +1638,7 @@ const Page: React.FC = () => {
                   <div className="flex justify-between text-sm mb-2">
                     <p className="text-gray-600">Delivery Charges</p>
                     <p className="text-gray-600">
-                      Rs.{formatPrice(deliveryCharge)}
+                      Rs. {formatPrice(deliveryCharge)}
                     </p>
                   </div>
                 )}
@@ -1595,18 +1652,17 @@ const Page: React.FC = () => {
                 <div className="flex justify-between mb-4 text-[20px] text-[#414347]">
                   <p className="font-semibold">Grand Total</p>
                   <p className="font-semibold">
-                    Rs.{formatPrice(calculateFinalTotal())}
+                    Rs. {formatPrice(calculateFinalTotal())}
                   </p>
                 </div>
                 <div className="relative group">
                   <button
                     type="submit"
                     disabled={!isFormValidState || isLoading}
-                    className={`w-full font-semibold rounded-lg px-4 py-3 transition-colors ${
-                      !isFormValidState || isLoading
-                        ? "bg-[#EBEEF2] text-[#B1BAC3] cursor-not-allowed "
-                        : "bg-purple-800 text-white hover:bg-purple-900 cursor-pointer"
-                    }`}
+                    className={`w-full font-semibold rounded-lg px-4 py-3 transition-colors ${!isFormValidState || isLoading
+                      ? "bg-[#EBEEF2] text-[#B1BAC3] cursor-not-allowed "
+                      : "bg-purple-800 text-white hover:bg-purple-900 cursor-pointer"
+                      }`}
                   >
                     {isLoading ? "Processing..." : "Continue to Payment"}
                   </button>
@@ -1624,6 +1680,92 @@ const Page: React.FC = () => {
           </div>
         </div>
       </form>
+    </div>
+  );
+};
+
+const PhoneCustomDropdown: React.FC<any> = ({
+  options,
+  selectedValue,
+  onSelect,
+  placeholder,
+  className = "",
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const selectedOption = options.find(
+    (option: any) => option.value === selectedValue,
+  );
+
+  return (
+    <div className="relative">
+      {/* Display Button */}
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={`h-10 w-full border rounded-md px-4 py-2 focus:outline-none focus:ring-1 cursor-pointer border-gray-300 focus:ring-purple-500 focus:border-purple-500 ${className} ${selectedValue ? "text-black" : "text-gray-500"} flex items-center justify-between bg-white`}
+      >
+        <div className="flex items-center gap-2 flex-1">
+          {selectedOption?.flag && (
+            <img
+              src={selectedOption.flag}
+              alt=""
+              className="w-7 h-6 object-cover flex-shrink-0"
+            />
+          )}
+          <span className="font-medium text-m mr-1">
+            {selectedOption ? selectedOption.label : placeholder}
+          </span>
+        </div>
+        <svg
+          className={`w-4 h-4 transition-transform flex-shrink-0 ${isOpen ? "rotate-180" : ""}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M19 9l-7 7-7-7"
+          />
+        </svg>
+      </button>
+
+      {/* Dropdown Options */}
+      {isOpen && (
+        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
+          {options.map((option: any) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => {
+                onSelect(option.value);
+                setIsOpen(false);
+              }}
+              className={`w-full text-left px-3 py-3 hover:bg-gray-100 flex items-center gap-2 transition-colors ${selectedValue === option.value
+                ? "bg-purple-50 text-purple-700 border-l-4 border-purple-700"
+                : "text-gray-900"
+                }`}
+            >
+              {option.flag && (
+                <img
+                  src={option.flag}
+                  alt=""
+                  className="w-5 h-4 object-cover flex-shrink-0"
+                />
+              )}
+              <span className="truncate font-medium text-m">
+                {option.label}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Click outside to close */}
+      {isOpen && (
+        <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
+      )}
     </div>
   );
 };

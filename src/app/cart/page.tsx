@@ -29,6 +29,7 @@ import summary from "../../../public/summary.png";
 import Image from "next/image";
 import { updateCartInfo } from "@/store/slices/authSlice";
 import { getCartInfo } from "@/services/auth-service";
+import SuccessPopup from "@/components/toast-messages/success-message";
 
 interface PackageItem {
   name: string;
@@ -127,7 +128,7 @@ const Page: React.FC = () => {
   const buyerType = useSelector(
     (state: RootState) => state.auth.user?.buyerType,
   );
-
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const dispatch = useDispatch();
   const router = useRouter();
 
@@ -305,9 +306,12 @@ const Page: React.FC = () => {
       (currentItem.unit.toLowerCase() as "kg" | "g");
     const originalUnit = currentItem.unit.toLowerCase() as "kg" | "g";
 
+    console.log("originalUnit", originalUnit);
+
+
     // Get base changeby and startValue from the item
-    let changeBy = currentItem.changeby || 1;
-    let startValue = currentItem.startValue || 1;
+    let changeBy = originalUnit === 'g' ? currentItem.changeby * 1000 : currentItem.changeby || 1; // Default to 1 if changeby is not provided
+    let startValue = originalUnit === 'g' ? currentItem.startValue * 1000 : currentItem.startValue || 1;
 
     // Only convert changeby and startValue if the selected unit differs from original unit
     if (selectedUnit !== originalUnit) {
@@ -441,6 +445,57 @@ const Page: React.FC = () => {
   };
 
   // Actual package removal after confirmation
+  // const confirmRemovePackage = async (packageId: number) => {
+  //   const itemKey = `package-${packageId}`;
+
+  //   // Prevent multiple simultaneous removals
+  //   if (removingItems.has(itemKey)) return;
+
+  //   try {
+  //     // Add to removing set
+  //     setRemovingItems((prev) => new Set(prev).add(itemKey));
+
+  //     // Make direct API call
+  //     await removeCartPackage(packageId, token);
+  //     //delete popup
+  //     setShowSuccessPopup(true);
+
+  //     // Update Redux store after successful API call
+  //     dispatch(removePackage(packageId));
+
+  //     // Fetch updated cart info after successful removal
+  //     try {
+  //       const cartInfo = await getCartInfo(token);
+  //       dispatch(updateCartInfo(cartInfo));
+  //     } catch (cartError) {
+  //       console.error("Error fetching cart info:", cartError);
+  //       // Don't fail the whole operation if cart info fetch fails
+  //     }
+
+  //     // Optionally refresh cart data to ensure consistency
+  //     const updatedCartData = await getUserCart(token);
+  //     dispatch(
+  //       setCartData({
+  //         cart: updatedCartData.cart,
+  //         packages: updatedCartData.packages,
+  //         additionalItems: updatedCartData.additionalItems,
+  //         summary: updatedCartData.summary,
+  //       }),
+  //     );
+  //   } catch (error: any) {
+  //     console.error("Error removing package:", error);
+  //     // Show error message to user
+  //     alert("Failed to remove package. Please try again.");
+  //   } finally {
+  //     // Remove from removing set
+  //     setRemovingItems((prev) => {
+  //       const newSet = new Set(prev);
+  //       newSet.delete(itemKey);
+  //       return newSet;
+  //     });
+  //   }
+  // };
+
   const confirmRemovePackage = async (packageId: number) => {
     const itemKey = `package-${packageId}`;
 
@@ -451,23 +506,39 @@ const Page: React.FC = () => {
       // Add to removing set
       setRemovingItems((prev) => new Set(prev).add(itemKey));
 
+      console.log("Removing package with ID:", packageId);
+      console.log("Current packages before removal:", cartData.packages);
+
       // Make direct API call
       await removeCartPackage(packageId, token);
+
+      // Show success popup
+      setShowSuccessPopup(true);
 
       // Update Redux store after successful API call
       dispatch(removePackage(packageId));
 
-      // Fetch updated cart info after successful removal
-      try {
-        const cartInfo = await getCartInfo(token);
-        dispatch(updateCartInfo(cartInfo));
-      } catch (cartError) {
-        console.error("Error fetching cart info:", cartError);
-        // Don't fail the whole operation if cart info fetch fails
-      }
+      console.log("After Redux removal - packages:", cartData.packages);
 
-      // Optionally refresh cart data to ensure consistency
+      // Fetch updated cart data
       const updatedCartData = await getUserCart(token);
+
+      console.log("API response after removal:", updatedCartData);
+      console.log("Packages from API:", updatedCartData.packages);
+
+      // Check if the removed package is still in the API response
+      const removedPackageStillExists = updatedCartData.packages?.some(
+        pkg => pkg.id === packageId
+      );
+      console.log("Removed package still in API response?", removedPackageStillExists);
+
+      // Check for duplicate packages
+      const packageIds = updatedCartData.packages?.map(pkg => pkg.id);
+      const uniqueIds = [...new Set(packageIds)];
+      console.log("Package IDs from API:", packageIds);
+      console.log("Unique package IDs:", uniqueIds);
+      console.log("Has duplicates?", packageIds?.length !== uniqueIds?.length);
+
       dispatch(
         setCartData({
           cart: updatedCartData.cart,
@@ -476,9 +547,9 @@ const Page: React.FC = () => {
           summary: updatedCartData.summary,
         }),
       );
+
     } catch (error: any) {
       console.error("Error removing package:", error);
-      // Show error message to user
       alert("Failed to remove package. Please try again.");
     } finally {
       // Remove from removing set
@@ -570,6 +641,8 @@ const Page: React.FC = () => {
       // Call bulk delete API with validated array
       await bulkRemoveCartProducts(validProductIds, token);
 
+      setShowSuccessPopup(true);
+
       // Update Redux store
       validProductIds.forEach((productId) => {
         dispatch(removeProduct(productId));
@@ -594,6 +667,7 @@ const Page: React.FC = () => {
           summary: updatedCartData.summary,
         }),
       );
+
 
       // Clear selections
       setSelectedProducts(new Set());
@@ -806,6 +880,11 @@ const Page: React.FC = () => {
   return (
     <>
       {/* Confirmation Modal - Moved to top level */}
+      <SuccessPopup
+        isVisible={showSuccessPopup}
+        onClose={() => setShowSuccessPopup(false)}
+        title="Successfully Deleted!"
+      />
       {showConfirmModal && (
         <div className="fixed inset-0 bg-black/40 bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-lg w-96 text-center">
@@ -1026,11 +1105,10 @@ const Page: React.FC = () => {
                                           handleUnitChange(item.id, unit)
                                         }
                                         disabled={isRemoving}
-                                        className={`px-3 py-1 text-sm rounded-md border transition-colors cursor-pointer ${
-                                          selectedUnit === unit
-                                            ? "bg-purple-100 text-purple-700 border-purple-300 font-medium"
-                                            : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
-                                        } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                        className={`px-3 py-1 text-sm rounded-md border transition-colors cursor-pointer ${selectedUnit === unit
+                                          ? "bg-purple-100 text-purple-700 border-purple-300 font-medium"
+                                          : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+                                          } disabled:opacity-50 disabled:cursor-not-allowed`}
                                       >
                                         {unit}
                                       </button>
@@ -1058,7 +1136,7 @@ const Page: React.FC = () => {
                                         <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 z-10">
                                           <div className="bg-[#191D28] text-white text-xs px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
                                             {tooltipStates[item.id] ===
-                                            "min" ? (
+                                              "min" ? (
                                               <>
                                                 Minimum quantity is{" "}
                                                 {(() => {
@@ -1164,12 +1242,12 @@ const Page: React.FC = () => {
                                 </td>
                                 <td className="px-4 py-4 text-center">
                                   <span className="text-sm font-medium text-[#3E206D]">
-                                    Rs.{formatPrice(getDisplayDiscount(item))}
+                                    Rs. {formatPrice(getDisplayDiscount(item))}
                                   </span>
                                 </td>
                                 <td className="px-4 py-4 text-center">
                                   <span className="text-sm font-bold text-[#212121]">
-                                    Rs.{formatPrice(getDisplayPrice(item))}
+                                    Rs. {formatPrice(getDisplayPrice(item))}
                                   </span>
                                 </td>
                                 <td className="px-4 py-4 text-center">
@@ -1200,12 +1278,12 @@ const Page: React.FC = () => {
             ))}
 
             <div className="space-y-4 sm:space-y-6 mt-6 sm:mt-8">
-              {cartData.packages.map((pkg) => {
+              {cartData.packages.map((pkg, index) => {
                 const isRemoving = removingItems.has(`package-${pkg.id}`);
 
                 return (
                   <div
-                    key={pkg.id}
+                    key={index}
                     className={`w-full ${isRemoving ? "opacity-50" : ""}`}
                   >
                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-3 sm:mb-4 pb-2 border-b border-gray-300 gap-2 sm:gap-0">
@@ -1292,7 +1370,7 @@ const Page: React.FC = () => {
                   </p>
                 </div>
                 <p className="font-semibold text-sm sm:text-base">
-                  Rs.{formatPrice(dynamicSummary.grandTotal)}
+                  Rs. {formatPrice(dynamicSummary.grandTotal)}
                 </p>
               </div>
 
@@ -1304,8 +1382,7 @@ const Page: React.FC = () => {
                         Coupon Applied
                       </p>
                       <p className="text-xs text-green-600">
-                        You saved Rs.
-                        {calculatedSummary?.totalDiscount?.toFixed(2) || "0.00"}
+                        You saved Rs. {calculatedSummary?.totalDiscount?.toFixed(2) || "0.00"}
                       </p>
                     </div>
                     <button
@@ -1323,11 +1400,10 @@ const Page: React.FC = () => {
 
               {couponMessage && (
                 <div
-                  className={`mt-2 text-sm p-2 rounded ${
-                    couponMessage.type === "success"
-                      ? "bg-green-100 text-green-800 border border-green-200"
-                      : "bg-red-100 text-red-800 border border-red-200"
-                  }`}
+                  className={`mt-2 text-sm p-2 rounded ${couponMessage.type === "success"
+                    ? "bg-green-100 text-green-800 border border-green-200"
+                    : "bg-red-100 text-red-800 border border-red-200"
+                    }`}
                 >
                   {couponMessage.text}
                 </div>
@@ -1338,14 +1414,14 @@ const Page: React.FC = () => {
               <div className="space-y-2 mb-4">
                 <div className="flex justify-between text-sm sm:text-base">
                   <p className="text-gray-600">Total</p>
-                  <p>Rs.{formatPrice(dynamicSummary.grandTotal)}</p>
+                  <p>Rs. {formatPrice(dynamicSummary.grandTotal)}</p>
                 </div>
 
                 {dynamicSummary.totalDiscount > 0 && (
                   <div className="flex justify-between text-sm sm:text-base">
                     <p className="text-gray-600">Discount</p>
                     <p className="text-gray-600">
-                      Rs.{formatPrice(dynamicSummary.totalDiscount)}
+                      Rs. {formatPrice(dynamicSummary.totalDiscount)}
                     </p>
                   </div>
                 )}
@@ -1353,7 +1429,7 @@ const Page: React.FC = () => {
                 <div className="border-t border-gray-200 pt-2">
                   <div className="flex justify-between text-[20px] text-[#414347] font-semibold">
                     <p>Grand Total</p>
-                    <p>Rs.{formatPrice(dynamicSummary.finalTotal)}</p>
+                    <p>Rs. {formatPrice(dynamicSummary.finalTotal)}</p>
                   </div>
                 </div>
               </div>
