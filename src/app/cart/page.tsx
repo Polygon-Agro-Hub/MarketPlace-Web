@@ -445,6 +445,57 @@ const Page: React.FC = () => {
   };
 
   // Actual package removal after confirmation
+  // const confirmRemovePackage = async (packageId: number) => {
+  //   const itemKey = `package-${packageId}`;
+
+  //   // Prevent multiple simultaneous removals
+  //   if (removingItems.has(itemKey)) return;
+
+  //   try {
+  //     // Add to removing set
+  //     setRemovingItems((prev) => new Set(prev).add(itemKey));
+
+  //     // Make direct API call
+  //     await removeCartPackage(packageId, token);
+  //     //delete popup
+  //     setShowSuccessPopup(true);
+
+  //     // Update Redux store after successful API call
+  //     dispatch(removePackage(packageId));
+
+  //     // Fetch updated cart info after successful removal
+  //     try {
+  //       const cartInfo = await getCartInfo(token);
+  //       dispatch(updateCartInfo(cartInfo));
+  //     } catch (cartError) {
+  //       console.error("Error fetching cart info:", cartError);
+  //       // Don't fail the whole operation if cart info fetch fails
+  //     }
+
+  //     // Optionally refresh cart data to ensure consistency
+  //     const updatedCartData = await getUserCart(token);
+  //     dispatch(
+  //       setCartData({
+  //         cart: updatedCartData.cart,
+  //         packages: updatedCartData.packages,
+  //         additionalItems: updatedCartData.additionalItems,
+  //         summary: updatedCartData.summary,
+  //       }),
+  //     );
+  //   } catch (error: any) {
+  //     console.error("Error removing package:", error);
+  //     // Show error message to user
+  //     alert("Failed to remove package. Please try again.");
+  //   } finally {
+  //     // Remove from removing set
+  //     setRemovingItems((prev) => {
+  //       const newSet = new Set(prev);
+  //       newSet.delete(itemKey);
+  //       return newSet;
+  //     });
+  //   }
+  // };
+
   const confirmRemovePackage = async (packageId: number) => {
     const itemKey = `package-${packageId}`;
 
@@ -455,25 +506,39 @@ const Page: React.FC = () => {
       // Add to removing set
       setRemovingItems((prev) => new Set(prev).add(itemKey));
 
+      console.log("Removing package with ID:", packageId);
+      console.log("Current packages before removal:", cartData.packages);
+
       // Make direct API call
       await removeCartPackage(packageId, token);
-      //delete popup
+
+      // Show success popup
       setShowSuccessPopup(true);
 
       // Update Redux store after successful API call
       dispatch(removePackage(packageId));
 
-      // Fetch updated cart info after successful removal
-      try {
-        const cartInfo = await getCartInfo(token);
-        dispatch(updateCartInfo(cartInfo));
-      } catch (cartError) {
-        console.error("Error fetching cart info:", cartError);
-        // Don't fail the whole operation if cart info fetch fails
-      }
+      console.log("After Redux removal - packages:", cartData.packages);
 
-      // Optionally refresh cart data to ensure consistency
+      // Fetch updated cart data
       const updatedCartData = await getUserCart(token);
+
+      console.log("API response after removal:", updatedCartData);
+      console.log("Packages from API:", updatedCartData.packages);
+
+      // Check if the removed package is still in the API response
+      const removedPackageStillExists = updatedCartData.packages?.some(
+        pkg => pkg.id === packageId
+      );
+      console.log("Removed package still in API response?", removedPackageStillExists);
+
+      // Check for duplicate packages
+      const packageIds = updatedCartData.packages?.map(pkg => pkg.id);
+      const uniqueIds = [...new Set(packageIds)];
+      console.log("Package IDs from API:", packageIds);
+      console.log("Unique package IDs:", uniqueIds);
+      console.log("Has duplicates?", packageIds?.length !== uniqueIds?.length);
+
       dispatch(
         setCartData({
           cart: updatedCartData.cart,
@@ -482,9 +547,9 @@ const Page: React.FC = () => {
           summary: updatedCartData.summary,
         }),
       );
+
     } catch (error: any) {
       console.error("Error removing package:", error);
-      // Show error message to user
       alert("Failed to remove package. Please try again.");
     } finally {
       // Remove from removing set
@@ -818,7 +883,7 @@ const Page: React.FC = () => {
       <SuccessPopup
         isVisible={showSuccessPopup}
         onClose={() => setShowSuccessPopup(false)}
-        title="Successfully Deleted!"        
+        title="Successfully Deleted!"
       />
       {showConfirmModal && (
         <div className="fixed inset-0 bg-black/40 bg-opacity-50 flex items-center justify-center z-50">
@@ -1213,12 +1278,12 @@ const Page: React.FC = () => {
             ))}
 
             <div className="space-y-4 sm:space-y-6 mt-6 sm:mt-8">
-              {cartData.packages.map((pkg) => {
+              {cartData.packages.map((pkg, index) => {
                 const isRemoving = removingItems.has(`package-${pkg.id}`);
 
                 return (
                   <div
-                    key={pkg.id}
+                    key={index}
                     className={`w-full ${isRemoving ? "opacity-50" : ""}`}
                   >
                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-3 sm:mb-4 pb-2 border-b border-gray-300 gap-2 sm:gap-0">
