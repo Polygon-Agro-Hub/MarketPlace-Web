@@ -843,6 +843,28 @@ const Page: React.FC = () => {
     return `${formattedInteger}.${decimalPart}`;
   };
 
+  const countries: any[] = [
+    { code: "LK", dialCode: "+94", name: "Sri Lanka" },
+    { code: "VN", dialCode: "+84", name: "Vietnam" },
+    { code: "KH", dialCode: "+855", name: "Cambodia" },
+    { code: "BD", dialCode: "+880", name: "Bangladesh" },
+    { code: "IN", dialCode: "+91", name: "India" },
+    { code: "NL", dialCode: "+31", name: "Netherlands" },
+  ];
+
+  const getFlagUrl = (countryCode: string): string => {
+    return `https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png`;
+  };
+
+  const countryOptions = countries.map((country) => ({
+    value: country.dialCode,
+    label: country.dialCode,
+    flag: getFlagUrl(country.code),
+    countryName: country.name,
+  }));
+
+
+
   return (
     <div>
       <SuccessPopup
@@ -1050,15 +1072,11 @@ const Page: React.FC = () => {
                     Phone Number 1 *
                   </label>
                   <div className="flex gap-2">
-                    <div className="w-24">
-                      <CustomDropdown
-                        options={[
-                          { value: "+94", label: "+94" },
-                          { value: "+91", label: "+91" },
-                          { value: "1", label: "+1" },
-                        ]}
+                    <div className="w-28">
+                      <PhoneCustomDropdown
+                        options={countryOptions}
                         selectedValue={formData.phoneCode1}
-                        onSelect={(value) =>
+                        onSelect={(value: any) =>
                           handleFieldChange("phoneCode1", value)
                         }
                         placeholder="+94"
@@ -1088,15 +1106,11 @@ const Page: React.FC = () => {
                     Phone Number 2
                   </label>
                   <div className="flex gap-2">
-                    <div className="w-24">
-                      <CustomDropdown
-                        options={[
-                          { value: "+94", label: "+94" },
-                          { value: "+91", label: "+91" },
-                          { value: "+1", label: "+1" },
-                        ]}
+                    <div className="w-28">
+                      <PhoneCustomDropdown
+                        options={countryOptions}
                         selectedValue={formData.phoneCode2}
-                        onSelect={(value) =>
+                        onSelect={(value: any) =>
                           handleFieldChange("phoneCode2", value)
                         }
                         placeholder="+94"
@@ -1388,15 +1402,15 @@ const Page: React.FC = () => {
                     onLocationSelect={handleLocationSelect}
                     initialCenter={
                       viewingSavedLocation &&
-                      formData.geoLatitude &&
-                      formData.geoLongitude
+                        formData.geoLatitude &&
+                        formData.geoLongitude
                         ? [formData.geoLatitude, formData.geoLongitude]
                         : mapCenter
                     }
                     savedLocation={
                       viewingSavedLocation &&
-                      formData.geoLatitude &&
-                      formData.geoLongitude
+                        formData.geoLatitude &&
+                        formData.geoLongitude
                         ? [formData.geoLatitude, formData.geoLongitude]
                         : null
                     }
@@ -1602,11 +1616,10 @@ const Page: React.FC = () => {
                   <button
                     type="submit"
                     disabled={!isFormValidState || isLoading}
-                    className={`w-full font-semibold rounded-lg px-4 py-3 transition-colors ${
-                      !isFormValidState || isLoading
+                    className={`w-full font-semibold rounded-lg px-4 py-3 transition-colors ${!isFormValidState || isLoading
                         ? "bg-[#EBEEF2] text-[#B1BAC3] cursor-not-allowed "
                         : "bg-purple-800 text-white hover:bg-purple-900 cursor-pointer"
-                    }`}
+                      }`}
                   >
                     {isLoading ? "Processing..." : "Continue to Payment"}
                   </button>
@@ -1624,6 +1637,92 @@ const Page: React.FC = () => {
           </div>
         </div>
       </form>
+    </div>
+  );
+};
+
+const PhoneCustomDropdown: React.FC<any> = ({
+  options,
+  selectedValue,
+  onSelect,
+  placeholder,
+  className = "",
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const selectedOption = options.find(
+    (option: any) => option.value === selectedValue,
+  );
+
+  return (
+    <div className="relative">
+      {/* Display Button */}
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={`h-10 w-full border rounded-md px-4 py-2 focus:outline-none focus:ring-1 cursor-pointer border-gray-300 focus:ring-purple-500 focus:border-purple-500 ${className} ${selectedValue ? "text-black" : "text-gray-500"} flex items-center justify-between bg-white`}
+      >
+        <div className="flex items-center gap-2 flex-1">
+          {selectedOption?.flag && (
+            <img
+              src={selectedOption.flag}
+              alt=""
+              className="w-7 h-6 object-cover flex-shrink-0"
+            />
+          )}
+          <span className="font-medium text-m mr-1">
+            {selectedOption ? selectedOption.label : placeholder}
+          </span>
+        </div>
+        <svg
+          className={`w-4 h-4 transition-transform flex-shrink-0 ${isOpen ? "rotate-180" : ""}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M19 9l-7 7-7-7"
+          />
+        </svg>
+      </button>
+
+      {/* Dropdown Options */}
+      {isOpen && (
+        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
+          {options.map((option: any) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => {
+                onSelect(option.value);
+                setIsOpen(false);
+              }}
+              className={`w-full text-left px-3 py-3 hover:bg-gray-100 flex items-center gap-2 transition-colors ${selectedValue === option.value
+                  ? "bg-purple-50 text-purple-700 border-l-4 border-purple-700"
+                  : "text-gray-900"
+                }`}
+            >
+              {option.flag && (
+                <img
+                  src={option.flag}
+                  alt=""
+                  className="w-5 h-4 object-cover flex-shrink-0"
+                />
+              )}
+              <span className="truncate font-medium text-m">
+                {option.label}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Click outside to close */}
+      {isOpen && (
+        <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
+      )}
     </div>
   );
 };
