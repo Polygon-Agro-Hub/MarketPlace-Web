@@ -2,13 +2,15 @@
 
 import { RootState } from "@/store";
 import { useState, useEffect } from "react";
-import { FiSearch } from "react-icons/fi";
+import { FiSearch, FiX } from "react-icons/fi";
 import { useSelector } from "react-redux";
 import {
   getMarketplaceSuggestions,
   excludeItems,
 } from "@/services/product-service";
 import { useRouter } from "next/navigation";
+import Lottie from "react-lottie";
+import noResultsAnimation from "../../../../public/noAddItem.json";
 
 interface Item {
   displayName: string;
@@ -107,11 +109,20 @@ export default function ExcludeItems() {
             className="w-full p-2 pl-4 pr-10 rounded bg-[#EFE4FF] text-[#3E206D] placeholder-[#3E206D] placeholder-italic text-center italic text-[12px] md:text-[16px] outline-none"
             aria-label="Search products"
           />
-          <FiSearch
-            className="absolute right-3 cursor-pointer top-1/2 transform -translate-y-1/2 text-[#3E206D]"
-            aria-label="Search icon"
-          />
+          {searchQuery ? (
+            <FiX
+              className="absolute right-3 cursor-pointer top-1/2 transform -translate-y-1/2 text-[#3E206D]"
+              onClick={() => setSearchQuery("")}
+              aria-label="Clear search"
+            />
+          ) : (
+            <FiSearch
+              className="absolute right-3 cursor-pointer top-1/2 transform -translate-y-1/2 text-[#3E206D]"
+              aria-label="Search icon"
+            />
+          )}
         </div>
+
         {/* Loading and Error States */}
         {loading && <p className="text-center text-[#4C5160]">Loading...</p>}
         {error && <p className="text-center text-red-500">{error}</p>}
@@ -129,7 +140,23 @@ export default function ExcludeItems() {
 
         {/* Item List */}
         {!loading && !error && filteredItems.length === 0 && (
-          <p className="text-center text-[#4C5160]">No items found</p>
+          <div className="flex flex-col items-center justify-center py-8">
+            <Lottie
+              options={{
+                loop: false,
+                autoplay: true,
+                animationData: noResultsAnimation,
+                rendererSettings: {
+                  preserveAspectRatio: "xMidYMid slice",
+                },
+              }}
+              height={200}
+              width={200}
+            />
+            <p className="text-center text-[#4C5160] text-sm md:text-base italic mt-4">
+              No items found
+            </p>
+          </div>
         )}
         {!loading && !error && filteredItems.length > 0 && (
           <div className="space-y-3">

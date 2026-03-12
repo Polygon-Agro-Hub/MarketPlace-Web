@@ -11,6 +11,8 @@ import {
   updateUserStatus,
 } from "@/services/product-service";
 import { useRouter } from "next/navigation";
+import SuccessPopup from "@/components/toast-messages/success-message";
+import Loader from "@/components/loader-spinner/Loader";
 
 interface Item {
   displayName: string;
@@ -29,6 +31,9 @@ export default function ExcludedItems() {
   const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const [isBulkDelete, setIsBulkDelete] = useState<boolean>(false);
+  const [showSuccessPopup, setShowSuccessPopup] = useState<boolean>(false);
+  const [successMessage, setSuccessMessage] = useState<string>("");
+  const [continueLoading, setContinueLoading] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchExcludedItems = async () => {
@@ -97,11 +102,17 @@ export default function ExcludedItems() {
       setSelectedItems((prev) =>
         prev.filter((name) => !itemsToDelete.includes(name)),
       );
-      setSubmitStatus(
+
+      // Show success popup
+      setSuccessMessage(
         isBulkDelete
           ? "Selected items removed from exclude list!"
           : `Item "${itemToDelete}" removed from exclude list!`,
       );
+      setShowSuccessPopup(true);
+      setTimeout(() => {
+        setShowSuccessPopup(false);
+      }, 3000);
     } else {
       setSubmitStatus(
         response.message || "Failed to remove items from exclude list.",
@@ -140,7 +151,7 @@ export default function ExcludedItems() {
     }
 
     setSubmitStatus(null);
-    setLoading(true);
+    setContinueLoading(true);
 
     try {
       if (selectedItems.length > 0) {
@@ -149,7 +160,7 @@ export default function ExcludedItems() {
           setSubmitStatus(
             excludeResponse.message || "Failed to exclude items.",
           );
-          setLoading(false);
+          setContinueLoading(false);
           return;
         }
       }
@@ -159,172 +170,219 @@ export default function ExcludedItems() {
         setSubmitStatus(
           statusResponse.message || "Failed to update user status.",
         );
-        setLoading(false);
+        setContinueLoading(false);
         return;
       }
 
       setSelectedItems([]);
-      router.push("/");
+      router.push("/signin");
     } catch (error) {
       console.error("Error in handleContinue:", error);
       setSubmitStatus("An unexpected error occurred.");
-    } finally {
-      setLoading(false);
+      setContinueLoading(false);
     }
   };
   return (
-    <div className="w-full flex flex-col justify-center items-center min-h-screen p-6 bg-white">
-      <h2 className="text-[20px] md:text-[30px] font-bold mb-2 text-center text-[#001535]">
-        Items you have chosen to exclude
-      </h2>
-      <p className="text-[14px] md:text-[22px] text-[#4C5160] mb-4 whitespace-normal text-center px-4">
-        We’ll make sure these items are not included in any
-        <br className="block md:hidden" />
-        package unless you update your preferences.
-      </p>
+    <div className="w-full min-h-screen p-6 bg-white">
+      <Loader isVisible={continueLoading} />
+      <SuccessPopup
+        isVisible={showSuccessPopup}
+        onClose={() => setShowSuccessPopup(false)}
+        title="Success!"
+        description={successMessage}
+        duration={3000}
+      />
 
-      <div className="w-full max-w-[700px]">
-        {selectedItems.length > 0 && (
-          <div className="w-full flex justify-end mb-2">
-            <button
-              onClick={handleDeleteSelectedClick}
-              className="flex items-center gap-1 text-red-600 cursor-pointer  hover:underline  font-semibold"
-              aria-label="Delete selected items"
-            >
-              <Trash fill="red" className="w-4 h-4 cursor-pointer" />
-              Delete Selected Items
-            </button>
-          </div>
-        )}
-
-        {loading && <p className="text-center text-[#4C5160]">Loading...</p>}
-        {error && <p className="text-center text-red-500">{error}</p>}
-
-        {!loading && !error && filteredItems.length > 0 && (
-          <div className="overflow-hidden border border-[#CFCFCF] rounded-[15px] p-3">
-            <table className="w-full">
-              <thead>
-                <tr className="text-[#8492A3] font-semibold">
-                  <th className="p-2 text-left w-[10%]">
-                    <input
-                      type="checkbox"
-                      checked={allSelected}
-                      onChange={handleSelectAll}
-                      className="accent-[#4C5160] cursor-pointer"
-                      aria-label="Select all items"
-                    />
-                  </th>
-                  <th className="p-2 text-left w-[20%]">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-[#8492A3]">ITEM</span>
-                      <span className="text-[#8492A3] text-[12px] md:text-[14px]">
-                        ({filteredItems.length.toString().padStart(2, "0")})
-                      </span>
-                    </div>
-                  </th>
-                  <th className="p-2 text-left w-[50%]">ITEM NAME</th>
-                  <th className="p-2 text-left w-[20%]">ACTION</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredItems.map((item) => (
-                  <tr key={item.displayName}>
-                    <td className="p-2">
-                      <input
-                        type="checkbox"
-                        checked={selectedItems.includes(item.displayName)}
-                        onChange={() => handleToggle(item.displayName)}
-                        className="mr-2 cursor-pointer accent-[#4C5160]"
-                        aria-label={`Select ${item.displayName} to exclude`}
-                      />
-                    </td>
-                    <td className="p-2">
-                      <img
-                        src={item.image}
-                        alt={item.displayName}
-                        className="w-10 h-10 object-contain"
-                        onError={(e) => {
-                          e.currentTarget.src = "/images/fallback.png";
-                        }}
-                      />
-                    </td>
-                    <td className="p-2">
-                      <span className="text-[16px] md:text-[20px] font-medium">
-                        {item.displayName}
-                      </span>
-                    </td>
-                    <td className="p-2">
-                      <Trash
-                        fill="red"
-                        onClick={() => handleDeleteClick(item.displayName)}
-                        className="text-red-600 cursor-pointer  ml-4 p-1  text-[25px]"
-                        aria-label={`Delete ${item.displayName}`}
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {!loading && !error && filteredItems.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-10">
-            <img
-              src="/icons/no complaints.png"
-              alt="No complaints"
-              className="w-64 h-64 mb-4 object-contain"
+      {/* Back button with Add More link - Top Left */}
+      <div className="w-full mb-8 flex items-center gap-3">
+        <button
+          onClick={() => router.push("/exclude/exclude")}
+          className="flex items-center justify-center w-11 h-11 border border-[1px] border-[#D4D8DC] rounded-2xl bg-[#FFFFFF] shadow-sm hover:bg-[#D4D8DC] active:scale-95 transition-all duration-150 cursor-pointer"
+          aria-label="Go back"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-[18px] w-[18px] text-gray-600"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2.5}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M15 19l-7-7 7-7"
             />
-            <p className="text-center italic text-[#717171] text-[14px] md:text-[16px]">
-              --You have not added any items to the exclude list--
-            </p>
-          </div>
-        )}
+          </svg>
+        </button>
+
+        <button
+          onClick={() => router.push("/exclude/exclude")}
+          className="text-gray-800 font-medium text-sm md:text-base border-b border-gray-800 leading-tight hover:text-gray-500 hover:border-gray-500 transition-colors duration-150 cursor-pointer"
+          aria-label="Add more items"
+        >
+          Add More
+        </button>
       </div>
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 flex justify-center items-center backdrop-blur-sm z-50">
-          <div className="bg-white rounded-xl p-6 sm:p-8 shadow-xl text-center wAXIS OF EVIL -full max-w-md">
-            <Trash fill="red" className="mx-auto text-red-600 w-12 h-12 mb-4" />
-            <h2 className="text-lg sm:text-xl font-semibold text-black">
-              {isBulkDelete
-                ? "Are you sure you want to remove these items from your exclude list?"
-                : `Are you sure you want to remove "${itemToDelete}" from your exclude list?`}
-            </h2>
-            <p className="text-gray-500 text-sm mt-2">
-              This action will allow{" "}
-              {isBulkDelete ? "these items" : "this item"} to be included in
-              future packages unless re-added to the exclude list.
-            </p>
-            <div className="mt-6 flex flex-col sm:flex-row justify-center gap-4">
+      {/* Centered Content */}
+      <div className="w-full flex flex-col items-center">
+        <h2 className="text-[20px] md:text-[30px] font-bold mb-2 text-center text-[#001535]">
+          Items you have chosen to exclude
+        </h2>
+        <p className="text-[14px] md:text-[22px] text-[#4C5160] mb-4 whitespace-normal text-center px-4">
+          We’ll make sure these items are not included in any
+          <br className="block md:hidden" />
+          package unless you update your preferences.
+        </p>
+
+        <div className="w-full max-w-[700px]">
+          {selectedItems.length > 0 && (
+            <div className="w-full flex justify-end mb-2">
               <button
-                onClick={handleCancelDelete}
-                className="w-full sm:w-32 px-4 py-2 cursor-pointer rounded-md border bg-white text-[#3E206D] border-[#3E206D] hover:bg-gray-50"
-                aria-label="Cancel deletion"
+                onClick={handleDeleteSelectedClick}
+                className="flex items-center gap-1 text-red-600 cursor-pointer  hover:underline  font-semibold"
+                aria-label="Delete selected items"
               >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirmDelete}
-                className="w-full sm:w-32 px-4 py-2 rounded-md cursor-pointer bg-red-600 text-white hover:bg-red-700"
-                aria-label="Confirm deletion"
-              >
-                Delete
+                <Trash fill="red" className="w-4 h-4 cursor-pointer" />
+                Delete Selected Items
               </button>
             </div>
-          </div>
-        </div>
-      )}
+          )}
 
-      <div className="w-full max-w-md">
-        <button
-          onClick={handleContinue}
-          className="w-full bg-[#3E206D] cursor-pointer text-white p-2 rounded mt-13 font-semibold text-sm md:text-base"
-          aria-label="Continue with selected exclusions"
-        >
-          Continue Shopping
-        </button>
+          {loading && <p className="text-center text-[#4C5160]">Loading...</p>}
+          {error && <p className="text-center text-red-500">{error}</p>}
+
+          {!loading && !error && filteredItems.length > 0 && (
+            <div className="overflow-hidden border border-[#CFCFCF] rounded-[15px] p-3">
+              <table className="w-full">
+                <thead>
+                  <tr className="text-[#8492A3] font-semibold">
+                    <th className="p-2 text-left w-[10%]">
+                      <input
+                        type="checkbox"
+                        checked={allSelected}
+                        onChange={handleSelectAll}
+                        className="accent-[#4C5160] cursor-pointer"
+                        aria-label="Select all items"
+                      />
+                    </th>
+                    <th className="p-2 text-left w-[20%] text-[#8492A3] font-medium">
+                      ITEM ({String(items.length).padStart(2, "0")})
+                    </th>
+                    <th className="p-2 text-left w-[50%] text-[#8492A3] font-medium">
+                      ITEM NAME
+                    </th>
+                    <th className="p-2 text-left w-[20%] text-[#8492A3] font-medium">
+                      ACTION
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredItems.map((item) => (
+                    <tr key={item.displayName}>
+                      <td className="p-2">
+                        <input
+                          type="checkbox"
+                          checked={selectedItems.includes(item.displayName)}
+                          onChange={() => handleToggle(item.displayName)}
+                          className="mr-2 cursor-pointer accent-[#4C5160]"
+                          aria-label={`Select ${item.displayName} to exclude`}
+                        />
+                      </td>
+                      <td className="p-2">
+                        <img
+                          src={item.image}
+                          alt={item.displayName}
+                          className="w-10 h-10 object-contain"
+                          onError={(e) => {
+                            e.currentTarget.src = "/images/fallback.png";
+                          }}
+                        />
+                      </td>
+                      <td className="p-2">
+                        <span className="text-[16px] md:text-[20px] font-medium">
+                          {item.displayName}
+                        </span>
+                      </td>
+                      <td className="p-2">
+                        <Trash
+                          fill="red"
+                          onClick={() => handleDeleteClick(item.displayName)}
+                          className="text-red-600 cursor-pointer  ml-4 p-1  text-[25px]"
+                          aria-label={`Delete ${item.displayName}`}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {!loading && !error && filteredItems.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-10">
+              <img
+                src="/icons/no complaints.png"
+                alt="No complaints"
+                className="w-64 h-64 mb-4 object-contain"
+              />
+              <p className="text-center italic text-[#717171] text-[14px] md:text-[16px]">
+                --You have not added any items to the exclude list--
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteModal && (
+          <div className="fixed inset-0 flex justify-center items-center bg-black/40 z-50">
+            <div className="bg-white rounded-xl p-6 sm:p-8 shadow-xl text-center w-full max-w-md">
+              <Trash fill="red" className="mx-auto text-red-600 w-12 h-12 mb-4" />
+              <h2 className="text-lg sm:text-xl font-semibold text-black">
+                {isBulkDelete
+                  ? "Are you sure you want to remove these items from your exclude list?"
+                  : `Are you sure you want to remove "${itemToDelete}" from your exclude list?`}
+              </h2>
+              <p className="text-gray-500 text-sm mt-2">
+                This action will allow{" "}
+                {isBulkDelete ? "these items" : "this item"} to be included in
+                future packages unless re-added to the exclude list.
+              </p>
+              <div className="mt-6 flex flex-col sm:flex-row justify-center gap-4">
+                <button
+                  onClick={handleCancelDelete}
+                  className="w-full sm:w-32 px-4 py-2 cursor-pointer rounded-md border bg-white text-[#3E206D] border-[#3E206D] hover:bg-gray-50"
+                  aria-label="Cancel deletion"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmDelete}
+                  className="w-full sm:w-32 px-4 py-2 rounded-md cursor-pointer bg-red-600 text-white hover:bg-red-700"
+                  aria-label="Confirm deletion"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="w-full max-w-md">
+          <button
+            onClick={handleContinue}
+            disabled={continueLoading}
+            className={`w-full bg-[#3E206D] text-white p-2 rounded mt-13 font-semibold text-sm md:text-base ${
+              continueLoading
+                ? "opacity-50 cursor-not-allowed"
+                : "cursor-pointer hover:bg-[#341a5a]"
+            }`}
+            aria-label="Continue with selected exclusions"
+          >
+            {continueLoading ? "Processing..." : "Continue Shopping"}
+          </button>
+        </div>
       </div>
     </div>
   );

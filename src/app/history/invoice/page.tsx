@@ -39,7 +39,12 @@ interface BillingInfo {
   street: string;
   city: string;
   phone: string;
+  buildingNo?: string;
+  apartmentName?: string;
+  flatNo?: string;
+  floorNo?: string;
 }
+
 interface PickupInfo {
   centerId?: string;
   centerName: string;
@@ -170,11 +175,11 @@ function InvoiceView({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-4">
         <div className="order-2 sm:order-1">
           <p className="text-base sm:text-lg font-semibold">
-            Polygon Holdings (Pvt) Ltd
+            Polygon Holdings (Private) Ltd
           </p>
           <div className="text-xs sm:text-sm">
-            <p>No. 614, Nawam Mawatha, Colombo 02</p>
-            <p>Contact No: +94 112 700 900</p>
+            <p>No. 42/46, Nawam Mawatha, Colombo 02</p>
+            <p>Contact No: +94 770 111 999</p>
             <p>Email Address: info@polygon.lk</p>
           </div>
         </div>
@@ -227,13 +232,25 @@ function InvoiceView({
                     <span className="font-normal" style={{ color: "#929292" }}>
                       No :
                     </span>{" "}
-                    {invoice.billingInfo.houseNo},
+                    {invoice.billingInfo.buildingNo || "N/A"},
                   </p>
                   <p>
                     <span className="font-normal" style={{ color: "#929292" }}>
                       Name :
                     </span>{" "}
-                    {invoice.billingInfo.street},
+                    {invoice.billingInfo.apartmentName || "N/A"},
+                  </p>
+                  <p>
+                    <span className="font-normal" style={{ color: "#929292" }}>
+                      Flat :
+                    </span>{" "}
+                    {invoice.billingInfo.flatNo || "N/A"},
+                  </p>
+                  <p>
+                    <span className="font-normal" style={{ color: "#929292" }}>
+                      Floor :
+                    </span>{" "}
+                    {invoice.billingInfo.floorNo || "N/A"},
                   </p>
                   <p>
                     <span className="font-normal" style={{ color: "#929292" }}>
@@ -245,7 +262,7 @@ function InvoiceView({
                     <span className="font-normal" style={{ color: "#929292" }}>
                       Street Name :
                     </span>{" "}
-                    {invoice.billingInfo.street},
+                    {invoice.billingInfo.street}
                   </p>
                   <p>
                     <span className="font-normal" style={{ color: "#929292" }}>
@@ -299,7 +316,7 @@ function InvoiceView({
             {invoice.familyPackItems.map((pack, packIndex) => (
               <div key={pack.id} className="mb-4">
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 gap-2">
-                  <h2 className="font-semibold text-sm sm:text-base">{`${pack.name} (${formatItemCount(pack.packageDetails?.length || 0)})`}</h2>
+                  <h2 className="font-semibold text-sm sm:text-base">{`${pack.name} (${formatItemCount(pack.packageDetails?.reduce((sum, detail) => sum + (detail.qty || 0), 0) || 0)})`}</h2>
                   <span className="font-semibold text-lg">
                     {formatCurrencyWithCommas(pack.amount)}
                   </span>
@@ -656,7 +673,7 @@ function InvoicePageContent() {
               {
                 columns: [
                   {
-                    text: `${pack.name} (${formatItemCount(pack.packageDetails?.length || 0)})`,
+                    text: `${pack.name} (${formatItemCount(pack.packageDetails?.reduce((sum, detail) => sum + (detail.qty || 0), 0) || 0)})`,
                     bold: true,
                     fontSize: 9,
                     margin: [0, 8, 0, 4],
@@ -931,8 +948,8 @@ function InvoicePageContent() {
                 bold: true,
                 fontSize: 11,
               },
-              { text: "No. 614, Nawam Mawatha, Colombo 02", fontSize: 9 },
-              { text: "Contact No: +94 112 700 900", fontSize: 9 },
+              { text: "No. 42/46, Nawam Mawatha, Colombo 02", fontSize: 9 },
+              { text: "Contact No: +94 770 111 999", fontSize: 9 },
               { text: "Email Address : info@polygon.lk", fontSize: 9 },
             ],
             [
@@ -1033,7 +1050,7 @@ function InvoicePageContent() {
                                   color: "#929292",
                                 },
                                 {
-                                  text: `${invoice.billingInfo.houseNo},`,
+                                  text: `${invoice.billingInfo.buildingNo || "N/A"},`,
                                   fontSize: 9,
                                 },
                               ],
@@ -1047,7 +1064,35 @@ function InvoicePageContent() {
                                   color: "#929292",
                                 },
                                 {
-                                  text: `${invoice.billingInfo.street},`,
+                                  text: `${invoice.billingInfo.apartmentName || "N/A"},`,
+                                  fontSize: 9,
+                                },
+                              ],
+                            },
+                            {
+                              text: [
+                                {
+                                  text: "Flat : ",
+                                  fontSize: 9,
+                                  bold: false,
+                                  color: "#929292",
+                                },
+                                {
+                                  text: `${invoice.billingInfo.flatNo || "N/A"},`,
+                                  fontSize: 9,
+                                },
+                              ],
+                            },
+                            {
+                              text: [
+                                {
+                                  text: "Floor : ",
+                                  fontSize: 9,
+                                  bold: false,
+                                  color: "#929292",
+                                },
+                                {
+                                  text: `${invoice.billingInfo.floorNo || "N/A"},`,
                                   fontSize: 9,
                                 },
                               ],
@@ -1380,6 +1425,10 @@ function InvoicePageContent() {
             street: apiInvoice.billingInfo?.street || "N/A",
             city: apiInvoice.billingInfo?.city || "N/A",
             phone: apiInvoice.billingInfo?.phone || "N/A",
+            buildingNo: apiInvoice.billingInfo?.buildingNo || undefined,
+            apartmentName: apiInvoice.billingInfo?.buildingName || undefined,
+            flatNo: apiInvoice.billingInfo?.flatNo || undefined,
+            floorNo: apiInvoice.billingInfo?.floorNo || undefined,
           },
 
           pickupInfo: apiInvoice.pickupInfo

@@ -449,7 +449,7 @@ const Page: React.FC = () => {
   return (
     <div className="px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5">
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white p-8 rounded-2xl text-center w-[90%] max-w-md shadow-xl">
             {isError ? (
               /* Error Icon with Animation */
@@ -786,7 +786,7 @@ const Page: React.FC = () => {
                 </p>
               </div>
               <p className="font-semibold">
-                Rs.{formatPrice(displayValues.totalPrice || 0)}
+                Rs.{" "}{formatPrice(displayValues.totalPrice || 0)}
               </p>
             </div>
 
@@ -838,14 +838,14 @@ const Page: React.FC = () => {
             <div className="flex justify-between text-sm mb-2">
               <p className="text-gray-600">Total</p>
               <p className="font-semibold">
-                Rs.{formatPrice(displayValues.totalPrice || 0)}
+                Rs.{" "}{formatPrice(displayValues.totalPrice || 0)}
               </p>
             </div>
 
             <div className="flex justify-between text-sm mb-2">
               <p className="text-gray-600">Discount</p>
               <p className="text-gray-600">
-                Rs.{formatPrice(displayValues.discountAmount || 0)}
+                Rs.{" "}{formatPrice(displayValues.discountAmount || 0)}
               </p>
             </div>
 
@@ -853,7 +853,7 @@ const Page: React.FC = () => {
               <div className="flex justify-between text-sm mb-2">
                 <p className="text-gray-600">Coupon Discount</p>
                 <p className="text-gray-600">
-                  Rs.{formatPrice(displayValues.couponDiscount || 0)}
+                  Rs.{" "}{formatPrice(displayValues.couponDiscount || 0)}
                 </p>
               </div>
             )}
@@ -868,11 +868,11 @@ const Page: React.FC = () => {
                 <div className="flex items-center gap-2">
                   {displayValues.isFreeDelivery && (
                     <p className="text-gray-600 line-through">
-                      Rs.{formatPrice(deliveryCharge || 0)}
+                      Rs.{" "}{formatPrice(deliveryCharge || 0)}
                     </p>
                   )}
                   <p className="text-gray-600 font-semibold">
-                    Rs.{formatPrice(displayValues.deliveryCharges || 0)}
+                    Rs.{" "}{formatPrice(displayValues.deliveryCharges || 0)}
                   </p>
                 </div>
               </div>
@@ -883,7 +883,7 @@ const Page: React.FC = () => {
             <div className="flex justify-between mb-4 text-[20px] text-[#414347]">
               <p className="font-semibold">Grand Total</p>
               <p className="font-semibold">
-                Rs.{formatPrice(displayValues.grandTotal || 0)}
+                Rs.{" "}{formatPrice(displayValues.grandTotal || 0)}
               </p>
             </div>
             <div className="mt-8">

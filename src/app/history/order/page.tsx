@@ -66,6 +66,7 @@ interface OrderSummary {
   total: string;
   orderPlaced: string;
   status: string;
+  createdAt: Date; 
 }
 
 interface DetailedOrder {
@@ -201,6 +202,7 @@ export default function OrderHistoryPage() {
   const token = useSelector((state: RootState) => state.auth.token);
   const [orders, setOrders] = useState<OrderSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filterLoading, setFilterLoading] = useState(false);
   const [filter, setFilter] = useState("this-week");
   const [selectedOrder, setSelectedOrder] = useState<DetailedOrder | null>(
     null,
@@ -248,6 +250,7 @@ export default function OrderHistoryPage() {
               ? formatDateTime(order.createdAt, "date")
               : "N/A",
             status: order.processStatus || "Pending",
+            createdAt: new Date(order.createdAt || order.scheduleDate),
           }),
         );
 
@@ -409,47 +412,36 @@ export default function OrderHistoryPage() {
     filter === "all"
       ? orders
       : orders.filter((order) => {
-          const orderDate = new Date(
-            order.orderPlaced !== "N/A"
-              ? order.orderPlaced
-              : order.scheduleDate,
-          );
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
+          const now = new Date();
+          const orderDate = order.createdAt;
 
-          const startOfThisWeek = new Date(today);
-          startOfThisWeek.setDate(today.getDate() - today.getDay()); // Sunday
-
-          const startOfLastWeek = new Date(startOfThisWeek);
-          startOfLastWeek.setDate(startOfThisWeek.getDate() - 7);
-
-          const startOfLast2Weeks = new Date(startOfThisWeek);
-          startOfLast2Weeks.setDate(startOfThisWeek.getDate() - 14);
-
-          const oneMonthAgo = new Date(today);
-          oneMonthAgo.setMonth(today.getMonth() - 1);
-
-          const threeMonthsAgo = new Date(today);
-          threeMonthsAgo.setMonth(today.getMonth() - 3);
-
-          switch (filter) {
-            case "this-week":
-              return orderDate >= startOfThisWeek && orderDate <= today;
-            case "last-week":
-              return (
-                orderDate >= startOfLastWeek && orderDate < startOfThisWeek
-              );
-            case "last-2-weeks":
-              return (
-                orderDate >= startOfLast2Weeks && orderDate < startOfThisWeek
-              );
-            case "this-month":
-              return orderDate >= oneMonthAgo && orderDate <= today;
-            case "last-3-months":
-              return orderDate >= threeMonthsAgo && orderDate <= today;
-            default:
-              return true;
+          if (filter === "this-week") {
+            const startOfThisWeek = new Date(now);
+            startOfThisWeek.setDate(now.getDate() - now.getDay()); // Sunday
+            startOfThisWeek.setHours(0, 0, 0, 0);
+            return orderDate >= startOfThisWeek && orderDate <= now;
+          } else if (filter === "last-week") {
+            const startOfThisWeek = new Date(now);
+            startOfThisWeek.setDate(now.getDate() - now.getDay());
+            startOfThisWeek.setHours(0, 0, 0, 0);
+            const startOfLastWeek = new Date(startOfThisWeek);
+            startOfLastWeek.setDate(startOfThisWeek.getDate() - 7);
+            return orderDate >= startOfLastWeek && orderDate < startOfThisWeek;
+          } else if (filter === "last-2-weeks") {
+            const startOfThisWeek = new Date(now);
+            startOfThisWeek.setDate(now.getDate() - now.getDay());
+            startOfThisWeek.setHours(0, 0, 0, 0);
+            const startOfLast2Weeks = new Date(startOfThisWeek);
+            startOfLast2Weeks.setDate(startOfThisWeek.getDate() - 14);
+            return orderDate >= startOfLast2Weeks && orderDate < startOfThisWeek;
+          } else if (filter === "this-month") {
+            const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1);
+            return orderDate >= oneMonthAgo;
+          } else if (filter === "last-3-months") {
+            const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3);
+            return orderDate >= threeMonthsAgo;
           }
+          return true;
         });
 
   const handleFilterChange = (
@@ -457,7 +449,12 @@ export default function OrderHistoryPage() {
     actionMeta: ActionMeta<{ value: string; label: string }>,
   ): void => {
     if (newValue) {
-      setFilter(newValue.value);
+      setFilterLoading(true);
+      // Use setTimeout to show loading state while filtering is applied
+      setTimeout(() => {
+        setFilter(newValue.value);
+        setFilterLoading(false);
+      }, 300);
     }
   };
 
@@ -541,7 +538,11 @@ export default function OrderHistoryPage() {
               </div>
             </div>
 
-            {filteredOrders.length > 0 ? (
+            {filterLoading ? (
+              <div className="flex flex-col items-center justify-center h-[50vh] text-center">
+                <Loader isVisible={true} />
+              </div>
+            ) : filteredOrders.length > 0 ? (
               <div className="lg:mx-[72px] space-y-4">
                 {filteredOrders.map((order) => (
                   <div
@@ -823,9 +824,8 @@ function PickupOrderView({
                   {order.pickupInfo?.centerName || "N/A"}
                 </span>
                 <div className="text-sm text-gray-700 mt-1">
-                  {order.pickupInfo?.city || "N/A"},{" "}
-                  {order.pickupInfo?.district || "N/A"},{" "}
-                  {order.pickupInfo?.province || "N/A"}
+                  <p>{order.pickupInfo?.city || "N/A"}, {order.pickupInfo?.district || "N/A"}</p>
+                  <p>{order.pickupInfo?.province || "N/A"} province, {order.pickupInfo?.country || "N/A"}</p>
                 </div>
               </div>
             </div>
@@ -874,8 +874,8 @@ function PickupOrderView({
                     <div className="flex justify-between items-center mb-4">
                       <span className="font-medium text-black">
                         {pack.name} (
-                        {String(pack.items?.length ?? 0).padStart(2, "0")} Item
-                        {pack.items?.length > 1 ? "s" : ""})
+                        {String(pack.items?.reduce((sum, item) => sum + (parseFloat(item.quantity) || 0), 0) ?? 0).padStart(2, "0")}{" "}
+                        Items)
                       </span>
                       <span className="font-semibold text-[#3E206D]">
                         Rs. {familyPackTotal}
@@ -1003,11 +1003,9 @@ function PickupOrderView({
                     {order.pickupInfo?.centerName || "N/A"}
                   </span>
                 </div>
-                <div className="flex flex-wrap gap-2 text-sm items-center">
-                  <span>{order.pickupInfo?.province || "N/A"} province ,</span>
-                  <span>{order.pickupInfo?.city || "N/A"}</span>
-                  <br />
-                  <span>{order.pickupInfo?.district || "N/A"}</span>
+                <div className="text-sm">
+                  <p>{order.pickupInfo?.city || "N/A"}, {order.pickupInfo?.district || "N/A"}</p>
+                  <p>{order.pickupInfo?.province || "N/A"} province, {order.pickupInfo?.country || "N/A"}</p>
                 </div>
               </div>
             </div>
@@ -1066,8 +1064,8 @@ function PickupOrderView({
                       <tr className="border-b border-t border-[rgb(229,231,235)]">
                         <td colSpan={3} className="font-medium py-2 p-4">
                           {pack.name} (
-                          {String(pack.items?.length ?? 0).padStart(2, "0")}{" "}
-                          item{pack.items?.length > 1 ? "s" : ""})
+                          {String(pack.items?.reduce((sum, item) => sum + (parseFloat(item.quantity) || 0), 0) ?? 0).padStart(2, "0")}{" "}
+                          items)
                         </td>
                         <td
                           className="text-right font-semibold py-2 p-4"
@@ -1365,7 +1363,7 @@ function DeliveryOrderView({
                     <div className="flex justify-between items-center mb-4">
                       <span className="font-medium text-black">
                         {pack.name} (
-                        {String(pack.items?.length ?? 0).padStart(2, "0")}{" "}
+                        {String(pack.items?.reduce((sum, item) => sum + (parseFloat(item.quantity) || 0), 0) ?? 0).padStart(2, "0")}{" "}
                         Items)
                       </span>
                       <span className="font-semibold text-[#3E206D]">
@@ -1568,7 +1566,7 @@ function DeliveryOrderView({
               <h4 className="font-medium text-[rgb(55,65,81)] mb-1">
                 Receiving Person Information:
               </h4>
-              <p className="font-semibold">
+              <p className="font-semibold mb-1">
                 {order.title || "N/A"}. {order.fullName || "N/A"}
               </p>
               <p>
@@ -1620,7 +1618,7 @@ function DeliveryOrderView({
                       <tr className="border-b border-t border-[rgb(229,231,235)]">
                         <td colSpan={3} className="font-medium py-2 p-4">
                           {pack.name} (
-                          {String(pack.items?.length ?? 0).padStart(2, "0")}{" "}
+                          {String(pack.items?.reduce((sum, item) => sum + (parseFloat(item.quantity) || 0), 0) ?? 0).padStart(2, "0")}{" "}
                           Items)
                         </td>
                         <td
