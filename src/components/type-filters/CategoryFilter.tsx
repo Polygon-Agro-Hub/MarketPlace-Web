@@ -246,8 +246,8 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
                                             image={product.image}
                                             discount={product.discount}
                                             unitType={product.unitType}
-                                            startValue={product.startValue}
-                                            changeby={product.changeby}
+                                            startValue={product.unitType.toLocaleLowerCase() === 'g' ? product.startValue * 1000 : product.startValue}
+                                            changeby={product.unitType.toLocaleLowerCase() === 'g' ? product.changeby * 1000 : product.changeby}
                                         />
                                     </div>
                                 ))
