@@ -106,18 +106,7 @@ const initialFormState: FormData = {
   companycenterId: null,
 };
 
-const Page: React.FC = () => {
-  const NavArray = [
-    { name: "Cart", path: "/cart", status: true },
-    { name: "Checkout", path: "/checkout", status: true },
-    { name: "Payment", path: "/payment", status: false },
-  ];
-  const dispatch = useDispatch<AppDispatch>();
-  // const storedFormData = useSelector((state: RootState) => state.checkout);
-
-  const [formData, setFormDataLocal] = useState<FormData>(initialFormState);
-
-  const [errors, setErrors] = useState<FormErrors>({
+const initioalError = {
     centerId: "",
     deliveryMethod: "",
     title: "",
@@ -139,7 +128,20 @@ const Page: React.FC = () => {
     scheduleType: "",
     geoLatitude: "",
     geoLongitude: "",
-  });
+  }
+
+const Page: React.FC = () => {
+  const NavArray = [
+    { name: "Cart", path: "/cart", status: true },
+    { name: "Checkout", path: "/checkout", status: true },
+    { name: "Payment", path: "/payment", status: false },
+  ];
+  const dispatch = useDispatch<AppDispatch>();
+  // const storedFormData = useSelector((state: RootState) => state.checkout);
+
+  const [formData, setFormDataLocal] = useState<FormData>(initialFormState);
+
+  const [errors, setErrors] = useState<FormErrors>(initioalError);
 
   // Add this new state for duplicate phone error
   const [duplicatePhoneError, setDuplicatePhoneError] = useState("");
@@ -176,6 +178,7 @@ const Page: React.FC = () => {
   const [isGeoModalOpen, setIsGeoModalOpen] = useState(false);
   const [companycenterId, setCompanycenterId] = useState<number | null>(null);
   const [viewingSavedLocation, setViewingSavedLocation] = useState(false);
+  const [isViewOnly, setIsViewOnly] = useState(false);
   const memoizedPickupCenters = useMemo(() => pickupCenters, [pickupCenters]);
 
   useEffect(() => {
@@ -308,6 +311,7 @@ const Page: React.FC = () => {
     if (value === "previous") {
       setUsePreviousAddress(true);
       setFetching(true);
+      setErrors(initioalError)
 
       try {
         const response = await getLastOrderAddress(token);
@@ -1400,8 +1404,9 @@ const Page: React.FC = () => {
                     {formData.geoLatitude && formData.geoLongitude && (
                       <div className="mt-2 space-y-1">
                         <p className="text-xs text-green-600">
-                          Location attached: {formData.geoLatitude.toFixed(6)},{" "}
-                          {formData.geoLongitude.toFixed(6)}
+                          Location attached
+                          {/* : {formData.geoLatitude.toFixed(6)},{" "} */}
+                          {/* {formData.geoLongitude.toFixed(6)} */}
                         </p>
 
                         {/* View Here link - only show if this is from saved address */}
@@ -1413,6 +1418,7 @@ const Page: React.FC = () => {
                               onClick={() => {
                                 setViewingSavedLocation(true);
                                 setIsGeoModalOpen(true);
+                                setIsViewOnly(true);
                               }}
                               className="flex items-center gap-1 text-red-600 hover:text-red-700 transition-colors text-sm font-medium group cursor-pointer"
                             >
@@ -1432,6 +1438,7 @@ const Page: React.FC = () => {
                     onClose={() => {
                       setIsGeoModalOpen(false);
                       setViewingSavedLocation(false);
+                      setIsViewOnly(false);
                     }}
                     onLocationSelect={handleLocationSelect}
                     initialCenter={
@@ -1448,6 +1455,7 @@ const Page: React.FC = () => {
                         ? [formData.geoLatitude, formData.geoLongitude]
                         : null
                     }
+                    viewOnly={isViewOnly}
                   />
                 </div>
               )}
@@ -1549,13 +1557,14 @@ const Page: React.FC = () => {
                       }}
                       min={getMinDate()}
                     />
-                    {/* Show placeholder text when no date is selected - hidden in Firefox */}
                     {!formData.deliveryDate && (
                       <div className="custom-date-placeholder absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none text-base">
                         mm/dd/yyyy
                       </div>
                     )}
                   </div>
+
+                  
                   {errors.deliveryDate && (
                     <p className="text-red-600 text-sm mt-1">
                       {errors.deliveryDate}
@@ -1605,7 +1614,7 @@ const Page: React.FC = () => {
                     </p>
                   </div>
                   <p className="font-semibold">
-                    Rs.{formatPrice(cartData?.grandTotal || 0)}
+                    Rs. {formatPrice(cartData?.grandTotal || 0)}
                   </p>
                 </div>
 
@@ -1614,14 +1623,14 @@ const Page: React.FC = () => {
                 <div className="flex justify-between text-sm mb-2">
                   <p className="text-gray-600">Total</p>
                   <p className="font-semibold">
-                    Rs.{formatPrice(cartData?.grandTotal || 0)}
+                    Rs. {formatPrice(cartData?.grandTotal || 0)}
                   </p>
                 </div>
 
                 <div className="flex justify-between text-sm mb-2">
                   <p className="text-gray-600">Discount</p>
                   <p className="text-gray-600">
-                    Rs.{formatPrice(cartData?.discountAmount || 0)}
+                    Rs. {formatPrice(cartData?.discountAmount || 0)}
                   </p>
                 </div>
 
@@ -1629,7 +1638,7 @@ const Page: React.FC = () => {
                   <div className="flex justify-between text-sm mb-2">
                     <p className="text-gray-600">Delivery Charges</p>
                     <p className="text-gray-600">
-                      Rs.{formatPrice(deliveryCharge)}
+                      Rs. {formatPrice(deliveryCharge)}
                     </p>
                   </div>
                 )}
@@ -1643,7 +1652,7 @@ const Page: React.FC = () => {
                 <div className="flex justify-between mb-4 text-[20px] text-[#414347]">
                   <p className="font-semibold">Grand Total</p>
                   <p className="font-semibold">
-                    Rs.{formatPrice(calculateFinalTotal())}
+                    Rs. {formatPrice(calculateFinalTotal())}
                   </p>
                 </div>
                 <div className="relative group">
