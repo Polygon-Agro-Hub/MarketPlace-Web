@@ -120,7 +120,7 @@ const Page: React.FC = () => {
   const [errors, setErrors] = useState<FormErrors>({
     centerId: "",
     deliveryMethod: "",
-    title: "Title is required.",
+    title: "",
     fullName: "",
     phone1: "",
     phone2: "",
@@ -1046,7 +1046,7 @@ const Page: React.FC = () => {
                   >
                     Full name *
                   </label>
-                  <input
+                  {/* <input
                     type="text"
                     className="w-full border-2 border-[#F2F4F7] bg-[#F9FAFB] h-[39px] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-3 text-base capitalize"
                     placeholder="Enter your full name"
@@ -1055,6 +1055,40 @@ const Page: React.FC = () => {
                       const capitalizedValue = capitalizeFirstLetter(
                         e.target.value,
                       );
+                      handleFieldChange("fullName", capitalizedValue);
+                    }}
+                  /> */}
+                  <input
+                    type="text"
+                    className="w-full border-2 border-[#F2F4F7] bg-[#F9FAFB] h-[39px] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-3 text-base capitalize"
+                    placeholder="Enter your full name"
+                    value={formData.fullName}
+                    onChange={(e) => {
+                      // Remove leading spaces and numbers
+                      const value = e.target.value
+                        .replace(/^\s+/, '')           // Remove leading spaces
+                        .replace(/[0-9]/g, '');        // Remove all numbers
+
+                      const capitalizedValue = capitalizeFirstLetter(value);
+                      handleFieldChange("fullName", capitalizedValue);
+                    }}
+                    onKeyDown={(e) => {
+                      // Prevent space at beginning and numbers
+                      const isNumber = /[0-9]/.test(e.key);
+                      if ((e.key === ' ' && e.currentTarget.selectionStart === 0) || isNumber) {
+                        e.preventDefault();
+                      }
+                    }}
+                    onPaste={(e) => {
+                      // Handle paste events
+                      e.preventDefault();
+                      const pastedText = e.clipboardData.getData('text');
+                      const cleanedText = pastedText
+                        .replace(/^\s+/, '')           // Remove leading spaces
+                        .replace(/[0-9]/g, '')         // Remove all numbers
+                        .replace(/\s+/g, ' ');         // Replace multiple spaces with single space
+
+                      const capitalizedValue = capitalizeFirstLetter(cleanedText);
                       handleFieldChange("fullName", capitalizedValue);
                     }}
                   />
@@ -1084,7 +1118,7 @@ const Page: React.FC = () => {
                     </div>
                     <div className="w-full">
                       <input
-                        type="text"
+                        type="number"
                         className="w-full h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2 "
                         value={formData.phone1}
                         onChange={(e) =>
@@ -1118,7 +1152,7 @@ const Page: React.FC = () => {
                     </div>
                     <div className="w-full">
                       <input
-                        type="text"
+                        type="number"
                         className={`w-full h-[39px] border-2 ${duplicatePhoneError ? "border-red-500" : "border-[#F2F4F7]"} bg-[#F9FAFB] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2`}
                         value={formData.phone2}
                         onChange={(e) =>
@@ -1617,8 +1651,8 @@ const Page: React.FC = () => {
                     type="submit"
                     disabled={!isFormValidState || isLoading}
                     className={`w-full font-semibold rounded-lg px-4 py-3 transition-colors ${!isFormValidState || isLoading
-                        ? "bg-[#EBEEF2] text-[#B1BAC3] cursor-not-allowed "
-                        : "bg-purple-800 text-white hover:bg-purple-900 cursor-pointer"
+                      ? "bg-[#EBEEF2] text-[#B1BAC3] cursor-not-allowed "
+                      : "bg-purple-800 text-white hover:bg-purple-900 cursor-pointer"
                       }`}
                   >
                     {isLoading ? "Processing..." : "Continue to Payment"}
@@ -1700,8 +1734,8 @@ const PhoneCustomDropdown: React.FC<any> = ({
                 setIsOpen(false);
               }}
               className={`w-full text-left px-3 py-3 hover:bg-gray-100 flex items-center gap-2 transition-colors ${selectedValue === option.value
-                  ? "bg-purple-50 text-purple-700 border-l-4 border-purple-700"
-                  : "text-gray-900"
+                ? "bg-purple-50 text-purple-700 border-l-4 border-purple-700"
+                : "text-gray-900"
                 }`}
             >
               {option.flag && (
