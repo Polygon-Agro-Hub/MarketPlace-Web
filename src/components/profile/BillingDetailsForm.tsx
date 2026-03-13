@@ -271,7 +271,7 @@ const BillingDetailsForm = () => {
     { value: 'apartment', label: 'Apartment' },
   ];
   const cityOptions = cities.map((city) => ({
-    value: city.toLowerCase(),
+    value: city,
     label: city,
   }));
 

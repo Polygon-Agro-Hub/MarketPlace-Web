@@ -199,7 +199,7 @@ export default function Page() {
         setTimeout(() => router.push('/reset-password-phone'), 2000);
       } else if (statusCode === '1001') {
         setIsError(true);
-        setModalMessage('Invalid OTP. Please try again.');
+        setModalMessage('This Password Reset Link is expired.');
         setIsModalOpen(true);
       } else if (statusCode === '1002' || statusCode === '1003') {
         // Handle expired OTP from server response
@@ -352,7 +352,7 @@ export default function Page() {
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
           <div className="bg-white p-8 rounded-2xl text-center w-[90%] max-w-md shadow-xl">
             {isError ? (
               /* Error Icon with Animation */
