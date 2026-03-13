@@ -130,10 +130,10 @@ const ViewMyList = () => {
         </p>
         {selectedItems.length > 0 && items.length > 0 && (
           <button
-            className="flex items-center gap-2 text-red-600 hover:underline font-semibold text-sm sm:text-base"
+            className="flex items-center gap-2 text-red-600 underline font-semibold text-sm sm:text-base cursor-pointer"
             onClick={handleDeleteSelectedClick}
           >
-            <Trash fill="red" className="w-4 h-4" />
+            <Trash fill="red" className="w-4 h-4 cursor-pointer" />
             Delete Selected Items
           </button>
         )}

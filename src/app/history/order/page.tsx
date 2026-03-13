@@ -23,6 +23,7 @@ interface DetailedItem {
   quantity: string;
   unit: string;
   image?: string;
+  amount?: string; 
 }
 
 interface DetailedPackage {
@@ -293,16 +294,19 @@ export default function OrderHistoryPage() {
 
       if (orderData.status && orderData.order) {
         const apiOrder = orderData.order;
-        const additionalItemsDiscount =
-          additionalItemsData.status && additionalItemsData.data
-            ? additionalItemsData.data.reduce(
-                (sum: number, item: any) =>
-                  sum + parseFloat(item.discount || "0"),
-                0,
-              )
-            : 0;
-        const totalDiscount =
-          parseFloat(apiOrder.discount || "0") + additionalItemsDiscount;
+        
+        // Backend's discount field already includes all discounts (packages + additional items)
+        // So we use it directly, not add additional items discount again
+        const totalDiscount = parseFloat(apiOrder.discount || "0");
+        
+        console.log('Order Discount Breakdown:', {
+          orderDiscount: apiOrder.discount,
+          additionalItemsDiscounts: additionalItemsData.data?.map((item: any) => ({
+            name: item.displayName,
+            discount: item.discount
+          })),
+          totalDiscountUsed: totalDiscount
+        });
 
         const detailedOrder: DetailedOrder = {
           orderId: String(apiOrder.id) || "N/A",
@@ -375,21 +379,28 @@ export default function OrderHistoryPage() {
               : [],
           additionalItems:
             additionalItemsData.status && additionalItemsData.data
-              ? additionalItemsData.data.map((item: any) => ({
-                  id: item.id || 0,
-                  name: item.displayName || "Unknown",
-                  quantity: String(item.qty || 1),
-                  unit: item.unit || "kg",
-                  weight: `${item.qty || "1"} ${item.unit || "kg"}`,
-                  price: formatCurrency(parseFloat(item.price || "0"), 2),
-                  image: item.image || undefined,
-                  amount: formatCurrency(
-                    item.price && item.qty
-                      ? parseFloat(item.price) * parseFloat(item.qty)
-                      : 0,
-                    2,
-                  ),
-                }))
+              ? additionalItemsData.data.map((item: any) => {
+                  // Backend sends 'price' as the final total amount (already includes qty calculation and discount)
+                  // So we use it directly as the amount, not multiply by qty
+                  console.log('Backend Additional Item:', {
+                    name: item.displayName,
+                    price: item.price,
+                    qty: item.qty,
+                    unit: item.unit,
+                    discount: item.discount
+                  });
+                  return {
+                    id: item.id || 0,
+                    name: item.displayName || "Unknown",
+                    quantity: String(item.qty || 1),
+                    unit: item.unit || "kg",
+                    weight: `${item.qty || "1"} ${item.unit || "kg"}`,
+                    price: formatCurrency(parseFloat(item.price || "0"), 2),
+                    image: item.image || undefined,
+                    // Use price directly as amount since backend already calculated it
+                    amount: formatCurrency(parseFloat(item.price || "0"), 2),
+                  };
+                })
               : [],
           discount: formatCurrency(
             totalDiscount > 0 ? ` ${totalDiscount.toFixed(2)}` : " 0.00",
@@ -743,12 +754,14 @@ function PickupOrderView({
       0,
     ) || 0;
 
+  // Use pre-calculated amount from backend, don't recalculate
   const additionalItemsTotalNum =
     order.additionalItems?.reduce(
-      (sum, item) =>
-        sum +
-        parseFloat(item.price.replace("Rs. ", "").replace(/,/g, "") || "0") *
-          parseFloat(item.quantity),
+      (sum, item) => {
+        const itemAmount = parseFloat(item.amount?.replace("Rs. ", "").replace(/,/g, "") || "0");
+        console.log('[PickupOrderView] Additional Item:', item.name, 'Amount:', item.amount, 'Parsed:', itemAmount);
+        return sum + itemAmount;
+      },
       0,
     ) || 0;
 
@@ -1196,12 +1209,14 @@ function DeliveryOrderView({
       0,
     ) || 0;
 
+  // Use pre-calculated amount from backend, don't recalculate
   const additionalItemsTotalNum =
     order.additionalItems?.reduce(
-      (sum, item) =>
-        sum +
-        parseFloat(item.price.replace("Rs. ", "").replace(/,/g, "") || "0") *
-          parseFloat(item.quantity),
+      (sum, item) => {
+        const itemAmount = parseFloat(item.amount?.replace("Rs. ", "").replace(/,/g, "") || "0");
+        console.log('[DeliveryOrderView] Additional Item:', item.name, 'Amount:', item.amount, 'Parsed:', itemAmount);
+        return sum + itemAmount;
+      },
       0,
     ) || 0;
 

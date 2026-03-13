@@ -118,6 +118,10 @@ const AddMoreItems = () => {
 
     setSelectedItems([]);
     setSubmitStatus("Items successfully excluded.");
+    
+    // Scroll to top of the page
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
     setShowSuccessPopup(true);
     setTimeout(() => {
       setSubmitStatus(null);
@@ -143,6 +147,10 @@ const AddMoreItems = () => {
         prev.filter((item) => !itemsToDelete.includes(item)),
       );
       setSubmitStatus("Items deleted successfully!");
+      
+      // Scroll to top of the page
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      
       setShowSuccessPopup(true);
       setTimeout(() => {
         setSubmitStatus(null);

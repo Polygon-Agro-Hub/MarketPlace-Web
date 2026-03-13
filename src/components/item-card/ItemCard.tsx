@@ -373,10 +373,11 @@ const ItemCard = ({
 
   return (
     <div
-      className={`relative bg-white rounded-xl md:rounded-3xl shadow-sm border border-gray-200 w-full flex flex-col items-center transition-all duration-300 hover:shadow-md cursor-default ${showQuantitySelector
-        ? "h-[260px] sm:h-[300px] md:h-[320px]"
-        : "h-[200px] sm:h-[260px] md:h-[280px]"
-        }`}
+      className={`relative bg-white rounded-xl md:rounded-3xl shadow-sm border border-gray-200 w-full flex flex-col items-center transition-all duration-300 hover:shadow-md cursor-default ${
+        showQuantitySelector
+          ? "h-[260px] sm:h-[300px] md:h-[320px]"
+          : "h-[200px] sm:h-[260px] md:h-[280px]"
+      }`}
     >
       {/* Error message */}
       {error && (
@@ -412,7 +413,6 @@ const ItemCard = ({
       <div
         className={`w-full h-full flex flex-col items-center justify-between p-2`}
       >
-        {/* Product image - adjusted height based on quantity selector */}
         {/* Product image - adjusted height based on quantity selector */}
         <div
           className={`w-full flex items-center justify-center ${discount ? "mt-4" : "mt-0"} ${showQuantitySelector ? "h-20" : "flex-grow max-h-36"}`}
@@ -466,19 +466,21 @@ const ItemCard = ({
                 <div className="flex rounded overflow-hidden gap-2 cursor-pointer">
                   <button
                     onClick={() => handleUnitChange("kg")}
-                    className={`w-8 text-xs py-1 border rounded-md cursor-pointer ${unit === "kg"
-                      ? "bg-purple-100 text-purple-900 border-purple-300"
-                      : "bg-gray-100 text-gray-500 border-gray-200"
-                      }`}
+                    className={`w-8 text-xs py-1 border rounded-md cursor-pointer ${
+                      unit === "kg"
+                        ? "bg-purple-100 text-purple-900 border-purple-300"
+                        : "bg-gray-100 text-gray-500 border-gray-200"
+                    }`}
                   >
                     kg
                   </button>
                   <button
                     onClick={() => handleUnitChange("g")}
-                    className={`w-8 text-xs py-1 border cursor-pointer rounded-md ${unit === "g"
-                      ? "bg-purple-100 text-purple-900 border-purple-300"
-                      : "bg-gray-100 text-gray-500 border-gray-200"
-                      }`}
+                    className={`w-8 text-xs py-1 border cursor-pointer rounded-md ${
+                      unit === "g"
+                        ? "bg-purple-100 text-purple-900 border-purple-300"
+                        : "bg-gray-100 text-gray-500 border-gray-200"
+                    }`}
                   >
                     g
                   </button>
@@ -522,7 +524,7 @@ const ItemCard = ({
         <div className="flex justify-center w-full lg:mb-4">
           <Tooltip />
           {addedToCart ? (
-            <button className="w-full max-w-[180px] sm:max-w-[200px] md:max-w-[220px] py-2 px-1.5 rounded rounded-lg md:rounded-xl flex items-center justify-center gap-1 text-xs md:text-sm bg-[#EDE1FF] text-purple-900 border border-[#3E206D] transition-colors cursor-pointer">
+            <button className="w-full hover:shadow-md transition-shadow duration-300 cursor-pointer max-w-[180px] sm:max-w-[200px] md:max-w-[220px] py-2 px-1.5 rounded rounded-lg md:rounded-xl flex items-center justify-center gap-1 text-xs md:text-sm bg-[#EDE1FF] text-purple-900 border border-[#3E206D] transition-colors cursor-pointer">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 className="h-5 w-5"
@@ -543,15 +545,16 @@ const ItemCard = ({
               onMouseEnter={() => setIsHovering(true)}
               onMouseLeave={() => setIsHovering(false)}
               disabled={isLoading || isInCart}
-              className={`w-full max-w-[180px] sm:max-w-[200px] md:max-w-[220px] py-2 px-1.5 rounded rounded-lg md:rounded-xl flex items-center justify-center gap-1 text-xs md:text-sm transition-colors ${isInCart
-                ? "bg-[#EDE1FF] text-gray-500 cursor-not-allowed"
-                : token &&
-                  user &&
-                  showQuantitySelector &&
-                  buyerType !== "Wholesale"
-                  ? "bg-purple-900 text-white hover:bg-purple-800 cursor-pointer"
-                  : "bg-white border border-[#D7D7D7] text-gray-400 hover:bg-[#3E206D] hover:text-white cursor-pointer shadow-[0px_1px_0px_0px_#D7D7D7]"
-                } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+              className={`w-full max-w-[180px] sm:max-w-[200px] md:max-w-[220px] py-2 px-1.5 rounded rounded-lg md:rounded-xl flex items-center justify-center gap-1 text-xs md:text-sm transition-all duration-200 ${
+                isInCart
+                  ? "bg-[#EDE1FF] text-gray-500 cursor-not-allowed"
+                  : token &&
+                      user &&
+                      showQuantitySelector &&
+                      buyerType !== "Wholesale"
+                    ? "bg-purple-900 text-white hover:bg-purple-800 cursor-pointer hover:shadow-md hover:shadow-purple-300"
+                    : "bg-white border border-[#D7D7D7] text-gray-400 hover:bg-[#3E206D] hover:text-white cursor-pointer shadow-[0px_1px_0px_0px_#D7D7D7] hover:shadow-md hover:shadow-purple-300"
+              } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               {!showQuantitySelector && !isInCart && (
                 <svg
@@ -572,9 +575,9 @@ const ItemCard = ({
               {isInCart
                 ? "Already in Cart"
                 : token &&
-                  user &&
-                  showQuantitySelector &&
-                  buyerType !== "Wholesale"
+                    user &&
+                    showQuantitySelector &&
+                    buyerType !== "Wholesale"
                   ? "Add to Cart"
                   : buyerType === "Wholesale"
                     ? "Add to Cart"

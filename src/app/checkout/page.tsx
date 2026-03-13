@@ -130,6 +130,27 @@ const initioalError = {
     geoLongitude: "",
   }
 
+// Field label mapping for dynamic validation messages
+const fieldLabels: Record<string, string> = {
+  buildingNo: "Apartment or Building No",
+  buildingName: "Apartment or Building Name",
+  flatNumber: "Flat / Unit Number",
+  floorNumber: "Floor Number",
+  houseNo: "House Number",
+  street: "Street",
+  cityName: "Nearest City",
+  title: "Title",
+  fullName: "Full Name",
+  phone1: "Phone Number 1",
+  phone2: "Phone Number 2",
+  timeSlot: "Time Slot",
+  deliveryDate: "Delivery Date",
+  buildingType: "Building Type",
+  geoLatitude: "Geo Location",
+  geoLongitude: "Geo Location",
+  centerId: "Pickup Center",
+};
+
 const Page: React.FC = () => {
   const NavArray = [
     { name: "Cart", path: "/cart", status: true },
@@ -152,6 +173,7 @@ const Page: React.FC = () => {
 
   const [isLoading, setIsLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+  const [isLoadingAddress, setIsLoadingAddress] = useState(false); // New state for address loading
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const cartPrices = useSelector((state: RootState) => state.cart) || null;
@@ -311,6 +333,7 @@ const Page: React.FC = () => {
     if (value === "previous") {
       setUsePreviousAddress(true);
       setFetching(true);
+      setIsLoadingAddress(true); // Start loading
       setErrors(initioalError)
 
       try {
@@ -382,9 +405,11 @@ const Page: React.FC = () => {
         setDeliveryCharge(0);
       } finally {
         setFetching(false);
+        setIsLoadingAddress(false); // Stop loading
       }
     } else {
       setUsePreviousAddress(false);
+      setIsLoadingAddress(true); // Start loading for new address
       setSelectedCity(null);
       // Reset only the form fields, keep the delivery method
       setFormDataLocal((prev) => ({
@@ -393,6 +418,10 @@ const Page: React.FC = () => {
       }));
       // Reset delivery charge to default
       setDeliveryCharge(0);
+      // Simulate brief loading for UI consistency
+      setTimeout(() => {
+        setIsLoadingAddress(false); // Stop loading
+      }, 300);
     }
   };
 
@@ -647,16 +676,16 @@ const Page: React.FC = () => {
         return "";
 
       case "fullName":
-        if (!trimmed) return "Full Name is required.";
+        if (!trimmed) return `${fieldLabels.fullName} is required.`;
         if (!/^[A-Za-z\s]+$/.test(trimmed))
           return "Full Name must only contain letters and spaces.";
         return "";
 
       case "title":
-        return !trimmed ? "Title is required." : "";
+        return !trimmed ? `${fieldLabels.title} is required.` : "";
 
       case "phone1":
-        if (!value) return "Phone number 1 is required.";
+        if (!value) return `${fieldLabels.phone1} is required.`;
         if (!/^\d{9}$/.test(value.toString()))
           return "Please enter a valid mobile number (format: 7XXXXXXXX)";
         return "";
@@ -667,10 +696,10 @@ const Page: React.FC = () => {
           : "";
 
       case "timeSlot":
-        return !trimmed ? "Time slot is required." : "";
+        return !trimmed ? `${fieldLabels.timeSlot} is required.` : "";
 
       case "deliveryDate":
-        if (!value) return "Delivery Date is required.";
+        if (!value) return `${fieldLabels.deliveryDate} is required.`;
 
         const selectedDate = new Date(value.toString());
         const today = new Date();
@@ -692,25 +721,25 @@ const Page: React.FC = () => {
 
       // Address fields - only required for home delivery
       case "buildingType":
-        return isHomeDelivery && !trimmed ? "Building type is required." : "";
+        return isHomeDelivery && !trimmed ? `${fieldLabels.buildingType} is required.` : "";
 
       case "buildingName":
       case "buildingNo":
       case "floorNumber":
       case "flatNumber":
         return isHomeDelivery && isApartment && !trimmed
-          ? `${field.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase())} is required.`
+          ? `${fieldLabels[field]} is required.`
           : "";
 
       case "street":
       case "houseNo":
         return isHomeDelivery && !trimmed
-          ? `${field.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase())} is required.`
+          ? `${fieldLabels[field]} is required.`
           : "";
 
       case "cityName":
         if (isHomeDelivery) {
-          if (!trimmed) return "Nearest City is required.";
+          if (!trimmed) return `${fieldLabels.cityName} is required.`;
           if (!selectedCity) return "Please select a valid city.";
         }
         return "";
@@ -720,7 +749,7 @@ const Page: React.FC = () => {
         // UPDATED: Make geo location required for home delivery
         if (isHomeDelivery) {
           if (value === null || value === undefined) {
-            return "Geo location is required. Please attach your location.";
+            return `${fieldLabels.geoLatitude} is required. Please attach your location.`;
           }
         }
         return "";
@@ -866,8 +895,6 @@ const Page: React.FC = () => {
     flag: getFlagUrl(country.code),
     countryName: country.name,
   }));
-
-
 
   return (
     <div>
@@ -1180,7 +1207,17 @@ const Page: React.FC = () => {
               </div>
 
               {formData.deliveryMethod === "home" && (
-                <div className="flex flex-wrap -mx-2">
+                <>
+                  {/* Loading indicator for address fetching */}
+                  {isLoadingAddress && (
+                    <div className="flex justify-center items-center py-12">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+                      <span className="ml-3 text-gray-600 text-lg">Loading address...</span>
+                    </div>
+                  )}
+                  
+                  {!isLoadingAddress && (
+                    <div className="flex flex-wrap -mx-2">
                   {/* Building Type */}
                   <div className="w-full md:w-1/2 px-2 mb-4">
                     <label className="block text-[#2E2E2E] font-semibold mb-1">
@@ -1458,6 +1495,8 @@ const Page: React.FC = () => {
                     viewOnly={isViewOnly}
                   />
                 </div>
+                  )}
+                </>
               )}
 
               <div className="border-t border-gray-300 my-6"></div>

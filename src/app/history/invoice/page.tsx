@@ -1314,6 +1314,7 @@ function InvoicePageContent() {
               fontSize: 9,
             },
           ],
+          lineHeight: 1.5,
           margin: [0, 6, 0, 6],
         },
 
@@ -1321,8 +1322,10 @@ function InvoicePageContent() {
         {
           text: "Thank you for shopping with us!",
           italics: true,
+          bold: true,
           alignment: "center",
           fontSize: 9,
+          lineHeight: 1.5,
           margin: [0, 10, 0, 2],
         },
         {
@@ -1330,6 +1333,7 @@ function InvoicePageContent() {
           italics: true,
           alignment: "center",
           fontSize: 9,
+          lineHeight: 1.5,
         },
         {
           text: "-THIS IS A COMPUTER GENERATED INVOICE, THUS NO SIGNATURE REQUIRED-",

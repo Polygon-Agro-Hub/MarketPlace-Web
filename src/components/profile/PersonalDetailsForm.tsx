@@ -311,9 +311,28 @@ const PersonalDetailsForm = () => {
   const countryCodeValue = watch('countryCode');
   const countryCode2Value = watch('countryCode2');
   const companyPhoneCodeValue = watch('companyPhoneCode');
+  const currentPassword = watch('currentPassword');
+  const newPassword = watch('newPassword');
+  const confirmPassword = watch('confirmPassword');
   const formValues = watch();
 
   const hasErrors = Object.keys(errors).length > 0;
+
+  // Check if password fields are in an incomplete state
+  const isPasswordFieldsIncomplete = () => {
+    const hasCurrentPassword = currentPassword && currentPassword.trim() !== '';
+    const hasNewPassword = newPassword && newPassword.trim() !== '';
+    const hasConfirmPassword = confirmPassword && confirmPassword.trim() !== '';
+    
+    // Count how many password fields are filled
+    const filledPasswordFields = [hasCurrentPassword, hasNewPassword, hasConfirmPassword].filter(Boolean).length;
+    
+    if (filledPasswordFields > 0 && filledPasswordFields < 3) {
+      return true; // Incomplete - disable save button
+    }
+    
+    return false; // Either all filled or all empty - allow save
+  };
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -801,7 +820,7 @@ const PersonalDetailsForm = () => {
           <div className="md:w-[56%]">
             <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">Phone Number</label>
             <div className="flex gap-4">
-              <div className="relative w-[30%] md:w-[15%]">
+              <div className="relative max-w-[30%] md:max-w-[18%]">
                 <CustomDropdown
                   register={register}
                   name="countryCode"
@@ -1005,12 +1024,12 @@ const PersonalDetailsForm = () => {
 
             <button
               type="submit"
-              className={`px-6 py-2.5 text-[12px] md:text-[16px] font-medium rounded-lg text-white leading-none ${isLoading || hasErrors
+              className={`px-6 py-2.5 text-[12px] md:text-[16px] font-medium rounded-lg text-white leading-none ${isLoading || hasErrors || isPasswordFieldsIncomplete()
                 ? 'bg-gray-400 cursor-not-allowed opacity-50'
                 : 'bg-[#3E206D] hover:bg-[#341a5a] cursor-pointer'
                 }`}
               onClick={handleProfileUpdate}
-              disabled={isLoading || hasErrors}
+              disabled={isLoading || hasErrors || isPasswordFieldsIncomplete()}
             >
               Save
             </button>
