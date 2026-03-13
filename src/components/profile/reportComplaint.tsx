@@ -415,6 +415,10 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
       setSuccessMessage(
         `Complaint ${complaint?.id ? 'updated' : 'submitted'} successfully! Your feedback has been recorded. Thank you!`
       );
+      
+      // Scroll to top of the page
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      
       setShowSuccessPopup(true);
 
       setTimeout(() => {

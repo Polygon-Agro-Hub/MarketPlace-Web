@@ -251,7 +251,7 @@ const GeoLocationModal: React.FC<GeoLocationModalProps> = ({
             )}
 
             {/* Main Modal */}
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4 mt-18">
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4 mt-25">
                 <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
                     {/* Header */}
                     <div className="flex justify-between items-center p-3 sm:p-4 border-b border-gray-200 flex-shrink-0">
@@ -320,14 +320,6 @@ const GeoLocationModal: React.FC<GeoLocationModalProps> = ({
                                 >
                                     Confirm Location
                                 </button>
-                            </div>
-                        )}
-
-                        {!viewOnly && selectedLocation && Array.isArray(selectedLocation) && typeof selectedLocation[0] === 'number' && typeof selectedLocation[1] === 'number' && (
-                            <div className="mt-3 p-2.5 sm:p-3 bg-green-50 border border-green-200 rounded-lg">
-                                <p className="text-xs sm:text-sm text-green-800 break-all">
-                                    <span className="font-semibold">Selected Location:</span> {selectedLocation[0].toFixed(6)}, {selectedLocation[1].toFixed(6)}
-                                </p>
                             </div>
                         )}
                     </div>

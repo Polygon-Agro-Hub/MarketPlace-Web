@@ -1,5 +1,7 @@
 import { useRouter } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
+import checkMark from '../../../public/images/correct.png';
 
 type SuccessPopupProps = {
     isVisible: boolean;
@@ -89,40 +91,17 @@ const SuccessPopup = ({
                 {/* Success Icon with Animation */}
                 <div className="flex justify-center mb-6">
                     <div className="relative w-24 h-24">
-                        {/* Blue Square Background */}
-                        <div
-                            className={`absolute inset-0 rounded-lg transition-all duration-700 ease-out ${animate ? 'scale-100 opacity-100' : 'scale-50 opacity-0'
-                                }`}
-                            style={{
-                                transformOrigin: 'center',
-                                animationDelay: '0.2s'
-                            }}
-                        />
-
-                        {/* Purple Circle with Checkmark */}
+                        {/* Checkmark Image */}
                         <div className="absolute inset-0 flex items-center justify-center">
-                            <div className={`w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center transition-all duration-700 ease-out ${animate ? 'scale-100 opacity-100' : 'scale-50 opacity-0'}`}
+                            <div className={`transition-all duration-700 ease-out ${animate ? 'scale-100 opacity-100' : 'scale-50 opacity-0'}`}
                                 style={{ transitionDelay: '0.4s' }}>
-                                <svg
-                                    className="w-8 h-8 text-white"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                >
-                                    <path
-                                        className={`transition-all duration-700 ease-out ${animate ? 'opacity-100' : 'opacity-0'
-                                            }`}
-                                        d="M20 6L9 17L4 12"
-                                        stroke="currentColor"
-                                        strokeWidth="3"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        style={{
-                                            strokeDasharray: '20',
-                                            strokeDashoffset: animate ? '0' : '20',
-                                            transitionDelay: '0.6s'
-                                        }}
-                                    />
-                                </svg>
+                                <Image
+                                    src={checkMark}
+                                    alt="Success"
+                                    width={120}
+                                    height={90}
+                                    className="w-30 h-23"
+                                />
                             </div>
                         </div>
                     </div>
@@ -158,24 +137,6 @@ const SuccessPopup = ({
                         Cancel
                     </button>
                 </div>
-
-                {/* Close Button */}
-                <button
-                    onClick={handleClose}
-                    className={`absolute top-6 right-6 w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-all duration-200 cursor-pointer ${animate ? 'opacity-60 hover:opacity-100' : 'opacity-0'
-                        }`}
-                    style={{ transitionDelay: '0.8s' }}
-                >
-                    <svg className="w-5 h-5 text-gray-600" viewBox="0 0 24 24" fill="none">
-                        <path
-                            d="M18 6L6 18M6 6L18 18"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                        />
-                    </svg>
-                </button>
             </div>
         </div>
     );

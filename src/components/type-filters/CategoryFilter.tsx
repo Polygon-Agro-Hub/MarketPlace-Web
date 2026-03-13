@@ -49,7 +49,6 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
     // Get search term from Redux instead of props
     const searchTerm = useSelector((state: RootState) => state.search.searchTerm);
     const isSearchActive = useSelector((state: RootState) => state.search.isSearchActive);
-    const user = useSelector((state: RootState) => state.auth.user);
 
     const [selectedCategory, setSelectedCategory] = useState('Vegetables');
     const [products, setProducts] = useState<Product[]>([]);
@@ -180,7 +179,7 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
             <div className="flex items-center justify-center gap-2 w-full my-4 md:my-8 px-2 md:px-20 max-w-[1800px] mx-auto">
                 <div className="w-1/2 border-t-2 border-[#D7D7D7]"></div>
                 <span className="bg-[#FF8F6666] text-[#FF4421] rounded-lg text-xs md:text-sm px-3 md:px-6 py-1 whitespace-nowrap">
-                    {user ? 'Types' : 'Retail Types'}
+                    Retail Types
                 </span>
                 <div className="w-1/2 border-t-2 border-[#D7D7D7]"></div>
             </div>

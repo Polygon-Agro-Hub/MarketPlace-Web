@@ -945,7 +945,7 @@ const BillingDetailsForm = () => {
 
                 <div className="w-full lg:w-1/2">
                   <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
-                    Nearest City <span className="text-red-500">*</span>
+                    Nearest City
                   </label>
                   <CustomDropdown
                     register={register}
@@ -1016,7 +1016,7 @@ const BillingDetailsForm = () => {
                 Phone Number {num}
               </label>
               <div className="flex gap-4">
-                <div className="relative w-[25%] md:w-[14%] min-w-[70px]">
+                <div className="relative max-w-[30%] md:max-w-[20%]">
                   <CustomDropdown
                     register={register}
                     setValue={setValue}

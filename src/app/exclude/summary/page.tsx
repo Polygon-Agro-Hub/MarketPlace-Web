@@ -241,11 +241,11 @@ export default function ExcludedItems() {
             <div className="w-full flex justify-end mb-2">
               <button
                 onClick={handleDeleteSelectedClick}
-                className="flex items-center gap-1 text-red-600 cursor-pointer  hover:underline  font-semibold"
+                className="flex items-center gap-1 text-red-600 cursor-pointer font-semibold"
                 aria-label="Delete selected items"
               >
                 <Trash fill="red" className="w-4 h-4 cursor-pointer" />
-                Delete Selected Items
+                <span className="underline">Delete Selected Items</span>
               </button>
             </div>
           )}
@@ -338,7 +338,10 @@ export default function ExcludedItems() {
         {showDeleteModal && (
           <div className="fixed inset-0 flex justify-center items-center bg-black/40 z-50">
             <div className="bg-white rounded-xl p-6 sm:p-8 shadow-xl text-center w-full max-w-md">
-              <Trash fill="red" className="mx-auto text-red-600 w-12 h-12 mb-4" />
+              <Trash
+                fill="red"
+                className="mx-auto text-red-600 w-12 h-12 mb-4"
+              />
               <h2 className="text-lg sm:text-xl font-semibold text-black">
                 {isBulkDelete
                   ? "Are you sure you want to remove these items from your exclude list?"
