@@ -50,7 +50,7 @@ export default function Page() {
 
       // Show OTP expired modal
       setIsError(true);
-      // setModalMessage('OTP has expired. Please request a new one.');
+      setModalMessage('OTP has expired. Please request a new one.');
       setIsModalOpen(true);
 
       // Delete expired referenceId from localStorage
@@ -199,7 +199,7 @@ export default function Page() {
         setTimeout(() => router.push('/reset-password-phone'), 2000);
       } else if (statusCode === '1001') {
         setIsError(true);
-        setModalMessage('This Password Reset Link is expired.');
+        setModalMessage('Invalid OTP. Please try again.');
         setIsModalOpen(true);
       } else if (statusCode === '1002' || statusCode === '1003') {
         // Handle expired OTP from server response

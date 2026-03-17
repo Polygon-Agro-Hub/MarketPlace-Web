@@ -299,15 +299,6 @@ export default function OrderHistoryPage() {
         // So we use it directly, not add additional items discount again
         const totalDiscount = parseFloat(apiOrder.discount || "0");
         
-        console.log('Order Discount Breakdown:', {
-          orderDiscount: apiOrder.discount,
-          additionalItemsDiscounts: additionalItemsData.data?.map((item: any) => ({
-            name: item.displayName,
-            discount: item.discount
-          })),
-          totalDiscountUsed: totalDiscount
-        });
-
         const detailedOrder: DetailedOrder = {
           orderId: String(apiOrder.id) || "N/A",
           invoiceNo: String(apiOrder.invoiceNo) || "N/A",
@@ -380,15 +371,6 @@ export default function OrderHistoryPage() {
           additionalItems:
             additionalItemsData.status && additionalItemsData.data
               ? additionalItemsData.data.map((item: any) => {
-                  // Backend sends 'price' as the final total amount (already includes qty calculation and discount)
-                  // So we use it directly as the amount, not multiply by qty
-                  console.log('Backend Additional Item:', {
-                    name: item.displayName,
-                    price: item.price,
-                    qty: item.qty,
-                    unit: item.unit,
-                    discount: item.discount
-                  });
                   return {
                     id: item.id || 0,
                     name: item.displayName || "Unknown",
@@ -759,7 +741,6 @@ function PickupOrderView({
     order.additionalItems?.reduce(
       (sum, item) => {
         const itemAmount = parseFloat(item.amount?.replace("Rs. ", "").replace(/,/g, "") || "0");
-        console.log('[PickupOrderView] Additional Item:', item.name, 'Amount:', item.amount, 'Parsed:', itemAmount);
         return sum + itemAmount;
       },
       0,
@@ -1214,7 +1195,6 @@ function DeliveryOrderView({
     order.additionalItems?.reduce(
       (sum, item) => {
         const itemAmount = parseFloat(item.amount?.replace("Rs. ", "").replace(/,/g, "") || "0");
-        console.log('[DeliveryOrderView] Additional Item:', item.name, 'Amount:', item.amount, 'Parsed:', itemAmount);
         return sum + itemAmount;
       },
       0,

@@ -111,7 +111,7 @@ const Page = () => {
 
   const startResendTimer = () => {
     setIsResendDisabled(true);
-    setCountdown(60); // 60 seconds = 1 minute
+    setCountdown(180); // 180 seconds = 3 minutes
   };
 
   const validateEmail = (email: string) => {

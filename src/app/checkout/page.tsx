@@ -371,7 +371,7 @@ const Page: React.FC = () => {
           setFormDataLocal((prev) => ({
             ...prev,
             buildingType: data.buildingType || "Apartment",
-            title: data.title || "",
+            title: data.title ? data.title.replace(/\./g, '') : "", 
             fullName: data.fullName || "",
             phone1: data.phone1 || "",
             phone2: data.phone2 || "",
@@ -1512,36 +1512,39 @@ const Page: React.FC = () => {
                   <style
                     dangerouslySetInnerHTML={{
                       __html: `
-      .date-input::-webkit-calendar-picker-indicator {
-        cursor: pointer;
-      }
-      .date-input::-webkit-inner-spin-button {
-        cursor: pointer;
-      }
-      /* Firefox-specific styles */
-      .date-input::-moz-calendar-picker-indicator {
-        cursor: pointer;
-      }
-      /* Hide native placeholder in webkit browsers when showing custom one */
-      .date-input::-webkit-datetime-edit-text,
-      .date-input::-webkit-datetime-edit-month-field,
-      .date-input::-webkit-datetime-edit-day-field,
-      .date-input::-webkit-datetime-edit-year-field {
-        color: transparent;
-      }
-      .date-input.has-value::-webkit-datetime-edit-text,
-      .date-input.has-value::-webkit-datetime-edit-month-field,
-      .date-input.has-value::-webkit-datetime-edit-day-field,
-      .date-input.has-value::-webkit-datetime-edit-year-field {
-        color: #3D3D3D;
-      }
-      /* Hide custom placeholder in Firefox */
-      @-moz-document url-prefix() {
-        .custom-date-placeholder {
-          display: none !important;
-        }
-      }
-    `,
+                        .date-input::-webkit-calendar-picker-indicator {
+                          cursor: pointer;
+                        }
+                        .date-input::-webkit-inner-spin-button {
+                          cursor: pointer;
+                        }
+      
+                        /* Firefox-specific styles */
+                        .date-input::-moz-calendar-picker-indicator {
+                          cursor: pointer;
+                        }
+      
+                        /* Hide native placeholder in webkit browsers when showing custom one */
+                        .date-input::-webkit-datetime-edit-text,
+                        .date-input::-webkit-datetime-edit-month-field,
+                        .date-input::-webkit-datetime-edit-day-field,
+                        .date-input::-webkit-datetime-edit-year-field {
+                          color: transparent;
+                        }
+                        .date-input.has-value::-webkit-datetime-edit-text,
+                        .date-input.has-value::-webkit-datetime-edit-month-field,
+                        .date-input.has-value::-webkit-datetime-edit-day-field,
+                        .date-input.has-value::-webkit-datetime-edit-year-field {
+                          color: #3D3D3D;
+                        }
+      
+                        /* Hide custom placeholder in Firefox */
+                        @-moz-document url-prefix() {
+                          .custom-date-placeholder {
+                            display: none !important;
+                          }
+                        }
+                      `,
                     }}
                   />
                   <label className="block text-[#2E2E2E] font-semibold mb-4">

@@ -57,9 +57,23 @@ const Page = () => {
     }
 
     // Check if fields are empty first
-    if (!newPassword.trim() || !confirmPassword.trim()) {
+    if (!newPassword.trim() && !confirmPassword.trim()) {
       setIsError(true);
       setModalMessage('All fields are required');
+      setIsModalOpen(true);
+      return;
+    }
+
+    if (!newPassword.trim()) {
+      setIsError(true);
+      setModalMessage('Please enter a new password');
+      setIsModalOpen(true);
+      return;
+    }
+
+    if (!confirmPassword.trim()) {
+      setIsError(true);
+      setModalMessage('Please re-enter your password');
       setIsModalOpen(true);
       return;
     }

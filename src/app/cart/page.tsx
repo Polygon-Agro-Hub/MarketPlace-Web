@@ -306,9 +306,6 @@ const Page: React.FC = () => {
       (currentItem.unit.toLowerCase() as "kg" | "g");
     const originalUnit = currentItem.unit.toLowerCase() as "kg" | "g";
 
-    console.log("originalUnit", originalUnit);
-
-
     // Get base changeby and startValue from the item
     let changeBy = originalUnit === 'g' ? currentItem.changeby * 1000 : currentItem.changeby || 1; // Default to 1 if changeby is not provided
     let startValue = originalUnit === 'g' ? currentItem.startValue * 1000 : currentItem.startValue || 1;
@@ -506,9 +503,6 @@ const Page: React.FC = () => {
       // Add to removing set
       setRemovingItems((prev) => new Set(prev).add(itemKey));
 
-      console.log("Removing package with ID:", packageId);
-      console.log("Current packages before removal:", cartData.packages);
-
       // Make direct API call
       await removeCartPackage(packageId, token);
 
@@ -518,27 +512,18 @@ const Page: React.FC = () => {
       // Update Redux store after successful API call
       dispatch(removePackage(packageId));
 
-      console.log("After Redux removal - packages:", cartData.packages);
-
       // Fetch updated cart data
       const updatedCartData = await getUserCart(token);
-
-      console.log("API response after removal:", updatedCartData);
-      console.log("Packages from API:", updatedCartData.packages);
 
       // Check if the removed package is still in the API response
       const removedPackageStillExists = updatedCartData.packages?.some(
         pkg => pkg.id === packageId
       );
-      console.log("Removed package still in API response?", removedPackageStillExists);
 
       // Check for duplicate packages
       const packageIds = updatedCartData.packages?.map(pkg => pkg.id);
       const uniqueIds = [...new Set(packageIds)];
-      console.log("Package IDs from API:", packageIds);
-      console.log("Unique package IDs:", uniqueIds);
-      console.log("Has duplicates?", packageIds?.length !== uniqueIds?.length);
-
+      
       dispatch(
         setCartData({
           cart: updatedCartData.cart,
