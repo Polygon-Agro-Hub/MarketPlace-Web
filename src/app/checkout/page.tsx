@@ -1095,18 +1095,20 @@ const Page: React.FC = () => {
                     placeholder="Enter your full name"
                     value={formData.fullName}
                     onChange={(e) => {
-                      // Remove leading spaces and numbers
+                      // Remove leading spaces, numbers, and special characters
                       const value = e.target.value
                         .replace(/^\s+/, '')           // Remove leading spaces
-                        .replace(/[0-9]/g, '');        // Remove all numbers
+                        .replace(/[0-9]/g, '')         // Remove all numbers
+                        .replace(/[^a-zA-Z\s]/g, '');  // Remove special characters, keep only letters and spaces
 
                       const capitalizedValue = capitalizeFirstLetter(value);
                       handleFieldChange("fullName", capitalizedValue);
                     }}
                     onKeyDown={(e) => {
-                      // Prevent space at beginning and numbers
+                      // Prevent space at beginning, numbers, and special characters
                       const isNumber = /[0-9]/.test(e.key);
-                      if ((e.key === ' ' && e.currentTarget.selectionStart === 0) || isNumber) {
+                      const isSpecialChar = /[^a-zA-Z\s]/.test(e.key) && e.key.length === 1;
+                      if ((e.key === ' ' && e.currentTarget.selectionStart === 0) || isNumber || isSpecialChar) {
                         e.preventDefault();
                       }
                     }}
@@ -1117,6 +1119,7 @@ const Page: React.FC = () => {
                       const cleanedText = pastedText
                         .replace(/^\s+/, '')           // Remove leading spaces
                         .replace(/[0-9]/g, '')         // Remove all numbers
+                        .replace(/[^a-zA-Z\s]/g, '')   // Remove special characters
                         .replace(/\s+/g, ' ');         // Replace multiple spaces with single space
 
                       const capitalizedValue = capitalizeFirstLetter(cleanedText);
@@ -1152,9 +1155,16 @@ const Page: React.FC = () => {
                         type="number"
                         className="w-full h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2 "
                         value={formData.phone1}
-                        onChange={(e) =>
-                          handleFieldChange("phone1", e.target.value)
-                        }
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/^\s+/, ''); // Remove leading spaces
+                          handleFieldChange("phone1", value);
+                        }}
+                        onKeyDown={(e) => {
+                          // Prevent space at beginning
+                          if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
+                            e.preventDefault();
+                          }
+                        }}
                         placeholder="7XXXXXXXX"
                       />
                       {errors.phone1 && (
@@ -1186,9 +1196,16 @@ const Page: React.FC = () => {
                         type="number"
                         className={`w-full h-[39px] border-2 ${duplicatePhoneError ? "border-red-500" : "border-[#F2F4F7]"} bg-[#F9FAFB] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2`}
                         value={formData.phone2}
-                        onChange={(e) =>
-                          handleFieldChange("phone2", e.target.value)
-                        }
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/^\s+/, ''); // Remove leading spaces
+                          handleFieldChange("phone2", value);
+                        }}
+                        onKeyDown={(e) => {
+                          // Prevent space at beginning
+                          if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
+                            e.preventDefault();
+                          }
+                        }}
                         placeholder="7XXXXXXXX"
                       />
                       {errors.phone2 && (
@@ -1249,9 +1266,16 @@ const Page: React.FC = () => {
                       </label>
                       <input
                         value={formData.buildingNo}
-                        onChange={(e) =>
-                          handleFieldChange("buildingNo", e.target.value)
-                        }
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/^\s+/, ''); // Remove leading spaces
+                          handleFieldChange("buildingNo", value);
+                        }}
+                        onKeyDown={(e) => {
+                          // Prevent space at beginning
+                          if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
+                            e.preventDefault();
+                          }
+                        }}
                         type="text"
                         placeholder="Enter House / Building No"
                         className="w-full px-4 py-2 h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] rounded-lg  placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
@@ -1272,9 +1296,16 @@ const Page: React.FC = () => {
                       </label>
                       <input
                         value={formData.buildingName}
-                        onChange={(e) =>
-                          handleFieldChange("buildingName", e.target.value)
-                        }
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/^\s+/, ''); // Remove leading spaces
+                          handleFieldChange("buildingName", value);
+                        }}
+                        onKeyDown={(e) => {
+                          // Prevent space at beginning
+                          if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
+                            e.preventDefault();
+                          }
+                        }}
                         type="text"
                         placeholder="Enter building name"
                         className="w-full px-4 py-2 border-2 h-[39px] border-[#F2F4F7] bg-[#F9FAFB] rounded-lg  placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
@@ -1295,9 +1326,16 @@ const Page: React.FC = () => {
                       </label>
                       <input
                         value={formData.flatNumber}
-                        onChange={(e) =>
-                          handleFieldChange("flatNumber", e.target.value)
-                        }
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/^\s+/, ''); // Remove leading spaces
+                          handleFieldChange("flatNumber", value);
+                        }}
+                        onKeyDown={(e) => {
+                          // Prevent space at beginning
+                          if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
+                            e.preventDefault();
+                          }
+                        }}
                         type="text"
                         placeholder="Enter flat number"
                         className="w-full px-4 py-2 border-2 h-[39px] border-[#F2F4F7] bg-[#F9FAFB] rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
@@ -1318,9 +1356,16 @@ const Page: React.FC = () => {
                       </label>
                       <input
                         value={formData.floorNumber}
-                        onChange={(e) =>
-                          handleFieldChange("floorNumber", e.target.value)
-                        }
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/^\s+/, ''); // Remove leading spaces
+                          handleFieldChange("floorNumber", value);
+                        }}
+                        onKeyDown={(e) => {
+                          // Prevent space at beginning
+                          if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
+                            e.preventDefault();
+                          }
+                        }}
                         type="text"
                         placeholder="Enter floor number"
                         className="w-full px-4 py-2 border-2 h-[39px] border-[#F2F4F7] bg-[#F9FAFB] rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
@@ -1340,9 +1385,16 @@ const Page: React.FC = () => {
                     </label>
                     <input
                       value={formData.houseNo}
-                      onChange={(e) =>
-                        handleFieldChange("houseNo", e.target.value)
-                      }
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/^\s+/, ''); // Remove leading spaces
+                        handleFieldChange("houseNo", value);
+                      }}
+                      onKeyDown={(e) => {
+                        // Prevent space at beginning
+                        if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
+                          e.preventDefault();
+                        }
+                      }}
                       type="text"
                       placeholder="Enter house number"
                       className="w-full px-4 py-2 border-2 h-[39px] border-[#F2F4F7] bg-[#F9FAFB] rounded-lg  placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
@@ -1362,10 +1414,15 @@ const Page: React.FC = () => {
                     <input
                       value={formData.street}
                       onChange={(e) => {
-                        const capitalizedValue = capitalizeFirstLetter(
-                          e.target.value,
-                        );
+                        const value = e.target.value.replace(/^\s+/, ''); // Remove leading spaces
+                        const capitalizedValue = capitalizeFirstLetter(value);
                         handleFieldChange("street", capitalizedValue);
+                      }}
+                      onKeyDown={(e) => {
+                        // Prevent space at beginning
+                        if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
+                          e.preventDefault();
+                        }
                       }}
                       type="text"
                       placeholder="Enter Street Name"

@@ -403,7 +403,7 @@ const Page = () => {
                   value={email}
                   onChange={handleEmailChange}
                   placeholder="Enter Email Address"
-                  className={`w-full px-3 md:px-4 py-2 md:py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600 text-sm md:text-base ${
+                  className={`w-[80%] px-3 md:px-4 py-2 md:py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600 text-sm md:text-base ${
                     emailError ? "border-red-500" : "border-gray-300"
                   }`}
                   disabled={isSendingEmail}
@@ -513,7 +513,7 @@ const Page = () => {
             {/* 7. Update the main button */}
             <button
               onClick={handleReset}
-              className={`w-full py-3 text-white rounded-xl transition-colors mb-4 text-base font-semibold ${
+              className={`w-[80%] py-3 text-white rounded-xl transition-colors mb-4 text-base font-semibold ${
                 (resetMethod === "email" && (isSendingEmail || isResendDisabled)) ||
                 (resetMethod === "sms" && isSendingOTP)
                   ? "bg-[#CEBAF4] text-[#3E206D] cursor-not-allowed"

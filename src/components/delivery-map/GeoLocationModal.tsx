@@ -251,8 +251,8 @@ const GeoLocationModal: React.FC<GeoLocationModalProps> = ({
             )}
 
             {/* Main Modal */}
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4">
-                <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4 sm:flex sm:mt-10">
+                <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] sm:max-h-[80vh] overflow-hidden flex flex-col">
                     {/* Header */}
                     <div className="flex justify-between items-center p-3 sm:p-4 border-b border-gray-200 flex-shrink-0">
                         <h2 className="text-base sm:text-xl font-bold text-[#252525]">
@@ -296,7 +296,7 @@ const GeoLocationModal: React.FC<GeoLocationModalProps> = ({
                         {/* Map Container */}
                         <div
                             ref={mapRef}
-                            className="w-full h-[250px] sm:h-[350px] md:h-[400px] rounded-lg border border-gray-300 mb-3 sm:mb-4"
+                            className="w-full h-[200px] sm:h-[280px] md:h-[300px] rounded-lg border border-gray-300 mb-3 sm:mb-4"
                         />
 
                         {/* Actions - Hide when viewOnly is true */}
