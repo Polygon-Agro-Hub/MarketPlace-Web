@@ -279,10 +279,10 @@ const Page: React.FC = () => {
 
     // Store pending update for API call with converted quantity
     setPendingUpdates((prev) => {
-      // Remove any existing pending update for this item first
       const filtered = prev.filter((update) => update.productId !== itemId);
-      // Add new pending update with converted quantity
-      return [...filtered, { productId: itemId, newQuantity }];
+      // Always store in kg for API
+      const quantityInKg = newUnit === "g" ? newQuantity / 1000 : newQuantity;
+      return [...filtered, { productId: itemId, newQuantity: quantityInKg }];
     });
   };
 
@@ -696,17 +696,16 @@ const Page: React.FC = () => {
       return;
     }
 
-    try {
-      setCheckoutLoading(true);
+ try {
+    setCheckoutLoading(true);
 
-      // Process all pending quantity updates only
-      for (const update of pendingUpdates) {
-        await updateCartProductQuantity(
-          update.productId,
-          update.newQuantity,
-          token,
-        );
-      }
+    for (const update of pendingUpdates) {
+      const selectedUnit = unitSelection[update.productId] || "kg";
+      const quantityInKg =
+        selectedUnit === "g" ? update.newQuantity / 1000 : update.newQuantity;
+
+      await updateCartProductQuantity(update.productId, quantityInKg, token);
+    }
 
       // Clear pending updates
       setPendingUpdates([]);
@@ -846,43 +845,43 @@ const Page: React.FC = () => {
           onClose={() => setShowSuccessPopup(false)}
           title="Successfully Deleted!"
         />
-      <div className="px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5">
-        <TopNavigation NavArray={NavArray} />
-        <div className="flex flex-col items-center justify-center py-8 px-4">
-          {/* Empty Cart Image/Icon */}
-          <div className="mb-6">
-            <Image
-              src={empty}
-              alt="Empty Cart"
-              width={256}
-              height={256}
-              className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 lg:w-64 lg:h-64 object-contain"
-              priority
-            />
-            <ShoppingCart size={80} className="text-gray-400 hidden" />
-          </div>
+        <div className="px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5">
+          <TopNavigation NavArray={NavArray} />
+          <div className="flex flex-col items-center justify-center py-8 px-4">
+            {/* Empty Cart Image/Icon */}
+            <div className="mb-6">
+              <Image
+                src={empty}
+                alt="Empty Cart"
+                width={256}
+                height={256}
+                className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 lg:w-64 lg:h-64 object-contain"
+                priority
+              />
+              <ShoppingCart size={80} className="text-gray-400 hidden" />
+            </div>
 
-          {/* Empty Cart Text */}
-          <div className="text-center max-w-md">
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-3">
-              Your Cart is Empty
-            </h2>
-            <p className="text-gray-600 text-base sm:text-lg mb-6">
-              Looks like you haven't added any items to your cart yet. Start
-              shopping to fill it up!
-            </p>
+            {/* Empty Cart Text */}
+            <div className="text-center max-w-md">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-3">
+                Your Cart is Empty
+              </h2>
+              <p className="text-gray-600 text-base sm:text-lg mb-6">
+                Looks like you haven't added any items to your cart yet. Start
+                shopping to fill it up!
+              </p>
 
-            {/* Continue Shopping Button */}
-            <button
-              onClick={handleContinueShopping}
-              className="bg-[#3E206D] text-white font-semibold px-8 py-3 rounded-lg text-lg hover:bg-[#2F1A5B] transition-colors shadow-lg cursor-pointer"
-            >
-              Continue Shopping
-            </button>
+              {/* Continue Shopping Button */}
+              <button
+                onClick={handleContinueShopping}
+                className="bg-[#3E206D] text-white font-semibold px-8 py-3 rounded-lg text-lg hover:bg-[#2F1A5B] transition-colors shadow-lg cursor-pointer"
+              >
+                Continue Shopping
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-        </>
+      </>
     );
   }
 
@@ -917,10 +916,10 @@ const Page: React.FC = () => {
                   // Show success popup immediately when Remove is clicked
                   setSuccessPopupKey((prev) => prev + 1);
                   setShowSuccessPopup(true);
-                  
+
                   // Close modal
                   setShowConfirmModal(null);
-                  
+
                   // Execute delete operation in background
                   if (showConfirmModal.type === "bulk") {
                     confirmBulkDelete(showConfirmModal.selectedIds || []);
@@ -1124,11 +1123,10 @@ const Page: React.FC = () => {
                                           handleUnitChange(item.id, unit)
                                         }
                                         disabled={isRemoving}
-                                        className={`px-3 py-1 text-sm rounded-md border transition-colors cursor-pointer ${
-                                          selectedUnit === unit
+                                        className={`px-3 py-1 text-sm rounded-md border transition-colors cursor-pointer ${selectedUnit === unit
                                             ? "bg-purple-100 text-purple-700 border-purple-300 font-medium"
                                             : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
-                                        } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                          } disabled:opacity-50 disabled:cursor-not-allowed`}
                                       >
                                         {unit}
                                       </button>
@@ -1156,7 +1154,7 @@ const Page: React.FC = () => {
                                         <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 z-10">
                                           <div className="bg-[#191D28] text-white text-xs px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
                                             {tooltipStates[item.id] ===
-                                            "min" ? (
+                                              "min" ? (
                                               <>
                                                 Minimum quantity is{" "}
                                                 {(() => {
@@ -1421,11 +1419,10 @@ const Page: React.FC = () => {
 
               {couponMessage && (
                 <div
-                  className={`mt-2 text-sm p-2 rounded ${
-                    couponMessage.type === "success"
+                  className={`mt-2 text-sm p-2 rounded ${couponMessage.type === "success"
                       ? "bg-green-100 text-green-800 border border-green-200"
                       : "bg-red-100 text-red-800 border border-red-200"
-                  }`}
+                    }`}
                 >
                   {couponMessage.text}
                 </div>
