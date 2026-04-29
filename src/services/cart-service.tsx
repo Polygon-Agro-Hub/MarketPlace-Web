@@ -110,20 +110,18 @@ export const getUserCart = async (token: string | null): Promise<CartData> => {
   }
 };
 
-// Update product quantity in cart
 export const updateCartProductQuantity = async (
   productId: number,
   quantity: number,
   token: string | null,
+  unit?: string, // Add unit parameter
 ): Promise<void> => {
-  if (!token) {
-    throw new Error("Authentication required");
-  }
+  if (!token) throw new Error("Authentication required");
 
   try {
     const response = await axios.put(
       "/product/quantity",
-      { productId, quantity },
+      { productId, quantity, unit }, // Send unit to backend
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -132,19 +130,11 @@ export const updateCartProductQuantity = async (
       },
     );
 
-    if (response.status >= 200 && response.status < 300) {
-      return;
-    }
-    throw new Error(
-      response.data?.message || "Failed to update product quantity",
-    );
+    if (response.status >= 200 && response.status < 300) return;
+    throw new Error(response.data?.message || "Failed to update product quantity");
   } catch (error: any) {
     if (error.response) {
-      throw new Error(
-        error.response.data?.message ||
-          error.response.data?.error ||
-          "Failed to update product quantity",
-      );
+      throw new Error(error.response.data?.message || error.response.data?.error || "Failed to update product quantity");
     } else if (error.request) {
       throw new Error("No response from server. Please try again.");
     } else {

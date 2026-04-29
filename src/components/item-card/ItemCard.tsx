@@ -172,7 +172,6 @@ const ItemCard = ({
       return;
     }
 
-    // If product is already in cart, show tooltip and return
     if (isInCart) {
       setShowTooltip(true);
       setTimeout(() => setShowTooltip(false), 2000);
@@ -184,10 +183,6 @@ const ItemCard = ({
       try {
         setIsLoading(true);
         setError(null);
-
-        // Ensure quantityType is properly formatted for API
-        const normalizedQuantityType =
-          unitType?.toLowerCase() === "kg" ? "kg" : "g";
 
         const productData = {
           mpItemId: id,
@@ -208,7 +203,7 @@ const ItemCard = ({
         }
 
         setAddedToCart(true);
-        setIsInCart(true); // Update local state
+        setIsInCart(true);
       } catch (err: any) {
         setError(err.message);
       } finally {
@@ -230,19 +225,22 @@ const ItemCard = ({
       setIsLoading(true);
       setError(null);
 
-      // Convert quantity to the original unit type for API
-      let apiQuantity = quantity;
-      let apiUnit = unit;
+      // quantity state is always stored internally in grams
+      // send based on what unit the user currently has selected
+      let apiQuantity: number;
+      let apiUnit: "kg" | "g";
 
-      // If original unitType is kg, convert back to kg for API
-      if (unitType?.toLowerCase() === "kg") {
-        apiQuantity = quantity / 1000;
+      if (unit === "kg") {
+        apiQuantity = quantity / 1000; // convert grams → kg for API
         apiUnit = "kg";
+      } else {
+        apiQuantity = quantity; // already in grams
+        apiUnit = "g";
       }
 
       const productData = {
         mpItemId: id,
-        quantityType: apiUnit as "kg" | "g", // Type assertion for API compatibility
+        quantityType: apiUnit,
         quantity: apiQuantity,
       };
 
@@ -257,7 +255,7 @@ const ItemCard = ({
 
       setShowQuantitySelector(false);
       setAddedToCart(true);
-      setIsInCart(true); // Update local state
+      setIsInCart(true);
     } catch (err: any) {
       setError(err.message);
     } finally {
