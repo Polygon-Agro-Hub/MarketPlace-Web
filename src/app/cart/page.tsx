@@ -98,7 +98,7 @@ const Page: React.FC = () => {
     Record<number, "kg" | "g">
   >({});
   const [pendingUpdates, setPendingUpdates] = useState<
-    { productId: number; newQuantity: number }[]
+    { productId: number; newQuantity: number , unit?:string }[]
   >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -132,6 +132,7 @@ const Page: React.FC = () => {
   const [successPopupKey, setSuccessPopupKey] = useState(0); // Add counter for popup key
   const dispatch = useDispatch();
   const router = useRouter();
+  const authCart = useSelector((state: RootState) => state.auth.cart);
 
   const calculateDiscount = (
     baseDiscount: number,
@@ -188,6 +189,19 @@ const Page: React.FC = () => {
         setLoading(true);
         const response = await getUserCart(token);
 
+        const initialUnitSelection: Record<number, "kg" | "g"> = {};
+
+        if (response.additionalItems) {
+          response.additionalItems.forEach((itemGroup: AdditionalItems) => {
+            itemGroup.Items.forEach((item: CartItem) => {
+              const normalizedUnit =
+                item.unit.toLowerCase() === "kg" ? "kg" : "g";
+              initialUnitSelection[item.id] = normalizedUnit;
+              // No conversion — API returns quantity in correct display unit already
+            });
+          });
+        }
+
         dispatch(
           setCartData({
             cart: response.cart,
@@ -197,20 +211,7 @@ const Page: React.FC = () => {
           }),
         );
 
-        // Initialize unit selection for all items
-        const initialUnitSelection: Record<number, "kg" | "g"> = {};
-        if (response.additionalItems) {
-          response.additionalItems.forEach((itemGroup: AdditionalItems) => {
-            itemGroup.Items.forEach((item: CartItem) => {
-              // Normalize the unit from API (handle both "Kg" and "kg", "G" and "g")
-              const normalizedUnit =
-                item.unit.toLowerCase() === "kg" ? "kg" : "g";
-              initialUnitSelection[item.id] = normalizedUnit;
-            });
-          });
-        }
         setUnitSelection(initialUnitSelection);
-
         setError(null);
       } catch (err: any) {
         setError(err.message);
@@ -219,9 +220,7 @@ const Page: React.FC = () => {
       }
     };
 
-    if (token) {
-      fetchCartData();
-    }
+    if (token) fetchCartData();
   }, [token, dispatch]);
 
   // Updated formatPrice function to handle decimal precision
@@ -236,7 +235,6 @@ const Page: React.FC = () => {
     return `${formattedInteger}.${decimalPart}`;
   };
 
-  // Updated handleUnitChange function
   const handleUnitChange = (itemId: number, newUnit: "kg" | "g") => {
     let currentItem: CartItem | null = null;
     for (const itemGroup of cartData.additionalItems) {
@@ -252,45 +250,34 @@ const Page: React.FC = () => {
     const currentUnit =
       unitSelection[itemId] || (currentItem.unit.toLowerCase() as "kg" | "g");
 
-    // Only proceed if the unit is actually changing
-    if (currentUnit === newUnit) {
-      return;
-    }
+    if (currentUnit === newUnit) return;
 
     let newQuantity = currentItem.quantity;
 
-    // Convert quantity based on unit change
     if (currentUnit === "kg" && newUnit === "g") {
-      // Convert kg to g: multiply by 1000
       newQuantity = parseFloat((currentItem.quantity * 1000).toFixed(3));
     } else if (currentUnit === "g" && newUnit === "kg") {
-      // Convert g to kg: divide by 1000
       newQuantity = parseFloat((currentItem.quantity / 1000).toFixed(3));
     }
 
-    // Update unit selection FIRST
-    setUnitSelection((prev) => ({
-      ...prev,
-      [itemId]: newUnit,
-    }));
-
-    // Then update quantity in Redux store
+    setUnitSelection((prev) => ({ ...prev, [itemId]: newUnit }));
     dispatch(updateProductQuantity({ productId: itemId, newQuantity }));
 
-    // Store pending update for API call with converted quantity
+    console.log('handleUnitChange', { itemId, newUnit, newQuantity });
+
+    // ✅ Store display quantity directly — API speaks the item's own unit
     setPendingUpdates((prev) => {
       const filtered = prev.filter((update) => update.productId !== itemId);
-      // Always store in kg for API
-      const quantityInKg = newUnit === "g" ? newQuantity / 1000 : newQuantity;
-      return [...filtered, { productId: itemId, newQuantity: quantityInKg }];
+      return [...filtered, { productId: itemId, newQuantity }];
     });
+
+
   };
 
-  // Updated handleProductQuantityChange function
+  // 2. handleProductQuantityChange — store display quantity directly, no kg conversion
   const handleProductQuantityChange = (productId: number, delta: number) => {
     let currentItem: CartItem | null = null;
 
-    // Find the current item to get changeby value
     for (const itemGroup of cartData.additionalItems) {
       const item = itemGroup.Items.find((item) => item.id === productId);
       if (item) {
@@ -305,92 +292,82 @@ const Page: React.FC = () => {
     const selectedUnit =
       unitSelection[productId] ||
       (currentItem.unit.toLowerCase() as "kg" | "g");
-    const originalUnit = currentItem.unit.toLowerCase() as "kg" | "g";
 
-    // Get base changeby and startValue from the item
-    let changeBy =
-      originalUnit === "g"
-        ? currentItem.changeby * 1000
-        : currentItem.changeby || 1; // Default to 1 if changeby is not provided
-    let startValue =
-      originalUnit === "g"
-        ? currentItem.startValue * 1000
-        : currentItem.startValue || 1;
-
-    // Only convert changeby and startValue if the selected unit differs from original unit
-    if (selectedUnit !== originalUnit) {
-      if (selectedUnit === "g" && originalUnit === "kg") {
-        // If displaying in grams but item is originally stored in kg, convert to grams
-        changeBy = parseFloat((changeBy * 1000).toFixed(3));
-        startValue = parseFloat((startValue * 1000).toFixed(3));
-      } else if (selectedUnit === "kg" && originalUnit === "g") {
-        // If displaying in kg but item is originally stored in grams, convert to kg
-        changeBy = parseFloat((changeBy / 1000).toFixed(3));
-        startValue = parseFloat((startValue / 1000).toFixed(3));
-      }
-    }
-
-    // Get maxQuantity and convert if needed
+    // changeby and startValue come from API in kg — convert to display unit
+    let changeBy: number;
+    let startValue: number;
     let maxQuantity = currentItem.maxQuantity || Infinity;
-    if (selectedUnit !== originalUnit) {
-      if (selectedUnit === "g" && originalUnit === "kg") {
+
+    if (selectedUnit === "g") {
+      changeBy = parseFloat((currentItem.changeby * 1000).toFixed(3));
+      startValue = parseFloat((currentItem.startValue * 1000).toFixed(3));
+      if (maxQuantity !== Infinity) {
         maxQuantity = parseFloat((maxQuantity * 1000).toFixed(3));
-      } else if (selectedUnit === "kg" && originalUnit === "g") {
-        maxQuantity = parseFloat((maxQuantity / 1000).toFixed(3));
       }
+    } else {
+      changeBy = currentItem.changeby || 1;
+      startValue = currentItem.startValue || 1;
     }
 
-    // Calculate new quantity using changeby value with 3 decimal precision
     let newQuantity: number;
+
     if (delta > 0) {
-      // Increment by changeby value
       const potentialNewQuantity = parseFloat(
         (currentQuantity + changeBy * delta).toFixed(3),
       );
 
       if (potentialNewQuantity > maxQuantity) {
-        // Show MAX tooltip when trying to go above maximum
         setTooltipStates((prev) => ({ ...prev, [productId]: "max" }));
-
-        // Hide tooltip after 2 seconds
         setTimeout(() => {
           setTooltipStates((prev) => ({ ...prev, [productId]: false }));
         }, 2000);
-
-        return; // Don't update quantity
+        return;
       }
 
       newQuantity = potentialNewQuantity;
     } else {
-      // Check if decrement would go below startValue
       const potentialNewQuantity = parseFloat(
         (currentQuantity + changeBy * delta).toFixed(3),
       );
 
       if (potentialNewQuantity < startValue) {
-        // Show MIN tooltip when trying to go below minimum
         setTooltipStates((prev) => ({ ...prev, [productId]: "min" }));
-
-        // Hide tooltip after 2 seconds
         setTimeout(() => {
           setTooltipStates((prev) => ({ ...prev, [productId]: false }));
         }, 2000);
-
-        return; // Don't update quantity
+        return;
       }
 
       newQuantity = potentialNewQuantity;
     }
 
-    // Update Redux store
     dispatch(updateProductQuantity({ productId, newQuantity }));
 
-    // Store pending update for API call
+    // ✅ Recalculate cart total after quantity update
+    const updatedItems = cartData.additionalItems.flatMap(g => g.Items).map(item =>
+      item.id === productId ? { ...item, quantity: newQuantity } : item
+    );
+    const updatedPackageTotal = cartData.packages?.reduce((sum, pkg) => sum + pkg.price * pkg.quantity, 0) ?? 0;
+    const updatedProductTotal = updatedItems.reduce((item_acc, item) => {
+      const unit = unitSelection[item.id] || item.unit;
+      const price = calculatePrice(item.normalPrice, unit, item.quantity);
+      const discount = calculateDiscount(item.discount, unit, item.quantity);
+      return item_acc + (price - discount);
+    }, 0);
+    dispatch(updateCartInfo({
+      price: parseFloat((updatedPackageTotal + updatedProductTotal).toFixed(2)),
+      count: authCart.count,
+    }));
+
+    // ✅ Store display quantity directly — no kg conversion
+    // API expects grams for "g" items, kg for "kg" items
     setPendingUpdates((prev) => {
       const existing = prev.find((update) => update.productId === productId);
       if (existing) {
         return prev.map((update) =>
-          update.productId === productId ? { ...update, newQuantity } : update,
+          update.productId === productId
+            ? { ...update, newQuantity }
+            : update,
         );
       }
       return [...prev, { productId, newQuantity }];
@@ -686,6 +663,7 @@ const Page: React.FC = () => {
     }
   };
 
+  // 3. handleCheckout — send display quantity directly, no conversion
   const handleCheckout = async () => {
     if (
       isCartEmpty() ||
@@ -696,22 +674,33 @@ const Page: React.FC = () => {
       return;
     }
 
- try {
-    setCheckoutLoading(true);
+    try {
+      setCheckoutLoading(true);
 
-    for (const update of pendingUpdates) {
-      const selectedUnit = unitSelection[update.productId] || "kg";
-      const quantityInKg =
-        selectedUnit === "g" ? update.newQuantity / 1000 : update.newQuantity;
+      for (const update of pendingUpdates) {
+        // Resolve the unit for this product
+        const unit = unitSelection[update.productId];
+        await updateCartProductQuantity(update.productId, update.newQuantity, token, unit);
+      }
 
-      await updateCartProductQuantity(update.productId, quantityInKg, token);
-    }
-
-      // Clear pending updates
       setPendingUpdates([]);
 
-      // Fetch updated cart data to ensure consistency
       const updatedCartData = await getUserCart(token);
+
+      const freshUnitSelection: Record<number, "kg" | "g"> = {};
+      if (updatedCartData.additionalItems) {
+        updatedCartData.additionalItems.forEach((itemGroup: AdditionalItems) => {
+          itemGroup.Items.forEach((item: CartItem) => {
+            const normalizedUnit =
+              item.unit.toLowerCase() === "kg" ? "kg" : "g";
+            freshUnitSelection[item.id] = normalizedUnit;
+            // No conversion — API returns quantity in correct display unit
+          });
+        });
+      }
+
+      setUnitSelection(freshUnitSelection);
+
       dispatch(
         setCartData({
           cart: updatedCartData.cart,
@@ -720,12 +709,14 @@ const Page: React.FC = () => {
           summary: updatedCartData.summary,
         }),
       );
+
       try {
         const cartInfo = await getCartInfo(token);
         dispatch(updateCartInfo(cartInfo));
       } catch (cartError) {
         console.error("Error fetching cart info:", cartError);
       }
+
       setShowDeliveryModal(true);
     } catch (error) {
       console.error("Error during checkout:", error);
@@ -1124,8 +1115,8 @@ const Page: React.FC = () => {
                                         }
                                         disabled={isRemoving}
                                         className={`px-3 py-1 text-sm rounded-md border transition-colors cursor-pointer ${selectedUnit === unit
-                                            ? "bg-purple-100 text-purple-700 border-purple-300 font-medium"
-                                            : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+                                          ? "bg-purple-100 text-purple-700 border-purple-300 font-medium"
+                                          : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
                                           } disabled:opacity-50 disabled:cursor-not-allowed`}
                                       >
                                         {unit}
@@ -1420,8 +1411,8 @@ const Page: React.FC = () => {
               {couponMessage && (
                 <div
                   className={`mt-2 text-sm p-2 rounded ${couponMessage.type === "success"
-                      ? "bg-green-100 text-green-800 border border-green-200"
-                      : "bg-red-100 text-red-800 border border-red-200"
+                    ? "bg-green-100 text-green-800 border border-green-200"
+                    : "bg-red-100 text-red-800 border border-red-200"
                     }`}
                 >
                   {couponMessage.text}

@@ -172,7 +172,6 @@ const ItemCard = ({
       return;
     }
 
-    // If product is already in cart, show tooltip and return
     if (isInCart) {
       setShowTooltip(true);
       setTimeout(() => setShowTooltip(false), 2000);
@@ -184,10 +183,6 @@ const ItemCard = ({
       try {
         setIsLoading(true);
         setError(null);
-
-        // Ensure quantityType is properly formatted for API
-        const normalizedQuantityType =
-          unitType?.toLowerCase() === "kg" ? "kg" : "g";
 
         const productData = {
           mpItemId: id,
@@ -208,7 +203,7 @@ const ItemCard = ({
         }
 
         setAddedToCart(true);
-        setIsInCart(true); // Update local state
+        setIsInCart(true);
       } catch (err: any) {
         setError(err.message);
       } finally {
@@ -230,19 +225,22 @@ const ItemCard = ({
       setIsLoading(true);
       setError(null);
 
-      // Convert quantity to the original unit type for API
-      let apiQuantity = quantity;
-      let apiUnit = unit;
+      // quantity state is always stored internally in grams
+      // send based on what unit the user currently has selected
+      let apiQuantity: number;
+      let apiUnit: "kg" | "g";
 
-      // If original unitType is kg, convert back to kg for API
-      if (unitType?.toLowerCase() === "kg") {
-        apiQuantity = quantity / 1000;
+      if (unit === "kg") {
+        apiQuantity = quantity / 1000; // convert grams → kg for API
         apiUnit = "kg";
+      } else {
+        apiQuantity = quantity; // already in grams
+        apiUnit = "g";
       }
 
       const productData = {
         mpItemId: id,
-        quantityType: apiUnit as "kg" | "g", // Type assertion for API compatibility
+        quantityType: apiUnit,
         quantity: apiQuantity,
       };
 
@@ -257,7 +255,7 @@ const ItemCard = ({
 
       setShowQuantitySelector(false);
       setAddedToCart(true);
-      setIsInCart(true); // Update local state
+      setIsInCart(true);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -373,11 +371,10 @@ const ItemCard = ({
 
   return (
     <div
-      className={`relative bg-white rounded-xl md:rounded-3xl shadow-sm border border-gray-200 w-full flex flex-col items-center transition-all duration-300 hover:shadow-md cursor-default ${
-        showQuantitySelector
+      className={`relative bg-white rounded-xl md:rounded-3xl shadow-sm border border-gray-200 w-full flex flex-col items-center transition-all duration-300 hover:shadow-md cursor-default ${showQuantitySelector
           ? "h-[260px] sm:h-[300px] md:h-[320px]"
           : "h-[200px] sm:h-[260px] md:h-[280px]"
-      }`}
+        }`}
     >
       {/* Error message */}
       {error && (
@@ -438,8 +435,9 @@ const ItemCard = ({
         </div>
 
         {/* Price section */}
+        {/* Price section */}
         <div className="flex flex-col items-center space-y-0.5 mb-2 flex-shrink-0">
-          {originalPrice && originalPrice > currentPrice ? (
+          {discount && discount > 0 && originalPrice && originalPrice > currentPrice ? (
             <>
               <span className="text-gray-500 text-xs line-through">
                 Rs. {formatPrice(originalPrice)}
@@ -450,7 +448,7 @@ const ItemCard = ({
             </>
           ) : (
             <span className="text-purple-900 text-xs md:text-sm font-semibold">
-              Rs. {formatPrice(currentPrice)}
+              Rs. {formatPrice(originalPrice ?? currentPrice)}
             </span>
           )}
         </div>
@@ -466,21 +464,19 @@ const ItemCard = ({
                 <div className="flex rounded overflow-hidden gap-2 cursor-pointer">
                   <button
                     onClick={() => handleUnitChange("kg")}
-                    className={`w-8 text-xs py-1 border rounded-md cursor-pointer ${
-                      unit === "kg"
+                    className={`w-8 text-xs py-1 border rounded-md cursor-pointer ${unit === "kg"
                         ? "bg-purple-100 text-purple-900 border-purple-300"
                         : "bg-gray-100 text-gray-500 border-gray-200"
-                    }`}
+                      }`}
                   >
                     kg
                   </button>
                   <button
                     onClick={() => handleUnitChange("g")}
-                    className={`w-8 text-xs py-1 border cursor-pointer rounded-md ${
-                      unit === "g"
+                    className={`w-8 text-xs py-1 border cursor-pointer rounded-md ${unit === "g"
                         ? "bg-purple-100 text-purple-900 border-purple-300"
                         : "bg-gray-100 text-gray-500 border-gray-200"
-                    }`}
+                      }`}
                   >
                     g
                   </button>
@@ -545,16 +541,15 @@ const ItemCard = ({
               onMouseEnter={() => setIsHovering(true)}
               onMouseLeave={() => setIsHovering(false)}
               disabled={isLoading || isInCart}
-              className={`w-full max-w-[180px] sm:max-w-[200px] md:max-w-[220px] py-2 px-1.5 rounded rounded-lg md:rounded-xl flex items-center justify-center gap-1 text-xs md:text-sm transition-all duration-200 ${
-                isInCart
+              className={`w-full max-w-[180px] sm:max-w-[200px] md:max-w-[220px] py-2 px-1.5 rounded rounded-lg md:rounded-xl flex items-center justify-center gap-1 text-xs md:text-sm transition-all duration-200 ${isInCart
                   ? "bg-[#EDE1FF] text-gray-500 cursor-not-allowed"
                   : token &&
-                      user &&
-                      showQuantitySelector &&
-                      buyerType !== "Wholesale"
+                    user &&
+                    showQuantitySelector &&
+                    buyerType !== "Wholesale"
                     ? "bg-purple-900 text-white hover:bg-purple-800 cursor-pointer hover:shadow-md hover:shadow-purple-300"
                     : "bg-white border border-[#D7D7D7] text-gray-400 hover:bg-[#3E206D] hover:text-white cursor-pointer shadow-[0px_1px_0px_0px_#D7D7D7] hover:shadow-md hover:shadow-purple-300"
-              } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+                } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               {!showQuantitySelector && !isInCart && (
                 <svg
@@ -575,9 +570,9 @@ const ItemCard = ({
               {isInCart
                 ? "Already in Cart"
                 : token &&
-                    user &&
-                    showQuantitySelector &&
-                    buyerType !== "Wholesale"
+                  user &&
+                  showQuantitySelector &&
+                  buyerType !== "Wholesale"
                   ? "Add to Cart"
                   : buyerType === "Wholesale"
                     ? "Add to Cart"
