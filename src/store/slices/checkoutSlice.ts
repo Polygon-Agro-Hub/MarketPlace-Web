@@ -1,4 +1,4 @@
-// formSlice.ts
+// formSlice.ts or checkoutSlice.ts
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 interface FormState {
@@ -21,8 +21,10 @@ interface FormState {
     street: string;
     cityName: string;
     scheduleType: string;
+    geoLatitude: number | null;
+    geoLongitude: number | null;
+    companycenterId?: any; // Add this to store companycenterId for later use
 }
-
 
 const initialState: FormState = {
   deliveryMethod: 'Delivery',
@@ -43,7 +45,10 @@ const initialState: FormState = {
   street: '',
   cityName: '',
   scheduleType: 'One Time',
-  centerId: null
+  centerId: null,
+  geoLatitude: null,
+  geoLongitude: null,
+  companycenterId: null,
 };
 
 const checkoutSlice = createSlice({
@@ -54,10 +59,14 @@ const checkoutSlice = createSlice({
       return { ...action.payload };
     },
     resetFormData: () => {
-        return initialState;
-      },
+      return initialState;
+    },
+    updateField: (state, action: PayloadAction<{ field: keyof FormState; value: any }>) => {
+      const { field, value } = action.payload;
+      (state as any)[field] = value;
+    },
   },
 });
 
-export const { setFormData, resetFormData  } = checkoutSlice.actions;
+export const { setFormData, resetFormData, updateField } = checkoutSlice.actions;
 export default checkoutSlice.reducer;

@@ -7,6 +7,8 @@ import Facebook from "../../../public/icons/Facebook-Footer.png";
 import Youtube from "../../../public/icons/Youtube-Footer.png";
 import Instagram from "../../../public/icons/Instagram-Footer.png";
 import Mail from "../../../public/icons/Mail-Footer.png"
+import footer from "../../../public/footer.png"
+import Link from "next/link";
 
 export default function Footer() {
   const [isMobile, setIsMobile] = useState(false);
@@ -35,7 +37,16 @@ function DesktopFooter() {
     <div className="mx-auto">
       <div className="flex flex-wrap justify-between items-start px-24 pt-20 pb-10">
         <div className="w-1/4">
-          <h2 className="text-4xl font-bold mb-6">MyFarm</h2>
+          <div className="flex justify-left mb-4">
+            <Image
+              src={footer}
+              alt="MyFarm Logo"
+              width={150}
+              height={60}
+              className="object-contain"
+              priority
+            />
+          </div>
           <div className="mb-4">
             <div className="flex items-start mb-5">
               <div className="text-[#8492A3] mr-2 mt-1">
@@ -73,7 +84,7 @@ function DesktopFooter() {
         <div className="w-1/4 pl-32">
           <h3 className="text-2xl text-[#FFFFFF] font-semibold mb-5">Quick Links</h3>
           <ul>
-            <li className="mb-2"><a href="#" className="text-[#DBDBDB] hover:text-blue-300">Home</a></li>
+            <li className="mb-2"><a href="/" className="text-[#DBDBDB] hover:text-blue-300">Home</a></li>
             <li className="mb-2"><a href="#" className="text-[#DBDBDB] hover:text-blue-300">Privacy Policy</a></li>
             <li className="mb-2"><a href="#" className="text-[#DBDBDB] hover:text-blue-300">Terms & Conditions</a></li>
           </ul>
@@ -82,9 +93,21 @@ function DesktopFooter() {
         <div className="w-1/4 pl-32">
           <h3 className="text-2xl text-[#FFFFFF] font-semibold mb-5">My Accounts</h3>
           <ul>
-            <li className="mb-2"><a href="#" className="text-[#DBDBDB] hover:text-blue-300">My Account</a></li>
-            <li className="mb-2"><a href="#" className="text-[#DBDBDB] hover:text-blue-300">My Cart</a></li>
-            <li className="mb-2"><a href="#" className="text-[#DBDBDB] hover:text-blue-300">My Order History</a></li>
+            <li className="mb-2">
+              <Link href="/account" className="text-[#DBDBDB] hover:text-blue-300">
+                My Account
+              </Link>
+            </li>
+            <li className="mb-2">
+              <Link href="/cart" className="text-[#DBDBDB] hover:text-blue-300">
+                My Cart
+              </Link>
+            </li>
+            <li className="mb-2">
+              <Link href="/history/order" className="text-[#DBDBDB] hover:text-blue-300">
+                My Order History
+              </Link>
+            </li>
           </ul>
         </div>
 
@@ -93,13 +116,13 @@ function DesktopFooter() {
             <a href="#" className="text-blue-400 hover:text-blue-300">
               <Image src={Linkedin} alt="LinkedIn" className='w-auto h-8 object-cover' />
             </a>
-            <a href="#" className="text-blue-400 hover:text-blue-300">
+            <a href="https://www.facebook.com/p/Govimart-61582676188251/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">
               <Image src={Facebook} alt="Facebook" className='w-auto h-8 object-cover' />
             </a>
             <a href="#" className="text-blue-400 hover:text-blue-300">
               <Image src={Youtube} alt="Youtube" className='w-auto h-8 object-cover' />
             </a>
-            <a href="#" className="text-blue-400 hover:text-blue-300">
+            <a href=" https://www.instagram.com/govimart/?hl=en" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">
               <Image src={Instagram} alt="Instagram" className='w-auto h-8 object-cover' />
             </a>
             <a href="#" className="text-blue-400 hover:text-blue-300">
@@ -111,7 +134,7 @@ function DesktopFooter() {
 
       <div className="border-t border-[#232732] mt-6 py-3 px-7 flex justify-between items-center">
         <div className="flex">
-          <p className="text-sm text-[#DBDBDB]">© All rights reserved by AgroWorld Pvt Ltd</p>
+          <p className="text-sm text-[#DBDBDB]">© All rights reserved by Polygon Holdings (Pvt) Ltd</p>
           <div className="flex ml-5">
             <Image src={Visa} alt="Visa" className='w-auto h-6 object-cover mr-2' />
             <Image src={MasterCard} alt="MasterCard" className='w-auto h-6 object-cover' />
@@ -130,8 +153,17 @@ function DesktopFooter() {
 function MobileFooter() {
   return (
     <div className="mx-auto">
-      <div className="mb-6 p-5 flex flex-col items-center">
-        <h2 className="text-xl text-center font-bold mb-10 mt-5">MyFarm</h2>
+      <div className="mb-6  flex flex-col items-center">
+        <div className="flex justify-left mb-4 mt-4">
+          <Image
+            src={footer}
+            alt="MyFarm Logo"
+            width={150}
+            height={60}
+            className="object-contain"
+            priority
+          />
+        </div>
         <div className="px-10">
           <div className="flex items-start mb-8">
             <div className="text-[#8492A3] mr-2 mt-1">
@@ -166,59 +198,70 @@ function MobileFooter() {
             <p className="text-sm text-[#8492A3]">+94 77 1666 800</p>
           </div>
         </div>
-
       </div>
 
       <div className="flex justify-between mb-6 px-16">
         <div>
           <h3 className="text-lg font-semibold mb-5 text-[#FFFFFF]">Quick Links</h3>
           <ul>
-            <li className="mb-3"><a href="#" className="text-[#DBDBDB] hover:text-blue-300">Home</a></li>
+            <li className="mb-3"><a href="" className="text-[#DBDBDB] hover:text-blue-300">Home</a></li>
             <li className="mb-3"><a href="#" className="text-[#DBDBDB] hover:text-blue-300">Privacy Policy</a></li>
-            <li className="mb-3"><a href="#" className="text-[#DBDBDB] hover:text-blue-300">Terms & Conditions</a></li>
+            <li className="mb-3"><a href="#" className="text-[#DBDBDB] hover:text-blue-300">Terms & <br />Conditions</a></li>
           </ul>
         </div>
 
         <div>
           <h3 className="text-lg font-semibold mb-5 text-[#FFFFFF]">My Accounts</h3>
           <ul>
-            <li className="mb-3"><a href="#" className="text-[#DBDBDB] hover:text-blue-300">My Account</a></li>
-            <li className="mb-3"><a href="#" className="text-[#DBDBDB] hover:text-blue-300">My Cart</a></li>
-            <li className="mb-3"><a href="#" className="text-[#DBDBDB] hover:text-blue-300">My Order History</a></li>
+            <li className="mb-3">
+              <Link href="/account" className="text-[#DBDBDB] hover:text-blue-300">
+                My Account
+              </Link>
+            </li>
+            <li className="mb-3">
+              <Link href="/cart" className="text-[#DBDBDB] hover:text-blue-300">
+                My Cart
+              </Link>
+            </li>
+            <li className="mb-3">
+              <Link href="/history/order" className="text-[#DBDBDB] hover:text-blue-300">
+                My Order History
+              </Link>
+            </li>
           </ul>
         </div>
       </div>
 
-      <div className="flex justify-center space-x-6 mt-20 mb-20">
+      <div className="flex justify-center space-x-6 mb-10 px-4">
         <a href="#" className="text-blue-400 hover:text-blue-300">
-          <Image src={Linkedin} alt="LinkedIn" className='w-auto h-8 object-cover' />
+          <Image src={Linkedin} alt="LinkedIn" width={32} height={32} />
         </a>
         <a href="#" className="text-blue-400 hover:text-blue-300">
-          <Image src={Facebook} alt="Facebook" className='w-auto h-8 object-cover' />
+          <Image src={Facebook} alt="Facebook" width={32} height={32} />
         </a>
         <a href="#" className="text-blue-400 hover:text-blue-300">
-          <Image src={Youtube} alt="Youtube" className='w-auto h-8 object-cover' />
+          <Image src={Youtube} alt="Youtube" width={32} height={32} />
         </a>
         <a href="#" className="text-blue-400 hover:text-blue-300">
-          <Image src={Instagram} alt="Instagram" className='w-auto h-8 object-cover' />
+          <Image src={Instagram} alt="Instagram" width={32} height={32} />
         </a>
         <a href="#" className="text-blue-400 hover:text-blue-300">
-          <Image src={Mail} alt="Mail" className='w-auto h-8 object-cover' />
+          <Image src={Mail} alt="Mail" width={32} height={32} />
         </a>
       </div>
 
-      <div className="border-t border-[#404451] p-6 text-center">
-        <div className="flex justify-between items-center">
-          <p className="text-xs text-[#DBDBDB] mb-3">© All rights reserved by AgroWorld Pvt Ltd</p>
-          <div className="flex justify-center mb-3">
-            <Image src={Visa} alt="Visa" className='w-auto h-6 object-cover mr-2' />
-            <Image src={MasterCard} alt="MasterCard" className='w-auto h-6 object-cover' />
+      <div className="border-t border-[#404451] pt-6 pb-4 px-6">
+        <div className="flex justify-between items-center mb-4">
+          <p className="text-xs text-[#DBDBDB]">© All rights reserved by Polygon Holdings (Pvt) Ltd</p>
+          <div className="flex">
+            <Image src={Visa} alt="Visa" width={40} height={24} className="mr-2" />
+            <Image src={MasterCard} alt="MasterCard" width={40} height={24} />
           </div>
         </div>
 
-        <div className="flex justify-between space-x-4 text-xs">
-          <a href="#" className="text-[#DBDBDB] hover:text-white underline">Terms & Conditions</a>
-          <a href="#" className="text-[#DBDBDB] hover:text-white underline">Privacy Policy</a>
+        <div className="flex justify-between">
+          <a href="#" className="text-xs text-[#DBDBDB] hover:text-white underline">Terms & Conditions</a>
+          <a href="#" className="text-xs text-[#DBDBDB] hover:text-white underline">Privacy Policy</a>
         </div>
       </div>
     </div>

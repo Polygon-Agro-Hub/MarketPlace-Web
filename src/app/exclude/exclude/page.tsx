@@ -1,11 +1,16 @@
-'use client';
+"use client";
 
-import { RootState } from '@/store';
-import { useState, useEffect } from 'react';
-import { FiSearch } from 'react-icons/fi';
-import { useSelector } from 'react-redux';
-import { getMarketplaceSuggestions, excludeItems } from '@/services/product-service';
-import { useRouter } from 'next/navigation';
+import { RootState } from "@/store";
+import { useState, useEffect } from "react";
+import { FiSearch, FiX } from "react-icons/fi";
+import { useSelector } from "react-redux";
+import {
+  getMarketplaceSuggestions,
+  excludeItems,
+} from "@/services/product-service";
+import { useRouter } from "next/navigation";
+import Lottie from "react-lottie";
+import noResultsAnimation from "../../../../public/noAddItem.json";
 
 interface Item {
   displayName: string;
@@ -17,7 +22,7 @@ export default function ExcludeItems() {
   const authToken = useSelector((state: RootState) => state.auth.token) || null;
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [items, setItems] = useState<Item[]>([]);
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [submitStatus, setSubmitStatus] = useState<string | null>(null);
@@ -25,7 +30,7 @@ export default function ExcludeItems() {
   useEffect(() => {
     const fetchItems = async () => {
       if (!authToken) {
-        setError('Authentication token is missing');
+        setError("Authentication token is missing");
         setLoading(false);
         return;
       }
@@ -34,11 +39,12 @@ export default function ExcludeItems() {
       if (data.status && Array.isArray(data.items)) {
         const validatedItems = data.items.filter(
           (item: any): item is Item =>
-            typeof item.displayName === 'string' && typeof item.image === 'string'
+            typeof item.displayName === "string" &&
+            typeof item.image === "string",
         );
         setItems(validatedItems);
       } else {
-        setError(data.message || 'Failed to fetch items');
+        setError(data.message || "Failed to fetch items");
       }
       setLoading(false);
     };
@@ -46,23 +52,21 @@ export default function ExcludeItems() {
     fetchItems();
   }, [authToken]);
 
-  
   const handleToggle = (itemName: string) => {
     setSelectedItems((prev) =>
-      prev.includes(itemName) ? prev.filter((i) => i !== itemName) : [...prev, itemName]
+      prev.includes(itemName)
+        ? prev.filter((i) => i !== itemName)
+        : [...prev, itemName],
     );
   };
 
   const filteredItems = items.filter((item) =>
-    item.displayName.toLowerCase().includes(searchQuery.trim().toLowerCase())
+    item.displayName.toLowerCase().includes(searchQuery.trim().toLowerCase()),
   );
 
   const handleContinue = async () => {
-    console.log('handleContinue called. Selected items:', selectedItems);
-
     if (!authToken) {
-      setSubmitStatus('Authentication token is missing');
-      console.log('No auth token, stopping');
+      setSubmitStatus("Authentication token is missing");
       return;
     }
 
@@ -72,15 +76,14 @@ export default function ExcludeItems() {
     if (selectedItems.length > 0) {
       const response = await excludeItems(selectedItems, authToken);
       if (!response.status) {
-        setSubmitStatus(response.message || 'Failed to exclude items.');
+        setSubmitStatus(response.message || "Failed to exclude items.");
         return;
       }
     }
 
     // Clear selected items and navigate to summary
     setSelectedItems([]);
-    console.log('Navigating to /exclude/summary');
-    router.push('/exclude/summary');
+    router.push("/exclude/summary");
   };
 
   return (
@@ -97,21 +100,28 @@ export default function ExcludeItems() {
 
       <div className="w-full max-w-md">
         {/* Search Box */}
-  <div className="mb-6 relative">
-  <input
-    type="text"
-    placeholder="Search for Product"
-    value={searchQuery}
-    onChange={(e) => setSearchQuery(e.target.value)}
-    className="w-full p-2 pl-4 pr-10 rounded bg-[#EFE4FF] text-[#3E206D] placeholder-[#3E206D] placeholder-italic text-center italic text-[12px] md:text-[16px] outline-none"
-    aria-label="Search products"
-  />
-  <FiSearch
-    className="absolute right-3 cursor-pointer top-1/2 transform -translate-y-1/2 text-[#3E206D]"
-    aria-label="Search icon"
-  />
-</div>
-
+        <div className="mb-6 relative">
+          <input
+            type="text"
+            placeholder="Search for Product"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full p-2 pl-4 pr-10 rounded bg-[#EFE4FF] text-[#3E206D] placeholder-[#3E206D] placeholder-italic text-center italic text-[12px] md:text-[16px] outline-none"
+            aria-label="Search products"
+          />
+          {searchQuery ? (
+            <FiX
+              className="absolute right-3 cursor-pointer top-1/2 transform -translate-y-1/2 text-[#3E206D]"
+              onClick={() => setSearchQuery("")}
+              aria-label="Clear search"
+            />
+          ) : (
+            <FiSearch
+              className="absolute right-3 cursor-pointer top-1/2 transform -translate-y-1/2 text-[#3E206D]"
+              aria-label="Search icon"
+            />
+          )}
+        </div>
 
         {/* Loading and Error States */}
         {loading && <p className="text-center text-[#4C5160]">Loading...</p>}
@@ -119,7 +129,9 @@ export default function ExcludeItems() {
         {submitStatus && (
           <p
             className={`text-center mb-4 ${
-              submitStatus.toLowerCase().includes('success') ? 'text-green-500' : 'text-red-500'
+              submitStatus.toLowerCase().includes("success")
+                ? "text-green-500"
+                : "text-red-500"
             }`}
           >
             {submitStatus}
@@ -128,19 +140,38 @@ export default function ExcludeItems() {
 
         {/* Item List */}
         {!loading && !error && filteredItems.length === 0 && (
-          <p className="text-center text-[#4C5160]">No items found</p>
+          <div className="flex flex-col items-center justify-center py-8">
+            <Lottie
+              options={{
+                loop: false,
+                autoplay: true,
+                animationData: noResultsAnimation,
+                rendererSettings: {
+                  preserveAspectRatio: "xMidYMid slice",
+                },
+              }}
+              height={200}
+              width={200}
+            />
+            <p className="text-center text-[#4C5160] text-sm md:text-base italic mt-4">
+              No items found
+            </p>
+          </div>
         )}
         {!loading && !error && filteredItems.length > 0 && (
           <div className="space-y-3">
             {filteredItems.map((item) => (
-              <div key={item.displayName} className="flex items-center justify-between px-2">
+              <div
+                key={item.displayName}
+                className="flex items-center justify-between px-2"
+              >
                 <div className="flex items-center">
                   <button
                     onClick={() => handleToggle(item.displayName)}
                     className={`w-5 h-5 rounded-full cursor-pointer border-2 mr-3 flex items-center justify-center ${
                       selectedItems.includes(item.displayName)
-                        ? 'bg-red-500 border-red-500'
-                        : 'border-[#A3A3A3]'
+                        ? "bg-red-500 border-red-500"
+                        : "border-[#A3A3A3]"
                     }`}
                     aria-label={`Toggle exclude ${item.displayName}`}
                   >
@@ -148,14 +179,16 @@ export default function ExcludeItems() {
                       <span className="text-white text-xs font-bold">×</span>
                     )}
                   </button>
-                  <span className="text-[16px] md:text-[20px] font-medium">{item.displayName}</span>
+                  <span className="text-[16px] md:text-[20px] font-medium">
+                    {item.displayName}
+                  </span>
                 </div>
                 <img
                   src={item.image}
                   alt={item.displayName}
                   className="w-10 h-10 object-contain"
                   onError={(e) => {
-                    e.currentTarget.src = '/images/fallback.png';
+                    e.currentTarget.src = "/images/fallback.png";
                   }}
                 />
               </div>

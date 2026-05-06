@@ -1,6 +1,5 @@
 
 'use client';
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { FaCloudUploadAlt, FaTimes, FaAngleDown } from 'react-icons/fa';
@@ -37,28 +36,49 @@ interface CustomDropdownProps {
   onChange: (value: string) => void;
   options: { value: string; label: string }[];
   disabled?: boolean;
+  withSearch?: boolean;
 }
 
-const CustomDropdown = ({ register, name, value, onChange, options, disabled }: CustomDropdownProps) => {
+const CustomDropdown = ({ register, name, value, onChange, options, disabled, withSearch }: CustomDropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Handle clicking outside to close dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
+        setSearchTerm('');
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Auto-focus search input when dropdown opens
+  useEffect(() => {
+    if (isOpen && withSearch && searchInputRef.current) {
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 50);
+    }
+  }, [isOpen, withSearch]);
+
   // Handle option selection
   const handleSelect = (selectedValue: string) => {
     onChange(selectedValue);
     setIsOpen(false);
+    setSearchTerm('');
   };
+
+  // Filter options based on search term
+  const filteredOptions = withSearch && searchTerm
+    ? options.filter(option =>
+        option.label.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    : options;
 
   return (
     <div className="relative cursor-pointer" ref={dropdownRef}>
@@ -67,28 +87,53 @@ const CustomDropdown = ({ register, name, value, onChange, options, disabled }: 
 
       {/* Dropdown Trigger */}
       <div
-        className={`appearance-none border border-[#CECECE] cursor-pointer rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px] pr-8 flex items-center justify-between ${
-          disabled ? 'opacity-50 cursor-not-allowed' : ''
-        }`}
+        className={`appearance-none border border-[#CECECE] cursor-pointer rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px] pr-8 flex items-center justify-between ${disabled ? 'opacity-50 cursor-not-allowed' : ''
+          }`}
         onClick={() => !disabled && setIsOpen(!isOpen)}
       >
-        <span>{options.find((opt) => opt.value === value)?.label || '--Select Complaint Category--'}</span>
+        <span>
+          {value && options.find((opt) => opt.value === value)?.label || '--Select Complaint Category--'}
+        </span>
         <FaAngleDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none" />
       </div>
 
       {/* Dropdown Options */}
       {isOpen && (
-        <ul className="absolute z-10 w-full bg-white border border-[#CECECE] rounded-lg mt-1">
-          {options.map((option) => (
-            <li
-              key={option.value}
-              className="p-2 text-[12px] md:text-[14px] cursor-pointer hover:bg-gray-100"
-              onClick={() => handleSelect(option.value)}
-            >
-              {option.label}
-            </li>
-          ))}
-        </ul>
+        <div className="absolute z-10 w-full bg-white border border-[#CECECE] rounded-lg mt-1 shadow-lg max-h-[300px] overflow-hidden">
+          {/* Search Bar */}
+          {withSearch && (
+            <div className="sticky top-0 bg-white p-2 border-b border-[#CECECE]">
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search..."
+                className="w-full p-2 text-[12px] md:text-[14px] border border-[#CECECE] rounded-md focus:outline-none focus:border-[#3E206D]"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+          )}
+
+          {/* Options List */}
+          <ul className="overflow-y-auto" style={{ maxHeight: withSearch ? '252px' : '300px' }}>
+            {filteredOptions.length > 0 ? (
+              filteredOptions.map((option) => (
+                <li
+                  key={option.value}
+                  className="p-2 text-[12px] md:text-[14px] cursor-pointer hover:bg-gray-100"
+                  onClick={() => handleSelect(option.value)}
+                >
+                  {option.label}
+                </li>
+              ))
+            ) : (
+              <li className="p-2 text-[12px] md:text-[14px] text-gray-500 text-center">
+                No results found
+              </li>
+            )}
+          </ul>
+        </div>
       )}
     </div>
   );
@@ -142,11 +187,10 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
   const userId = user?.id;
 
   // Category options
-  const categoryOptions = [
-    { value: '', label: '--Select Complaint Category--' },
-    ...categories.map((cat) => ({ value: cat.id.toString(), label: cat.categoryEnglish })),
-  ];
-
+  const categoryOptions = categories.map((cat) => ({
+    value: cat.id.toString(),
+    label: cat.categoryEnglish
+  }));
   // Fetch categories from backend
   useEffect(() => {
     const loadCategories = async () => {
@@ -184,33 +228,7 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
     }
   }, [complaint, categories]);
 
-  // Handle file input for image uploads
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const newImages = Array.from(e.target.files).filter((file) => {
-        const isValidType = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'].includes(file.type);
-        const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB limit
-        const isDuplicate = images.some((img) => img.name === file.name && img.size === file.size);
-        return isValidType && isValidSize && !isDuplicate;
-      });
 
-      if (newImages.length < e.target.files.length) {
-        setErrorMessage('Some files were invalid (unsupported type, too large, or duplicates). Max size: 5MB.');
-        setShowErrorPopup(true);
-      }
-
-      const totalImages = existingImages.length + images.length + newImages.length;
-      if (totalImages > 6) {
-        setErrorMessage('You can upload a maximum of 6 images.');
-        setShowErrorPopup(true);
-        return;
-      }
-
-      setImages((prev) => [...prev, ...newImages]);
-    }
-  };
-
-  // Drag-and-drop handlers
   const handleDragOver = (e: React.DragEvent<HTMLLabelElement>) => {
     e.preventDefault();
     setIsDragging(true);
@@ -226,33 +244,118 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
     setIsDragging(false);
   };
 
-  const handleDrop = (e: React.DragEvent<HTMLLabelElement>) => {
-    e.preventDefault();
-    setIsDragging(false);
-    if (e.dataTransfer.files) {
-      const files = Array.from(e.dataTransfer.files).filter((file) => {
-        const isValidType = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'].includes(file.type);
+ const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const filesArray = Array.from(e.target.files);
+      const validImages: File[] = [];
+      let hasInvalidType = false;
+      let hasInvalidSize = false;
+      let hasDuplicates = false;
+
+      filesArray.forEach((file) => {
+        const isValidType = ['image/jpeg', 'image/png'].includes(file.type);
         const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB limit
+
+        // More reliable duplicate check - just check name and size
         const isDuplicate = images.some((img) => img.name === file.name && img.size === file.size);
-        return isValidType && isValidSize && !isDuplicate;
+
+        if (isDuplicate) {
+          hasDuplicates = true;
+        } else if (!isValidType) {
+          hasInvalidType = true;
+        } else if (!isValidSize) {
+          hasInvalidSize = true;
+        } else {
+          // Only add if it's valid and not a duplicate
+          validImages.push(file);
+        }
       });
 
-      if (files.length < e.dataTransfer.files.length) {
-        setErrorMessage('Some files were invalid (unsupported type, too large, or duplicates). Max size: 5MB.');
-        setShowErrorPopup(true);
-      }
+      // Check total images limit before adding
+      const totalImages = existingImages.length + images.length + validImages.length;
 
-      const totalImages = existingImages.length + images.length + files.length;
+      // Show error messages with proper priority
       if (totalImages > 6) {
         setErrorMessage('You can upload a maximum of 6 images.');
         setShowErrorPopup(true);
         return;
       }
 
-      setImages((prev) => [...prev, ...files]);
+      if (hasInvalidType) {
+        setErrorMessage('Invalid file type. Please upload only JPEG or PNG images.');
+        setShowErrorPopup(true);
+      } else if (hasInvalidSize) {
+        setErrorMessage('File size too large. Maximum size allowed is 5MB.');
+        setShowErrorPopup(true);
+      } else if (hasDuplicates) {
+        setErrorMessage('You have already uploaded this image.');
+        setShowErrorPopup(true);
+      }
+
+      // Add valid images even if there were duplicates/invalid files
+      if (validImages.length > 0) {
+        setImages((prev) => [...prev, ...validImages]);
+      }
+
+      // Clear the input so the same file can trigger onChange again
+      e.target.value = '';
     }
   };
 
+  const handleDrop = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+
+    if (e.dataTransfer.files) {
+      const filesArray = Array.from(e.dataTransfer.files);
+      const validImages: File[] = [];
+      let hasInvalidFiles = false;
+      let hasDuplicates = false;
+
+      filesArray.forEach((file) => {
+        const isValidType = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'].includes(file.type);
+        const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB limit
+
+        // More reliable duplicate check
+        const isDuplicate = images.some((img) => img.name === file.name && img.size === file.size);
+
+        if (isDuplicate) {
+          hasDuplicates = true;
+        } else if (!isValidType || !isValidSize) {
+          hasInvalidFiles = true;
+        } else {
+          // Only add if it's valid and not a duplicate
+          validImages.push(file);
+        }
+      });
+
+      // Check total images limit before adding
+      const totalImages = existingImages.length + images.length + validImages.length;
+
+      // Show error messages with proper priority
+      if (totalImages > 6) {
+        setErrorMessage('You can upload a maximum of 6 images.');
+        setShowErrorPopup(true);
+        return;
+      }
+
+      if (hasDuplicates && hasInvalidFiles) {
+        setErrorMessage('You have already uploaded some of these images. Some files were also invalid (unsupported type or too large). Max size: 5MB.');
+        setShowErrorPopup(true);
+      } else if (hasDuplicates) {
+        setErrorMessage('You have already uploaded one or more of these images.');
+        setShowErrorPopup(true);
+      } else if (hasInvalidFiles) {
+        setErrorMessage('Some files were invalid (unsupported type or too large). Max size: 5MB.');
+        setShowErrorPopup(true);
+      }
+
+      // Add valid images even if there were duplicates/invalid files
+      if (validImages.length > 0) {
+        setImages((prev) => [...prev, ...validImages]);
+      }
+    }
+  };
   // Clear form
   const clearForm = () => {
     setCategoryId('');
@@ -312,6 +415,10 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
       setSuccessMessage(
         `Complaint ${complaint?.id ? 'updated' : 'submitted'} successfully! Your feedback has been recorded. Thank you!`
       );
+      
+      // Scroll to top of the page
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      
       setShowSuccessPopup(true);
 
       setTimeout(() => {
@@ -337,7 +444,7 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
   };
 
   return (
-    <div className="relative z-40 px-6 md:px-8 bg-white">
+    <div className="relative z-10 px-4 sm:px-6 min-h-screen bg-white blur-effect py-4">
       <Loader isVisible={isLoading} />
       <ErrorPopup
         isVisible={showErrorPopup}
@@ -352,17 +459,11 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
         description={successMessage}
         duration={3000}
       />
-      <CancelSuccessPopup
-        isVisible={showCancelSuccessPopup}
-        onClose={() => setShowCancelSuccessPopup(false)}
-        title="Form cleared successfully!"
-        duration={3000}
-      />
 
-      <h2 className="font-medium text-base text-[14px] md:text-[18px] mb-2 mt-2">
+      <h2 className="font-medium text-[14px] text-base md:text-[17.5px]">
         {complaint?.id ? 'Update Complaint' : 'Report a Complaint'}
       </h2>
-      <p className="text-[12px] md:text-[16px] text-[#626D76] mb-2">
+      <p className="text-[12px] md:text-[16px] text-[#626D76] mb-3">
         Have a concern or issue? This section is here to help.
       </p>
 
@@ -384,6 +485,7 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
               onChange={setCategoryId}
               options={categoryOptions}
               disabled={isLoading}
+              withSearch={true}
             />
             <p id="category-help" className="text-xs text-[#626D76] mt-1 sr-only">
               Select the category that best describes your complaint.
@@ -402,10 +504,17 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
           <textarea
             id="complaint-text"
             value={complaintText}
-            onChange={(e) => setComplaintText(e.target.value)}
-            className={`border border-[#CECECE] rounded-lg p-2 w-full h-52 text-[12px] md:text-[14px] font-medium resize-none focus:ring-0 focus:border-[#3E206D] ${
-              isLoading ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
+            onChange={(e) => {
+              const value = e.target.value;
+              // Auto-capitalize first letter
+              if (value.length === 1 && value !== value.toUpperCase()) {
+                setComplaintText(value.charAt(0).toUpperCase());
+              } else {
+                setComplaintText(value);
+              }
+            }}
+            className={`border border-[#CECECE] rounded-lg p-2 w-full h-52 text-[12px] md:text-[14px] font-medium resize-none focus:ring-0 focus:border-[#3E206D] ${isLoading ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
             placeholder="Type here..."
             disabled={isLoading}
             aria-describedby="complaint-help"
@@ -414,14 +523,12 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
             Provide a detailed description of your complaint.
           </p>
         </div>
-
         {/* Image Upload and Preview */}
         <div className="flex flex-col lg:flex-row gap-6 mb-6">
           <div className="flex-1">
             <label
-              className={`min-h-[250px] border border-dashed border-[#CECECE] rounded-lg flex flex-col items-center justify-center text-center transition-colors ${
-                isDragging ? 'bg-gray-100' : ''
-              } ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+              className={`min-h-[250px] border border-dashed border-[#CECECE] rounded-lg flex flex-col items-center justify-center text-center transition-colors ${isDragging ? 'bg-gray-100' : ''
+                } ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
               onDragOver={handleDragOver}
               onDragEnter={handleDragEnter}
               onDragLeave={handleDragLeave}
@@ -461,9 +568,8 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
                       />
                       <button
                         onClick={() => removeImage(i, true, img.id)}
-                        className={`absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center cursor-pointer bg-[#FA0000] rounded-full text-white hover:bg-[#D00000] ${
-                          isLoading ? 'opacity-50 cursor-not-allowed' : ''
-                        }`}
+                        className={`absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center cursor-pointer bg-[#FA0000] rounded-full text-white hover:bg-[#D00000] ${isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
                         disabled={isLoading}
                       >
                         <FaTimes className="text-xs" />
@@ -484,9 +590,8 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
                       />
                       <button
                         onClick={() => removeImage(i, false)}
-                        className={`absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center cursor-pointer bg-[#FA0000] rounded-full text-white hover:bg-[#D00000] ${
-                          isLoading ? 'opacity-50 cursor-not-allowed' : ''
-                        }`}
+                        className={`absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center cursor-pointer bg-[#FA0000] rounded-full text-white hover:bg-[#D00000] ${isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
                         disabled={isLoading}
                       >
                         <FaTimes className="text-xs" />
@@ -506,9 +611,8 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
         <div className="flex justify-end gap-4 mt-10">
           <button
             type="button"
-            className={`w-[90px] h-[36px] sm:w-[110px] sm:h-[44px] text-[16px] md:text-[20px] font-medium rounded-lg text-[#757E87] bg-[#F3F4F7] hover:bg-[#e1e2e5] ${
-              isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-            }`}
+            className={`w-[90px] h-[36px] sm:w-[110px] sm:h-[44px] text-[16px] md:text-[20px] font-medium rounded-lg text-[#757E87] bg-[#F3F4F7] hover:bg-[#e1e2e5] ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+              }`}
             onClick={clearForm}
             disabled={isLoading}
           >
@@ -516,9 +620,8 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
           </button>
           <button
             type="submit"
-            className={`w-[90px] h-[36px] sm:w-[110px] sm:h-[44px] text-[16px] md:text-[20px] font-medium rounded-lg text-white bg-[#3E206D] hover:bg-[#341a5a] mb-4 ${
-              isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-            }`}
+            className={`w-[90px] h-[36px] sm:w-[110px] sm:h-[44px] text-[16px] md:text-[20px] font-medium rounded-lg text-white bg-[#3E206D] hover:bg-[#341a5a] mb-4 ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+              }`}
             onClick={sendForm}
             disabled={isLoading}
           >

@@ -127,7 +127,7 @@ const ErrorPopup = ({
                 {/* Close Button */}
                 <button
                     onClick={handleClose}
-                    className={`absolute top-6 right-6 w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-all duration-200 ${animate ? 'opacity-60 hover:opacity-100' : 'opacity-0'
+                    className={`absolute top-6 right-6 w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-all duration-200 cursor-pointer ${animate ? 'opacity-60 hover:opacity-100' : 'opacity-0'
                         }`}
                     style={{ transitionDelay: '0.8s' }}
                 >

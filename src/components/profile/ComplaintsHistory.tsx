@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -8,8 +6,10 @@ import { FaAngleDown } from 'react-icons/fa';
 import { RootState } from '@/store';
 import { fetchComplaints } from '@/services/auth-service';
 import EmptyComplaints from '../complaints/No-complaint';
-import Select, { ActionMeta, SingleValue } from 'react-select'; // Import react-select
+import Select, { ActionMeta, SingleValue } from 'react-select';
 import Loader from '@/components/loader-spinner/Loader';
+import Image from 'next/image';
+import noComplaints from '../../../public/icons/no complaints.png';
 
 // Interfaces
 interface Complaint {
@@ -24,6 +24,7 @@ interface Complaint {
   reply?: string;
   replyDate?: string | null;
   customerName?: string;
+  replyTime?: string | null;
 }
 
 // Define filter options for react-select
@@ -37,6 +38,7 @@ const filterOptions = [
 const ComplaintsHistory = () => {
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filterLoading, setFilterLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState('This Month');
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
@@ -117,25 +119,53 @@ const ComplaintsHistory = () => {
     setSelectedComplaint(null);
   };
 
+  const formatReplyTime = (replyTime: string | null | undefined): string => {
+    if (!replyTime) return 'Not replied yet';
+
+    const date = new Date(replyTime);
+
+    const formattedDate = date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      timeZone: 'Asia/Colombo'
+    });
+
+    const formattedTime = date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: 'Asia/Colombo'
+    });
+
+    return `${formattedDate} at ${formattedTime}`;
+  };
+
   // Handle filter change for react-select
   const handleFilterChange = (
     newValue: SingleValue<{ value: string; label: string }>,
     actionMeta: ActionMeta<{ value: string; label: string }>
   ): void => {
     if (newValue) {
+      setFilterLoading(true);
       setFilter(newValue.value);
+      
+      // Show loader for a brief moment to indicate filtering is happening
+      setTimeout(() => {
+        setFilterLoading(false);
+      }, 300);
     }
   };
 
 
   return (
-    <div>
-      <Loader isVisible={loading} />
+    <div className="relative z-10 px-4 sm:px-6 min-h-screen bg-white blur-effect py-4">
+      <Loader isVisible={loading || filterLoading} />
       <div
-        className={`relative z-10 px-4 sm:px-6 md:px-8 min-h-screen mb-10 ${selectedComplaint ? 'bg-white' : 'bg-white'
+        className={`relative z-10 ${selectedComplaint ? 'bg-white' : 'bg-white'
           } blur-effect`}
       >
-        <h2 className="font-medium text-[14px] text-base md:text-[18px] mb-2 mt-2">
+        <h2 className="font-medium text-[14px] text-base md:text-[17.5px]">
           Complaints History
         </h2>
         <p className="text-[12px] md:text-[16px] text-[#626D76] mb-3">
@@ -145,8 +175,8 @@ const ComplaintsHistory = () => {
 
         {/* Reply Modal Inside First Div */}
         {selectedComplaint && (
-          <div className="absolute inset-0 flex justify-center items-start z-30 pt-10 bg-white/60 backdrop-blur-sm">
-            <div className="bg-white/90 p-6 rounded-lg shadow-lg w-full max-w-[560px] mx-auto">
+          <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60">
+            <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-[560px] mt-36">
               <div className="flex flex-col items-center">
                 <img
                   src="/icons/reply.png"
@@ -162,9 +192,9 @@ const ComplaintsHistory = () => {
                     {selectedComplaint.reply || 'No reply available yet.'}
                   </p>
                   <p className="text-sm">Sincerely,</p>
-                  <p className="text-sm">Support Team</p>
+                  <p className="text-sm">Customer Support Team</p>
                   <p className="text-sm">
-                    {selectedComplaint.replyDate || 'June 16, 2025'}
+                    {formatReplyTime(selectedComplaint.replyTime)}
                   </p>
                 </div>
                 <button
@@ -185,14 +215,14 @@ const ComplaintsHistory = () => {
               <div className="text-[14px] text-base md:text-[18px] font-bold">
                 All ({String(filteredComplaints.length).padStart(2, '0')})
               </div>
-              <div className="relative w-[140px] sm:w-[180px]">
+              <div className="relative w-[140px] sm:w-[144px]">
                 <Select
                   instanceId="complaints-history-filter"
                   options={filterOptions}
                   value={filterOptions.find((option) => option.value === filter)}
                   onChange={handleFilterChange}
-                  className="text-xs sm:text-sm"
-                  isSearchable={false} 
+                  className="text-xs sm:text-sm text-black"
+                  isSearchable={false}
                   styles={{
                     control: (base) => ({
                       ...base,
@@ -204,6 +234,7 @@ const ComplaintsHistory = () => {
                       display: 'flex',
                       alignItems: 'center',
                       textAlign: 'center',
+                      
                       paddingRight: '1.5rem',
                       boxShadow: 'none',
                       ':hover': {
@@ -215,7 +246,7 @@ const ComplaintsHistory = () => {
                       ...base,
                       cursor: 'pointer',
                       backgroundColor: isFocused ? '#F3F4F6' : 'white',
-                      color: '#1F2937',
+                      color: '#000000',
                       textAlign: 'center',
                       padding: '8px 12px',
                     }),
@@ -230,7 +261,7 @@ const ComplaintsHistory = () => {
                       ...base,
                       textAlign: 'center',
                       width: '100%',
-                      color: '#1F2937',
+                      color: '#000000',
                     }),
                     dropdownIndicator: (base) => ({
                       ...base,
@@ -249,49 +280,47 @@ const ComplaintsHistory = () => {
             </div>
 
             {loading && <div className="text-center text-sm text-[#626D76]">Loading complaints...</div>}
-            {!loading && error && <div className="text-center text-sm text-red-600">Error: {error}</div>}
-            {!loading && !error && filteredComplaints.length === 0 && <EmptyComplaints />}
-            {!loading && !error && filteredComplaints.length > 0 && (
+            {!loading && !filterLoading && error && <div className="text-center text-sm text-red-600">Error: {error}</div>}
+            {!loading && !filterLoading && !error && filteredComplaints.length === 0 && <EmptyComplaints />}
+            {!loading && !filterLoading && !error && filteredComplaints.length > 0 && (
               <div className="space-y-4">
                 {filteredComplaints.map((complaint) => (
                   <div key={complaint.id} className="border border-[#CECECE] rounded-lg p-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                       <div className="flex flex-col items-start">
                         <div className="text-[12px] md:text-[16px] text-[#626D76] font-medium">Complaint ID:</div>
-                        <div className="text-[12px] md:text-[16px]">{complaint.id}</div>
+                        <div className="text-[12px] md:text-[16px]">#{complaint.id}</div>
                       </div>
                       <div className="flex flex-col items-start">
                         <div className="text-[12px] md:text-[16px] text-[#626D76] font-medium">Category:</div>
-                        <div className="text-[12px] md:text-[16px]">{complaint.category}</div>
+                        <div className="text-[12px] md:text-[16px] break-all max-w-full">{complaint.category}</div>
                       </div>
                       <div className="flex flex-col items-start">
                         <div className="text-[12px] md:text-[16px] text-[#626D76] font-medium">Date:</div>
                         <div className="text-[12px] md:text-[16px]">{complaint.date}</div>
                       </div>
-                      <div className="flex flex-col items-start sm:items-center">
+                      <div className="flex flex-col justify-center sm:items-center">
                         <div className="flex items-center">
                           <span
                             className={`min-w-[100px] sm:min-w-[120px] text-center px-2 py-1 rounded-full text-[12px] md:text-[16px] ${complaint.status === 'Closed'
-                                ? 'bg-[#EDE1FF] text-[#3E206D]'
-                                : complaint.status === 'Opened'
-                                  ? 'bg-[#CFE1FF] text-[#3B82F6]'
-                                  : 'bg-gray-200 text-gray-800'
+                              ? 'bg-[#EDE1FF] text-[#3E206D]'
+                              : complaint.status === 'Opened'
+                                ? 'bg-[#CFE1FF] text-[#3B82F6]'
+                                : 'bg-gray-200 text-gray-800'
                               }`}
                           >
                             {complaint.status || 'Unknown'}
                           </span>
                         </div>
                       </div>
-                      <div className="flex flex-col items-start sm:items-end">
+                      <div className="flex flex-col justify-center sm:items-center">
                         {complaint.status === 'Closed' && (
-                          <div className="flex items-center">
-                            <button
-                              onClick={() => handleViewReply(complaint)}
-                              className="w-20 sm:w-28 h-8 sm:h-9 text-[12px] md:text-[16px] rounded-lg text-white cursor-pointer bg-[#3E206D] hover:bg-[#341a5a] -mt-1 mr-12"
-                            >
-                              View Reply
-                            </button>
-                          </div>
+                          <button
+                            onClick={() => handleViewReply(complaint)}
+                            className="w-20 sm:w-28 h-8 sm:h-9 text-[12px] md:text-[16px] rounded-lg text-white cursor-pointer bg-[#3E206D] hover:bg-[#341a5a]"
+                          >
+                            View Reply
+                          </button>
                         )}
                       </div>
                     </div>

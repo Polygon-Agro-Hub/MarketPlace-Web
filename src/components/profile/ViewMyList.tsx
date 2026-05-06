@@ -8,7 +8,10 @@ import {
   getExcludedItems,
   deleteExcludedItems
 } from '@/services/product-service';
-import Loader from '@/components/loader-spinner/Loader'; // Import the Loader component
+import Loader from '@/components/loader-spinner/Loader';
+import SuccessPopup from '@/components/toast-messages/success-message';
+import Image from 'next/image';
+import noComplaints from '../../../public/icons/no complaints.png';
 
 interface Item {
   displayName: string;
@@ -34,7 +37,7 @@ const ViewMyList = () => {
         return;
       }
 
-      setLoading(true); // Set loading to true before fetching
+      setLoading(true);
       try {
         const data = await getExcludedItems(authToken);
         if (data.status && Array.isArray(data.items)) {
@@ -45,7 +48,7 @@ const ViewMyList = () => {
       } catch (error: any) {
         setError(error.message || 'Failed to fetch items');
       } finally {
-        setLoading(false); // Set loading to false after fetching
+        setLoading(false);
       }
     };
 
@@ -83,12 +86,11 @@ const ViewMyList = () => {
 
   const handleConfirmDelete = async () => {
     if (!authToken) return;
-    setLoading(true); // Show loader during deletion
+    setLoading(true);
     const itemsToDelete = isBulkDelete ? selectedItems : itemToDelete ? [itemToDelete] : [];
 
     try {
       const response = await deleteExcludedItems(itemsToDelete, authToken);
-      // Assuming response indicates success
       setItems((prev) => prev.filter((item) => !itemsToDelete.includes(item.displayName)));
       setSelectedItems((prev) => prev.filter((item) => !itemsToDelete.includes(item)));
       setSubmitStatus('Items deleted successfully!');
@@ -100,7 +102,7 @@ const ViewMyList = () => {
       setItemToDelete(null);
       setIsBulkDelete(false);
       setShowDeleteModal(false);
-      setLoading(false); // Hide loader after deletion
+      setLoading(false);
     }
   };
 
@@ -111,9 +113,9 @@ const ViewMyList = () => {
   };
 
   return (
-    <div className="relative z-10 px-4 sm:px-6 md:px-8 min-h-screen mb-10 bg-white blur-effect">
-      <Loader isVisible={loading} /> {/* Add Loader component */}
-      <h2 className="font-medium text-sm sm:text-base md:text-[18px] mb-2 mt-2">
+    <div className="relative z-10 px-4 sm:px-6 md:px-8 min-h-screen bg-white blur-effect py-6">
+      <Loader isVisible={loading} />
+      <h2 className="font-medium text-sm sm:text-base md:text-[18px] mb-2">
         Exclude Item List
       </h2>
       <p className="text-xs sm:text-sm md:text-[16px] text-[#626D76] mb-3">
@@ -121,31 +123,29 @@ const ViewMyList = () => {
       </p>
       <div className="border-t border-[#BDBDBD] mb-4 sm:mb-6 mt-2" />
 
-      {items.length > 0 && (
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-2">
-          <p className="text-[#000000] font-semibold text-sm sm:text-base">
-            All ({items.length.toString().padStart(2, '0')})
-          </p>
-          {selectedItems.length > 0 && (
-            <button
-              className="flex items-center gap-2 text-red-600 hover:underline font-semibold text-sm sm:text-base"
-              onClick={handleDeleteSelectedClick}
-            >
-              <Trash fill="red" className="w-4 h-4" />
-              Delete Selected Items
-            </button>
-          )}
-        </div>
-      )}
+      {/* show "All (X)" count */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2 mt-2">
+        <p className="text-[#000000] font-semibold text-sm sm:text-base">
+          All ({String(items.length).padStart(2, '0')})
+        </p>
+        {selectedItems.length > 0 && items.length > 0 && (
+          <button
+            className="flex items-center gap-2 text-red-600 underline font-semibold text-sm sm:text-base cursor-pointer"
+            onClick={handleDeleteSelectedClick}
+          >
+            <Trash fill="red" className="w-4 h-4 cursor-pointer" />
+            Delete Selected Items
+          </button>
+        )}
+      </div>
 
       {error && <p className="text-center text-red-500 text-sm">{error}</p>}
 
-
       {!loading && !error && items.length > 0 && (
         <>
-          {/* Desktop Table (Unchanged) */}
-          <div className="hidden sm:block overflow-x-auto border border-[#CFCFCF] rounded-[15px] p-3 w-full max-w-full sm:max-w-[700px] mx-auto">
-            <table className="w-full min-w-[500px] text-sm">
+          {/* Desktop Table */}
+          <div className="hidden sm:block overflow-x-auto border border-[#CFCFCF] rounded-[15px] p-3 w-full">
+            <table className="w-full text-sm">
               <thead>
                 <tr className="text-[#8492A3] font-semibold text-xs sm:text-sm">
                   <th className="p-2 text-left w-[10%]">
@@ -156,9 +156,9 @@ const ViewMyList = () => {
                       className="accent-[#4C5160] cursor-pointer"
                     />
                   </th>
-                  <th className="p-2 text-left w-[20%]">IMAGE</th>
-                  <th className="p-2 text-left w-[50%]">ITEM NAME</th>
-                  <th className="p-2 text-left w-[20%]">ACTION</th>
+                  <th className="p-2 text-left w-[20%] text-[#8492A3] font-medium">ITEM ({String(items.length).padStart(2, '0')})</th>
+                  <th className="p-2 text-left w-[50%] text-[#8492A3] font-medium">ITEM NAME</th>
+                  <th className="p-2 text-left w-[20%] text-[#8492A3] font-medium">ACTION</th>
                 </tr>
               </thead>
               <tbody>
@@ -196,7 +196,7 @@ const ViewMyList = () => {
             </table>
           </div>
           {/* Mobile Table */}
-          <div className="sm:hidden border border-[#CFCFCF] rounded-[15px] p-2">
+          <div className="sm:hidden border border-[#CFCFCF] rounded-[15px] p-2 w-full">
             <table className="w-full text-xs">
               <thead>
                 <tr className="text-[#8492A3] font-semibold text-[10px]">
@@ -205,12 +205,12 @@ const ViewMyList = () => {
                       type="checkbox"
                       checked={selectedItems.length === items.length}
                       onChange={handleSelectAll}
-                      className="accent-[#4C5160] cursor-pointer w3 h-3"
+                      className="accent-[#4C5160] cursor-pointer w-3 h-3"
                     />
                   </th>
-                  <th className="p-1 text-left w-[20%]">IMG</th>
-                  <th className="p-1 text-left w-[50%]">NAME</th>
-                  <th className="p-1 text-left w-[20%]">ACT</th>
+                  <th className="p-1 text-left w-[20%] text-[#8492A3] font-medium">ITEM ({String(items.length).padStart(2, '0')})</th>
+                  <th className="p-1 text-left w-[50%] text-[#8492A3] font-medium">NAME</th>
+                  <th className="p-1 text-left w-[20%] text-[#8492A3] font-medium">ACT</th>
                 </tr>
               </thead>
               <tbody>
@@ -252,10 +252,10 @@ const ViewMyList = () => {
 
       {!loading && !error && items.length === 0 && (
         <div className="flex flex-col items-center justify-center py-8 sm:py-10">
-          <img
-            src="/icons/no complaints.png"
+          <Image
+            src={noComplaints}
             alt="No excluded items"
-            className="w-32 sm:w-48 h-32 sm:h-48 mb-3 sm:mb-4 object-contain"
+            className="w-32 sm:w-48 h-32 sm:h-48 mb-3 sm:mb-4 object-contain mt-10"
           />
           <p className="text-center italic text-[#717171] text-xs sm:text-sm">
             --You have not added any items to the exclude list--
@@ -265,7 +265,7 @@ const ViewMyList = () => {
 
       {/* Delete Modal */}
       {showDeleteModal && (
-        <div className="fixed inset-0 flex justify-center items-center backdrop-blur-sm z-50">
+        <div className="fixed inset-0 flex justify-center items-center bg-black/40 z-50">
           <div className="bg-white rounded-xl p-4 sm:p-8 shadow-xl text-center w-full max-w-[280px] sm:max-w-md">
             <Trash fill="red" className="mx-auto text-red-600 w-8 sm:w-12 h-8 sm:h-12 mb-3 sm:mb-4" />
             <h2 className="text-xs sm:text-xl font-semibold text-black">
@@ -294,6 +294,15 @@ const ViewMyList = () => {
           </div>
         </div>
       )}
+
+      {/* Success Popup */}
+      <SuccessPopup
+        isVisible={!!submitStatus}
+        onClose={() => setSubmitStatus(null)}
+        title="Successfully Deleted!"
+        description={submitStatus || ''}
+        duration={3000}
+      />
     </div>
   );
 };

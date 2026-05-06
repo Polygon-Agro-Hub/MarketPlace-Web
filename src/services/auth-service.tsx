@@ -1,5 +1,5 @@
-import axios from '@/lib/axios';
-import { environment } from '@/environment/environment';    
+import axios from "@/lib/axios";
+import { environment } from "@/environment/environment";
 
 interface LoginPayload {
   email: string;
@@ -13,8 +13,8 @@ interface LoginResponse {
   firstName?: string;
   user?: any;
   message?: string;
-  cart:any;
-  tokenExpiration:any
+  cart: any;
+  tokenExpiration: any;
 }
 
 // Signup interface
@@ -27,7 +27,7 @@ interface SignupPayload {
   email: string;
   password: string;
   confirmPassword: string;
-  buyerType: 'Retail' | 'Wholesale';
+  buyerType: "Retail" | "Wholesale";
   agreeToTerms: boolean;
   agreeToMarketing: boolean;
 }
@@ -64,24 +64,43 @@ interface ApiComplaint {
   reply?: string;
   replyDate?: string | null;
   customerName?: string;
+  replyTime?: string | null;
 }
 
 interface Profile {
   companyName: string;
- buyerType?: string;
+  buyerType?: string;
   title: string;
   firstName: string;
   lastName: string;
   email: string;
-  
+
   phoneCode: string;
   phoneNumber: string;
-    phoneCode2: string;
+  phoneCode2: string;
   phoneNumber2: string;
   image?: string;
   profileImageURL?: string;
 }
 
+interface Profile {
+  companyName: string;
+  buyerType?: string;
+  title: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneCode: string;
+  phoneNumber: string;
+  phoneCode2: string;
+  phoneNumber2: string;
+  companyPhoneCode: string; // Add this
+  companyPhone: string; // Add this
+  image?: string;
+  profileImageURL?: string;
+}
+
+// Updated ApiProfile interface
 interface ApiProfile {
   title: string;
   firstName: string;
@@ -89,22 +108,17 @@ interface ApiProfile {
   email: string;
   phoneCode: string;
   phoneNumber: string;
-   phoneCode2: string;
+  phoneCode2: string;
   phoneNumber2: string;
+  companyPhoneCode: string; // Add this
+  companyPhone: string; // Add this
   image?: string;
   profileImageURL?: string;
- companyName?: string; // Optional
-  buyerType?: string | '' ; // Optional
+  companyName?: string;
+  buyerType?: string | "";
 }
 
 export interface BillingAddress {
-  title: string;
-  firstName: string;
-  lastName: string;
-  phoneCode: string;
-  phoneNumber: string;
-  phoneCode2?: string; // Add optional field
-  phoneNumber2?: string; // Add optional field
   houseNo?: string;
   buildingNo?: string;
   buildingName?: string;
@@ -112,6 +126,15 @@ export interface BillingAddress {
   floorNo?: string | null;
   streetName?: string;
   city?: string;
+  title?: string;
+  firstName?: string;
+  lastName?: string;
+  phoneCode?: string;
+  phoneNumber?: string;
+  phoneCode2?: string;
+  phoneNumber2?: string;
+  geoLatitude?: number; // Add this
+  geoLongitude?: number;
 }
 
 export interface BillingDetails {
@@ -124,8 +147,10 @@ export interface BillingDetails {
   phoneNumber: string;
   buildingType: string;
   address: BillingAddress;
-  phoneCode2?: string | null; // Added to match JSON
-  phoneNumber2?: string | null; // Added to match JSON
+  phoneCode2?: string | null;
+  phoneNumber2?: string | null;
+  geoLatitude?: number; // Add this
+  geoLongitude?: number;
 }
 
 interface FetchComplaintsPayload {
@@ -146,9 +171,11 @@ interface UpdateProfilePayload {
     email: string;
     phoneCode: string;
     phoneNumber: string;
-    phoneCode2: string;
-    phoneNumber2: string;
-    companyName: string;
+    phoneCode2?: string;
+    phoneNumber2?: string;
+    companyName?: string;
+    companyPhoneCode?: string; // Add this
+    companyPhone?: string; // Add this
   };
   profilePic: File | null;
 }
@@ -169,7 +196,6 @@ interface SaveBillingDetailsPayload {
   data: BillingDetails;
 }
 
-// Generic ApiResponse interface
 interface ApiResponse<T = any> {
   status: boolean;
   data: T;
@@ -199,109 +225,160 @@ export interface Category {
   categoryEnglish: string;
 }
 
-
 export const login = async (payload: LoginPayload): Promise<LoginResponse> => {
   try {
-    const response = await axios.post('/auth/login', payload, {
+    const response = await axios.post("/auth/login", payload, {
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
     });
 
     if (response.status >= 200 && response.status < 300) {
       return response.data;
     } else {
-      throw new Error(response.data?.message || 'Login failed');
+      throw new Error(response.data?.message || "Login failed");
     }
   } catch (error: any) {
-
     if (error.response) {
-
       throw new Error(
         error.response.data?.message ||
-        error.response.data?.error ||
-        `Login failed with status ${error.response.status}`
+          error.response.data?.error ||
+          `Login failed with status ${error.response.status}`,
       );
     } else if (error.request) {
-
-      throw new Error('No response received from server. Please check your network connection.');
+      throw new Error(
+        "No response received from server. Please check your network connection.",
+      );
     } else {
-
-      throw new Error(error.message || 'An error occurred during login');
+      throw new Error(error.message || "An error occurred during login");
     }
   }
 };
 
-
-export const signup = async (payload: SignupPayload): Promise<SignupResponse> => {
+export const signup = async (
+  payload: SignupPayload,
+): Promise<SignupResponse> => {
   try {
     if (payload.password !== payload.confirmPassword) {
-      throw new Error('Passwords do not match');
+      throw new Error("Passwords do not match");
     }
 
     const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{6,}$/;
     if (!passwordRegex.test(payload.password)) {
-      throw new Error('Password must contain at least 6 characters with 1 uppercase letter, 1 number, and 1 special character');
+      throw new Error(
+        "Password must contain at least 6 characters with 1 uppercase letter, 1 number, and 1 special character",
+      );
     }
 
     if (!payload.agreeToTerms) {
-      throw new Error('You must agree to the Terms & Conditions');
+      throw new Error("You must agree to the Terms & Conditions");
     }
 
-    console.log('Sending signup payload:', payload);
-
-    const response = await axios.post('/auth/signup', payload, {
+    const response = await axios.post("/auth/signup", payload, {
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
     });
 
     const resData = response.data;
 
     if (resData.status === true) {
-
       return resData;
     } else {
-
-      throw new Error(resData.message || 'Registration failed on server.');
+      throw new Error(resData.message || "Registration failed on server.");
     }
   } catch (error: any) {
     if (error.response) {
       const resData = error.response.data;
       throw new Error(
-        resData?.message || resData?.error || `Registration failed with status ${error.response.status}`
+        resData?.message ||
+          resData?.error ||
+          `Registration failed with status ${error.response.status}`,
       );
     } else if (error.request) {
-      throw new Error('No response received from server. Please check your network connection.');
+      throw new Error(
+        "No response received from server. Please check your network connection.",
+      );
     } else {
-      throw new Error(error.message || 'An error occurred during registration.');
+      throw new Error(
+        error.message || "An error occurred during registration.",
+      );
     }
   }
 };
 
-
-export const sendResetEmail = async (email: string): Promise<{ message: string }> => {
+export const verifyUserDetails = async (
+  email: string,
+  phoneNumber: string,
+  phoneCode: string,
+) => {
   try {
-    const response = await axios.post('/auth/forgot-password', { email });
+    const response = await axios.post(
+      "/auth/verify-user-details",
+      {
+        email,
+        phoneNumber,
+        phoneCode,
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
+    const resData = response.data;
+
+    if (resData.status === true) {
+      return resData;
+    } else {
+      throw new Error(resData.message || "User verification failed on server.");
+    }
+  } catch (error: any) {
+    if (error.response) {
+      const resData = error.response.data;
+      throw new Error(
+        resData?.message ||
+          resData?.error ||
+          `Verification failed with status ${error.response.status}`,
+      );
+    } else if (error.request) {
+      throw new Error(
+        "No response received from server. Please check your network connection.",
+      );
+    } else {
+      throw new Error(
+        error.message || "An error occurred during verification.",
+      );
+    }
+  }
+};
+
+export const sendResetEmail = async (
+  email: string,
+): Promise<{ message: string }> => {
+  try {
+    const response = await axios.post("/auth/forgot-password", { email });
     return response.data;
   } catch (error: any) {
     if (error.response) {
       throw new Error(
         error.response.data?.error ||
-        error.response.data?.message ||
-        `Failed to send reset email (${error.response.status})`
+          error.response.data?.message ||
+          `Failed to send reset email (${error.response.status})`,
       );
     }
-    throw new Error(error.message || 'Failed to send reset email');
+    throw new Error(error.message || "Failed to send reset email");
   }
 };
 
-
 // auth-service.ts
-export const validateResetToken = async (token: string): Promise<{ 
-  success: boolean; 
-  message: string; 
-  email?: string 
+export const validateResetToken = async (
+  token: string,
+): Promise<{
+  success: boolean;
+  message: string;
+  email?: string;
 }> => {
   try {
     const response = await axios.get(`/auth/validate-reset-token/${token}`);
@@ -310,31 +387,31 @@ export const validateResetToken = async (token: string): Promise<{
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-        `Token validation failed (${error.response.status})`
+          `Token validation failed (${error.response.status})`,
       );
     }
-    throw new Error(error.message || 'Failed to validate token');
+    throw new Error(error.message || "Failed to validate token");
   }
 };
 
 export const resetPassword = async (
-  token: string, 
-  newPassword: string
+  token: string,
+  newPassword: string,
 ): Promise<{ success: boolean; message: string }> => {
   try {
-    const response = await axios.put('/auth/reset-password', { 
-      token, 
-      newPassword 
+    const response = await axios.put("/auth/reset-password", {
+      token,
+      newPassword,
     });
     return response.data;
   } catch (error: any) {
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-        `Password reset failed (${error.response.status})`
+          `Password reset failed (${error.response.status})`,
       );
     }
-    throw new Error(error.message || 'Failed to reset password');
+    throw new Error(error.message || "Failed to reset password");
   }
 };
 
@@ -350,7 +427,7 @@ export const sendOTP = async (
     checkPhoneExists?: boolean;
     message?: string;
     source?: string;
-  }
+  },
 ): Promise<OTPServiceResponse> => {
   try {
     const formattedPhone = phoneNumber.replace(/\s+/g, "");
@@ -360,7 +437,7 @@ export const sendOTP = async (
     const {
       checkPhoneExists = true,
       message = `Your OTP for verification is: {{code}}`,
-      source = "AgroWorld"
+      source = "PolygonAgro",
     } = options || {};
 
     // Step 1: Optionally check if phone number exists
@@ -369,15 +446,15 @@ export const sendOTP = async (
         const checkResponse = await axios.post("/auth/check-phone", {
           phoneNumber: formattedPhone,
         });
-        console.log('phone number',formattedPhone)
-        console.log("Check phone response:", checkResponse.data);
 
         if (!checkResponse.data.exists) {
-          return { error: 'PHONE_NOT_FOUND' };
+          return { error: "PHONE_NOT_FOUND" };
         }
       } catch (error) {
         console.error("Error checking phone:", error);
-        throw new Error("Failed to verify phone number");
+        throw new Error(
+          "No account found with this number. Please check the number and try again",
+        );
       }
     }
 
@@ -398,8 +475,6 @@ export const sendOTP = async (
     };
 
     const response = await axios.post(apiUrl, body, { headers });
-    
-    console.log("OTP response:", response.data);
 
     if (response.data.referenceId) {
       return { referenceId: response.data.referenceId };
@@ -411,7 +486,7 @@ export const sendOTP = async (
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-        `Failed to send OTP (${error.response.status})`
+          `Failed to send OTP (${error.response.status})`,
       );
     }
     throw new Error(error.message || "Failed to send OTP");
@@ -425,18 +500,16 @@ export const sendOTPInSignup = async (
     checkPhoneExists?: boolean;
     message?: string;
     source?: string;
-  }
+  },
 ): Promise<OTPServiceResponse> => {
   try {
     const formattedPhone = phoneNumber.replace(/\s+/g, "");
     const fullPhoneNumber = `${countryCode}${formattedPhone}`;
 
-    console.log('phone numbers ',formattedPhone,fullPhoneNumber)
-
     // Default options
     const {
       message = `Your OTP for verification is: {{code}}`,
-      source = "AgroWorld"
+      source = "PolygonAgro",
     } = options || {};
 
     // Step 2: Send OTP
@@ -456,8 +529,6 @@ export const sendOTPInSignup = async (
     };
 
     const response = await axios.post(apiUrl, body, { headers });
-    
-    console.log("OTP response:", response.data);
 
     if (response.data.referenceId) {
       return { referenceId: response.data.referenceId };
@@ -469,7 +540,7 @@ export const sendOTPInSignup = async (
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-        `Failed to send OTP (${error.response.status})`
+          `Failed to send OTP (${error.response.status})`,
       );
     }
     throw new Error(error.message || "Failed to send OTP");
@@ -478,60 +549,64 @@ export const sendOTPInSignup = async (
 
 export const verifyOTP = async (code: string, referenceId: string) => {
   try {
-    const url = 'https://api.getshoutout.com/otpservice/verify';
+    const url = "https://api.getshoutout.com/otpservice/verify";
     const headers = {
       Authorization: `Apikey ${environment.SHOUTOUT_API_KEY}`,
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     };
     const body = { code, referenceId };
-    
+
     const response = await axios.post(url, body, { headers });
     return response.data;
   } catch (error) {
-    console.error('OTP verification error:', error);
+    console.error("OTP verification error:", error);
     throw error;
   }
 };
 
-export const resetPasswordByPhone = async (phoneNumber: string, newPassword: string) => {
+export const resetPasswordByPhone = async (
+  phoneNumber: string,
+  newPassword: string,
+) => {
   try {
-    const response = await axios.post('/auth/reset-password-by-phone', {
+    const response = await axios.post("/auth/reset-password-by-phone", {
       phoneNumber,
-      newPassword
+      newPassword,
     });
     return response.data;
   } catch (error: any) {
-    console.error('Error resetting password:', error);
-    throw new Error(error.response?.data?.message || 'Failed to reset password');
+    console.error("Error resetting password:", error);
+    throw new Error(
+      error.response?.data?.message || "Failed to reset password",
+    );
   }
 };
 
-
-
 // Map category ID to category name
 const categoryMap: { [key: number]: string } = {
-  1: 'Product Issues',
-  2: 'Delivery Issues',
-  3: 'Payment Issues',
-  4: 'Customer Service',
+  1: "Product Issues",
+  2: "Delivery Issues",
+  3: "Payment Issues",
+  4: "Customer Service",
 };
 
 // Function to format date to "Month Day, Year"
 const formatDate = (dateInput: string | number | Date): string => {
   const date = new Date(dateInput);
-  return date.toLocaleDateString('en-US', {
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
+  return date.toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
   });
 };
 
-
-export const fetchProfile = async (payload: FetchProfilePayload): Promise<Profile> => {
+export const fetchProfile = async (
+  payload: FetchProfilePayload,
+): Promise<Profile> => {
   try {
-    const response = await axios.get('/auth/profile', {
+    const response = await axios.get("/auth/profile", {
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         Authorization: `Bearer ${payload.token}`,
       },
     });
@@ -541,147 +616,183 @@ export const fetchProfile = async (payload: FetchProfilePayload): Promise<Profil
 
       if (resData.status && resData.data) {
         return {
-          firstName: resData.data.firstName || '',
-          lastName: resData.data.lastName || '',
-          email: resData.data.email || '',
-          phoneCode: resData.data.phoneCode || '+94',
-          phoneNumber: resData.data.phoneNumber || '',
-          phoneCode2: resData.data.phoneCode2 || '+94',
-          phoneNumber2: resData.data.phoneNumber2 || '',
+          firstName: resData.data.firstName || "",
+          lastName: resData.data.lastName || "",
+          email: resData.data.email || "",
+          phoneCode: resData.data.phoneCode || "+94",
+          phoneNumber: resData.data.phoneNumber || "",
+          phoneCode2: resData.data.phoneCode2 || "+94",
+          phoneNumber2: resData.data.phoneNumber2 || "",
+          companyPhoneCode: resData.data.companyPhoneCode || "+94", // Add this
+          companyPhone: resData.data.companyPhone || "", // Add this
           image: resData.data.image,
           profileImageURL: resData.data.profileImageURL,
-          title: resData.data.title || '',
-          companyName: resData.data.companyName || '',
-          buyerType: resData.data.buyerType || '', // Include buyerType
+          title: resData.data.title || "",
+          companyName: resData.data.companyName || "",
+          buyerType: resData.data.buyerType || "",
         };
       } else {
-        throw new Error(resData.message || 'Invalid response format');
+        throw new Error(resData.message || "Invalid response format");
       }
     } else {
-      throw new Error(response.data?.message || 'Failed to fetch profile');
+      throw new Error(response.data?.message || "Failed to fetch profile");
     }
   } catch (error: any) {
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-        error.response.data?.error ||
-        `Profile fetch failed with status ${error.response.status}`
+          error.response.data?.error ||
+          `Profile fetch failed with status ${error.response.status}`,
       );
     } else if (error.request) {
-      throw new Error('No response received from server. Please check your network connection.');
+      throw new Error(
+        "No response received from server. Please check your network connection.",
+      );
     } else {
-      throw new Error(error.message || 'An error occurred while fetching profile');
+      throw new Error(
+        error.message || "An error occurred while fetching profile",
+      );
     }
   }
 };
 
-export const updateProfile = async (payload: UpdateProfilePayload): Promise<void> => {
+export const updateProfile = async (
+  payload: UpdateProfilePayload,
+): Promise<void> => {
   try {
     if (!payload.token) {
-      throw new Error('You are not authenticated. Please log in first.');
+      throw new Error("You are not authenticated. Please log in first.");
     }
 
     const formData = new FormData();
-    
+
     // Required fields
-    formData.append('title', payload.data.title);
-    formData.append('firstName', payload.data.firstName);
-    formData.append('lastName', payload.data.lastName);
-    formData.append('email', payload.data.email);
-    formData.append('phoneCode', payload.data.phoneCode);
-    formData.append('phoneNumber', payload.data.phoneNumber);
+    formData.append("title", payload.data.title);
+    formData.append("firstName", payload.data.firstName);
+    formData.append("lastName", payload.data.lastName);
+    formData.append("email", payload.data.email);
+    formData.append("phoneCode", payload.data.phoneCode);
+    formData.append("phoneNumber", payload.data.phoneNumber);
 
     // Optional fields - only append if they exist
     if (payload.data.phoneCode2) {
-      formData.append('phoneCode2', payload.data.phoneCode2);
+      formData.append("phoneCode2", payload.data.phoneCode2);
     }
-    
+
     if (payload.data.phoneNumber2) {
-      formData.append('phoneNumber2', payload.data.phoneNumber2);
+      formData.append("phoneNumber2", payload.data.phoneNumber2);
     }
-    
+
     if (payload.data.companyName) {
-      formData.append('companyName', payload.data.companyName);
+      formData.append("companyName", payload.data.companyName);
+    }
+
+    // Add company phone fields
+    if (payload.data.companyPhoneCode) {
+      formData.append("companyPhoneCode", payload.data.companyPhoneCode);
+    }
+
+    if (payload.data.companyPhone) {
+      formData.append("companyPhone", payload.data.companyPhone);
     }
 
     // Profile picture - only append if provided
     if (payload.profilePic) {
-      formData.append('profilePicture', payload.profilePic);
+      formData.append("profilePicture", payload.profilePic);
     }
 
-    const response = await axios.put('/auth/edit-profile', formData, {
+    const response = await axios.put("/auth/edit-profile", formData, {
       headers: {
         Authorization: `Bearer ${payload.token}`,
       },
     });
 
-    if (response.status < 200 || response.status >= 300 || !response.data.status) {
-      throw new Error(response.data?.message || 'Failed to update profile');
+    if (
+      response.status < 200 ||
+      response.status >= 300 ||
+      !response.data.status
+    ) {
+      throw new Error(response.data?.message || "Failed to update profile");
     }
   } catch (error: any) {
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-        error.response.data?.error ||
-        `Profile update failed with status ${error.response.status}`
+          error.response.data?.error ||
+          `Profile update failed with status ${error.response.status}`,
       );
     } else if (error.request) {
-      throw new Error('No response received from server. Please check your network connection.');
+      throw new Error(
+        "No response received from server. Please check your network connection.",
+      );
     } else {
-      throw new Error(error.message || 'An error occurred while updating profile');
+      throw new Error(
+        error.message || "An error occurred while updating profile",
+      );
     }
   }
 };
 
-export const updatePassword = async (payload: UpdatePasswordPayload): Promise<{ message: string }> => {
+export const updatePassword = async (
+  payload: UpdatePasswordPayload,
+): Promise<{ message: string }> => {
   try {
     if (!payload.token) {
-      throw new Error('You are not authenticated. Please log in first.');
+      throw new Error("You are not authenticated. Please log in first.");
     }
 
-    const response = await axios.put('/auth/update-password', {
-      currentPassword: payload.currentPassword,
-      newPassword: payload.newPassword,
-      confirmNewPassword: payload.confirmPassword,
-    }, {
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${payload.token}`,
+    const response = await axios.put(
+      "/auth/update-password",
+      {
+        currentPassword: payload.currentPassword,
+        newPassword: payload.newPassword,
+        confirmNewPassword: payload.confirmPassword,
       },
-    });
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${payload.token}`,
+        },
+      },
+    );
 
     if (response.status >= 200 && response.status < 300) {
       return {
-        message: response.data?.message || 'Password updated successfully!',
+        message: response.data?.message || "Password updated successfully!",
       };
     } else {
-      throw new Error(response.data?.message || 'Failed to update password');
+      throw new Error(response.data?.message || "Failed to update password");
     }
   } catch (error: any) {
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-        error.response.data?.error ||
-        `Password update failed with status ${error.response.status}`
+          error.response.data?.error ||
+          `Password update failed with status ${error.response.status}`,
       );
     } else if (error.request) {
-      throw new Error('No response received from server. Please check your network connection.');
+      throw new Error(
+        "No response received from server. Please check your network connection.",
+      );
     } else {
-      throw new Error(error.message || 'An error occurred while updating password');
+      throw new Error(
+        error.message || "An error occurred while updating password",
+      );
     }
   }
 };
 
-
-export const fetchBillingDetails = async (payload: FetchBillingDetailsPayload): Promise<BillingDetails> => {
+export const fetchBillingDetails = async (
+  payload: FetchBillingDetailsPayload,
+): Promise<BillingDetails> => {
   try {
     if (!payload.token) {
-      throw new Error('You are not authenticated. Please log in first.');
+      throw new Error("You are not authenticated. Please log in first.");
     }
 
-    const response = await axios.get('/auth/billing-details', {
+    const response = await axios.get("/auth/billing-details", {
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         Authorization: `Bearer ${payload.token}`,
       },
     });
@@ -692,25 +803,33 @@ export const fetchBillingDetails = async (payload: FetchBillingDetailsPayload): 
       if (resData.status && resData.data) {
         const apiData = resData.data;
 
-       
-
         return {
-         billingName: apiData.billingName || undefined,  // removed fallback to firstName + lastName
+          billingName: apiData.billingName || undefined, // removed fallback to firstName + lastName
           billingTitle: apiData.billingTitle || undefined, // removed fallback to title
-          title: apiData.title || '',
-          firstName: apiData.firstName || '',
-          lastName: apiData.lastName || '',
-          phoneCode: apiData.phoneCode || '+94',
-          phoneNumber: apiData.phoneNumber || '',
-          phoneCode2: apiData.phoneCode2 || '+94',
-          phoneNumber2: apiData.phoneNumber2 || '',
-          buildingType: apiData.buildingType?.toLowerCase() || '',
+          title: apiData.title || "",
+          firstName: apiData.firstName || "",
+          lastName: apiData.lastName || "",
+          phoneCode: apiData.phoneCode || "+94",
+          phoneNumber: apiData.phoneNumber || "",
+          phoneCode2: apiData.phoneCode2 || "+94",
+          phoneNumber2: apiData.phoneNumber2 || "",
+          buildingType: apiData.buildingType?.toLowerCase() || "",
+          geoLatitude: apiData.geoLatitude
+            ? Number(apiData.geoLatitude)
+            : apiData.address?.geoLatitude
+              ? Number(apiData.address.geoLatitude)
+              : undefined,
+          geoLongitude: apiData.geoLongitude
+            ? Number(apiData.geoLongitude)
+            : apiData.address?.geoLongitude
+              ? Number(apiData.address.geoLongitude)
+              : undefined,
           address: {
-            title: apiData.title || 'Mr.',
-            firstName: apiData.firstName || '',
-            lastName: apiData.lastName || '',
-            phoneCode: apiData.phoneCode || '+94',
-            phoneNumber: apiData.phoneNumber || '',
+            title: apiData.title || "Mr.",
+            firstName: apiData.firstName || "",
+            lastName: apiData.lastName || "",
+            phoneCode: apiData.phoneCode || "+94",
+            phoneNumber: apiData.phoneNumber || "",
             houseNo: apiData.address?.houseNo || undefined,
             buildingNo: apiData.address?.buildingNo || undefined,
             buildingName: apiData.address?.buildingName || undefined,
@@ -718,48 +837,68 @@ export const fetchBillingDetails = async (payload: FetchBillingDetailsPayload): 
             floorNo: apiData.address?.floorNo || null,
             streetName: apiData.address?.streetName || undefined,
             city: apiData.address?.city || undefined,
+            geoLatitude: apiData.geoLatitude
+              ? Number(apiData.geoLatitude)
+              : apiData.address?.geoLatitude
+                ? Number(apiData.address.geoLatitude)
+                : undefined,
+            geoLongitude: apiData.geoLongitude
+              ? Number(apiData.geoLongitude)
+              : apiData.address?.geoLongitude
+                ? Number(apiData.address.geoLongitude)
+                : undefined,
           },
         };
       } else {
-        throw new Error(resData.message || 'Invalid response format');
+        throw new Error(resData.message || "Invalid response format");
       }
     } else {
-      throw new Error(response.data?.message || 'Failed to fetch billing details');
+      throw new Error(
+        response.data?.message || "Failed to fetch billing details",
+      );
     }
   } catch (error: any) {
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-        error.response.data?.error ||
-        `Billing details fetch failed with status ${error.response.status}`
+          error.response.data?.error ||
+          `Billing details fetch failed with status ${error.response.status}`,
       );
     } else if (error.request) {
-      throw new Error('No response received from server. Please check your network connection.');
+      throw new Error(
+        "No response received from server. Please check your network connection.",
+      );
     } else {
-      throw new Error(error.message || 'An error occurred while fetching billing details');
+      throw new Error(
+        error.message || "An error occurred while fetching billing details",
+      );
     }
   }
 };
 
-
-export const saveBillingDetails = async (payload: SaveBillingDetailsPayload): Promise<void> => {
+export const saveBillingDetails = async (
+  payload: SaveBillingDetailsPayload,
+): Promise<void> => {
   try {
     if (!payload.token) {
-      throw new Error('You are not authenticated. Please log in first.');
+      throw new Error("You are not authenticated. Please log in first.");
     }
 
     const apiPayload = {
       billingTitle: payload.data.billingTitle,
-      billingName: payload.data.billingName || `${payload.data.firstName} ${payload.data.lastName}`.trim(),
+      billingName:
+        payload.data.billingName ||
+        `${payload.data.firstName} ${payload.data.lastName}`.trim(),
       title: payload.data.title,
       firstName: payload.data.firstName,
-      lastName: payload.data.lastName || '',
+      lastName: payload.data.lastName || "",
       phoneCode: payload.data.phoneCode,
       phoneNumber: payload.data.phoneNumber,
-        phoneCode2: payload.data.phoneCode2,
+      phoneCode2: payload.data.phoneCode2,
       phoneNumber2: payload.data.phoneNumber2,
-      
       buildingType: payload.data.buildingType.toLowerCase(),
+      geoLatitude: payload.data.geoLatitude || null, // ADD THIS at root level
+      geoLongitude: payload.data.geoLongitude || null, // ADD THIS at root level
       address: {
         houseNo: payload.data.address.houseNo || null,
         buildingNo: payload.data.address.buildingNo || null,
@@ -768,168 +907,256 @@ export const saveBillingDetails = async (payload: SaveBillingDetailsPayload): Pr
         floorNo: payload.data.address.floorNo || null,
         streetName: payload.data.address.streetName || null,
         city: payload.data.address.city || null,
+        geoLatitude: payload.data.address.geoLatitude || null, // Keep this too
+        geoLongitude: payload.data.address.geoLongitude || null, // Keep this too
       },
-      // phonecode2: payload.data.address.phoneCode2 || null,
-      // phone2: payload.data.address.phoneNumber2 || null,
     };
 
-    const response = await axios.post('/auth/billing-details', apiPayload, {
+    const response = await axios.post("/auth/billing-details", apiPayload, {
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         Authorization: `Bearer ${payload.token}`,
       },
     });
 
-    if (response.status < 200 || response.status >= 300 || !response.data.status) {
-      throw new Error(response.data?.message || 'Failed to save billing details');
+    if (
+      response.status < 200 ||
+      response.status >= 300 ||
+      !response.data.status
+    ) {
+      throw new Error(
+        response.data?.message || "Failed to save billing details",
+      );
     }
   } catch (error: any) {
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-        error.response.data?.error ||
-        `Saving billing details failed with status ${error.response.status}`
+          error.response.data?.error ||
+          `Saving billing details failed with status ${error.response.status}`,
       );
     } else if (error.request) {
-      throw new Error('No response received from server. Please check your network connection.');
+      throw new Error(
+        "No response received from server. Please check your network connection.",
+      );
     } else {
-      throw new Error(error.message || 'An error occurred while saving billing details');
+      throw new Error(
+        error.message || "An error occurred while saving billing details",
+      );
     }
   }
 };
 
-
-
-export const fetchComplaints = async (payload: FetchComplaintsPayload): Promise<Complaint[]> => {
+export const fetchComplaints = async (
+  payload: FetchComplaintsPayload,
+): Promise<Complaint[]> => {
   try {
     if (!payload.userId || !payload.token) {
-      throw new Error('You are not authenticated. Please log in first.');
+      throw new Error("You are not authenticated. Please log in first.");
     }
 
-    const response = await axios.get(`/auth/complaints/user/${payload.userId}`, {
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${payload.token}`,
+    const response = await axios.get(
+      `/auth/complaints/user/${payload.userId}`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${payload.token}`,
+        },
       },
-    });
+    );
 
     if (response.status >= 200 && response.status < 300) {
       const resData: ApiResponse<ApiComplaint[]> = response.data;
 
       if (resData.status && resData.data) {
-        const mappedComplaints: Complaint[] = resData.data.map((item: ApiComplaint) => ({
-          id: String(item.complainId),
-          category: item.categoryName || 'Unknown Category',
-          date: formatDate(item.createdAt),
-          status: item.status || 'null',
-          description: item.complain,
-          images: item.images || [],
-          isNew: !item.status || item.status === 'Opened',
-          createdAt: new Date(item.createdAt),
-          reply: item.reply || 'No reply available yet.',
-          replyDate: item.replyDate || null,
-          customerName: item.customerName || 'Unknown Customer',
-        }));
+        const mappedComplaints: Complaint[] = resData.data.map(
+          (item: ApiComplaint) => ({
+            id: String(item.complainId),
+            category: item.categoryName || "Unknown Category",
+            date: formatDate(item.createdAt),
+            status: item.status || "null",
+            description: item.complain,
+            images: item.images || [],
+            isNew: !item.status || item.status === "Opened",
+            createdAt: new Date(item.createdAt),
+            reply: item.reply || "No reply available yet.",
+            replyDate: item.replyDate || null,
+            replyTime: item.replyTime || null,
+            customerName: item.customerName || "Unknown Customer",
+          }),
+        );
         return mappedComplaints;
-      } else if (!resData.status && resData.message === 'No complaints found for the given user ID.') {
+      } else if (
+        !resData.status &&
+        resData.message === "No complaints found for the given user ID."
+      ) {
         return []; // Return empty array when no complaints are found
       } else {
-        throw new Error(resData.message || 'Invalid response format');
+        throw new Error(resData.message || "Invalid response format");
       }
     } else {
-      throw new Error(response.data?.message || 'Failed to fetch complaints');
+      throw new Error(response.data?.message || "Failed to fetch complaints");
     }
   } catch (error: any) {
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-        error.response.data?.error ||
-        `Complaint fetch failed with status ${error.response.status}`
+          error.response.data?.error ||
+          `Complaint fetch failed with status ${error.response.status}`,
       );
     } else if (error.request) {
-      throw new Error('No response received from server. Please check your network connection.');
+      throw new Error(
+        "No response received from server. Please check your network connection.",
+      );
     } else {
-      throw new Error(error.message || 'An error occurred while fetching complaints');
+      throw new Error(
+        error.message || "An error occurred while fetching complaints",
+      );
     }
   }
 };
 
-export const submitComplaint = async (payload: ComplaintPayload): Promise<ComplaintResponse> => {
+export const submitComplaint = async (
+  payload: ComplaintPayload,
+): Promise<ComplaintResponse> => {
   try {
     if (!payload.userId || !payload.token) {
-      throw new Error('You are not authenticated. Please log in first.');
+      throw new Error("You are not authenticated. Please log in first.");
     }
 
     if (!payload.complaintCategoryId || !payload.complaint) {
-      throw new Error('Please select a category and enter a complaint.');
+      throw new Error("Please select a category and enter a complaint.");
     }
 
-    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+    const allowedMimeTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+      "image/svg+xml",
+    ];
     const maxFileSize = 5 * 1024 * 1024;
 
-    for (const image of payload.images) {
-      if (!allowedMimeTypes.includes(image.type)) {
-        throw new Error(`Unsupported file type for ${image.name}.`);
-      }
-      if (image.size > maxFileSize) {
-        throw new Error(`File ${image.name} exceeds 5MB limit.`);
+    // Validate images if they exist
+    if (payload.images && payload.images.length > 0) {
+      for (const image of payload.images) {
+        if (!allowedMimeTypes.includes(image.type)) {
+          throw new Error(`Unsupported file type for ${image.name}.`);
+        }
+        if (image.size > maxFileSize) {
+          throw new Error(`File ${image.name} exceeds 5MB limit.`);
+        }
       }
     }
 
     const formData = new FormData();
-    formData.append('complaintCategoryId', payload.complaintCategoryId.toString());
-    formData.append('complaint', payload.complaint);
-    payload.images.forEach((image) => formData.append('images', image));
-    if (payload.imagesToDelete?.length) {
-      formData.append('imagesToDelete', JSON.stringify(payload.imagesToDelete));
+    formData.append(
+      "complaintCategoryId",
+      payload.complaintCategoryId.toString(),
+    );
+    formData.append("complaint", payload.complaint);
+
+    // Only append images if they exist
+    if (payload.images && payload.images.length > 0) {
+      payload.images.forEach((image) => formData.append("images", image));
     }
 
+    if (payload.imagesToDelete?.length) {
+      formData.append("imagesToDelete", JSON.stringify(payload.imagesToDelete));
+    }
+
+    // Updated URL to match your backend endpoint
     const url = payload.complaintId
-      ? `/auth/update/${payload.userId}/${payload.complaintId}`
-      : `/auth/submit/${payload.userId}`;
+      ? `/auth/complaints/update/${payload.complaintId}` // Updated path
+      : `/auth/submit`;
 
     const response = await axios({
-      method: payload.complaintId ? 'PUT' : 'POST',
+      method: payload.complaintId ? "PUT" : "POST",
       url,
       headers: {
         Authorization: `Bearer ${payload.token}`,
+        // Don't set Content-Type - let browser handle it for FormData
       },
       data: formData,
+      timeout: 60000, // 60 seconds timeout for file uploads
+      validateStatus: function (status) {
+        // Consider 2xx and 3xx as success, handle 4xx and 5xx in catch
+        return status >= 200 && status < 400;
+      },
     });
 
-    if (response.status >= 200 && response.status < 300 && response.data?.status) {
+    if (response.data?.status) {
       return response.data;
     } else {
-      throw new Error(response.data?.message || 'Complaint submission failed on server.');
+      throw new Error(
+        response.data?.message || "Complaint submission failed on server.",
+      );
     }
   } catch (error: any) {
+    console.error("Complaint submission error:", error);
+
+    // Handle axios timeout
+    if (error.code === "ECONNABORTED") {
+      throw new Error(
+        "Request timeout. The server is taking too long to respond. Please try again.",
+      );
+    }
+
+    // Handle network errors
+    if (
+      error.code === "NETWORK_ERROR" ||
+      error.message?.includes("Network Error")
+    ) {
+      throw new Error(
+        "Network connection failed. Please check your internet connection and try again.",
+      );
+    }
+
     if (error.response) {
-      const contentType = error.response.headers['content-type'];
-      if (!contentType?.includes('application/json')) {
-        console.error('Non-JSON server response:', error.response.data);
-        throw new Error('Unexpected server response. Expected JSON but received non-JSON.');
+      // Server responded with an error status
+      console.error("Server error response:", {
+        status: error.response.status,
+        data: error.response.data,
+        headers: error.response.headers,
+      });
+
+      const contentType = error.response.headers["content-type"];
+      if (!contentType?.includes("application/json")) {
+        console.error("Non-JSON server response received");
+        throw new Error(
+          `Server returned an unexpected response format. Status: ${error.response.status}`,
+        );
       }
 
-      throw new Error(
+      // Extract error message from response
+      const errorMessage =
         error.response.data?.message ||
         error.response.data?.error ||
-        `Complaint submission failed with status ${error.response.status}`
-      );
+        `Server error with status ${error.response.status}`;
+
+      throw new Error(errorMessage);
     } else if (error.request) {
-      throw new Error('No response received from server. Please check your network connection.');
+      // Request was made but no response received
+      console.error("No response received from server:", error.request);
+      throw new Error(
+        "No response received from server. Please check your network connection and try again.",
+      );
     } else {
-      throw new Error(error.message || 'An error occurred during complaint submission.');
+      // Something else happened in setting up the request
+      console.error("Request setup error:", error.message);
+      throw new Error(
+        error.message || "An error occurred during complaint submission.",
+      );
     }
   }
 };
 
-
 // Fetch complaint categories from backend
 export const fetchComplaintCategories = async (): Promise<Category[]> => {
   try {
-    const response = await axios.get('/auth/categories', {
+    const response = await axios.get("/auth/categories", {
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
     });
     const data = response.data;
@@ -939,115 +1166,106 @@ export const fetchComplaintCategories = async (): Promise<Category[]> => {
         categoryEnglish: item.categoryEnglish,
       }));
     }
-    throw new Error('Invalid response format');
+    throw new Error("Invalid response format");
   } catch (error) {
-    console.error('Error fetching categories:', error);
+    console.error("Error fetching categories:", error);
     return [];
   }
 };
 
 // services/unsubscribeService.ts
 
-
-export const unsubscribeUser = async (token: string, email: string): Promise<any> => {
+export const unsubscribeUser = async (
+  token: string,
+  email: string,
+): Promise<any> => {
   try {
     const response = await axios.post(
-      '/auth/unsubscribe',
+      "/auth/unsubscribe",
       {
         email,
-        action: 'unsubscribe',
+        action: "unsubscribe",
       },
       {
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-      }
+      },
     );
     const data = response.data;
     if (data.status !== undefined) {
       return data;
     }
-    throw new Error('Invalid response format');
+    throw new Error("Invalid response format");
   } catch (error) {
-    console.error('Unsubscribe request error:', error);
-    return { status: false, message: 'Network error' };
+    console.error("Unsubscribe request error:", error);
+    return { status: false, message: "Network error" };
   }
 };
 
-export const getCartInfo = async ( token: string | null): Promise<any> => {
+export const getCartInfo = async (token: string | null): Promise<any> => {
   if (!token) {
-    throw new Error('Authentication required');
+    throw new Error("Authentication required");
   }
   try {
-    const response = await axios.get(
-      '/auth/cart-info',
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-      console.log("cart responce",response);
-
-    if (response.status >= 200 && response.status < 300) {
-      console.log("cart responce",response);
-      
-      return response.data; 
-    }
-    throw new Error(response.data?.message || 'Failed to update package quantity');
-  } catch (error: any) {
-    if (error.response) {
-      throw new Error(
-        error.response.data?.message ||
-        error.response.data?.error ||
-        'Failed to update package quantity'
-      );
-    } else if (error.request) {
-      throw new Error('No response from server. Please try again.');
-    } else {
-      throw new Error(error.message || 'Failed to update package quantity');
-    }
-  }
-};
-
-// services/auth-service.ts
-
-// Define the expected response type for the cities API
-
-export const fetchCities = async (token: string | null): Promise<string[]> => {
-  if (!token) {
-    throw new Error('Authentication required');
-  }
-
-  try {
-    const response = await axios.get('/auth/get-cities', {
+    const response = await axios.get("/auth/cart-info", {
       headers: {
         Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
     });
 
-    console.log('cities response', response);
-
     if (response.status >= 200 && response.status < 300) {
-      console.log('cities response', response);
-      return response.data.data; // assuming response.data = { status: true, data: [...] }
+      return response.data;
     }
-
-    throw new Error(response.data?.message || 'Failed to fetch cities');
+    throw new Error(
+      response.data?.message || "Failed to update package quantity",
+    );
   } catch (error: any) {
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-        error.response.data?.error ||
-        'Failed to fetch cities'
+          error.response.data?.error ||
+          "Failed to update package quantity",
       );
     } else if (error.request) {
-      throw new Error('No response from server. Please try again.');
+      throw new Error("No response from server. Please try again.");
     } else {
-      throw new Error(error.message || 'Failed to fetch cities');
+      throw new Error(error.message || "Failed to update package quantity");
+    }
+  }
+};
+
+export const fetchCities = async (token: string | null): Promise<string[]> => {
+  if (!token) {
+    throw new Error("Authentication required");
+  }
+
+  try {
+    const response = await axios.get("/auth/get-cities", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (response.status >= 200 && response.status < 300) {
+      return response.data.data; // assuming response.data = { status: true, data: [...] }
+    }
+
+    throw new Error(response.data?.message || "Failed to fetch cities");
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(
+        error.response.data?.message ||
+          error.response.data?.error ||
+          "Failed to fetch cities",
+      );
+    } else if (error.request) {
+      throw new Error("No response from server. Please try again.");
+    } else {
+      throw new Error(error.message || "Failed to fetch cities");
     }
   }
 };

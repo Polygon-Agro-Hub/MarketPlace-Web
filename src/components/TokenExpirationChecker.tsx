@@ -39,7 +39,6 @@ const TokenExpirationChecker = () => {
     const isExpired = currentTime >= tokenExpiration;
 
     if (isExpired) {
-      console.log('Token expired, logging out...');
       dispatch(logout());
       
       // Clear any stored credentials

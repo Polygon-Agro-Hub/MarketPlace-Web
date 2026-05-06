@@ -1,5 +1,3 @@
-
-
 'use client';
 import React, { useState } from 'react';
 import LeftSidebar from '@/components/profile/LeftSidebar';
@@ -31,12 +29,12 @@ export default function AccountPage() {
         <div className="flex-1">
           {selectedMenu === 'personalDetails' && <PersonalDetailsForm />}
           {selectedMenu === 'billingAddress' && <BillingDetailsForm />}
-           {selectedMenu === 'Complaints' && <ReportComplaintForm />}
+          {selectedMenu === 'Complaints' && <ReportComplaintForm />}
           {selectedMenu === 'reportComplaint' && <ReportComplaintForm />}
           {selectedMenu === 'ComplaintHistory' && <ComplaintsHistory />}
-           {selectedMenu === 'ExcludedItemList' && <ViewMyList />}
+          {selectedMenu === 'ExcludedItemList' && <ViewMyList />}
           {selectedMenu === 'ViewMyList' && <ViewMyList />}
-         {selectedMenu === 'AddMoreItems' && <AddMoreItems />} 
+          {selectedMenu === 'AddMoreItems' && <AddMoreItems />}
         </div>
       )}
     </div>

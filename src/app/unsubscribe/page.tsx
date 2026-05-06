@@ -1,5 +1,3 @@
-
-
 "use client";
 
 import Head from 'next/head';
@@ -29,7 +27,6 @@ export default function Unsubscribe() {
     console.error("Unsubscribe failed:", result.message);
   }
 };
-
 
   const handleStayClick = () => {
     setClickedButton('stay');

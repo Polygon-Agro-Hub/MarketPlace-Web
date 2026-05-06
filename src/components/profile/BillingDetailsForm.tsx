@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -11,6 +9,8 @@ import { fetchBillingDetails, saveBillingDetails, fetchCities, BillingDetails, B
 import SuccessPopup from '@/components/toast-messages/success-message';
 import ErrorPopup from '@/components/toast-messages/error-message';
 import Loader from '@/components/loader-spinner/Loader';
+import GeoLocationModal from '@/components/delivery-map/GeoLocationModal';
+import { LocateFixed } from 'lucide-react';
 
 // Define form data type
 type BillingFormData = {
@@ -34,6 +34,8 @@ type BillingFormData = {
   phone1: string;
   phonecode2?: string;
   phone2?: string;
+  geoLatitude?: number | null;   // Add this
+  geoLongitude?: number | null;  // Add this
 };
 
 // Custom Dropdown Component
@@ -43,19 +45,22 @@ interface CustomDropdownProps {
   name: keyof BillingFormData;
   value: string | undefined;
   errors?: FieldErrors<BillingFormData>;
-  options: { value: string; label: string }[];
+  options: { value: string; label: string; countryCode?: string }[];
   placeholder: string;
+  withSearch?: boolean;
+  maxVisibleItems?: number;
 }
 
-const CustomDropdown = ({ register, setValue, name, value, errors, options, placeholder }: CustomDropdownProps) => {
+const CustomDropdown = ({ register, setValue, name, value, errors, options, placeholder, withSearch = false, maxVisibleItems = 6 }: CustomDropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
-
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
+        setSearchTerm('');
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -64,12 +69,17 @@ const CustomDropdown = ({ register, setValue, name, value, errors, options, plac
 
   const handleSelect = (optionValue: string) => {
     setValue(name, optionValue, { shouldValidate: true });
-    console.log(`Set ${name} to:`, optionValue);
     setIsOpen(false);
+    setSearchTerm('');
   };
 
-  console.log(`${name} value:`, value);
-  console.log(`${name} options:`, options);
+  const filteredOptions = withSearch
+    ? options.filter(option =>
+        option.label.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    : options;
+
+  const selectedOption = options.find((opt) => opt.value === value);
 
   return (
     <div className="relative cursor-pointer" ref={dropdownRef}>
@@ -78,27 +88,57 @@ const CustomDropdown = ({ register, setValue, name, value, errors, options, plac
         className="appearance-none border border-[#CECECE] cursor-pointer rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px] pr-8 flex items-center justify-between"
         onClick={() => setIsOpen(!isOpen)}
       >
-        <span>{value && options.find((opt) => opt.value === value)?.label || placeholder}</span>
+        <span className="flex items-center gap-2">
+          {selectedOption?.countryCode && (
+            <img
+              src={`https://flagcdn.com/24x18/${selectedOption.countryCode.toLowerCase()}.png`}
+              alt={selectedOption.countryCode}
+              className="w-5 h-4 object-cover"
+            />
+          )}
+          <span>{value && selectedOption?.label || placeholder}</span>
+        </span>
         <FaAngleDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none" />
       </div>
       {isOpen && (
-        <ul className="absolute z-10 w-full bg-white border border-[#CECECE] rounded-lg mt-1">
-          <li
-            className="p-2 text-[12px] md:text-[14px] cursor-pointer hover:bg-gray-100"
-            onClick={() => handleSelect('')}
-          >
-            {placeholder}
-          </li>
-          {options.map((option) => (
-            <li
-              key={option.value}
-              className="p-2 text-[12px] md:text-[14px] cursor-pointer hover:bg-gray-100"
-              onClick={() => handleSelect(option.value)}
-            >
-              {option.label}
-            </li>
-          ))}
-        </ul>
+        <div className="absolute z-10 w-full bg-white border border-[#CECECE] rounded-lg mt-1 shadow-lg">
+          {withSearch && (
+            <div className="p-2 border-b border-[#CECECE]">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search..."
+                className="w-full p-2 text-xs md:text-sm border border-[#CECECE] rounded focus:outline-none focus:ring-1 focus:ring-[#3E206D]"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+          )}
+          <ul className={`overflow-y-auto ${withSearch ? 'max-h-[240px]' : ''}`} style={{ maxHeight: `${maxVisibleItems * 40}px` }}>
+            {filteredOptions.length > 0 ? (
+              filteredOptions.map((option) => (
+                <li
+                  key={option.value}
+                  className="p-2 text-[12px] md:text-[14px] cursor-pointer hover:bg-gray-100 flex items-center gap-2"
+                  onClick={() => handleSelect(option.value)}
+                >
+                  {option.countryCode && (
+                    <img
+                      src={`https://flagcdn.com/24x18/${option.countryCode.toLowerCase()}.png`}
+                      alt={option.countryCode}
+                      className="w-5 h-4 object-cover"
+                    />
+                  )}
+                  <span>{option.label}</span>
+                </li>
+              ))
+            ) : (
+              <li className="p-2 text-[12px] md:text-[14px] text-gray-500 text-center">
+                No options found
+              </li>
+            )}
+          </ul>
+        </div>
       )}
       <p className="text-red-500 text-xs">{errors?.[name]?.message}</p>
     </div>
@@ -143,50 +183,112 @@ const BillingDetailsForm = () => {
   const [billingNameError, setBillingNameError] = useState('');
   const [initialFormData, setInitialFormData] = useState<BillingFormData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-const [cities, setCities] = useState<string[]>([]);
+  const [cities, setCities] = useState<string[]>([]);
+  const [hasFormChanged, setHasFormChanged] = useState(false);
+  const [isGeoModalOpen, setIsGeoModalOpen] = useState(false);
+  const [mapCenter, setMapCenter] = useState<[number, number]>([6.9271, 79.8612]); // Default to Colombo
+  const [isViewingLocation, setIsViewingLocation] = useState(false);
+  const [hasGeoLocation, setHasGeoLocation] = useState(false); // Track if geo location exists
+  const [isMounted, setIsMounted] = useState(false); // Track if component is mounted on client
 
-useEffect(() => {
-  const loadCities = async () => {
-    if (!token) return; // Additional safeguard
-    try {
-      const fetchedCities = await fetchCities(token as string); // Type assertion
-      setCities(fetchedCities);
-    } catch (error: any) {
-      console.error('Error fetching cities:', error);
-      setErrorMessage('Failed to fetch cities. Using default cities.');
-      setShowErrorPopup(true);
-      setCities(['Colombo', 'Kandy', 'Galle', 'Jaffna', 'Negombo', 'Anuradhapura']);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Function to view saved location
+  const handleViewLocation = () => {
+    const lat = watch('geoLatitude');
+    const lng = watch('geoLongitude');
+    if (lat && lng) {
+      setMapCenter([lat, lng]);
+      setIsViewingLocation(true); // Set viewing mode
+      setIsGeoModalOpen(true);
     }
   };
 
-  if (token) {
-    loadCities();
-  }
-}, [token]);
+  // Function to attach new location
+  const handleAttachLocation = () => {
+    setIsViewingLocation(false); // Set to attach mode
+    setIsGeoModalOpen(true);
+  };
 
-  // Options for dropdowns
+  useEffect(() => {
+    const loadCities = async () => {
+      if (!token) return; // Additional safeguard
+      try {
+        const fetchedCities = await fetchCities(token as string); // Type assertion
+        setCities(fetchedCities);
+      } catch (error: any) {
+        console.error('Error fetching cities:', error);
+        setErrorMessage('Failed to fetch cities. Using default cities.');
+        setShowErrorPopup(true);
+        setCities(['Colombo', 'Kandy', 'Galle', 'Jaffna', 'Negombo', 'Anuradhapura']);
+      }
+    };
+
+    if (token) {
+      loadCities();
+    }
+  }, [token]);
+
+  const compareFormData = (current: BillingFormData, initial: BillingFormData | null): boolean => {
+    if (!initial) return false;
+
+    const stringFieldsToCompare: (keyof BillingFormData)[] = [
+      'billingTitle', 'billingName', 'title', 'firstName', 'lastName',
+      'houseNo', 'buildingNo', 'buildingType', 'apartmentName', 'flatNumber',
+      'apartmentFloor', 'apartmentHouseNo', 'houseStreet', 'houseCity',
+      'apartmentStreet', 'apartmentCity', 'phonecode1', 'phone1',
+      'phonecode2', 'phone2'
+    ];
+
+    // Check string fields
+    const stringFieldsChanged = stringFieldsToCompare.some(field => {
+      const currentValue = current[field] || '';
+      const initialValue = initial[field] || '';
+      return currentValue !== initialValue;
+    });
+
+    if (stringFieldsChanged) return true;
+
+    // Check geo location fields separately (number comparison)
+    const geoLatChanged = (current.geoLatitude ?? null) !== (initial.geoLatitude ?? null);
+    const geoLngChanged = (current.geoLongitude ?? null) !== (initial.geoLongitude ?? null);
+
+    return geoLatChanged || geoLngChanged;
+  };
+
+
   const billingTitleOptions = [
-    { value: 'Rev.', label: 'Rev.' },
-    { value: 'Mr.', label: 'Mr.' },
-    { value: 'Ms.', label: 'Ms.' },
-    { value: 'Mrs.', label: 'Mrs.' },
+    { value: 'Mr.', label: 'Mr' },
+    { value: 'Mrs.', label: 'Mrs' },
+    { value: 'Ms.', label: 'Ms' },
+    { value: 'Rev.', label: 'Rev' },
   ];
 
   const buildingTypeOptions = [
     { value: 'house', label: 'House' },
     { value: 'apartment', label: 'Apartment' },
   ];
-const cityOptions = cities.map((city) => ({
-  value: city.toLowerCase(),
-  label: city,
-}));
+  const cityOptions = cities.map((city) => ({
+    value: city,
+    label: city,
+  }));
 
-  const phoneCodeOptions = [
-    { value: '+94', label: '+94' },
-    { value: '+91', label: '+91' },
-    { value: '+1', label: '+1' },
-    { value: '+44', label: '+44' },
+  const countries = [
+    { code: "LK", dialCode: "+94", name: "Sri Lanka" },
+    { code: "VN", dialCode: "+84", name: "Vietnam" },
+    { code: "KH", dialCode: "+855", name: "Cambodia" },
+    { code: "BD", dialCode: "+880", name: "Bangladesh" },
+    { code: "IN", dialCode: "+91", name: "India" },
+    { code: "NL", dialCode: "+31", name: "Netherlands" },
   ];
+
+  const phoneCodeOptions = countries.map(country => ({
+    value: country.dialCode,
+    label: country.dialCode,
+    countryCode: country.code
+  }));
 
   const {
     register,
@@ -219,6 +321,8 @@ const cityOptions = cities.map((city) => ({
       phone1: '',
       phonecode2: '+94',
       phone2: '',
+      geoLatitude: null,    // Add this
+      geoLongitude: null,
     },
     mode: 'onChange',
   });
@@ -230,11 +334,6 @@ const cityOptions = cities.map((city) => ({
   const apartmentCityValue = watch('apartmentCity');
   const phonecode1Value = watch('phonecode1');
   const phonecode2Value = watch('phonecode2');
-
-  // Log buildingType for debugging
-  useEffect(() => {
-    console.log('buildingType changed:', buildingType);
-  }, [buildingType]);
 
   // Clear fields based on buildingType
   useEffect(() => {
@@ -265,7 +364,6 @@ const cityOptions = cities.map((city) => ({
       setIsLoading(true);
       try {
         const data = await fetchBillingDetails({ token });
-        console.log('API Response:', data);
         const formData: BillingFormData = {
           billingTitle: data.billingTitle || '',
           billingName: data.billingName || '',
@@ -287,11 +385,21 @@ const cityOptions = cities.map((city) => ({
           phone1: data.phoneNumber || '',
           phonecode2: data.phoneCode2 || '+94',
           phone2: data.phoneNumber2 || '',
+          geoLatitude: data.geoLatitude || data.address?.geoLatitude || null,
+          geoLongitude: data.geoLongitude || data.address?.geoLongitude || null,
         };
         setInitialFormData(formData);
         reset(formData);
-        console.log('Form state after reset:', getValues());
-        setValue('buildingType', formData.buildingType); // Ensure buildingType is set
+        setValue('buildingType', formData.buildingType); 
+        setTimeout(() => {
+          if (formData.geoLatitude && formData.geoLongitude) {
+            setValue('geoLatitude', formData.geoLatitude, { shouldValidate: false });
+            setValue('geoLongitude', formData.geoLongitude, { shouldValidate: false });
+            setHasGeoLocation(true); 
+          } else {
+            setHasGeoLocation(false);
+          }
+        }, 100);
       } catch (error: any) {
         console.error('Fetch error:', error);
         setErrorMessage(error.message || 'Failed to fetch billing details');
@@ -303,6 +411,77 @@ const cityOptions = cities.map((city) => ({
 
     loadBillingDetails();
   }, [token, reset, setValue, getValues]);
+
+  useEffect(() => {
+    const subscription = watch((value) => {
+      if (initialFormData) {
+        const currentFormData = value as BillingFormData;
+        const hasChanged = compareFormData(currentFormData, initialFormData);
+        setHasFormChanged(hasChanged);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [watch, initialFormData]);
+
+  useEffect(() => {
+    // Register building type as required
+    register('buildingType', { required: 'Building Type is required' });
+
+    // Register house fields with conditional validation
+    register('houseNo', {
+      validate: (value) => buildingType === 'house' && !value ? 'House No is required' : true
+    });
+    register('houseStreet', {
+      validate: (value) => buildingType === 'house' && !value ? 'Street Name is required' : true
+    });
+    register('houseCity', {
+      validate: (value) => buildingType === 'house' && !value ? 'City is required' : true
+    });
+
+    // Register apartment fields with conditional validation
+    register('buildingNo', {
+      validate: (value) => buildingType === 'apartment' && !value ? 'Building No is required' : true
+    });
+    register('apartmentName', {
+      validate: (value) => buildingType === 'apartment' && !value ? 'Apartment/Building Name is required' : true
+    });
+    register('flatNumber', {
+      validate: (value) => buildingType === 'apartment' && !value ? 'Flat/Unit Number is required' : true
+    });
+    register('apartmentFloor', {
+      validate: (value) => buildingType === 'apartment' && !value ? 'Floor Number is required' : true
+    });
+    register('apartmentHouseNo', {
+      validate: (value) => buildingType === 'apartment' && !value ? 'House Number is required' : true
+    });
+    register('apartmentStreet', {
+      validate: (value) => buildingType === 'apartment' && !value ? 'Street Name is required' : true
+    });
+    register('apartmentCity', {
+      validate: (value) => buildingType === 'apartment' && !value ? 'City is required' : true
+    });
+
+    // Register phone code as required
+    register('phonecode1', { required: 'Phone code is required' });
+    
+    // Register geo location fields (optional but tracked)
+    register('geoLatitude');
+    register('geoLongitude');
+  }, [register, buildingType]);
+
+  // Add this function before the onSubmit function
+  const handleLocationSelect = (lat: number, lng: number) => {
+    setValue('geoLatitude', lat, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
+    setValue('geoLongitude', lng, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
+    setHasGeoLocation(true); // Mark that geo location exists
+    
+    // Force form change detection
+    if (initialFormData) {
+      const currentData = getValues();
+      const hasChanged = compareFormData(currentData as BillingFormData, initialFormData);
+      setHasFormChanged(hasChanged || true); // Force true since location was just selected
+    }
+  };
 
   const onSubmit: SubmitHandler<BillingFormData> = async (data) => {
     setIsLoading(true);
@@ -322,12 +501,62 @@ const cityOptions = cities.map((city) => ({
     }
 
     if (!data.billingTitle || !['Rev.', 'Mr.', 'Ms.', 'Mrs.'].includes(data.billingTitle)) {
-      setErrorMessage('Please select a valid billing title (Rev., Mr., Ms., or Mrs.).');
+      setErrorMessage('Please select a valid billing title ( Mr., Ms., or Mrs. ,Rev.).');
       setShowErrorPopup(true);
       setIsLoading(false);
       return;
     }
 
+    // Additional validation for building type
+    if (!data.buildingType) {
+      setErrorMessage('Please select a building type.');
+      setShowErrorPopup(true);
+      setIsLoading(false);
+      return;
+    }
+
+    // Validate required fields based on building type
+    if (data.buildingType === 'house') {
+      if (!data.houseNo || !data.houseStreet || !data.houseCity) {
+        setErrorMessage('Please fill all required house address fields including city.');
+        setShowErrorPopup(true);
+        setIsLoading(false);
+        return;
+      }
+      // Validate geo location for house
+      if (!data.geoLatitude || !data.geoLongitude) {
+        setErrorMessage('Geo Location is required. Please attach your geo location.');
+        setShowErrorPopup(true);
+        setIsLoading(false);
+        return;
+      }
+    } else if (data.buildingType === 'apartment') {
+      if (!data.buildingNo || !data.apartmentName || !data.flatNumber ||
+        !data.apartmentFloor || !data.apartmentHouseNo ||
+        !data.apartmentStreet || !data.apartmentCity) {
+        setErrorMessage('Please fill all required apartment address fields including city.');
+        setShowErrorPopup(true);
+        setIsLoading(false);
+        return;
+      }
+      // Validate geo location for apartment
+      if (!data.geoLatitude || !data.geoLongitude) {
+        setErrorMessage('Geo Location is required. Please attach your geo location.');
+        setShowErrorPopup(true);
+        setIsLoading(false);
+        return;
+      }
+    }
+
+    // Validate phone number
+    if (!data.phonecode1 || !data.phone1) {
+      setErrorMessage('Phone Number 1 is required.');
+      setShowErrorPopup(true);
+      setIsLoading(false);
+      return;
+    }
+
+    // Rest of the existing onSubmit logic...
     const address: BillingAddress = {
       title: data.title || data.billingTitle,
       firstName: data.firstName || '',
@@ -343,6 +572,8 @@ const cityOptions = cities.map((city) => ({
       floorNo: data.buildingType === 'apartment' ? data.apartmentFloor || undefined : undefined,
       streetName: data.buildingType === 'house' ? data.houseStreet || undefined : data.buildingType === 'apartment' ? data.apartmentStreet || undefined : undefined,
       city: data.buildingType === 'house' ? data.houseCity || undefined : data.buildingType === 'apartment' ? data.apartmentCity || undefined : undefined,
+      geoLatitude: data.geoLatitude || undefined,    // Keep this
+      geoLongitude: data.geoLongitude || undefined,  // Keep this
     };
 
     const billingDetails: BillingDetails = {
@@ -357,6 +588,8 @@ const cityOptions = cities.map((city) => ({
       phoneNumber2: data.phone2 || '',
       buildingType: data.buildingType || '',
       address,
+      geoLatitude: data.geoLatitude || undefined,
+      geoLongitude: data.geoLongitude || undefined,
     };
 
     try {
@@ -374,12 +607,24 @@ const cityOptions = cities.map((city) => ({
     }
   };
 
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Block leading space
+    if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
+      e.preventDefault();
+    }
+  };
+
   const handleBillingNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     const isNumber = /[0-9]/.test(e.key);
     const isInvalidChar = /[0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?]/.test(e.key);
+
+    // Block leading space
+    if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
+      e.preventDefault();
+      return;
+    }
+
     if (isNumber) {
-      setBillingNameError('Numbers are not allowed in Billing Name');
-      setTimeout(() => setBillingNameError(''), 2000);
       e.preventDefault();
     } else if (isInvalidChar && !['Backspace', 'Tab', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
       e.preventDefault();
@@ -387,10 +632,28 @@ const cityOptions = cities.map((city) => ({
   };
 
   const handlePhoneKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    const invalidKeys = ['e', 'E', '+', '-', '.', ','];
-    if (invalidKeys.includes(e.key)) {
+    // Allow: backspace, delete, tab, escape, enter, arrows
+    const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
+    
+    if (allowedKeys.includes(e.key)) {
+      return;
+    }
+
+    // Allow: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+    if ((e.ctrlKey || e.metaKey) && ['a', 'c', 'v', 'x'].includes(e.key.toLowerCase())) {
+      return;
+    }
+
+    // Block everything except numbers 0-9
+    if (!/^[0-9]$/.test(e.key)) {
       e.preventDefault();
     }
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: 'phone1' | 'phone2') => {
+    // Remove all non-numeric characters
+    const numericValue = e.target.value.replace(/\D/g, '');
+    setValue(fieldName, numericValue, { shouldValidate: true });
   };
 
   const handleCancel = () => {
@@ -398,6 +661,12 @@ const cityOptions = cities.map((city) => ({
     if (initialFormData) {
       reset(initialFormData);
       setValue('buildingType', initialFormData.buildingType); // Ensure buildingType is reset
+      // Explicitly reset geo location values
+      if (initialFormData.geoLatitude && initialFormData.geoLongitude) {
+        setValue('geoLatitude', initialFormData.geoLatitude);
+        setValue('geoLongitude', initialFormData.geoLongitude);
+      }
+      setHasFormChanged(false); // Reset the change flag
     }
     setTimeout(() => {
       setIsLoading(false);
@@ -409,7 +678,7 @@ const cityOptions = cities.map((city) => ({
   };
 
   return (
-    <div className="relative z-50">
+    <div className="relative z-10 px-4 sm:px-6 min-h-screen bg-white blur-effect py-4">
       <Loader isVisible={isLoading} />
       <SuccessPopup
         isVisible={showSuccessPopup}
@@ -423,22 +692,21 @@ const cityOptions = cities.map((city) => ({
         title="Error!"
         description={errorMessage}
       />
-   
 
-      <form onSubmit={handleSubmit(onSubmit)} className="px-2 md:px-10 bg-white">
-        <h2 className="font-medium text-[14px] md:text-[18px] mb-2 mt-2">Account Details</h2>
-        <p className="text-[12px] md:text-[16px] text-[#626D76] mb-2">
+      <form onSubmit={handleSubmit(onSubmit)} className="bg-white">
+        <h2 className="font-medium text-[14px] text-base md:text-[17.5px]">Account Details</h2>
+        <p className="text-[12px] md:text-[16px] text-[#626D76] mb-3">
           Real-time information and updates for your billing details.
         </p>
         <div className="border-t border-[#626D76] mb-6 mt-1" />
 
-        <h2 className="font-medium text-[14px] md:text-[18px] mb-4">Billing Information</h2>
+        <h2 className="font-medium text-[14px] md:text-[18px] mb-4">Billing Name</h2>
 
         <div className="md:w-[90%]">
           <div className="flex gap-4 md:gap-8">
             <div className="w-[10%] min-w-[70px]">
               <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
-                Billing Title
+                Title
               </label>
               <CustomDropdown
                 register={register}
@@ -453,18 +721,19 @@ const cityOptions = cities.map((city) => ({
 
             <div className="w-[90%]">
               <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
-                Billing Name
+                Full Name
               </label>
               <input
                 {...register('billingName', {
-                  required: 'Billing Name is required',
+                  required: 'Full Name is required',
                   pattern: {
                     value: /^[A-Za-z\s]+$/,
-                    message: 'Billing Name must contain only letters and spaces',
+                    message: 'Full Name must contain only letters and spaces',
                   },
                 })}
                 className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
                 onKeyDown={handleBillingNameKeyDown}
+                placeholder='Full Name'
               />
               {billingNameError && <p className="text-red-500 text-xs">{billingNameError}</p>}
               <p className="text-red-500 text-xs">{errors.billingName?.message}</p>
@@ -500,6 +769,8 @@ const cityOptions = cities.map((city) => ({
                 <input
                   {...register('houseNo')}
                   className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
+                  placeholder='House Number'
+                  onKeyDown={handleInputKeyDown}
                 />
                 <p className="text-red-500 text-xs">{errors.houseNo?.message}</p>
               </div>
@@ -513,6 +784,8 @@ const cityOptions = cities.map((city) => ({
                 <input
                   {...register('buildingNo')}
                   className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
+                  placeholder='Building Number'
+                  onKeyDown={handleInputKeyDown}
                 />
                 <p className="text-red-500 text-xs">{errors.buildingNo?.message}</p>
               </div>
@@ -520,33 +793,81 @@ const cityOptions = cities.map((city) => ({
           </div>
 
           {buildingType === 'house' && (
-            <div className="flex flex-col lg:flex-row gap-4 lg:gap-[100px] mb-6">
-              <div className="w-full lg:w-1/2">
-                <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
-                  Street Name
-                </label>
-                <input
-                  {...register('houseStreet')}
-                  className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
-                />
-                <p className="text-red-500 text-xs">{errors.houseStreet?.message}</p>
+            <>
+              <div className="flex flex-col lg:flex-row gap-4 lg:gap-[100px] mb-6">
+                <div className="w-full lg:w-1/2">
+                  <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
+                    Street Name
+                  </label>
+                  <input
+                    {...register('houseStreet')}
+                    className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
+                    placeholder='Street Name'
+                    onKeyDown={handleInputKeyDown}
+                  />
+
+                  <p className="text-red-500 text-xs">{errors.houseStreet?.message}</p>
+                </div>
+
+                <div className="w-full lg:w-1/2">
+                  <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
+                    Nearest City
+                  </label>
+                  <CustomDropdown
+                    register={register}
+                    setValue={setValue}
+                    name="houseCity"
+                    value={houseCityValue}
+                    errors={errors}
+                    options={cityOptions}
+                    placeholder="Select City"
+                    withSearch={true}
+                    maxVisibleItems={6}
+                  />
+                </div>
               </div>
 
-              <div className="w-full lg:w-1/2">
-                <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
-                  Nearest City
-                </label>
-                <CustomDropdown
-                  register={register}
-                  setValue={setValue}
-                  name="houseCity"
-                  value={houseCityValue}
-                  errors={errors}
-                  options={cityOptions}
-                  placeholder="Select City"
-                />
+              <div className="flex flex-col lg:flex-row gap-4 lg:gap-[100px] mb-6">
+                <div className="w-full lg:w-1/2">
+                  <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
+                    Geo Location
+                  </label>
+                  {isMounted && (hasGeoLocation || (watch('geoLatitude') && watch('geoLongitude'))) ? (
+                    <div className="space-y-2">
+                      <button
+                        type="button"
+                        onClick={handleAttachLocation}
+                        className="w-full h-[42px] border-2 border-[#CECECE] bg-[#E6D9F5] rounded-lg flex items-center justify-center gap-2 text-[#3E206D] font-medium hover:bg-[#d9c9ed] transition-colors cursor-pointer"
+                      >
+                        <LocateFixed size={18} />
+                        <span className="text-[12px] md:text-[14px]">Re-attach My Geo Location</span>
+                      </button>
+                      <div 
+                        className="flex items-start gap-2 text-[#D32F2F] cursor-pointer"
+                        onClick={handleViewLocation}
+                      >
+                        <LocateFixed size={16} className="mt-0.5 flex-shrink-0" />
+                        <span className="text-[11px] md:text-[13px] underline hover:text-[#b02525]">
+                          View Here
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleAttachLocation}
+                      className="w-full h-[42px] border-2 border-[#CECECE] bg-[#E6D9F5] rounded-lg flex items-center justify-center gap-2 text-[#3E206D] font-medium hover:bg-[#d9c9ed] transition-colors cursor-pointer"
+                    >
+                      <LocateFixed size={18} />
+                      <span className="text-[12px] md:text-[14px]">Attach My Geo Location</span>
+                    </button>
+                  )}
+                </div>
+                <div className="w-full lg:w-1/2">
+                  {/* Empty space for alignment */}
+                </div>
               </div>
-            </div>
+            </>
           )}
 
           {buildingType === 'apartment' && (
@@ -559,7 +880,10 @@ const cityOptions = cities.map((city) => ({
                   <input
                     {...register('apartmentName')}
                     className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
+                    placeholder='Apartment or Building Name'
+                    onKeyDown={handleInputKeyDown}
                   />
+
                   <p className="text-red-500 text-xs">{errors.apartmentName?.message}</p>
                 </div>
 
@@ -570,6 +894,8 @@ const cityOptions = cities.map((city) => ({
                   <input
                     {...register('flatNumber')}
                     className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
+                    placeholder='Flat/Unit Number'
+                    onKeyDown={handleInputKeyDown}
                   />
                   <p className="text-red-500 text-xs">{errors.flatNumber?.message}</p>
                 </div>
@@ -583,6 +909,8 @@ const cityOptions = cities.map((city) => ({
                   <input
                     {...register('apartmentFloor')}
                     className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
+                    placeholder='Floor Number'
+                    onKeyDown={handleInputKeyDown}
                   />
                   <p className="text-red-500 text-xs">{errors.apartmentFloor?.message}</p>
                 </div>
@@ -594,6 +922,8 @@ const cityOptions = cities.map((city) => ({
                   <input
                     {...register('apartmentHouseNo')}
                     className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
+                    placeholder='House Number'
+                    onKeyDown={handleInputKeyDown}
                   />
                   <p className="text-red-500 text-xs">{errors.apartmentHouseNo?.message}</p>
                 </div>
@@ -607,6 +937,8 @@ const cityOptions = cities.map((city) => ({
                   <input
                     {...register('apartmentStreet')}
                     className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
+                    placeholder='Street Name'
+                    onKeyDown={handleInputKeyDown}
                   />
                   <p className="text-red-500 text-xs">{errors.apartmentStreet?.message}</p>
                 </div>
@@ -623,7 +955,50 @@ const cityOptions = cities.map((city) => ({
                     errors={errors}
                     options={cityOptions}
                     placeholder="Select City"
+                    withSearch={true}
+                    maxVisibleItems={6}
                   />
+                </div>
+              </div>
+
+              <div className="flex flex-col lg:flex-row gap-4 lg:gap-[100px] mb-6">
+                <div className="w-full lg:w-1/2">
+                  <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
+                    Geo Location
+                  </label>
+                  {isMounted && (hasGeoLocation || (watch('geoLatitude') && watch('geoLongitude'))) ? (
+                    <div className="space-y-2">
+                      <button
+                        type="button"
+                        onClick={handleAttachLocation}
+                        className="w-full h-[42px] border-2 border-[#CECECE] bg-[#E6D9F5] rounded-lg flex items-center justify-center gap-2 text-[#3E206D] font-medium hover:bg-[#d9c9ed] transition-colors cursor-pointer"
+                      >
+                        <LocateFixed size={18} />
+                        <span className="text-[12px] md:text-[14px]">Re-attach My Geo Location</span>
+                      </button>
+                      <div 
+                        className="flex items-start gap-2 text-[#D32F2F] cursor-pointer"
+                        onClick={handleViewLocation}
+                      >
+                        <LocateFixed size={16} className="mt-0.5 flex-shrink-0" />
+                        <span className="text-[11px] md:text-[13px] underline hover:text-[#b02525]">
+                          View Here
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleAttachLocation}
+                      className="w-full h-[42px] border-2 border-[#CECECE] bg-[#E6D9F5] rounded-lg flex items-center justify-center gap-2 text-[#3E206D] font-medium hover:bg-[#d9c9ed] transition-colors cursor-pointer"
+                    >
+                      <LocateFixed size={18} />
+                      <span className="text-[12px] md:text-[14px]">Attach My Geo Location</span>
+                    </button>
+                  )}
+                </div>
+                <div className="w-full lg:w-1/2">
+                  {/* Empty space for alignment */}
                 </div>
               </div>
             </>
@@ -641,7 +1016,7 @@ const cityOptions = cities.map((city) => ({
                 Phone Number {num}
               </label>
               <div className="flex gap-4">
-                <div className="relative w-[25%] md:w-[14%] min-w-[70px]">
+                <div className="relative max-w-[30%] md:max-w-[20%]">
                   <CustomDropdown
                     register={register}
                     setValue={setValue}
@@ -657,20 +1032,20 @@ const cityOptions = cities.map((city) => ({
                   <input
                     type="text"
                     {...register(`phone${num}` as 'phone1' | 'phone2', {
-                      required: num === 1 ? 'Phone number is required' : false,
+                      required: num === 1 ? 'Phone Number 1 is required' : false,
                       pattern: {
                         value: /^[0-9]{9}$/,
-                        message: 'Enter a valid number (9 digits)',
+                        message: 'Please enter a valid Phone Number (format: +947XXXXXXXX)',
                       },
                       validate: num === 2
                         ? {
-                            notDuplicate: (value) =>
-                              !value ||
-                              !watch('phone1') ||
-                              watch('phonecode1') !== watch('phonecode2') ||
-                              value !== watch('phone1') ||
-                              'Phone numbers cannot be the same',
-                          }
+                          notDuplicate: (value) =>
+                            !value ||
+                            !watch('phone1') ||
+                            watch('phonecode1') !== watch('phonecode2') ||
+                            value !== watch('phone1') ||
+                            'Phone numbers cannot be the same',
+                        }
                         : undefined,
                     })}
                     className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
@@ -678,6 +1053,7 @@ const cityOptions = cities.map((city) => ({
                     inputMode="numeric"
                     maxLength={9}
                     onKeyDown={handlePhoneKeyDown}
+                    onChange={(e) => handlePhoneChange(e, `phone${num}` as 'phone1' | 'phone2')}
                   />
                   <p className="text-red-500 text-xs">
                     {errors[`phone${num}` as 'phone1' | 'phone2']?.message}
@@ -691,20 +1067,40 @@ const cityOptions = cities.map((city) => ({
         <div className="flex justify-end gap-4 mt-10">
           <button
             type="button"
-            className={`w-[90px] h-[36px] sm:w-[110px] sm:h-[44px] cursor-pointer text-[16px] md:text-[20px] font-medium rounded-lg text-[#757E87] bg-[#F3F4F7] hover:bg-[#e1e2e5] ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`w-[90px] h-[36px] sm:w-[110px] sm:h-[44px] cursor-pointer text-[16px] md:text-[20px] font-medium rounded-lg ${isLoading || !hasFormChanged
+              ? 'opacity-50 cursor-not-allowed text-[#9ca3af] bg-[#f9fafb]'
+              : 'text-[#757E87] bg-[#F3F4F7] hover:bg-[#e1e2e5]'
+              }`}
             onClick={handleCancel}
-            disabled={isLoading}
+            disabled={isLoading || !hasFormChanged}
           >
             Cancel
           </button>
+
           <button
             type="submit"
-            className={`w-[90px] h-[36px] sm:w-[110px] sm:h-[44px] cursor-pointer mb-4 text-[16px] md:text-[20px] font-medium rounded-lg text-white bg-[#3E206D] hover:bg-[#341a5a] ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-            disabled={isLoading}
+            className={`w-[90px] h-[36px] sm:w-[110px] sm:h-[44px] cursor-pointer mb-4 text-[16px] md:text-[20px] font-medium rounded-lg text-white ${isLoading || !hasFormChanged
+              ? 'opacity-50 cursor-not-allowed bg-[#9ca3af]'
+              : 'bg-[#3E206D] hover:bg-[#341a5a]'
+              }`}
+            disabled={isLoading || !hasFormChanged}
           >
             Save
           </button>
         </div>
+        <GeoLocationModal
+          isOpen={isGeoModalOpen}
+          onClose={() => {
+            setIsGeoModalOpen(false);
+            setIsViewingLocation(false); // Reset viewing mode when closing
+          }}
+          onLocationSelect={handleLocationSelect}
+          initialCenter={mapCenter}
+          savedLocation={isViewingLocation && watch('geoLatitude') && watch('geoLongitude') 
+            ? [Number(watch('geoLatitude')), Number(watch('geoLongitude'))] 
+            : null}
+          viewOnly={isViewingLocation}
+        />
       </form>
     </div>
   );
