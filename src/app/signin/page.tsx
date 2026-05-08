@@ -191,7 +191,7 @@ const Page = () => {
               passwordError
                 ? "Incorrect password. Please try again!"
                 : emailError
-                  ? "Incorrect email. Please try again!"
+                  ? "Incorrect email/phone number, Please Try again"
                   : "User not found. Please check your credentials!"
             }
           />

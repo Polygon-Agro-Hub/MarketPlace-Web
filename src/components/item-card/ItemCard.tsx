@@ -44,6 +44,8 @@ const ItemCard = ({
   const [showTooltip, setShowTooltip] = useState(false);
   const [showMinQuantityTooltip, setShowMinQuantityTooltip] = useState(false);
 
+  // startValue and changeby from the API are always in kg when unitType is "Kg"
+  // We store quantity internally in grams always.
   const getInitialQuantity = () => {
     const parsedStartValue =
       typeof startValue === "string" ? parseFloat(startValue) : startValue;
@@ -58,17 +60,6 @@ const ItemCard = ({
   const [unit, setUnit] = useState<"kg" | "g">(
     unitType?.toLowerCase() === "kg" ? "kg" : "g",
   );
-
-  // useEffect(() => {
-  //   if (name === 'Yellow Squash') console.log(startValue, changeby);
-
-  //   if (unitType?.toLowerCase() === "g") {
-  //     startValue = typeof startValue === "string" ? parseFloat(startValue) * 1000 : startValue * 1000;
-  //     changeby = typeof changeby === "string" ? parseFloat(changeby) * 1000 : changeby * 1000;
-  //   }
-  //   if (name === 'Yellow Squash') console.log(startValue, changeby);
-
-  // }, []);
 
   // Update quantity and unit when props change
   useEffect(() => {
@@ -111,6 +102,45 @@ const ItemCard = ({
     return `${formattedInteger}.${decimalPart}`;
   };
 
+  // ─── NEW: price is always "per 1 kg" from the API ───────────────────────────
+  // Calculate price for a given quantity (in grams)
+  const getPriceForQuantityGrams = (grams: number, perKgPrice: number): number => {
+    return (grams / 1000) * perKgPrice;
+  };
+
+  // The per-kg prices
+  const perKgOriginalPrice = originalPrice ?? currentPrice; // normalPrice from API (always per 1 kg)
+  const perKgCurrentPrice = currentPrice;                   // discountedPrice from API (always per 1 kg)
+
+  // Price to show on the card face (based on startValue, not per 1 kg)
+  const startValueGrams = getInitialQuantity(); // internal grams
+  const cardFaceOriginalPrice = getPriceForQuantityGrams(startValueGrams, perKgOriginalPrice);
+  const cardFaceCurrentPrice = getPriceForQuantityGrams(startValueGrams, perKgCurrentPrice);
+
+  // Price shown in the quantity selector (dynamic, based on current quantity state)
+  const selectorCurrentPrice = getPriceForQuantityGrams(quantity, perKgCurrentPrice);
+  const selectorOriginalPrice = getPriceForQuantityGrams(quantity, perKgOriginalPrice);
+  // ────────────────────────────────────────────────────────────────────────────
+
+  // Display the start value on the card face: show in grams if < 1 kg, else in kg
+  const getStartValueDisplay = (): string => {
+    const parsedStartValue =
+      typeof startValue === "string" ? parseFloat(startValue) : startValue;
+
+    if (unitType?.toLowerCase() === "kg") {
+      if (parsedStartValue < 1) {
+        // Display in grams
+        return `${Math.round(parsedStartValue * 1000)} g`;
+      }
+      return `${parsedStartValue} kg`;
+    }
+    // unitType is already "g"
+    if (parsedStartValue >= 1000) {
+      return `${parsedStartValue / 1000} kg`;
+    }
+    return `${parsedStartValue} g`;
+  };
+
   // Get minimum quantity based on unit and startValue
   const getMinQuantity = () => {
     const parsedStartValue =
@@ -136,7 +166,6 @@ const ItemCard = ({
   const getDisplayQuantity = () => {
     if (unit === "kg") {
       const kgValue = quantity / 1000;
-      // Use more decimal places for very small kg values
       if (kgValue < 0.001) {
         return kgValue.toFixed(4).replace(/\.?0+$/, "");
       }
@@ -225,16 +254,14 @@ const ItemCard = ({
       setIsLoading(true);
       setError(null);
 
-      // quantity state is always stored internally in grams
-      // send based on what unit the user currently has selected
       let apiQuantity: number;
       let apiUnit: "kg" | "g";
 
       if (unit === "kg") {
-        apiQuantity = quantity / 1000; // convert grams → kg for API
+        apiQuantity = quantity / 1000;
         apiUnit = "kg";
       } else {
-        apiQuantity = quantity; // already in grams
+        apiQuantity = quantity;
         apiUnit = "g";
       }
 
@@ -288,27 +315,15 @@ const ItemCard = ({
     return (
       <div className="fixed top-0 left-0 w-full h-full bg-black bg-black/50 flex items-center justify-center z-[9999] mb-[5%]">
         <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4 relative">
-          {/* Close button */}
           <button
             onClick={() => setShowLoginPopup(false)}
             className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 cursor-pointer"
           >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
 
-          {/* Header */}
           <div className="text-center mb-6">
             <h2 className="text-xl font-bold text-[#000000] mb-4">
               Welcome, Guest! <span className="text-3xl">👋</span>
@@ -322,7 +337,6 @@ const ItemCard = ({
             </p>
           </div>
 
-          {/* Buttons */}
           <div className="flex justify-center space-x-4">
             <button
               onClick={handleRegisterClick}
@@ -406,13 +420,12 @@ const ItemCard = ({
         </div>
       )}
 
-      {/* Main content container with flexible height management */}
-      <div
-        className={`w-full h-full flex flex-col items-center justify-between p-2`}
-      >
-        {/* Product image - adjusted height based on quantity selector */}
+      {/* Main content container */}
+      <div className={`w-full h-full flex flex-col items-center justify-between p-2`}>
+        {/* Product image */}
         <div
-          className={`w-full flex items-center justify-center ${discount ? "mt-4" : "mt-0"} ${showQuantitySelector ? "h-20" : "flex-grow max-h-36"}`}
+          className={`w-full flex items-center justify-center ${discount ? "mt-4" : "mt-0"} ${showQuantitySelector ? "h-20" : "flex-grow max-h-36"
+            }`}
         >
           {!addedToCart && !showQuantitySelector && (
             <div className="w-full h-full flex items-center justify-center">
@@ -434,32 +447,62 @@ const ItemCard = ({
           </h3>
         </div>
 
-        {/* Price section */}
-        {/* Price section */}
-        <div className="flex flex-col items-center space-y-0.5 mb-2 flex-shrink-0">
-          {discount && discount > 0 && originalPrice && originalPrice > currentPrice ? (
-            <>
-              <span className="text-gray-500 text-xs line-through">
-                Rs. {formatPrice(originalPrice)}
+        {/* ── CARD FACE: price + start-value display (shown when quantity selector is hidden) ── */}
+        {!showQuantitySelector && (
+          <>
+            {/* Start value label (e.g. "500 g" or "1 kg") */}
+            <div className="w-full text-center flex-shrink-0">
+              <span className="text-purple-600 text-xs font-medium">
+                {getStartValueDisplay()}
               </span>
-              <span className="text-purple-900 text-xs md:text-sm font-semibold">
-                Rs. {formatPrice(currentPrice)}
-              </span>
-            </>
-          ) : (
-            <span className="text-purple-900 text-xs md:text-sm font-semibold">
-              Rs. {formatPrice(originalPrice ?? currentPrice)}
-            </span>
-          )}
-        </div>
+            </div>
 
-        {/* Quantity selector - positioned to not interfere with button */}
+            {/* Price for that start value */}
+            <div className="flex flex-col items-center space-y-0.5 mb-2 flex-shrink-0">
+              {discount && discount > 0 && originalPrice && cardFaceOriginalPrice > cardFaceCurrentPrice ? (
+                <>
+                  <span className="text-purple-900 text-xs md:text-sm font-semibold">
+                    Rs. {formatPrice(cardFaceCurrentPrice)}
+                  </span>
+                  <span className="text-gray-500 text-xs line-through">
+                    Rs. {formatPrice(cardFaceOriginalPrice)}
+                  </span>
+                </>
+              ) : (
+                <span className="text-purple-900 text-xs md:text-sm font-semibold">
+                  Rs. {formatPrice(cardFaceOriginalPrice)}
+                </span>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* ── QUANTITY SELECTOR: dynamic price + controls ── */}
         {token &&
           user &&
           showQuantitySelector &&
           buyerType !== "Wholesale" &&
           !isInCart && (
             <div className="w-full space-y-2 mb-2 flex flex-col items-center justify-center flex-grow">
+              {/* Dynamic price based on current quantity */}
+              <div className="flex flex-col items-center space-y-0.5">
+                {discount && discount > 0 && originalPrice && selectorOriginalPrice > selectorCurrentPrice ? (
+                  <>
+                    <span className="text-gray-500 text-xs line-through">
+                      Rs. {formatPrice(selectorOriginalPrice)}
+                    </span>
+                    <span className="text-purple-900 text-sm md:text-base font-semibold">
+                      Rs. {formatPrice(selectorCurrentPrice)}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-purple-900 text-sm md:text-base font-semibold">
+                    Rs. {formatPrice(selectorOriginalPrice)}
+                  </span>
+                )}
+              </div>
+
+              {/* kg / g toggle */}
               <div className="flex justify-center">
                 <div className="flex rounded overflow-hidden gap-2 cursor-pointer">
                   <button
@@ -483,6 +526,7 @@ const ItemCard = ({
                 </div>
               </div>
 
+              {/* Quantity stepper */}
               <div className="flex items-center justify-center w-full">
                 <div className="flex w-full max-w-28 rounded-lg bg-white border-1 border-[#3E206D] relative">
                   <MinQuantityTooltip />
@@ -498,7 +542,8 @@ const ItemCard = ({
                       }
                     }}
                     onMouseLeave={() => setShowMinQuantityTooltip(false)}
-                    className={`flex-none px-2 py-1 bg-[#3E206D] text-white font-bold rounded-l-md hover:bg-purple-800 cursor-pointer ${quantity <= getMinQuantity() ? "opacity-50" : ""}`}
+                    className={`flex-none px-2 py-1 bg-[#3E206D] text-white font-bold rounded-l-md hover:bg-purple-800 cursor-pointer ${quantity <= getMinQuantity() ? "opacity-50" : ""
+                      }`}
                   >
                     −
                   </button>
@@ -516,22 +561,13 @@ const ItemCard = ({
             </div>
           )}
 
-        {/* Bottom button section - always at the bottom */}
+        {/* Bottom button */}
         <div className="flex justify-center w-full lg:mb-4">
           <Tooltip />
           {addedToCart ? (
             <button className="w-full hover:shadow-md transition-shadow duration-300 cursor-pointer max-w-[180px] sm:max-w-[200px] md:max-w-[220px] py-2 px-1.5 rounded rounded-lg md:rounded-xl flex items-center justify-center gap-1 text-xs md:text-sm bg-[#EDE1FF] text-purple-900 border border-[#3E206D] transition-colors cursor-pointer">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                  clipRule="evenodd"
-                />
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
               </svg>
               Added to Cart
             </button>
@@ -543,36 +579,19 @@ const ItemCard = ({
               disabled={isLoading || isInCart}
               className={`w-full max-w-[180px] sm:max-w-[200px] md:max-w-[220px] py-2 px-1.5 rounded rounded-lg md:rounded-xl flex items-center justify-center gap-1 text-xs md:text-sm transition-all duration-200 ${isInCart
                   ? "bg-[#EDE1FF] text-gray-500 cursor-not-allowed"
-                  : token &&
-                    user &&
-                    showQuantitySelector &&
-                    buyerType !== "Wholesale"
+                  : token && user && showQuantitySelector && buyerType !== "Wholesale"
                     ? "bg-purple-900 text-white hover:bg-purple-800 cursor-pointer hover:shadow-md hover:shadow-purple-300"
                     : "bg-white border border-[#D7D7D7] text-gray-400 hover:bg-[#3E206D] hover:text-white cursor-pointer shadow-[0px_1px_0px_0px_#D7D7D7] hover:shadow-md hover:shadow-purple-300"
                 } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               {!showQuantitySelector && !isInCart && (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-3 w-3 md:h-4 md:w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
-                  />
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                 </svg>
               )}
               {isInCart
                 ? "Already in Cart"
-                : token &&
-                  user &&
-                  showQuantitySelector &&
-                  buyerType !== "Wholesale"
+                : token && user && showQuantitySelector && buyerType !== "Wholesale"
                   ? "Add to Cart"
                   : buyerType === "Wholesale"
                     ? "Add to Cart"

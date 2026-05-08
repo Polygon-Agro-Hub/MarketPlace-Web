@@ -98,7 +98,7 @@ const Page: React.FC = () => {
     Record<number, "kg" | "g">
   >({});
   const [pendingUpdates, setPendingUpdates] = useState<
-    { productId: number; newQuantity: number , unit?:string }[]
+    { productId: number; newQuantity: number, unit?: string }[]
   >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -745,13 +745,9 @@ const Page: React.FC = () => {
   const calculateItemGroupTotal = (itemGroup: AdditionalItems): number => {
     return itemGroup.Items.reduce((total, item) => {
       const selectedUnit = unitSelection[item.id] || item.unit;
-      // Use normalPrice instead of price for calculations
-      const itemTotal = calculatePrice(
-        item.normalPrice,
-        selectedUnit,
-        item.quantity,
-      );
-      return total + itemTotal;
+      const itemPrice = calculatePrice(item.normalPrice, selectedUnit, item.quantity);
+      const itemDiscount = calculateDiscount(item.discount, selectedUnit, item.quantity);
+      return total + (itemPrice - itemDiscount);
     }, 0);
   };
 
@@ -1034,7 +1030,7 @@ const Page: React.FC = () => {
                   <div className="overflow-x-auto">
                     <div className="min-w-[800px]">
                       <table className="w-full">
-                        <thead className=" border-b border-gray-200 font-bold">
+                        <thead className="border-b border-gray-200 font-bold">
                           <tr>
                             <th className="p-4 text-left">
                               <input
@@ -1054,21 +1050,21 @@ const Page: React.FC = () => {
                               QUANTITY
                             </th>
                             <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              PRICE
+                            </th>
+                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                               DISCOUNT
                             </th>
                             <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              PRICE
+                              FINAL PRICE
                             </th>
                             <th className="px-4 py-3 text-center w-12"></th>
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-100">
                           {itemGroup.Items.map((item) => {
-                            const selectedUnit =
-                              unitSelection[item.id] || item.unit;
-                            const isRemoving = removingItems.has(
-                              `product-${item.id}`,
-                            );
+                            const selectedUnit = unitSelection[item.id] || item.unit;
+                            const isRemoving = removingItems.has(`product-${item.id}`);
                             const isSelected = selectedProducts.has(item.id);
 
                             return (
@@ -1081,9 +1077,7 @@ const Page: React.FC = () => {
                                     type="checkbox"
                                     className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer disabled:cursor-not-allowed"
                                     checked={isSelected}
-                                    onChange={() =>
-                                      handleSelectProduct(item.id)
-                                    }
+                                    onChange={() => handleSelectProduct(item.id)}
                                     disabled={isRemoving}
                                   />
                                 </td>
@@ -1095,8 +1089,7 @@ const Page: React.FC = () => {
                                         alt={item.name}
                                         className="w-full h-full object-contain"
                                         onError={(e) => {
-                                          e.currentTarget.src =
-                                            "/placeholder-image.jpg"; // Add a fallback image
+                                          e.currentTarget.src = "/placeholder-image.jpg";
                                         }}
                                       />
                                     </div>
@@ -1110,9 +1103,7 @@ const Page: React.FC = () => {
                                     {(["kg", "g"] as const).map((unit) => (
                                       <button
                                         key={unit}
-                                        onClick={() =>
-                                          handleUnitChange(item.id, unit)
-                                        }
+                                        onClick={() => handleUnitChange(item.id, unit)}
                                         disabled={isRemoving}
                                         className={`px-3 py-1 text-sm rounded-md border transition-colors cursor-pointer ${selectedUnit === unit
                                           ? "bg-purple-100 text-purple-700 border-purple-300 font-medium"
@@ -1128,106 +1119,49 @@ const Page: React.FC = () => {
                                   <div className="flex items-center gap-2 border border-gray-300 rounded-lg px-3 py-2 w-32 mx-auto bg-white">
                                     <div className="relative">
                                       <button
-                                        onClick={() =>
-                                          handleProductQuantityChange(
-                                            item.id,
-                                            -1,
-                                          )
-                                        }
+                                        onClick={() => handleProductQuantityChange(item.id, -1)}
                                         disabled={isRemoving}
                                         className="hover:bg-gray-100 p-1 rounded-full flex items-center justify-center disabled:opacity-50 transition-colors cursor-pointer disabled:cursor-not-allowed"
                                       >
                                         <Minus size={14} />
                                       </button>
 
-                                      {/* Tooltip */}
                                       {tooltipStates[item.id] && (
                                         <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 z-10">
                                           <div className="bg-[#191D28] text-white text-xs px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
-                                            {tooltipStates[item.id] ===
-                                              "min" ? (
+                                            {tooltipStates[item.id] === "min" ? (
                                               <>
                                                 Minimum quantity is{" "}
                                                 {(() => {
-                                                  const selectedUnit =
-                                                    unitSelection[item.id] ||
-                                                    item.unit;
-                                                  let startValue =
-                                                    item.startValue || 1;
-
-                                                  if (
-                                                    selectedUnit === "g" &&
-                                                    item.unit === "kg"
-                                                  ) {
-                                                    startValue = parseFloat(
-                                                      (
-                                                        startValue * 1000
-                                                      ).toFixed(3),
-                                                    );
-                                                  } else if (
-                                                    selectedUnit === "kg" &&
-                                                    item.unit === "g"
-                                                  ) {
-                                                    startValue = parseFloat(
-                                                      (
-                                                        startValue / 1000
-                                                      ).toFixed(3),
-                                                    );
+                                                  const selectedUnit = unitSelection[item.id] || item.unit;
+                                                  let startValue = item.startValue || 1;
+                                                  if (selectedUnit === "g" && item.unit === "kg") {
+                                                    startValue = parseFloat((startValue * 1000).toFixed(3));
+                                                  } else if (selectedUnit === "kg" && item.unit === "g") {
+                                                    startValue = parseFloat((startValue / 1000).toFixed(3));
                                                   }
-
-                                                  return parseFloat(
-                                                    startValue.toFixed(3),
-                                                  );
+                                                  return parseFloat(startValue.toFixed(3));
                                                 })()}{" "}
-                                                {unitSelection[item.id] ||
-                                                  item.unit}
+                                                {unitSelection[item.id] || item.unit}
                                               </>
                                             ) : (
                                               <>
                                                 Maximum quantity is{" "}
                                                 {(() => {
-                                                  const selectedUnit =
-                                                    unitSelection[item.id] ||
-                                                    item.unit;
-                                                  let maxValue =
-                                                    item.maxQuantity ||
-                                                    Infinity;
-
-                                                  if (
-                                                    maxValue !== Infinity &&
-                                                    selectedUnit !== item.unit
-                                                  ) {
-                                                    if (
-                                                      selectedUnit === "g" &&
-                                                      item.unit === "kg"
-                                                    ) {
-                                                      maxValue = parseFloat(
-                                                        (
-                                                          maxValue * 1000
-                                                        ).toFixed(3),
-                                                      );
-                                                    } else if (
-                                                      selectedUnit === "kg" &&
-                                                      item.unit === "g"
-                                                    ) {
-                                                      maxValue = parseFloat(
-                                                        (
-                                                          maxValue / 1000
-                                                        ).toFixed(3),
-                                                      );
+                                                  const selectedUnit = unitSelection[item.id] || item.unit;
+                                                  let maxValue = item.maxQuantity || Infinity;
+                                                  if (maxValue !== Infinity && selectedUnit !== item.unit) {
+                                                    if (selectedUnit === "g" && item.unit === "kg") {
+                                                      maxValue = parseFloat((maxValue * 1000).toFixed(3));
+                                                    } else if (selectedUnit === "kg" && item.unit === "g") {
+                                                      maxValue = parseFloat((maxValue / 1000).toFixed(3));
                                                     }
                                                   }
-
-                                                  return parseFloat(
-                                                    maxValue.toFixed(3),
-                                                  );
+                                                  return parseFloat(maxValue.toFixed(3));
                                                 })()}{" "}
-                                                {unitSelection[item.id] ||
-                                                  item.unit}
+                                                {unitSelection[item.id] || item.unit}
                                               </>
                                             )}
-
-                                            {/* Tooltip arrow */}
                                             <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-red-600"></div>
                                           </div>
                                         </div>
@@ -1239,9 +1173,7 @@ const Page: React.FC = () => {
                                     </span>
 
                                     <button
-                                      onClick={() =>
-                                        handleProductQuantityChange(item.id, 1)
-                                      }
+                                      onClick={() => handleProductQuantityChange(item.id, 1)}
                                       disabled={isRemoving}
                                       className="hover:bg-gray-100 p-1 rounded-full flex items-center justify-center disabled:opacity-50 transition-colors cursor-pointer disabled:cursor-not-allowed"
                                     >
@@ -1249,14 +1181,22 @@ const Page: React.FC = () => {
                                     </button>
                                   </div>
                                 </td>
+                                {/* PRICE */}
                                 <td className="px-4 py-4 text-center">
-                                  <span className="text-sm font-medium text-[#3E206D]">
+                                  <span className="text-sm font-bold text-[#212121] whitespace-nowrap">
+                                    Rs. {formatPrice(getDisplayPrice(item))}
+                                  </span>
+                                </td>
+                                {/* DISCOUNT */}
+                                <td className="px-4 py-4 text-center">
+                                  <span className="text-sm font-medium text-[#3E206D] whitespace-nowrap">
                                     Rs. {formatPrice(getDisplayDiscount(item))}
                                   </span>
                                 </td>
+                                {/* FINAL PRICE */}
                                 <td className="px-4 py-4 text-center">
-                                  <span className="text-sm font-bold text-[#212121]">
-                                    Rs. {formatPrice(getDisplayPrice(item))}
+                                  <span className="text-sm font-bold text-[#212121] whitespace-nowrap">
+                                    Rs. {formatPrice(getDisplayPrice(item) - getDisplayDiscount(item))}
                                   </span>
                                 </td>
                                 <td className="px-4 py-4 text-center">
@@ -1264,15 +1204,9 @@ const Page: React.FC = () => {
                                     onClick={() => handleRemoveProduct(item.id)}
                                     disabled={isRemoving}
                                     className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-                                    title={
-                                      isRemoving ? "Removing..." : "Remove item"
-                                    }
+                                    title={isRemoving ? "Removing..." : "Remove item"}
                                   >
-                                    <Trash
-                                      size={20}
-                                      fill="red"
-                                      strokeWidth={2}
-                                    />
+                                    <Trash size={20} fill="red" strokeWidth={2} />
                                   </button>
                                 </td>
                               </tr>
