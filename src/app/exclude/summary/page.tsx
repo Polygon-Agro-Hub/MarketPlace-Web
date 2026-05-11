@@ -267,13 +267,13 @@ export default function ExcludedItems() {
                         aria-label="Select all items"
                       />
                     </th>
-                    <th className="p-2 text-left w-[20%] text-[#8492A3] font-medium">
+                    <th className="p-2 text-left w-[20%] text-[#8492A3] font-small">
                       ITEM ({String(items.length).padStart(2, "0")})
                     </th>
-                    <th className="p-2 text-left w-[50%] text-[#8492A3] font-medium">
+                    <th className="p-2 text-left w-[50%] text-[#8492A3] font-small">
                       ITEM NAME
                     </th>
-                    <th className="p-2 text-left w-[20%] text-[#8492A3] font-medium">
+                    <th className="p-2 text-left w-[20%] text-[#8492A3] font-small">
                       ACTION
                     </th>
                   </tr>
