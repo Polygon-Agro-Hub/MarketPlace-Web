@@ -336,7 +336,7 @@ export default function ExcludedItems() {
 
         {/* Delete Confirmation Modal */}
         {showDeleteModal && (
-          <div className="fixed inset-0 flex justify-center items-center bg-black/40 z-50">
+          <div className="bg-white rounded-xl p-5 sm:p-8 shadow-xl text-center w-[85%] sm:w-full max-w-sm sm:max-w-md mx-4">
             <div className="bg-white rounded-xl p-6 sm:p-8 shadow-xl text-center w-full max-w-md">
               <Trash
                 fill="red"
