@@ -383,7 +383,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
             <nav className="hidden md:flex space-x-6">
               <Link
                 href={getHomeUrl()}
-                className={`hover:text-[#383d39] text-[#000000] ${pathname === getHomeUrl() ? 'underline underline-offset-4' : ''}`}
+                className={`hover:text-[#383d39] text-[#000000] ${pathname === getHomeUrl() ? "underline underline-offset-4" : ""}`}
               >
                 Home
               </Link>
@@ -480,7 +480,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
 
           {isAuthenticated() && (
             <Link
-              className="border-2 border-black w-12 h-12 flex justify-center items-center rounded-full overflow-hidden flex-shrink-0"
+              className="border-2 border-black w-9 h-9 md:w-12 md:h-12 flex justify-center items-center rounded-full overflow-hidden flex-shrink-0"
               href="/account"
             >
               {profileImage ? (
@@ -491,7 +491,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
                 />
               ) : (
                 <FontAwesomeIcon
-                  className="text-2xl text-black"
+                  className="text-xl md:text-2xl text-black"
                   icon={faUser}
                 />
               )}
@@ -500,11 +500,11 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
 
           {isMobile && (
             <button onClick={toggleMenu} className="md:hidden">
-    <FontAwesomeIcon
-      className="text-2xl text-[#000000]"
-      icon={isMenuOpen ? faTimes : faBars}
-    />
-  </button>
+              <FontAwesomeIcon
+                className="text-2xl text-[#000000]"
+                icon={isMenuOpen ? faTimes : faBars}
+              />
+            </button>
           )}
         </div>
       </header>
