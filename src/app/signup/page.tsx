@@ -954,7 +954,7 @@ export default function SignupForm() {
                         </div>
 
                         <div className="flex flex-row w-full md:w-1/2 space-x-3">
-                          <div className="w-23 md:w-26">
+                          <div className="w-42 md:w-26">
                             <CustomDropdown
                               options={countryOptions}
                               selectedValue={formData.companyPhoneCode}
