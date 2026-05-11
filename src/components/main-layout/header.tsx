@@ -307,13 +307,13 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
         <>
           <Link
             href="/signin"
-            className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800 flex items-center gap-2"
+            className="py-4 px-6 hover:bg-purple-800 flex items-center gap-2"
           >
             Login
           </Link>
           <Link
             href="/signup"
-            className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800 flex items-center gap-2"
+            className="py-4 px-6 hover:bg-purple-800 flex items-center gap-2"
           >
             Signup
           </Link>
@@ -512,7 +512,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
       {isMobile && isMenuOpen && (
         <div className="relative flex w-full justify-end mobile-menu-container">
           <div className="absolute z-50">
-            <div className="bg-[#1c1e1f] text-white w-64 flex flex-col mobile-menu-content">
+            <div className="bg-[#2D2D2D] text-white w-64 flex flex-col mobile-menu-content">
               <div className="flex justify-between items-center border-b border-[#828282] px-6 py-4">
                 <button
                   onClick={toggleMenu}
@@ -541,7 +541,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
                       </span>
                     </button>
                     {isCategoryExpanded && (
-                      <div className="bg-purple-950">
+                      <div className="bg-[#242424]">
                         <button
                           onClick={(e) =>
                             handleMobileCategoryClick(e, "Retail")
