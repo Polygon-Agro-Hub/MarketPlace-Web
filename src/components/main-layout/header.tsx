@@ -512,7 +512,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
       {isMobile && isMenuOpen && (
         <div className="relative flex w-full justify-end mobile-menu-container">
           <div className="absolute z-50">
-            <div className="bg-[#2D2D2D] text-white w-64 flex flex-col mobile-menu-content">
+            <div className="bg-[#2D2D2D] text-white w-40 flex flex-col mobile-menu-content">
               <div className="flex justify-between items-center border-b border-[#828282] px-6 py-4">
                 <button
                   onClick={toggleMenu}
