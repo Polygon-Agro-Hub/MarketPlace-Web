@@ -500,11 +500,11 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
 
           {isMobile && (
             <button onClick={toggleMenu} className="md:hidden">
-              <FontAwesomeIcon
-                className="text-2xl text-[#000000]"
-                icon={faBars}
-              />
-            </button>
+    <FontAwesomeIcon
+      className="text-2xl text-[#000000]"
+      icon={isMenuOpen ? faTimes : faBars}
+    />
+  </button>
           )}
         </div>
       </header>
@@ -513,14 +513,6 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
         <div className="relative flex w-full justify-end mobile-menu-container">
           <div className="absolute z-50">
             <div className="bg-[#2D2D2D] text-white w-40 flex flex-col mobile-menu-content">
-              <div className="flex justify-between items-center border-b border-[#828282] px-6 py-4">
-                <button
-                  onClick={toggleMenu}
-                  className="text-white hover:text-purple-200 ml-[90%]"
-                >
-                  <FontAwesomeIcon icon={faTimes} className="text-xl" />
-                </button>
-              </div>
               <nav className="flex flex-col w-full">
                 {renderMobileAuthButtons()}
                 <Link
