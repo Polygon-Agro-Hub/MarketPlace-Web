@@ -376,7 +376,7 @@ export default function ExcludedItems() {
           <button
             onClick={handleContinue}
             disabled={continueLoading}
-            className={`w-full bg-[#3E206D] text-white p-2 rounded mt-13 font-semibold text-sm md:text-base ${
+            className={`w-full bg-[#3E206D] text-white p-3 rounded mt-13 font-semibold text-base md:text-lg ${
               continueLoading
                 ? "opacity-50 cursor-not-allowed"
                 : "cursor-pointer hover:bg-[#341a5a]"
