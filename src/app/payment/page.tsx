@@ -740,27 +740,39 @@ const Page: React.FC = () => {
                 </div>
               </div>
               {paymentMethod === "cash" && (
-                <div className="p-10 border-t border-gray-200">
-                  <div className="text-gray-700 space-y-6">
-                    <p>
-                      - You may pay in cash to our courier upon receiving your
-                      parcel at the doorstep.
-                    </p>
-                    <p>
-                      - Before agreeing to receive the parcel, check if your
-                      delivery status has been updated to "Out of Delivery".
-                    </p>
-                    <p>
-                      - Before receiving, confirm that the airway bill shows
-                      that the parcel from Polygon Holdings.
-                    </p>
-                    <p>
-                      - Before you make the payment to the courier, confirm your
-                      order number, sender information, and tracking number on
-                      the parcel.
-                    </p>
-                  </div>
-                </div>
+                <div className="p-4 sm:p-6 md:p-8 lg:p-10 border-t border-gray-200">
+  <div className="text-gray-700 space-y-4 sm:space-y-6">
+    <div className="flex gap-2 sm:gap-3">
+      <span className="flex-shrink-0">-</span>
+      <span className="flex-1">
+        You may pay in cash to our courier upon receiving your
+        parcel at the doorstep.
+      </span>
+    </div>
+    <div className="flex gap-2 sm:gap-3">
+      <span className="flex-shrink-0">-</span>
+      <span className="flex-1">
+        Before agreeing to receive the parcel, check if your
+        delivery status has been updated to "Out of Delivery".
+      </span>
+    </div>
+    <div className="flex gap-2 sm:gap-3">
+      <span className="flex-shrink-0">-</span>
+      <span className="flex-1">
+        Before receiving, confirm that the airway bill shows
+        that the parcel from Polygon Holdings.
+      </span>
+    </div>
+    <div className="flex gap-2 sm:gap-3">
+      <span className="flex-shrink-0">-</span>
+      <span className="flex-1">
+        Before you make the payment to the courier, confirm your
+        order number, sender information, and tracking number on
+        the parcel.
+      </span>
+    </div>
+  </div>
+</div>
               )}
             </div>
           </div>
