@@ -582,341 +582,347 @@ const Page: React.FC = () => {
       <TopNavigation NavArray={NavArray} />
 
       <div className="flex flex-col lg:flex-row lg:items-start gap-4 sm:gap-6 items-start">
-        <div className="w-full lg:w-2/3 mt-6 pt-8">
-          <div className="bg-white rounded-3xl border border-gray-200 p-8">
-            <h1 className="text-2xl font-semibold mb-6">
-              Select Payment Method
-            </h1>
+        <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 lg:gap-8">
+  {/* Select Payment Method Section - Reduced mobile spacing */}
+  <div className="w-full lg:w-2/3 mt-4 sm:mt-6 lg:mt-6 pt-4 sm:pt-6 lg:pt-8">
+    <div className="bg-white rounded-3xl border border-gray-200 p-4 sm:p-6 md:p-8 lg:p-8">
+      <h1 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">
+        Select Payment Method
+      </h1>
 
-            {/* Credit/Debit Card Option */}
-            <div className="mb-5 border border-gray-200 rounded-lg overflow-hidden">
-              <div
-                className="rounded-t-lg p-4 flex justify-between items-center cursor-pointer"
-                onClick={() => setPaymentMethod("card")}
-              >
-                <div className="flex items-center">
-                  <div
-                    className={`w-5 h-5 rounded-full ${
-                      paymentMethod === "card"
-                        ? "bg-indigo-800 border-2 border-indigo-800 ring-2 ring-indigo-100"
-                        : "border border-gray-400"
-                    }`}
-                  ></div>
-                  <span className="ml-3 text-base">Credit / Debit Card</span>
-                </div>
-                <div className="flex space-x-2 lg:mr-8">
-                  <Image
-                    src={Visa}
-                    alt="Visa"
-                    className="w-auto h-6 object-cover mr-2"
-                  />
-                  <Image
-                    src={MasterCard}
-                    alt="MasterCard"
-                    className="w-auto h-6 object-cover"
-                  />
-                </div>
+      {/* Credit/Debit Card Option */}
+      <div className="mb-4 sm:mb-5 border border-gray-200 rounded-lg overflow-hidden">
+        <div
+          className="rounded-t-lg p-3 sm:p-4 flex justify-between items-center cursor-pointer"
+          onClick={() => setPaymentMethod("card")}
+        >
+          <div className="flex items-center">
+            <div
+              className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full ${
+                paymentMethod === "card"
+                  ? "bg-indigo-800 border-2 border-indigo-800 ring-2 ring-indigo-100"
+                  : "border border-gray-400"
+              }`}
+            ></div>
+            <span className="ml-2 sm:ml-3 text-sm sm:text-base">Credit / Debit Card</span>
+          </div>
+          <div className="flex space-x-2 lg:mr-8">
+            <Image
+              src={Visa}
+              alt="Visa"
+              className="w-auto h-5 sm:h-6 object-cover mr-2"
+            />
+            <Image
+              src={MasterCard}
+              alt="MasterCard"
+              className="w-auto h-5 sm:h-6 object-cover"
+            />
+          </div>
+        </div>
+        {paymentMethod === "card" && (
+          <div className="mb-4 sm:mb-5 rounded-b-lg p-3 sm:p-4 md:p-6 lg:p-8 border-t border-gray-200">
+            <div className="space-y-3 sm:space-y-4">
+              <div>
+                <input
+                  type="text"
+                  placeholder="Enter Card Number"
+                  value={cardDetails.cardNumber}
+                  onChange={(e) => {
+                    // Only allow digits and format with spaces every 4 digits
+                    const value = e.target.value.replace(/[^0-9]/g, "");
+                    const formattedValue = value.replace(
+                      /(\d{4})(?=\d)/g,
+                      "$1 ",
+                    );
+                    if (value.length <= 16) {
+                      handleCardInputChange("cardNumber", formattedValue);
+                    }
+                  }}
+                  maxLength={19} // 16 digits + 3 spaces
+                  className="w-full p-2 sm:p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm"
+                />
               </div>
-              {paymentMethod === "card" && (
-                <div className="mb-5 rounded-b-lg p-4 sm:p-6 md:p-8 lg:p-10 border-t border-gray-200">
-                  <div className="space-y-4">
-                    <div>
-                      <input
-                        type="text"
-                        placeholder="Enter Card Number"
-                        value={cardDetails.cardNumber}
-                        onChange={(e) => {
-                          // Only allow digits and format with spaces every 4 digits
-                          const value = e.target.value.replace(/[^0-9]/g, "");
-                          const formattedValue = value.replace(
-                            /(\d{4})(?=\d)/g,
-                            "$1 ",
-                          );
-                          if (value.length <= 16) {
-                            handleCardInputChange("cardNumber", formattedValue);
-                          }
-                        }}
-                        maxLength={19} // 16 digits + 3 spaces
-                        className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <input
-                        type="text"
-                        placeholder="Enter Name on Card"
-                        value={cardDetails.nameOnCard}
-                        onChange={(e) => {
-                          let value = e.target.value;
+              <div>
+                <input
+                  type="text"
+                  placeholder="Enter Name on Card"
+                  value={cardDetails.nameOnCard}
+                  onChange={(e) => {
+                    let value = e.target.value;
 
-                          // Block leading spaces
-                          if (value.startsWith(" ")) {
-                            value = value.trimStart();
-                          }
+                    // Block leading spaces
+                    if (value.startsWith(" ")) {
+                      value = value.trimStart();
+                    }
 
-                          // Only allow letters and spaces (no numbers or special characters)
-                          value = value.replace(/[^a-zA-Z\s]/g, "");
+                    // Only allow letters and spaces (no numbers or special characters)
+                    value = value.replace(/[^a-zA-Z\s]/g, "");
 
-                          // Capitalize first letter and first letter after each space
-                          value = value.replace(/\b\w/g, (char) =>
-                            char.toUpperCase(),
-                          );
+                    // Capitalize first letter and first letter after each space
+                    value = value.replace(/\b\w/g, (char) =>
+                      char.toUpperCase(),
+                    );
 
-                          handleCardInputChange("nameOnCard", value);
-                        }}
-                        className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm"
-                      />
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-4">
-                      <input
-                        type="text"
-                        placeholder="Enter Expiration Date (MM/YY)"
-                        value={cardDetails.expirationDate}
-                        onChange={(e) => {
-                          const inputValue = e.target.value;
-                          const value = inputValue.replace(/[^0-9/]/g, "");
-                          let formattedValue = value;
+                    handleCardInputChange("nameOnCard", value);
+                  }}
+                  className="w-full p-2 sm:p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm"
+                />
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                <input
+                  type="text"
+                  placeholder="Enter Expiration Date (MM/YY)"
+                  value={cardDetails.expirationDate}
+                  onChange={(e) => {
+                    const inputValue = e.target.value;
+                    const value = inputValue.replace(/[^0-9/]/g, "");
+                    let formattedValue = value;
 
-                          if (
-                            value.length === 2 &&
-                            !value.includes("/") &&
-                            inputValue.length >
-                              cardDetails.expirationDate.length
-                          ) {
-                            formattedValue = value + "/";
-                          } else if (
-                            value.length >= 2 &&
-                            !value.includes("/") &&
-                            value.length <= 4
-                          ) {
-                            formattedValue = value;
-                          }
+                    if (
+                      value.length === 2 &&
+                      !value.includes("/") &&
+                      inputValue.length >
+                        cardDetails.expirationDate.length
+                    ) {
+                      formattedValue = value + "/";
+                    } else if (
+                      value.length >= 2 &&
+                      !value.includes("/") &&
+                      value.length <= 4
+                    ) {
+                      formattedValue = value;
+                    }
 
-                          if (formattedValue.length <= 5) {
-                            handleCardInputChange(
-                              "expirationDate",
-                              formattedValue,
-                            );
-                          }
-                        }}
-                        maxLength={5}
-                        className="w-full sm:w-3/5 p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm"
-                      />
+                    if (formattedValue.length <= 5) {
+                      handleCardInputChange(
+                        "expirationDate",
+                        formattedValue,
+                      );
+                    }
+                  }}
+                  maxLength={5}
+                  className="w-full sm:w-3/5 p-2 sm:p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm"
+                />
 
-                      <input
-                        type="text"
-                        placeholder="Enter CVV"
-                        value={cardDetails.cvv}
-                        onChange={(e) => {
-                          // Remove all non-numeric characters and limit to exactly 3 digits
-                          const value = e.target.value.replace(/[^0-9]/g, "");
-                          if (value.length <= 3) {
-                            handleCardInputChange("cvv", value);
-                          }
-                        }}
-                        maxLength={3}
-                        className="w-full sm:w-2/5 p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
+                <input
+                  type="text"
+                  placeholder="Enter CVV"
+                  value={cardDetails.cvv}
+                  onChange={(e) => {
+                    // Remove all non-numeric characters and limit to exactly 3 digits
+                    const value = e.target.value.replace(/[^0-9]/g, "");
+                    if (value.length <= 3) {
+                      handleCardInputChange("cvv", value);
+                    }
+                  }}
+                  maxLength={3}
+                  className="w-full sm:w-2/5 p-2 sm:p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm"
+                />
+              </div>
             </div>
+          </div>
+        )}
+      </div>
 
-            {/* Cash Payment Option */}
-            <div className="mb-5 border border-gray-200 rounded-lg">
-              <div
-                className="rounded-lg p-4 flex justify-between items-center cursor-pointer"
-                onClick={() => setPaymentMethod("cash")}
-              >
-                <div className="flex items-center">
-                  <div
-                    className={`w-5 h-5 rounded-full ${
-                      paymentMethod === "cash"
-                        ? "bg-indigo-800 border-2 border-indigo-800 ring-2 ring-indigo-100"
-                        : "border border-gray-400"
-                    }`}
-                  ></div>
-                  <span className="ml-3 text-base">Pay by Cash</span>
-                </div>
+      {/* Cash Payment Option */}
+      <div className="mb-4 sm:mb-5 border border-gray-200 rounded-lg">
+        <div
+          className="rounded-lg p-3 sm:p-4 flex justify-between items-center cursor-pointer"
+          onClick={() => setPaymentMethod("cash")}
+        >
+          <div className="flex items-center">
+            <div
+              className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full ${
+                paymentMethod === "cash"
+                  ? "bg-indigo-800 border-2 border-indigo-800 ring-2 ring-indigo-100"
+                  : "border border-gray-400"
+              }`}
+            ></div>
+            <span className="ml-2 sm:ml-3 text-sm sm:text-base">Pay by Cash</span>
+          </div>
+        </div>
+        {paymentMethod === "cash" && (
+          <div className="p-3 sm:p-4 md:p-6 lg:p-8 border-t border-gray-200">
+            <div className="text-gray-700 space-y-3 sm:space-y-4">
+              <div className="flex gap-2 sm:gap-3">
+                <span className="flex-shrink-0 text-sm sm:text-base">-</span>
+                <span className="flex-1 text-sm sm:text-base">
+                  You may pay in cash to our courier upon receiving your
+                  parcel at the doorstep.
+                </span>
               </div>
-              {paymentMethod === "cash" && (
-                <div className="p-4 sm:p-6 md:p-8 lg:p-10 border-t border-gray-200">
-  <div className="text-gray-700 space-y-4 sm:space-y-6">
-    <div className="flex gap-2 sm:gap-3">
-      <span className="flex-shrink-0">-</span>
-      <span className="flex-1">
-        You may pay in cash to our courier upon receiving your
-        parcel at the doorstep.
-      </span>
+              <div className="flex gap-2 sm:gap-3">
+                <span className="flex-shrink-0 text-sm sm:text-base">-</span>
+                <span className="flex-1 text-sm sm:text-base">
+                  Before agreeing to receive the parcel, check if your
+                  delivery status has been updated to "Out of Delivery".
+                </span>
+              </div>
+              <div className="flex gap-2 sm:gap-3">
+                <span className="flex-shrink-0 text-sm sm:text-base">-</span>
+                <span className="flex-1 text-sm sm:text-base">
+                  Before receiving, confirm that the airway bill shows
+                  that the parcel from Polygon Holdings.
+                </span>
+              </div>
+              <div className="flex gap-2 sm:gap-3">
+                <span className="flex-shrink-0 text-sm sm:text-base">-</span>
+                <span className="flex-1 text-sm sm:text-base">
+                  Before you make the payment to the courier, confirm your
+                  order number, sender information, and tracking number on
+                  the parcel.
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
-    <div className="flex gap-2 sm:gap-3">
-      <span className="flex-shrink-0">-</span>
-      <span className="flex-1">
-        Before agreeing to receive the parcel, check if your
-        delivery status has been updated to "Out of Delivery".
-      </span>
-    </div>
-    <div className="flex gap-2 sm:gap-3">
-      <span className="flex-shrink-0">-</span>
-      <span className="flex-1">
-        Before receiving, confirm that the airway bill shows
-        that the parcel from Polygon Holdings.
-      </span>
-    </div>
-    <div className="flex gap-2 sm:gap-3">
-      <span className="flex-shrink-0">-</span>
-      <span className="flex-1">
-        Before you make the payment to the courier, confirm your
-        order number, sender information, and tracking number on
-        the parcel.
-      </span>
+  </div>
+
+  {/* Your Order Section - Reduced mobile spacing */}
+  <div className="w-full lg:w-1/3 mt-4 sm:mt-6 lg:mt-0 pt-2 sm:pt-4 lg:pt-14">
+    <div className="border border-gray-300 rounded-lg shadow-md p-4 sm:p-5 md:p-6">
+      <h2 className="font-semibold text-base sm:text-lg mb-3 sm:mb-4">Your Order</h2>
+
+      <div className="flex justify-between items-center mb-3 sm:mb-4">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-16 border border-[gray] rounded-lg flex items-center justify-center">
+            <Image
+              src={summary}
+              alt="Shopping bag"
+              width={32}
+              height={32}
+              className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 object-contain"
+            />
+          </div>
+          <p className="text-gray-600 text-sm sm:text-base">
+            {displayValues.totalItems || 0}{" "}
+            {(displayValues.totalItems || 0) === 1 ? "item" : "items"}
+          </p>
+        </div>
+        <p className="font-semibold text-sm sm:text-base">
+          Rs. {formatPrice(displayValues.totalPrice || 0)}
+        </p>
+      </div>
+
+      <div className="mb-3 sm:mb-4">
+        <h3 className="font-semibold text-sm sm:text-base mb-2 sm:mb-3">Coupon Code</h3>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            placeholder="Add Coupon Code"
+            value={couponCode}
+            onChange={(e) => setCouponCode(e.target.value)}
+            className="flex-1 p-2 sm:p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm"
+            disabled={isCouponApplied || couponValidationLoading}
+          />
+          <button
+            onClick={handleApplyCoupon}
+            disabled={
+              !couponCode.trim() ||
+              isCouponApplied ||
+              couponValidationLoading
+            }
+            className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm cursor-pointer font-medium ${
+              isCouponApplied
+                ? "bg-[#3E206D] text-white cursor-not-allowed"
+                : couponValidationLoading
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  : "bg-[#3E206D] text-white hover:bg-[#2f1854] disabled:bg-gray-300 disabled:cursor-not-allowed"
+            }`}
+          >
+            {couponValidationLoading
+              ? "Verifying..."
+              : isCouponApplied
+                ? "Applied"
+                : "Apply"}
+          </button>
+        </div>
+        {isCouponApplied && (
+          <p className="text-[#3E206D] text-xs sm:text-sm mt-2">
+            ✓ Coupon applied successfully
+          </p>
+        )}
+        {couponError && (
+          <p className="text-red-600 text-xs sm:text-sm mt-2">{couponError}!</p>
+        )}
+      </div>
+
+      <div className="border-t border-gray-300 my-3 sm:my-4" />
+
+      <div className="flex justify-between text-xs sm:text-sm mb-2">
+        <p className="text-gray-600">Total</p>
+        <p className="font-semibold">
+          Rs. {formatPrice(displayValues.totalPrice || 0)}
+        </p>
+      </div>
+
+      <div className="flex justify-between text-xs sm:text-sm mb-2">
+        <p className="text-gray-600">Discount</p>
+        <p className="text-gray-600">
+          Rs. {formatPrice(displayValues.discountAmount || 0)}
+        </p>
+      </div>
+
+      {isCouponApplied && (
+        <div className="flex justify-between text-xs sm:text-sm mb-2">
+          <p className="text-gray-600">Coupon Discount</p>
+          <p className="text-gray-600">
+            Rs. {formatPrice(displayValues.couponDiscount || 0)}
+          </p>
+        </div>
+      )}
+      {displayValues.showDeliveryCharges && (
+        <div className="flex justify-between text-xs sm:text-sm mb-2">
+          <p className="text-gray-600">
+            Delivery Charges
+            {displayValues.isFreeDelivery && (
+              <span className="font-semibold ml-1">(Free)</span>
+            )}
+          </p>
+          <div className="flex items-center gap-2">
+            {displayValues.isFreeDelivery && (
+              <p className="text-gray-600 line-through">
+                Rs. {formatPrice(deliveryCharge || 0)}
+              </p>
+            )}
+            <p className="text-gray-600 font-semibold">
+              Rs. {formatPrice(displayValues.deliveryCharges || 0)}
+            </p>
+          </div>
+        </div>
+      )}
+
+      <div className="border-t border-gray-300 my-3 sm:my-4" />
+
+      <div className="flex justify-between mb-3 sm:mb-4 text-base sm:text-[20px] text-[#414347]">
+        <p className="font-semibold">Grand Total</p>
+        <p className="font-semibold">
+          Rs. {formatPrice(displayValues.grandTotal || 0)}
+        </p>
+      </div>
+      
+      <div className="mt-4 sm:mt-6 md:mt-8">
+        <button
+          onClick={handleSubmitOrder}
+          disabled={isSubmitting || orderSubmitted}
+          className={`w-full py-3 sm:py-4 px-4 sm:px-6 rounded-lg cursor-pointer text-white font-semibold text-sm sm:text-base ${
+            isSubmitting || orderSubmitted
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-[#3E206D] hover:bg-[#3E206D]"
+          } transition-colors`}
+        >
+          {orderSubmitted
+            ? "Order Submitted"
+            : isSubmitting
+              ? "Processing Order..."
+              : "Confirm Order"}
+        </button>
+      </div>
     </div>
   </div>
 </div>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="w-full lg:w-1/3 mt-6 lg:mt-0 pt-14">
-          <div className="border border-gray-300 rounded-lg shadow-md p-4 sm:p-5 md:p-6">
-            <h2 className="font-semibold text-lg mb-4">Your Order</h2>
-
-            <div className="flex justify-between items-center mb-3 sm:mb-4">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="w-12 sm:w-14 md:w-16 h-12 sm:h-14 md:h-16 border border-[gray] rounded-lg flex items-center justify-center">
-                  <Image
-                    src={summary}
-                    alt="Shopping bag"
-                    width={40}
-                    height={40}
-                    className="object-contain"
-                  />
-                </div>
-                <p className="text-gray-600">
-                  {displayValues.totalItems || 0}{" "}
-                  {(displayValues.totalItems || 0) === 1 ? "item" : "items"}
-                </p>
-              </div>
-              <p className="font-semibold">
-                Rs.{" "}{formatPrice(displayValues.totalPrice || 0)}
-              </p>
-            </div>
-
-            <div className="mb-4">
-              <h3 className="font-semibold text-base mb-3">Coupon Code</h3>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Add Coupon Code"
-                  value={couponCode}
-                  onChange={(e) => setCouponCode(e.target.value)}
-                  className="flex-1 p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm"
-                  disabled={isCouponApplied || couponValidationLoading}
-                />
-                <button
-                  onClick={handleApplyCoupon}
-                  disabled={
-                    !couponCode.trim() ||
-                    isCouponApplied ||
-                    couponValidationLoading
-                  }
-                  className={`px-4 py-2 rounded-lg text-sm cursor-pointer font-medium ${
-                    isCouponApplied
-                      ? "bg-[#3E206D] text-white cursor-not-allowed"
-                      : couponValidationLoading
-                        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                        : "bg-[#3E206D] text-white hover:bg-[#2f1854] disabled:bg-gray-300 disabled:cursor-not-allowed"
-                  }`}
-                >
-                  {couponValidationLoading
-                    ? "Verifying..."
-                    : isCouponApplied
-                      ? "Applied"
-                      : "Apply"}
-                </button>
-              </div>
-              {isCouponApplied && (
-                <p className="text-[#3E206D] text-sm mt-2">
-                  ✓ Coupon applied successfully
-                </p>
-              )}
-              {couponError && (
-                <p className="text-red-600 text-sm mt-2">{couponError}!</p>
-              )}
-            </div>
-
-            <div className="border-t border-gray-300 my-4" />
-
-            <div className="flex justify-between text-sm mb-2">
-              <p className="text-gray-600">Total</p>
-              <p className="font-semibold">
-                Rs.{" "}{formatPrice(displayValues.totalPrice || 0)}
-              </p>
-            </div>
-
-            <div className="flex justify-between text-sm mb-2">
-              <p className="text-gray-600">Discount</p>
-              <p className="text-gray-600">
-                Rs.{" "}{formatPrice(displayValues.discountAmount || 0)}
-              </p>
-            </div>
-
-            {isCouponApplied && (
-              <div className="flex justify-between text-sm mb-2">
-                <p className="text-gray-600">Coupon Discount</p>
-                <p className="text-gray-600">
-                  Rs.{" "}{formatPrice(displayValues.couponDiscount || 0)}
-                </p>
-              </div>
-            )}
-            {displayValues.showDeliveryCharges && (
-              <div className="flex justify-between text-sm mb-2">
-                <p className="text-gray-600">
-                  Delivery Charges
-                  {displayValues.isFreeDelivery && (
-                    <span className="font-semibold ml-1">(Free)</span>
-                  )}
-                </p>
-                <div className="flex items-center gap-2">
-                  {displayValues.isFreeDelivery && (
-                    <p className="text-gray-600 line-through">
-                      Rs.{" "}{formatPrice(deliveryCharge || 0)}
-                    </p>
-                  )}
-                  <p className="text-gray-600 font-semibold">
-                    Rs.{" "}{formatPrice(displayValues.deliveryCharges || 0)}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            <div className="border-t border-gray-300 my-4" />
-
-            <div className="flex justify-between mb-4 text-[20px] text-[#414347]">
-              <p className="font-semibold">Grand Total</p>
-              <p className="font-semibold">
-                Rs.{" "}{formatPrice(displayValues.grandTotal || 0)}
-              </p>
-            </div>
-            <div className="mt-8">
-              <button
-                onClick={handleSubmitOrder}
-                disabled={isSubmitting || orderSubmitted}
-                className={`w-full py-4 px-6 rounded-lg cursor-pointer text-white font-semibold ${
-                  isSubmitting || orderSubmitted
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-[#3E206D] hover:bg-[#3E206D]"
-                } transition-colors`}
-              >
-                {orderSubmitted
-                  ? "Order Submitted"
-                  : isSubmitting
-                    ? "Processing Order..."
-                    : "Confirm Order"}
-              </button>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );
