@@ -100,11 +100,10 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
                 onSelect(option.value);
                 setIsOpen(false);
               }}
-              className={`w-full text-left px-3 py-3 hover:bg-gray-100 flex items-center gap-2 transition-colors ${
-                selectedValue === option.value
+              className={`w-full text-left px-3 py-3 hover:bg-gray-100 flex items-center gap-2 transition-colors ${selectedValue === option.value
                   ? "bg-purple-50 text-purple-700 border-l-4 border-purple-700"
                   : "text-gray-900"
-              }`}
+                }`}
             >
               {option.flag && (
                 <img
@@ -323,6 +322,8 @@ export default function SignupForm() {
       newErrors.phoneNumber = "Phone number is required";
     } else if (!/^\d{9}$/.test(formData.phoneNumber)) {
       newErrors.phoneNumber = `Please enter a valid mobile number (format: ${formData.phoneCode}7XXXXXXXX)`;
+    } else if (!formData.phoneNumber.startsWith("7")) {
+      newErrors.phoneNumber = `Please enter a valid Phone Number (format: ${formData.phoneCode}7XXXXXXXX)`;
     }
 
     if (!formData.email) {
@@ -485,7 +486,7 @@ export default function SignupForm() {
 
   const handleOTPVerificationSuccess = async () => {
     setLoading(true);
-    
+
     try {
       await signup({
         ...formData,
@@ -499,7 +500,7 @@ export default function SignupForm() {
         err.message || "Registration failed. Please try again.";
       setErrorMessage(errorMessage);
       setShowErrorPopup(true);
-      throw err; 
+      throw err;
     }
   };
 
@@ -1026,9 +1027,8 @@ export default function SignupForm() {
                       name="agreeToTerms"
                       checked={formData.agreeToTerms}
                       onChange={handleChange}
-                      className={`h-4 w-4 accent-[#318831] cursor-pointer focus:ring-purple-500 border-gray-300 rounded ${
-                        errors.agreeToTerms ? "border-red-500" : ""
-                      }`}
+                      className={`h-4 w-4 accent-[#318831] cursor-pointer focus:ring-purple-500 border-gray-300 rounded ${errors.agreeToTerms ? "border-red-500" : ""
+                        }`}
                     />
                     <label
                       htmlFor="terms"

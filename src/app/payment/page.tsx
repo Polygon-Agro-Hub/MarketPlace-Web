@@ -59,10 +59,12 @@ const Page: React.FC = () => {
   const [isError, setIsError] = useState(false);
   const [modalMessage, setModalMessage] = useState("");
   const [orderSubmitted, setOrderSubmitted] = useState(false);
+  const authCart = useSelector((state: RootState) => state.auth.cart);
 
   const getHomeUrl = () => {
     return user?.buyerType === "Wholesale" ? "/wholesale/home" : "/";
   };
+
 
   useEffect(() => {
     // Load delivery charge from localStorage if available
@@ -446,6 +448,18 @@ const Page: React.FC = () => {
 
   const displayValues = getDisplayValues();
 
+  useEffect(() => {
+    dispatch(updateCartInfo({
+      price: parseFloat(displayValues.grandTotal.toFixed(2)),
+      count: authCart.count,
+    }));
+  }, [
+    displayValues.grandTotal,
+    isCouponApplied,
+    couponDiscount,
+    deliveryCharge,
+  ]);
+
   return (
     <div className="px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5">
       {isModalOpen && (
@@ -566,11 +580,10 @@ const Page: React.FC = () => {
                 <button
                   onClick={handleViewInvoice}
                   disabled={!orderId}
-                  className={`px-6 py-2 rounded-lg transition cursor-pointer font-medium ${
-                    !orderId
-                      ? "bg-gray-400 text-gray-600 cursor-not-allowed"
-                      : "bg-[#3E206D] text-white hover:bg-[#3E206D]"
-                  }`}
+                  className={`px-6 py-2 rounded-lg transition cursor-pointer font-medium ${!orderId
+                    ? "bg-gray-400 text-gray-600 cursor-not-allowed"
+                    : "bg-[#3E206D] text-white hover:bg-[#3E206D]"
+                    }`}
                 >
                   View Invoice
                 </button>
@@ -596,11 +609,10 @@ const Page: React.FC = () => {
               >
                 <div className="flex items-center">
                   <div
-                    className={`w-5 h-5 rounded-full ${
-                      paymentMethod === "card"
-                        ? "bg-indigo-800 border-2 border-indigo-800 ring-2 ring-indigo-100"
-                        : "border border-gray-400"
-                    }`}
+                    className={`w-5 h-5 rounded-full ${paymentMethod === "card"
+                      ? "bg-indigo-800 border-2 border-indigo-800 ring-2 ring-indigo-100"
+                      : "border border-gray-400"
+                      }`}
                   ></div>
                   <span className="ml-3 text-base">Credit / Debit Card</span>
                 </div>
@@ -680,7 +692,7 @@ const Page: React.FC = () => {
                             value.length === 2 &&
                             !value.includes("/") &&
                             inputValue.length >
-                              cardDetails.expirationDate.length
+                            cardDetails.expirationDate.length
                           ) {
                             formattedValue = value + "/";
                           } else if (
@@ -730,11 +742,10 @@ const Page: React.FC = () => {
               >
                 <div className="flex items-center">
                   <div
-                    className={`w-5 h-5 rounded-full ${
-                      paymentMethod === "cash"
-                        ? "bg-indigo-800 border-2 border-indigo-800 ring-2 ring-indigo-100"
-                        : "border border-gray-400"
-                    }`}
+                    className={`w-5 h-5 rounded-full ${paymentMethod === "cash"
+                      ? "bg-indigo-800 border-2 border-indigo-800 ring-2 ring-indigo-100"
+                      : "border border-gray-400"
+                      }`}
                   ></div>
                   <span className="ml-3 text-base">Pay by Cash</span>
                 </div>
@@ -808,13 +819,12 @@ const Page: React.FC = () => {
                     isCouponApplied ||
                     couponValidationLoading
                   }
-                  className={`px-4 py-2 rounded-lg text-sm cursor-pointer font-medium ${
-                    isCouponApplied
-                      ? "bg-[#3E206D] text-white cursor-not-allowed"
-                      : couponValidationLoading
-                        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                        : "bg-[#3E206D] text-white hover:bg-[#2f1854] disabled:bg-gray-300 disabled:cursor-not-allowed"
-                  }`}
+                  className={`px-4 py-2 rounded-lg text-sm cursor-pointer font-medium ${isCouponApplied
+                    ? "bg-[#3E206D] text-white cursor-not-allowed"
+                    : couponValidationLoading
+                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      : "bg-[#3E206D] text-white hover:bg-[#2f1854] disabled:bg-gray-300 disabled:cursor-not-allowed"
+                    }`}
                 >
                   {couponValidationLoading
                     ? "Verifying..."
@@ -890,11 +900,10 @@ const Page: React.FC = () => {
               <button
                 onClick={handleSubmitOrder}
                 disabled={isSubmitting || orderSubmitted}
-                className={`w-full py-4 px-6 rounded-lg cursor-pointer text-white font-semibold ${
-                  isSubmitting || orderSubmitted
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-[#3E206D] hover:bg-[#3E206D]"
-                } transition-colors`}
+                className={`w-full py-4 px-6 rounded-lg cursor-pointer text-white font-semibold ${isSubmitting || orderSubmitted
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-[#3E206D] hover:bg-[#3E206D]"
+                  } transition-colors`}
               >
                 {orderSubmitted
                   ? "Order Submitted"

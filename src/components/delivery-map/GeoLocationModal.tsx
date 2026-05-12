@@ -17,7 +17,7 @@ interface GeoLocationModalProps {
     onLocationSelect: (lat: number, lng: number) => void;
     initialCenter?: [number, number];
     savedLocation?: [number, number] | null;
-    viewOnly?: boolean; 
+    viewOnly?: boolean;
 }
 
 const GeoLocationModal: React.FC<GeoLocationModalProps> = ({
@@ -26,7 +26,7 @@ const GeoLocationModal: React.FC<GeoLocationModalProps> = ({
     onLocationSelect,
     initialCenter = [6.9271, 79.8612],
     savedLocation = null,
-    viewOnly = false 
+    viewOnly = false
 }) => {
     const mapRef = useRef<HTMLDivElement>(null);
     const mapInstanceRef = useRef<L.Map | null>(null);
@@ -40,7 +40,7 @@ const GeoLocationModal: React.FC<GeoLocationModalProps> = ({
         if (!isOpen || !mapRef.current) return;
 
         const map = L.map(mapRef.current).setView(
-            savedLocation || initialCenter, 
+            savedLocation || initialCenter,
             savedLocation ? 15 : 13
         );
 
@@ -105,7 +105,7 @@ const GeoLocationModal: React.FC<GeoLocationModalProps> = ({
         // Add new marker
         const marker = L.marker([lat, lng], { icon: customIcon })
             .addTo(mapInstanceRef.current);
-        
+
         // Only show popup if not in viewOnly mode and showPopup is true
         if (!viewOnly && showPopup) {
             marker.bindPopup('Close to Reselect the location ').openPopup();
@@ -294,9 +294,10 @@ const GeoLocationModal: React.FC<GeoLocationModalProps> = ({
                         )}
 
                         {/* Map Container */}
+                        {/* Map Container */}
                         <div
                             ref={mapRef}
-                            className="w-full h-[200px] sm:h-[280px] md:h-[300px] rounded-lg border border-gray-300 mb-3 sm:mb-4"
+                            className="w-full h-[180px] sm:h-[250px] md:h-[280px] rounded-lg border border-gray-300 mb-3 sm:mb-4"
                         />
 
                         {/* Actions - Hide when viewOnly is true */}

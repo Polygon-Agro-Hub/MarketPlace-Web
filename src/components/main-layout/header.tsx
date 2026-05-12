@@ -204,6 +204,10 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
     if (!isHydrated) return "/";
     return user?.buyerType === "Wholesale" ? "/wholesale/home" : "/";
   };
+  const homeUrl = getHomeUrl();
+  const isOnHomePage = pathname === homeUrl ||
+    (pathname === "/" && homeUrl === "/") ||
+    (pathname === "/wholesale/home" && homeUrl === "/wholesale/home");
 
   const isAuthenticated = () => {
     return isHydrated && token;
@@ -353,9 +357,8 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
 
   return (
     <div
-      className={`fixed top-0 left-0 w-full z-50 transition-transform duration-500 ease-in-out ${
-        showHeader ? "translate-y-0" : "-translate-y-full"
-      }`}
+      className={`fixed top-0 left-0 w-full z-50 transition-transform duration-500 ease-in-out ${showHeader ? "translate-y-0" : "-translate-y-full"
+        }`}
     >
       {!isMobile && (
         <div className="bg-[#2C2C2C] text-gray-300 py-2 px-4 sm:px-7">
@@ -383,7 +386,8 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
             <nav className="hidden md:flex space-x-6">
               <Link
                 href={getHomeUrl()}
-                className={`hover:text-[#383d39] text-[#000000] ${pathname === getHomeUrl() ? "underline underline-offset-4" : ""}`}
+                className={`hover:text-[#383d39] text-[#000000] ${isHydrated && isOnHomePage ? "underline underline-offset-4" : ""
+                  }`}
               >
                 Home
               </Link>

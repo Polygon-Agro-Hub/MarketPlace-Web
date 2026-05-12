@@ -1167,20 +1167,16 @@ const Page: React.FC = () => {
                     </div>
                     <div className="w-full">
                       <input
-                        type="number"
-                        className="w-full h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2 "
+                        type="text"
+                        inputMode="numeric"
+                        className="w-full h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2"
                         value={formData.phone1}
                         onChange={(e) => {
-                          const value = e.target.value.replace(/^\s+/, ''); // Remove leading spaces
+                          const value = e.target.value.replace(/\D/g, ''); // allow only digits
                           handleFieldChange("phone1", value);
                         }}
-                        onKeyDown={(e) => {
-                          // Prevent space at beginning
-                          if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
-                            e.preventDefault();
-                          }
-                        }}
                         placeholder="7XXXXXXXX"
+                        maxLength={9}
                       />
                       {errors.phone1 && (
                         <p className="text-red-600 text-sm mt-1">
@@ -1208,20 +1204,16 @@ const Page: React.FC = () => {
                     </div>
                     <div className="w-full">
                       <input
-                        type="number"
+                        type="text"
+                        inputMode="numeric"
                         className={`w-full h-[39px] border-2 ${duplicatePhoneError ? "border-red-500" : "border-[#F2F4F7]"} bg-[#F9FAFB] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2`}
                         value={formData.phone2}
                         onChange={(e) => {
-                          const value = e.target.value.replace(/^\s+/, ''); // Remove leading spaces
+                          const value = e.target.value.replace(/\D/g, ''); // allow only digits
                           handleFieldChange("phone2", value);
                         }}
-                        onKeyDown={(e) => {
-                          // Prevent space at beginning
-                          if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
-                            e.preventDefault();
-                          }
-                        }}
                         placeholder="7XXXXXXXX"
+                        maxLength={9}
                       />
                       {errors.phone2 && (
                         <p className="text-red-600 text-sm mt-1">

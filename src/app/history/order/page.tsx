@@ -872,7 +872,7 @@ function PickupOrderView({
                         Items)
                       </span>
                       <span className="font-semibold text-[#3E206D]">
-                        Rs. {familyPackTotal}
+                        Rs.  {pack.totalPrice}
                       </span>
                     </div>
                     <div className="space-y-3">
@@ -1065,7 +1065,7 @@ function PickupOrderView({
                           className="text-right font-semibold py-2 p-4"
                           style={{ color: "rgb(62,32,109)" }}
                         >
-                          Rs. {familyPackTotal}
+                          Rs. {pack.totalPrice}
                         </td>
                       </tr>
                       <tr>
@@ -1362,7 +1362,7 @@ function DeliveryOrderView({
                         Items)
                       </span>
                       <span className="font-semibold text-[#3E206D]">
-                        Rs. {familyPackTotal}
+                        Rs.  {pack.totalPrice}
                       </span>
                     </div>
                     <div className="space-y-3">
@@ -1620,7 +1620,7 @@ function DeliveryOrderView({
                           className="text-right font-semibold py-2 p-4"
                           style={{ color: "rgb(62,32,109)" }}
                         >
-                          Rs. {familyPackTotal}
+                          Rs.  {pack.totalPrice}
                         </td>
                       </tr>
                       <tr>
