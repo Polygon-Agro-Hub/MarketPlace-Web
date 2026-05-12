@@ -321,20 +321,20 @@ export default function Page() {
           I didn't receive the OTP message
         </div>
         <button
-          onClick={handleResendOTP}
-          disabled={disabledResend || isResending}
-          className={`text-xs sm:text-sm mb-6 ${disabledResend || isResending
-            ? 'text-gray-400 cursor-not-allowed'
-            : 'text-[#3E206D] font-semibold hover:underline cursor-pointer'
-            }`}
-        >
-          {isResending
-            ? 'Sending...'
-            : disabledResend
-              ? `Resend in ${timerText}`
-              : 'Resend OTP'
-          }
-        </button>
+  onClick={handleResendOTP}
+  disabled={disabledResend || isResending}
+  className={`text-sm sm:text-sm mb-6 ${disabledResend || isResending
+    ? 'text-gray-400 cursor-not-allowed'
+    : 'text-[#3E206D] font-semibold hover:underline cursor-pointer'
+    }`}
+>
+  {isResending
+    ? 'Sending...'
+    : disabledResend
+      ? `Resend in ${timerText}`
+      : 'Resend OTP'
+  }
+</button>
 
         <button
           onClick={handleVerify}
