@@ -81,12 +81,12 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
   };
   
   const handleBackClick = () => {
-  if (buyerType === 'Wholesale') {
-    router.push('/wholesale/home');
-  } else {
-    router.push('/');
-  }
-};
+    if (buyerType === 'Wholesale') {
+      router.push('/wholesale/home');
+    } else {
+      router.push('/');
+    }
+  };
 
   const isActive = (menu: string) => selectedMenu === menu;
   const isComplaintSectionActive = ['complaints', 'reportComplaint', 'ComplaintHistory'].includes(selectedMenu);
@@ -98,7 +98,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
         <div className="items-center gap-4 mb-4 hidden md:flex ">
           <div
             className="w-[44px] h-[42px] border border-[#D4D8DC] cursor-pointer rounded-[10px] flex items-center justify-center bg-white ml-4"
-            onClick={ handleBackClick}
+            onClick={handleBackClick}
           >
             <FaAngleLeft />
           </div>
@@ -110,7 +110,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
         <ul className="space-y-6">
           {/* Personal Details */}
           <li onClick={() => handleMenuClick('personalDetails')} className="cursor-pointer">
-            <div className={`flex items-center gap-4 px-2 py-2 rounded-md ${isActive('personalDetails') ? 'bg-[#DDDDDD]' : ''}`}>
+            <div className={`flex items-center justify-center md:justify-start gap-4 px-2 py-2 rounded-md ${isActive('personalDetails') ? 'bg-[#DDDDDD]' : ''}`}>
               <div className="w-[44px] h-[42px] border border-[#D4D8DC] rounded-[10px] flex items-center justify-center bg-white">
                 <FaUser className={isActive('personalDetails') ? 'text-[#3E206D]' : 'text-[#233242]'} />
               </div>
@@ -120,7 +120,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
           {/* Billing Address */}
           <li onClick={() => handleMenuClick('billingAddress')} className="cursor-pointer">
-            <div className={`flex items-center gap-4 px-2 py-2 rounded-md ${isActive('billingAddress') ? 'bg-[#DDDDDD]' : ''}`}>
+            <div className={`flex items-center justify-center md:justify-start gap-4 px-2 py-2 rounded-md ${isActive('billingAddress') ? 'bg-[#DDDDDD]' : ''}`}>
               <div className="w-[44px] h-[42px] border border-[#D4D8DC] rounded-[10px] flex items-center justify-center bg-white">
                 <FaLocationDot className={isActive('billingAddress') ? 'text-[#3E206D]' : 'text-[#233242]'} />
               </div>
@@ -135,7 +135,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                 <div className="flex flex-col w-full cursor-pointer">
                   <div
                     onClick={handleExcludeClick}
-                    className={`flex items-center gap-4 px-2 py-2 rounded-md ${
+                    className={`flex items-center justify-center md:justify-start gap-4 px-2 py-2 rounded-md ${
                       isActive('ExcludedItemList') && !['ViewMyList', 'AddMoreItems'].includes(selectedMenu)
                         ? 'bg-[#D2D2D2]'
                         : 'bg-transparent'
@@ -152,13 +152,13 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                       className={`flex flex-col ${
                         isDesktop
                           ? 'mt-2 w-full'
-                          : 'absolute left-[70px] top-[1px] w-[200px] h-[100px] shadow-lg z-10 bg-[#DDDDDD] justify-center rounded-md'
+                          : 'absolute left-[70px] top-[1px] w-[200px] shadow-lg z-10 bg-[#DDDDDD] justify-center rounded-md'
                       }`}
                     >
                       <div
                         onClick={() => handleSubMenuClick('ViewMyList')}
                         className={`cursor-pointer text-[15px] px-2 w-full flex items-center ${
-                          isDesktop ? 'py-2' : 'h-[51px]'
+                          isDesktop ? 'py-2 justify-start' : 'justify-center h-[51px]'
                         } ${
                           isActive('ViewMyList')
                             ? 'bg-[#D2D2D2] font-[700] text-[#111]'
@@ -168,12 +168,12 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                           whiteSpace: 'nowrap',
                         }}
                       >
-                        <span className={`${isDesktop ? 'ml-[54px]' : 'pl-0'} text-[14px] leading-tight`}>View My List</span>
+                        <span className={`${isDesktop ? 'ml-[54px]' : 'pl-0'} text-[14px] leading-tight ${isDesktop ? 'text-left' : 'text-center'}`}>View My List</span>
                       </div>
                       <div
                         onClick={() => handleSubMenuClick('AddMoreItems')}
                         className={`cursor-pointer text-[15px] px-2 w-full flex items-center ${
-                          isDesktop ? 'py-2' : 'h-[47px] border-t border-[#C1C1C1]'
+                          isDesktop ? 'py-2 justify-start' : 'justify-center h-[47px] border-t border-[#C1C1C1]'
                         } ${
                           isActive('AddMoreItems')
                             ? 'bg-[#D2D2D2] font-[700] text-[#111]'
@@ -185,7 +185,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                           textOverflow: 'ellipsis',
                         }}
                       >
-                        <span className={`${isDesktop ? 'ml-[54px]' : 'pl-0'} text-[14px] leading-tight`}>Add More Items</span>
+                        <span className={`${isDesktop ? 'ml-[54px]' : 'pl-0'} text-[14px] leading-tight ${isDesktop ? 'text-left' : 'text-center'}`}>Add More Items</span>
                       </div>
                     </div>
                   )}
@@ -200,7 +200,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
               <div className="flex flex-col w-full cursor-pointer">
                 <div
                   onClick={handleComplaintClick}
-                  className={`flex items-center gap-4 px-2 py-2 rounded-md ${
+                  className={`flex items-center justify-center md:justify-start gap-4 px-2 py-2 rounded-md ${
                     isActive('complaints') && !['reportComplaint', 'ComplaintHistory'].includes(selectedMenu)
                       ? 'bg-[#D2D2D2]'
                       : 'bg-transparent'
@@ -217,13 +217,13 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                     className={`flex flex-col ${
                       isDesktop
                         ? 'mt-2 w-full'
-                        : 'absolute left-[70px] top-[1px] w-[200px] h-[100px] shadow-lg z-10 bg-[#DDDDDD] justify-center rounded-md'
+                        : 'absolute left-[70px] top-[1px] w-[200px] shadow-lg z-10 bg-[#DDDDDD] justify-center rounded-md'
                     }`}
                   >
                     <div
                       onClick={() => handleSubMenuClick('reportComplaint')}
                       className={`cursor-pointer text-[15px] px-2 w-full flex items-center ${
-                        isDesktop ? 'py-2' : 'h-[51px]'
+                        isDesktop ? 'py-2 justify-start' : 'justify-center h-[51px]'
                       } ${
                         isActive('reportComplaint')
                           ? 'bg-[#D2D2D2] font-[700] text-[#111]'
@@ -235,12 +235,12 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                         textOverflow: 'ellipsis',
                       }}
                     >
-                      <span className={`${isDesktop ? 'ml-[54px]' : 'pl-0'} text-[14px] leading-tight`}>Report a Complaint</span>
+                      <span className={`${isDesktop ? 'ml-[54px]' : 'pl-0'} text-[14px] leading-tight ${isDesktop ? 'text-left' : 'text-center'}`}>Report a Complaint</span>
                     </div>
                     <div
                       onClick={() => handleSubMenuClick('ComplaintHistory')}
                       className={`cursor-pointer text-[15px] px-2 w-full flex items-center ${
-                        isDesktop ? 'py-2' : 'h-[47px] border-t border-[#C1C1C1]'
+                        isDesktop ? 'py-2 justify-start' : 'justify-center h-[47px] border-t border-[#C1C1C1]'
                       } ${
                         isActive('ComplaintHistory')
                           ? 'bg-[#D2D2D2] font-[700] text-[#111]'
@@ -252,7 +252,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                         textOverflow: 'ellipsis',
                       }}
                     >
-                      <span className={`${isDesktop ? 'ml-[54px]' : 'pl-0'} text-[14px] leading-tight`}>View Complaint History</span>
+                      <span className={`${isDesktop ? 'ml-[54px]' : 'pl-0'} text-[14px] leading-tight ${isDesktop ? 'text-left' : 'text-center'}`}>View Complaint History</span>
                     </div>
                   </div>
                 )}
