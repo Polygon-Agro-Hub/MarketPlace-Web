@@ -300,7 +300,7 @@ export default function Page() {
           The OTP has been sent to your mobile number
         </p>
 
-        <div className="flex w-full max-w-[307px] justify-between mb-4">
+        <div className="flex justify-center space-x-2 sm:space-x-3 mb-4">
           {otp.map((digit, idx) => (
             <input
               key={idx}
@@ -312,7 +312,7 @@ export default function Page() {
               onKeyDown={e => handleKeyDown(e, idx)}
               onPaste={handlePaste}
               placeholder="×"
-              className="w-[52px] h-[52px] text-center border border-gray-300 rounded-md text-xl sm:text-2xl focus:outline-none focus:border-[#3E206D] placeholder:text-[#DCDCDC]"
+              className="w-10 sm:w-11 h-10 sm:h-11 text-center border border-gray-300 rounded-md text-xl sm:text-2xl focus:outline-none focus:border-[#3E206D] placeholder:text-[#DCDCDC]"
             />
           ))}
         </div>
@@ -339,7 +339,7 @@ export default function Page() {
         <button
           onClick={handleVerify}
           disabled={!isOtpComplete || isVerifying || isVerified}
-          className={`font-semibold w-full max-w-[307px] h-[45px] rounded-[10px] mt-1 transition-colors ${!isOtpComplete || isVerifying || isVerified
+          className={`font-semibold w-full max-w-[225px] h-[45px] rounded-[10px] mt-1 transition-colors ${!isOtpComplete || isVerifying || isVerified
             ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
             : 'bg-[#3E206D] text-white hover:bg-[#2D1A4F] cursor-pointer'
             }`}
