@@ -202,10 +202,11 @@ const Page = () => {
 
               <div className="mb-4 relative">
                 <input
-                  type={showNewPassword ? "text" : "password"}
-                  placeholder="Enter New Password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="Re-enter New Password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === " " && e.preventDefault()}
                   className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 text-sm sm:text-base"
                 />
                 <button

@@ -104,7 +104,7 @@ const schema = yup.object().shape({
     .test('check-all-password-fields', function (value) {
       const { newPassword, confirmPassword } = this.parent;
       const hasAnyPassword = value || newPassword || confirmPassword;
-      
+
       if (hasAnyPassword && !value) {
         return this.createError({ message: 'Current Password is required when updating password' });
       }
@@ -116,7 +116,7 @@ const schema = yup.object().shape({
     .test('check-all-password-fields', function (value) {
       const { currentPassword, confirmPassword } = this.parent;
       const hasAnyPassword = value || currentPassword || confirmPassword;
-      
+
       if (hasAnyPassword && !value) {
         return this.createError({ message: 'New Password is required when updating password' });
       }
@@ -142,7 +142,7 @@ const schema = yup.object().shape({
     .test('check-all-password-fields', function (value) {
       const { currentPassword, newPassword } = this.parent;
       const hasAnyPassword = value || currentPassword || newPassword;
-      
+
       if (hasAnyPassword && !value) {
         return this.createError({ message: 'Confirm Password is required when updating password' });
       }
@@ -277,7 +277,7 @@ const PersonalDetailsForm = () => {
   const [originalProfilePic, setOriginalProfilePic] = useState<string | null>(null);
   const [buyerType, setBuyerType] = useState<string>('');
   const dispatch = useDispatch();
-   const [countryCode, setCountryCode] = useState("+94");
+  const [countryCode, setCountryCode] = useState("+94");
 
   const {
     register,
@@ -286,6 +286,7 @@ const PersonalDetailsForm = () => {
     watch,
     setValue,
     getValues,
+    trigger,           // ← add this
     formState: { errors },
   } = useForm<FormData>({
     resolver: yupResolver(schema, { context: { buyerType } }) as any,
@@ -323,16 +324,26 @@ const PersonalDetailsForm = () => {
     const hasCurrentPassword = currentPassword && currentPassword.trim() !== '';
     const hasNewPassword = newPassword && newPassword.trim() !== '';
     const hasConfirmPassword = confirmPassword && confirmPassword.trim() !== '';
-    
+
     // Count how many password fields are filled
     const filledPasswordFields = [hasCurrentPassword, hasNewPassword, hasConfirmPassword].filter(Boolean).length;
-    
+
     if (filledPasswordFields > 0 && filledPasswordFields < 3) {
       return true; // Incomplete - disable save button
     }
-    
+
     return false; // Either all filled or all empty - allow save
   };
+
+
+  useEffect(() => {
+    if (currentPassword) {
+      trigger('newPassword');
+    }
+    if (newPassword) {
+      trigger('confirmPassword');
+    }
+  }, [currentPassword, newPassword, trigger]);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -418,6 +429,18 @@ const PersonalDetailsForm = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      const allowedTypes = ['image/png', 'image/jpeg'];
+      const allowedExtensions = ['png', 'jpg', 'jpeg'];
+      const fileExtension = file.name.split('.').pop()?.toLowerCase();
+
+      if (!allowedTypes.includes(file.type) || !allowedExtensions.includes(fileExtension || '')) {
+        setErrorMessage('Only PNG and JPEG files are allowed. JFIF and other formats are not supported.');
+        setShowErrorPopup(true);
+        setShowSuccessPopup(false);
+        e.target.value = '';
+        return;
+      }
+
       const maxSizeInBytes = 15 * 1024 * 1024;
       if (file.size > maxSizeInBytes) {
         setErrorMessage(
@@ -709,7 +732,7 @@ const PersonalDetailsForm = () => {
             Upload new picture
             <input
               type="file"
-              accept="image/png, image/jpeg"
+              accept=".png,.jpg,.jpeg"   // ← was "image/png, image/jpeg"
               onChange={handleFileChange}
               className="hidden"
             />

@@ -7,6 +7,7 @@ import { useSelector } from "react-redux";
 import {
   getMarketplaceSuggestions,
   excludeItems,
+  getExcludedItems,
 } from "@/services/product-service";
 import { useRouter } from "next/navigation";
 import Lottie from "react-lottie";
@@ -35,17 +36,30 @@ export default function ExcludeItems() {
         return;
       }
 
-      const data = await getMarketplaceSuggestions(authToken);
-      if (data.status && Array.isArray(data.items)) {
-        const validatedItems = data.items.filter(
+      // Fetch both available and already-excluded items in parallel
+      const [suggestionsData, excludedData] = await Promise.all([
+        getMarketplaceSuggestions(authToken),
+        getExcludedItems(authToken),
+      ]);
+
+      if (suggestionsData.status && Array.isArray(suggestionsData.items)) {
+        const alreadyExcluded: string[] = Array.isArray(excludedData.items)
+          ? excludedData.items.map((item: Item) => item.displayName)
+          : [];
+
+        // Filter out items that are already excluded
+        const validatedItems = suggestionsData.items.filter(
           (item: any): item is Item =>
             typeof item.displayName === "string" &&
-            typeof item.image === "string",
+            typeof item.image === "string" &&
+            !alreadyExcluded.includes(item.displayName), // <-- key filter
         );
+
         setItems(validatedItems);
       } else {
-        setError(data.message || "Failed to fetch items");
+        setError(suggestionsData.message || "Failed to fetch items");
       }
+
       setLoading(false);
     };
 
@@ -128,11 +142,10 @@ export default function ExcludeItems() {
         {error && <p className="text-center text-red-500">{error}</p>}
         {submitStatus && (
           <p
-            className={`text-center mb-4 ${
-              submitStatus.toLowerCase().includes("success")
+            className={`text-center mb-4 ${submitStatus.toLowerCase().includes("success")
                 ? "text-green-500"
                 : "text-red-500"
-            }`}
+              }`}
           >
             {submitStatus}
           </p>
@@ -168,11 +181,10 @@ export default function ExcludeItems() {
                 <div className="flex items-center">
                   <button
                     onClick={() => handleToggle(item.displayName)}
-                    className={`w-5 h-5 rounded-full cursor-pointer border-2 mr-3 flex items-center justify-center ${
-                      selectedItems.includes(item.displayName)
+                    className={`w-5 h-5 rounded-full cursor-pointer border-2 mr-3 flex items-center justify-center ${selectedItems.includes(item.displayName)
                         ? "bg-red-500 border-red-500"
                         : "border-[#A3A3A3]"
-                    }`}
+                      }`}
                     aria-label={`Toggle exclude ${item.displayName}`}
                   >
                     {selectedItems.includes(item.displayName) && (

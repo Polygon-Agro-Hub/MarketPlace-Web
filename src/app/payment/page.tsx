@@ -59,10 +59,12 @@ const Page: React.FC = () => {
   const [isError, setIsError] = useState(false);
   const [modalMessage, setModalMessage] = useState("");
   const [orderSubmitted, setOrderSubmitted] = useState(false);
+  const authCart = useSelector((state: RootState) => state.auth.cart);
 
   const getHomeUrl = () => {
     return user?.buyerType === "Wholesale" ? "/wholesale/home" : "/";
   };
+
 
   useEffect(() => {
     // Load delivery charge from localStorage if available
@@ -446,6 +448,18 @@ const Page: React.FC = () => {
 
   const displayValues = getDisplayValues();
 
+  useEffect(() => {
+    dispatch(updateCartInfo({
+      price: parseFloat(displayValues.grandTotal.toFixed(2)),
+      count: authCart.count,
+    }));
+  }, [
+    displayValues.grandTotal,
+    isCouponApplied,
+    couponDiscount,
+    deliveryCharge,
+  ]);
+
   return (
     <div className="px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5">
       {isModalOpen && (
@@ -566,11 +580,10 @@ const Page: React.FC = () => {
                 <button
                   onClick={handleViewInvoice}
                   disabled={!orderId}
-                  className={`px-6 py-2 rounded-lg transition cursor-pointer font-medium ${
-                    !orderId
-                      ? "bg-gray-400 text-gray-600 cursor-not-allowed"
-                      : "bg-[#3E206D] text-white hover:bg-[#3E206D]"
-                  }`}
+                  className={`px-6 py-2 rounded-lg transition cursor-pointer font-medium ${!orderId
+                    ? "bg-gray-400 text-gray-600 cursor-not-allowed"
+                    : "bg-[#3E206D] text-white hover:bg-[#3E206D]"
+                    }`}
                 >
                   View Invoice
                 </button>
