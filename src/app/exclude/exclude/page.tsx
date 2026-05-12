@@ -106,7 +106,7 @@ export default function ExcludeItems() {
             placeholder="Search for Product"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full p-2 pl-4 pr-10 rounded bg-[#EFE4FF] text-[#3E206D] placeholder-[#3E206D] placeholder-italic text-center italic text-[12px] md:text-[16px] outline-none"
+            className="w-full p-3 pl-5 pr-10 rounded bg-[#EFE4FF] text-[#3E206D] placeholder-[#3E206D] placeholder-italic text-center italic text-[14px] md:text-[18px] outline-none"
             aria-label="Search products"
           />
           {searchQuery ? (
@@ -199,7 +199,7 @@ export default function ExcludeItems() {
         {/* Continue Button */}
         <button
           onClick={handleContinue}
-          className="w-full bg-[#3E206D] cursor-pointer text-white p-2 rounded mt-6 font-semibold text-sm md:text-base"
+          className="w-full bg-[#3E206D] cursor-pointer text-white p-3 rounded mt-6 font-semibold text-base md:text-lg"
           aria-label="Continue with selected exclusions"
         >
           Continue

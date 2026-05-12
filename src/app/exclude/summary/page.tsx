@@ -230,7 +230,7 @@ export default function ExcludedItems() {
         <h2 className="text-[20px] md:text-[30px] font-bold mb-2 text-center text-[#001535]">
           Items you have chosen to exclude
         </h2>
-        <p className="text-[14px] md:text-[22px] text-[#4C5160] mb-4 whitespace-normal text-center px-4">
+        <p className="text-[14px] md:text-[22px] text-[#4C5160] mb-4 whitespace-nowrap text-center px-4">
           We’ll make sure these items are not included in any
           <br className="block md:hidden" />
           package unless you update your preferences.
@@ -267,13 +267,13 @@ export default function ExcludedItems() {
                         aria-label="Select all items"
                       />
                     </th>
-                    <th className="p-2 text-left w-[20%] text-[#8492A3] font-medium">
+                    <th className="p-2 text-left w-[20%] text-[#8492A3] font-small">
                       ITEM ({String(items.length).padStart(2, "0")})
                     </th>
-                    <th className="p-2 text-left w-[50%] text-[#8492A3] font-medium">
+                    <th className="p-2 text-left w-[50%] text-[#8492A3] font-small">
                       ITEM NAME
                     </th>
-                    <th className="p-2 text-left w-[20%] text-[#8492A3] font-medium">
+                    <th className="p-2 text-left w-[20%] text-[#8492A3] font-small">
                       ACTION
                     </th>
                   </tr>
@@ -336,7 +336,7 @@ export default function ExcludedItems() {
 
         {/* Delete Confirmation Modal */}
         {showDeleteModal && (
-          <div className="fixed inset-0 flex justify-center items-center bg-black/40 z-50">
+          <div className="bg-white rounded-xl p-5 sm:p-8 shadow-xl text-center w-[85%] sm:w-full max-w-sm sm:max-w-md mx-4">
             <div className="bg-white rounded-xl p-6 sm:p-8 shadow-xl text-center w-full max-w-md">
               <Trash
                 fill="red"
@@ -376,7 +376,7 @@ export default function ExcludedItems() {
           <button
             onClick={handleContinue}
             disabled={continueLoading}
-            className={`w-full bg-[#3E206D] text-white p-2 rounded mt-13 font-semibold text-sm md:text-base ${
+            className={`w-full bg-[#3E206D] text-white p-3 rounded mt-13 font-semibold text-base md:text-lg ${
               continueLoading
                 ? "opacity-50 cursor-not-allowed"
                 : "cursor-pointer hover:bg-[#341a5a]"

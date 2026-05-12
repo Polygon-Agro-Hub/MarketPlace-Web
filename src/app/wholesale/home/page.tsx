@@ -291,10 +291,10 @@ function WholesaleHomeContent() {
         )}
 
         {/* Mobile search bar */}
-        <div className="w-full px-4 md:hidden mt-4">
+        <div className="w-full px-4 md:hidden ">
           <div className="flex-1 max-w-xl mx-auto">
             <form onSubmit={handleSearchSubmit}>
-              <div className="relative shadow-lg">
+              <div className="relative">
                 <input
                   type="text"
                   placeholder="Search wholesale products..."

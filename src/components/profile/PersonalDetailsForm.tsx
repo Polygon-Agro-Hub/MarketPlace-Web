@@ -831,7 +831,7 @@ const PersonalDetailsForm = () => {
                   onChange={(value) => setValue('countryCode', value, { shouldValidate: true })}
                 />
               </div>
-              <div className="w-[82%]">
+              <div className="w-[70%]">
                 <input
                   {...register('phoneNumber')}
                   onChange={(e) => {
@@ -880,7 +880,7 @@ const PersonalDetailsForm = () => {
               <div className="md:w-[56%]">
                 <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">Company Phone Number</label>
                 <div className="flex gap-4">
-                  <div className="relative w-[30%] md:w-[15%]">
+                  <div className="relative w-[30%] md:w-[18%]">
                     <CustomDropdown
                       register={register}
                       name="companyPhoneCode"
@@ -891,7 +891,7 @@ const PersonalDetailsForm = () => {
                       onChange={(value) => setValue('companyPhoneCode', value, { shouldValidate: true })}
                     />
                   </div>
-                  <div className="w-[82%]">
+                  <div className="w-[70%]">
                     <input
                       {...register('companyPhone')}
                       onChange={(e) => {

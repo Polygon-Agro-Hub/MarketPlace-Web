@@ -307,13 +307,13 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
         <>
           <Link
             href="/signin"
-            className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800 flex items-center gap-2"
+            className="py-4 px-6 hover:bg-purple-800 flex items-center gap-2"
           >
             Login
           </Link>
           <Link
             href="/signup"
-            className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800 flex items-center gap-2"
+            className="py-4 px-6 hover:bg-purple-800 flex items-center gap-2"
           >
             Signup
           </Link>
@@ -383,7 +383,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
             <nav className="hidden md:flex space-x-6">
               <Link
                 href={getHomeUrl()}
-                className={`hover:text-[#383d39] text-[#000000] ${pathname === getHomeUrl() ? 'underline underline-offset-4' : ''}`}
+                className={`hover:text-[#383d39] text-[#000000] ${pathname === getHomeUrl() ? "underline underline-offset-4" : ""}`}
               >
                 Home
               </Link>
@@ -480,7 +480,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
 
           {isAuthenticated() && (
             <Link
-              className="border-2 border-black w-12 h-12 flex justify-center items-center rounded-full overflow-hidden flex-shrink-0"
+              className="border-2 border-black w-9 h-9 md:w-12 md:h-12 flex justify-center items-center rounded-full overflow-hidden flex-shrink-0"
               href="/account"
             >
               {profileImage ? (
@@ -491,7 +491,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
                 />
               ) : (
                 <FontAwesomeIcon
-                  className="text-2xl text-black"
+                  className="text-xl md:text-2xl text-black"
                   icon={faUser}
                 />
               )}
@@ -502,7 +502,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
             <button onClick={toggleMenu} className="md:hidden">
               <FontAwesomeIcon
                 className="text-2xl text-[#000000]"
-                icon={faBars}
+                icon={isMenuOpen ? faTimes : faBars}
               />
             </button>
           )}
@@ -512,15 +512,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
       {isMobile && isMenuOpen && (
         <div className="relative flex w-full justify-end mobile-menu-container">
           <div className="absolute z-50">
-            <div className="bg-[#1c1e1f] text-white w-64 flex flex-col mobile-menu-content">
-              <div className="flex justify-between items-center border-b border-[#828282] px-6 py-4">
-                <button
-                  onClick={toggleMenu}
-                  className="text-white hover:text-purple-200 ml-[90%]"
-                >
-                  <FontAwesomeIcon icon={faTimes} className="text-xl" />
-                </button>
-              </div>
+            <div className="bg-[#2D2D2D] text-white w-40 flex flex-col mobile-menu-content">
               <nav className="flex flex-col w-full">
                 {renderMobileAuthButtons()}
                 <Link
@@ -541,7 +533,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
                       </span>
                     </button>
                     {isCategoryExpanded && (
-                      <div className="bg-purple-950">
+                      <div className="bg-[#242424]">
                         <button
                           onClick={(e) =>
                             handleMobileCategoryClick(e, "Retail")
