@@ -347,7 +347,7 @@ function WholesaleHomeContent() {
           <>
             {/* Category filter section - show only if has results or not searching */}
             {(!isSearchActive || hasCategoryResults) && (
-              <div className="w-full mb-8">
+              <div className="w-full px-4 sm:px-6 lg:px-8">
                 <CategoryFilter />
               </div>
             )}
