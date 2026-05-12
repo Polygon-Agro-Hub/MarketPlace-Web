@@ -106,18 +106,18 @@ const Page = () => {
       setIsError(true);
       // Check for specific error messages from backend
       const errorMessage = err.message || 'Failed to reset password';
-      
+
       // Handle expired token error
-      if (errorMessage.toLowerCase().includes('expired') || 
-          errorMessage.toLowerCase().includes('invalid') ||
-          errorMessage.toLowerCase().includes('token')) {
+      if (errorMessage.toLowerCase().includes('expired') ||
+        errorMessage.toLowerCase().includes('invalid') ||
+        errorMessage.toLowerCase().includes('token')) {
         setModalMessage('Your password reset link has expired or is invalid. Please request a new password reset link.');
         setIsTokenValid(false);
       }
       // Handle "same password" error specifically
-      else if (errorMessage.toLowerCase().includes('same') || 
-          errorMessage.toLowerCase().includes('current password') ||
-          errorMessage.toLowerCase().includes('old password')) {
+      else if (errorMessage.toLowerCase().includes('same') ||
+        errorMessage.toLowerCase().includes('current password') ||
+        errorMessage.toLowerCase().includes('old password')) {
         setModalMessage('New password cannot be the same as your current password. Please choose a different password.');
       } else {
         setModalMessage(errorMessage);
@@ -177,17 +177,18 @@ const Page = () => {
             <div className="w-full max-w-md text-center">
               <h1 className="text-3xl font-bold text-gray-900 mb-2">Reset</h1>
               <h1 className="text-3xl font-bold text-gray-900 mb-4">Password</h1>
-              
+
               <p className="text-[16px] text-[#001535] mb-6">
                 Please enter your new password below and confirm it to complete the reset.
               </p>
 
               <div className="mb-4 relative">
                 <input
-                  type={showNewPassword ? "text" : "password"}
-                  placeholder="Enter New Password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="Re-enter New Password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === " " && e.preventDefault()}
                   className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
                   title=""
                 />
@@ -245,9 +246,9 @@ const Page = () => {
               /* Error Icon - Using Image */
               <div className="flex justify-center mb-6">
                 <div className="w-24 h-24 sm:w-28 sm:h-28">
-                  <Image 
-                    src={wrongImg} 
-                    alt="Error" 
+                  <Image
+                    src={wrongImg}
+                    alt="Error"
                     className="w-full h-full object-contain"
                   />
                 </div>
@@ -256,9 +257,9 @@ const Page = () => {
               /* Success Icon - Using Image */
               <div className="flex justify-center mb-6">
                 <div className="w-24 h-24 sm:w-28 sm:h-28">
-                  <Image 
-                    src={CorrectImg} 
-                    alt="Success" 
+                  <Image
+                    src={CorrectImg}
+                    alt="Success"
                     className="w-full h-full object-contain"
                   />
                 </div>
