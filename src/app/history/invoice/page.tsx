@@ -158,7 +158,7 @@ function InvoiceView({
       ref={invoiceRef}
     >
       <h1
-        className="text-xl sm:text-2xl font-bold text-center"
+        className="text-xl sm:text-2xl font-bold text-center mb-7"
         style={{ color: "rgb(62,32,109)" }}
       >
         <div className="flex justify-start mb-2 sm:mb-0">
