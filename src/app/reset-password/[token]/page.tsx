@@ -283,13 +283,13 @@ const Page = () => {
                     </button>
                   ) : (
                     <button
-                      onClick={() => {
-                        setIsModalOpen(false);
-                      }}
-                      className="w-full sm:w-auto px-6 py-2.5 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors cursor-pointer text-gray-700 font-medium"
-                    >
-                      Close
-                    </button>
+  onClick={() => {
+    setIsModalOpen(false);
+  }}
+  className="w-auto sm:w-auto px-4 py-1.5 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors cursor-pointer text-gray-700 font-medium text-sm"
+>
+  Close
+</button>
                   )}
                 </div>
               </>
