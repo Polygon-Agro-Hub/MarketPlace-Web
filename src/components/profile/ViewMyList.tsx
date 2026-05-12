@@ -209,8 +209,8 @@ const ViewMyList = () => {
                     />
                   </th>
                   <th className="p-1 text-left w-[20%] text-[#8492A3] font-medium">ITEM ({String(items.length).padStart(2, '0')})</th>
-                  <th className="p-1 text-left w-[50%] text-[#8492A3] font-medium">NAME</th>
-                  <th className="p-1 text-left w-[20%] text-[#8492A3] font-medium">ACT</th>
+                  <th className="p-1 text-left w-[50%] text-[#8492A3] font-medium">ITEM NAME</th>
+                  <th className="p-1 text-center w-[20%] text-[#8492A3] font-medium">ACTION</th>
                 </tr>
               </thead>
               <tbody>
@@ -235,7 +235,7 @@ const ViewMyList = () => {
                       />
                     </td>
                     <td className="p-1 font-medium truncate">{item.displayName}</td>
-                    <td className="p-1">
+                    <td className="p-1 flex justify-center">
                       <Trash
                         fill="red"
                         onClick={() => handleDeleteClick(item.displayName)}
