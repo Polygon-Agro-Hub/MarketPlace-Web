@@ -1,6 +1,6 @@
 "use client";
-import React, { useState, useEffect } from "react";
-import { Plus, Minus, Trash, ShoppingCart, X } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { Plus, Minus, Trash, ShoppingCart, X, ChevronLeft, ChevronRight } from "lucide-react";
 import TopNavigation from "@/components/top-navigation/TopNavigation";
 import {
   getUserCart,
@@ -59,8 +59,8 @@ interface CartItem {
   price: number;
   normalPrice: number;
   discountedPrice: number | null;
-  startValue: number; // Added from API response
-  changeby: number; // Added from API response
+  startValue: number;
+  changeby: number;
   image: string;
   varietyNameEnglish: string;
   category: string;
@@ -74,7 +74,6 @@ interface AdditionalItems {
   Items: CartItem[];
 }
 
-// Update the showConfirmModal interface
 interface ConfirmModal {
   type: "product" | "package" | "bulk";
   id: number;
@@ -98,7 +97,7 @@ const Page: React.FC = () => {
     Record<number, "kg" | "g">
   >({});
   const [pendingUpdates, setPendingUpdates] = useState<
-    { productId: number; newQuantity: number, unit?: string }[]
+    { productId: number; newQuantity: number; unit?: string }[]
   >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -109,7 +108,7 @@ const Page: React.FC = () => {
     text: string;
   } | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
-  const [removingItems, setRemovingItems] = useState<Set<string>>(new Set()); // Track items being removed
+  const [removingItems, setRemovingItems] = useState<Set<string>>(new Set());
   const [showConfirmModal, setShowConfirmModal] = useState<ConfirmModal | null>(
     null,
   );
@@ -129,10 +128,23 @@ const Page: React.FC = () => {
     (state: RootState) => state.auth.user?.buyerType,
   );
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
-  const [successPopupKey, setSuccessPopupKey] = useState(0); // Add counter for popup key
+  const [successPopupKey, setSuccessPopupKey] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
   const dispatch = useDispatch();
   const router = useRouter();
   const authCart = useSelector((state: RootState) => state.auth.cart);
+
+  // Check for mobile view
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const calculateDiscount = (
     baseDiscount: number,
@@ -158,20 +170,14 @@ const Page: React.FC = () => {
     return calculateDiscount(item.discount, selectedUnit, item.quantity);
   };
 
-  // Updated getDisplayPrice function
   const getDisplayPrice = (item: CartItem): number => {
     const selectedUnit =
       unitSelection[item.id] || (item.unit.toLowerCase() as "kg" | "g");
-    // Use normalPrice instead of price for calculations
     return calculatePrice(item.normalPrice, selectedUnit, item.quantity);
   };
 
-  // Helper function to check if cart is empty
   const isCartEmpty = (): boolean => {
-    // Check if no cart exists
     if (!cartData.cart) return true;
-
-    // Check if no items in both packages and additional items
     const hasPackages = cartData.packages && cartData.packages.length > 0;
     const hasAdditionalItems =
       cartData.additionalItems &&
@@ -179,7 +185,6 @@ const Page: React.FC = () => {
       cartData.additionalItems.some(
         (group) => group.Items && group.Items.length > 0,
       );
-
     return !hasPackages && !hasAdditionalItems;
   };
 
@@ -197,7 +202,6 @@ const Page: React.FC = () => {
               const normalizedUnit =
                 item.unit.toLowerCase() === "kg" ? "kg" : "g";
               initialUnitSelection[item.id] = normalizedUnit;
-              // No conversion — API returns quantity in correct display unit already
             });
           });
         }
@@ -223,15 +227,10 @@ const Page: React.FC = () => {
     if (token) fetchCartData();
   }, [token, dispatch]);
 
-  // Updated formatPrice function to handle decimal precision
   const formatPrice = (price: number): string => {
-    // Ensure proper decimal precision before formatting
     const fixedPrice = parseFloat(price.toFixed(2));
     const [integerPart, decimalPart] = fixedPrice.toFixed(2).split(".");
-
-    // Add commas to integer part
     const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-
     return `${formattedInteger}.${decimalPart}`;
   };
 
@@ -263,18 +262,12 @@ const Page: React.FC = () => {
     setUnitSelection((prev) => ({ ...prev, [itemId]: newUnit }));
     dispatch(updateProductQuantity({ productId: itemId, newQuantity }));
 
-    console.log('handleUnitChange', { itemId, newUnit, newQuantity });
-
-    // ✅ Store display quantity directly — API speaks the item's own unit
     setPendingUpdates((prev) => {
       const filtered = prev.filter((update) => update.productId !== itemId);
       return [...filtered, { productId: itemId, newQuantity }];
     });
-
-
   };
 
-  // 2. handleProductQuantityChange — store display quantity directly, no kg conversion
   const handleProductQuantityChange = (productId: number, delta: number) => {
     let currentItem: CartItem | null = null;
 
@@ -293,7 +286,6 @@ const Page: React.FC = () => {
       unitSelection[productId] ||
       (currentItem.unit.toLowerCase() as "kg" | "g");
 
-    // changeby and startValue come from API in kg — convert to display unit
     let changeBy: number;
     let startValue: number;
     let maxQuantity = currentItem.maxQuantity || Infinity;
@@ -343,7 +335,6 @@ const Page: React.FC = () => {
 
     dispatch(updateProductQuantity({ productId, newQuantity }));
 
-    // ✅ Recalculate cart total after quantity update
     const updatedItems = cartData.additionalItems.flatMap(g => g.Items).map(item =>
       item.id === productId ? { ...item, quantity: newQuantity } : item
     );
@@ -359,8 +350,6 @@ const Page: React.FC = () => {
       count: authCart.count,
     }));
 
-    // ✅ Store display quantity directly — no kg conversion
-    // API expects grams for "g" items, kg for "kg" items
     setPendingUpdates((prev) => {
       const existing = prev.find((update) => update.productId === productId);
       if (existing) {
@@ -374,11 +363,9 @@ const Page: React.FC = () => {
     });
   };
 
-  // Show confirmation modal for product removal
   const handleRemoveProduct = async (productId: number) => {
     const itemKey = `product-${productId}`;
 
-    // Prevent multiple simultaneous removals
     if (removingItems.has(itemKey)) return;
 
     try {
@@ -393,10 +380,8 @@ const Page: React.FC = () => {
         dispatch(updateCartInfo(cartInfo));
       } catch (cartError) {
         console.error("Error fetching cart info:", cartError);
-        // Don't fail the whole operation if cart info fetch fails
       }
 
-      // Optionally refresh cart data to ensure consistency
       const updatedCartData = await getUserCart(token);
       dispatch(
         setCartData({
@@ -407,15 +392,12 @@ const Page: React.FC = () => {
         }),
       );
 
-      // Show success popup for individual item delete (no confirmation modal)
       setSuccessPopupKey((prev) => prev + 1);
       setShowSuccessPopup(true);
     } catch (error: any) {
       console.error("Error removing product:", error);
-      // Show error message to user
       alert("Failed to remove item. Please try again.");
     } finally {
-      // Remove from removing set
       setRemovingItems((prev) => {
         const newSet = new Set(prev);
         newSet.delete(itemKey);
@@ -424,90 +406,23 @@ const Page: React.FC = () => {
     }
   };
 
-  // Show confirmation modal for package removal
   const handleRemovePackage = (packageId: number) => {
     setShowConfirmModal({ type: "package", id: packageId });
   };
 
-  // Actual package removal after confirmation
-  // const confirmRemovePackage = async (packageId: number) => {
-  //   const itemKey = `package-${packageId}`;
-
-  //   // Prevent multiple simultaneous removals
-  //   if (removingItems.has(itemKey)) return;
-
-  //   try {
-  //     // Add to removing set
-  //     setRemovingItems((prev) => new Set(prev).add(itemKey));
-
-  //     // Make direct API call
-  //     await removeCartPackage(packageId, token);
-  //     //delete popup
-  //     setShowSuccessPopup(true);
-
-  //     // Update Redux store after successful API call
-  //     dispatch(removePackage(packageId));
-
-  //     // Fetch updated cart info after successful removal
-  //     try {
-  //       const cartInfo = await getCartInfo(token);
-  //       dispatch(updateCartInfo(cartInfo));
-  //     } catch (cartError) {
-  //       console.error("Error fetching cart info:", cartError);
-  //       // Don't fail the whole operation if cart info fetch fails
-  //     }
-
-  //     // Optionally refresh cart data to ensure consistency
-  //     const updatedCartData = await getUserCart(token);
-  //     dispatch(
-  //       setCartData({
-  //         cart: updatedCartData.cart,
-  //         packages: updatedCartData.packages,
-  //         additionalItems: updatedCartData.additionalItems,
-  //         summary: updatedCartData.summary,
-  //       }),
-  //     );
-  //   } catch (error: any) {
-  //     console.error("Error removing package:", error);
-  //     // Show error message to user
-  //     alert("Failed to remove package. Please try again.");
-  //   } finally {
-  //     // Remove from removing set
-  //     setRemovingItems((prev) => {
-  //       const newSet = new Set(prev);
-  //       newSet.delete(itemKey);
-  //       return newSet;
-  //     });
-  //   }
-  // };
-
   const confirmRemovePackage = async (packageId: number) => {
     const itemKey = `package-${packageId}`;
 
-    // Prevent multiple simultaneous removals
     if (removingItems.has(itemKey)) return;
 
     try {
-      // Add to removing set
       setRemovingItems((prev) => new Set(prev).add(itemKey));
 
-      // Make direct API call
       await removeCartPackage(packageId, token);
 
-      // Update Redux store after successful API call
       dispatch(removePackage(packageId));
 
-      // Fetch updated cart data
       const updatedCartData = await getUserCart(token);
-
-      // Check if the removed package is still in the API response
-      const removedPackageStillExists = updatedCartData.packages?.some(
-        (pkg) => pkg.id === packageId,
-      );
-
-      // Check for duplicate packages
-      const packageIds = updatedCartData.packages?.map((pkg) => pkg.id);
-      const uniqueIds = [...new Set(packageIds)];
 
       dispatch(
         setCartData({
@@ -518,20 +433,16 @@ const Page: React.FC = () => {
         }),
       );
 
-      // Fetch updated cart info
       try {
         const cartInfo = await getCartInfo(token);
         dispatch(updateCartInfo(cartInfo));
       } catch (cartError) {
         console.error("Error fetching cart info:", cartError);
       }
-
-      // Popup is shown from the Remove button click, not here
     } catch (error: any) {
       console.error("Error removing package:", error);
       alert("Failed to remove package. Please try again.");
     } finally {
-      // Remove from removing set
       setRemovingItems((prev) => {
         const newSet = new Set(prev);
         newSet.delete(itemKey);
@@ -540,7 +451,6 @@ const Page: React.FC = () => {
     }
   };
 
-  // Add this helper function to get all product IDs
   const getAllProductIds = (): number[] => {
     const productIds: number[] = [];
     cartData.additionalItems.forEach((itemGroup) => {
@@ -551,7 +461,6 @@ const Page: React.FC = () => {
     return productIds;
   };
 
-  // Add these handler functions
   const handleSelectProduct = (productId: number) => {
     setSelectedProducts((prev) => {
       const newSet = new Set(prev);
@@ -561,7 +470,6 @@ const Page: React.FC = () => {
         newSet.add(productId);
       }
 
-      // Update select all state
       const allProductIds = getAllProductIds();
       setSelectAll(
         allProductIds.length > 0 && allProductIds.every((id) => newSet.has(id)),
@@ -575,11 +483,9 @@ const Page: React.FC = () => {
     const allProductIds = getAllProductIds();
 
     if (selectAll) {
-      // Deselect all
       setSelectedProducts(new Set());
       setSelectAll(false);
     } else {
-      // Select all
       setSelectedProducts(new Set(allProductIds));
       setSelectAll(true);
     }
@@ -602,7 +508,6 @@ const Page: React.FC = () => {
     try {
       setBulkDeleteLoading(true);
 
-      // Ensure productIds is an array of numbers
       let validProductIds: number[] = [];
 
       if (Array.isArray(productIds)) {
@@ -617,24 +522,19 @@ const Page: React.FC = () => {
         throw new Error("No valid product IDs to delete");
       }
 
-      // Call bulk delete API with validated array
       await bulkRemoveCartProducts(validProductIds, token);
 
-      // Update Redux store
       validProductIds.forEach((productId) => {
         dispatch(removeProduct(productId));
       });
 
-      // Fetch updated cart info after successful removal
       try {
         const cartInfo = await getCartInfo(token);
         dispatch(updateCartInfo(cartInfo));
       } catch (cartError) {
         console.error("Error fetching cart info:", cartError);
-        // Don't fail the whole operation if cart info fetch fails
       }
 
-      // Refresh cart data to ensure consistency
       const updatedCartData = await getUserCart(token);
       dispatch(
         setCartData({
@@ -645,14 +545,8 @@ const Page: React.FC = () => {
         }),
       );
 
-      // Clear selections
       setSelectedProducts(new Set());
       setSelectAll(false);
-
-      // Popup is shown from the Remove button click, not here
-
-      // // Show success message
-      // alert(`Successfully removed ${validProductIds.length} items from cart`);
     } catch (error: any) {
       console.error("Error bulk deleting products:", error);
       alert(
@@ -663,7 +557,6 @@ const Page: React.FC = () => {
     }
   };
 
-  // 3. handleCheckout — send display quantity directly, no conversion
   const handleCheckout = async () => {
     if (
       isCartEmpty() ||
@@ -678,7 +571,6 @@ const Page: React.FC = () => {
       setCheckoutLoading(true);
 
       for (const update of pendingUpdates) {
-        // Resolve the unit for this product
         const unit = unitSelection[update.productId];
         await updateCartProductQuantity(update.productId, update.newQuantity, token, unit);
       }
@@ -694,7 +586,6 @@ const Page: React.FC = () => {
             const normalizedUnit =
               item.unit.toLowerCase() === "kg" ? "kg" : "g";
             freshUnitSelection[item.id] = normalizedUnit;
-            // No conversion — API returns quantity in correct display unit
           });
         });
       }
@@ -737,11 +628,9 @@ const Page: React.FC = () => {
   const handleDeliveryMethodSelect = (method: any) => {
     setSelectedDeliveryMethod(method);
     setShowDeliveryModal(false);
-
     router.push(`/checkout?deliveryMethod=${method}`);
   };
 
-  // Add this helper function to calculate products total for a specific item group
   const calculateItemGroupTotal = (itemGroup: AdditionalItems): number => {
     return itemGroup.Items.reduce((total, item) => {
       const selectedUnit = unitSelection[item.id] || item.unit;
@@ -751,14 +640,12 @@ const Page: React.FC = () => {
     }, 0);
   };
 
-  // Updated selector for cart summary with proper unit calculations
   const getUpdatedCartSummary = () => {
     let totalItems = 0;
     let productTotal = 0;
     let totalDiscount = 0;
     let packageTotal = 0;
 
-    // Calculate package totals
     if (cartData.packages) {
       cartData.packages.forEach((pkg) => {
         packageTotal += pkg.price * pkg.quantity;
@@ -766,12 +653,10 @@ const Page: React.FC = () => {
       });
     }
 
-    // Calculate product totals with unit conversions using normalPrice
     if (cartData.additionalItems) {
       cartData.additionalItems.forEach((itemGroup) => {
         itemGroup.Items.forEach((item) => {
           const selectedUnit = unitSelection[item.id] || item.unit;
-          // Use normalPrice instead of price for calculations
           const itemPrice = calculatePrice(
             item.normalPrice,
             selectedUnit,
@@ -785,7 +670,7 @@ const Page: React.FC = () => {
 
           productTotal += itemPrice;
           totalDiscount += itemDiscount;
-          totalItems += 1; // Count each item as 1 regardless of quantity
+          totalItems += 1;
         });
       });
     }
@@ -805,6 +690,422 @@ const Page: React.FC = () => {
 
   const dynamicSummary = getUpdatedCartSummary();
 
+  // Mobile Product Card Component
+  const MobileProductCard: React.FC<{
+    item: CartItem;
+    selectedUnit: string;
+    isRemoving: boolean;
+    isSelected: boolean;
+    tooltipStates: Record<number, "min" | "max" | boolean>;
+    unitSelection: Record<number, "kg" | "g">;
+    onSelect: () => void;
+    onUnitChange: (unit: "kg" | "g") => void;
+    onQuantityChange: (delta: number) => void;
+    onRemove: () => void;
+    formatPrice: (price: number) => string;
+    getDisplayPrice: (item: CartItem) => number;
+    getDisplayDiscount: (item: CartItem) => number;
+  }> = ({
+    item,
+    selectedUnit,
+    isRemoving,
+    isSelected,
+    tooltipStates,
+    unitSelection,
+    onSelect,
+    onUnitChange,
+    onQuantityChange,
+    onRemove,
+    formatPrice,
+    getDisplayPrice,
+    getDisplayDiscount,
+  }) => {
+    return (
+      <div className={`bg-white rounded-lg border border-gray-200 p-4 mb-3 ${isSelected ? 'bg-blue-50 border-blue-300' : ''}`}>
+        {/* Top Row - Checkbox, Image, Name, and Delete Button - Vertically Centered */}
+        <div className="flex items-center gap-3 mb-4">
+          {/* Checkbox - Vertically Centered */}
+          <input
+            type="checkbox"
+            className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer flex-shrink-0"
+            checked={isSelected}
+            onChange={onSelect}
+            disabled={isRemoving}
+          />
+          
+          {/* Product Image */}
+          <div className="w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-gray-50">
+            <img
+              src={item.image}
+              alt={item.name}
+              className="w-full h-full object-contain"
+              onError={(e) => {
+                e.currentTarget.src = "/placeholder-image.jpg";
+              }}
+            />
+          </div>
+          
+          {/* Product Name and Unit Buttons Container */}
+          <div className="flex-1 min-w-0">
+            <h3 className="font-medium text-gray-900 text-sm mb-2 line-clamp-2">
+              {item.name}
+            </h3>
+            
+            {/* Unit Buttons */}
+            <div className="flex gap-2">
+              {(["kg", "g"] as const).map((unit) => (
+                <button
+                  key={unit}
+                  onClick={() => onUnitChange(unit)}
+                  disabled={isRemoving}
+                  className={`px-3 py-1 text-xs rounded-md border transition-colors cursor-pointer ${
+                    selectedUnit === unit
+                      ? "bg-purple-100 text-purple-700 border-purple-300 font-medium"
+                      : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+                  } disabled:opacity-50`}
+                >
+                  {unit}
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          {/* Delete Button - Vertically Centered */}
+          <button
+            onClick={onRemove}
+            disabled={isRemoving}
+            className="text-red-500 hover:text-red-700 p-2 flex-shrink-0 disabled:opacity-50 transition-colors"
+            title={isRemoving ? "Removing..." : "Remove item"}
+          >
+            <Trash size={20} fill="red" strokeWidth={2} />
+          </button>
+        </div>
+
+        {/* Quantity Controls */}
+        <div className="flex items-center justify-between mb-4 pt-2 border-t border-gray-100">
+          <span className="text-sm text-gray-600">Quantity</span>
+          <div className="relative flex items-center gap-3 border border-gray-300 rounded-lg px-3 py-2 bg-white">
+            <button
+              onClick={() => onQuantityChange(-1)}
+              disabled={isRemoving}
+              className="hover:bg-gray-100 p-1 rounded-full disabled:opacity-50 transition-colors"
+            >
+              <Minus size={16} />
+            </button>
+            
+            {tooltipStates[item.id] && (
+              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 z-10 whitespace-nowrap">
+                <div className="bg-[#191D28] text-white text-xs px-2 py-1 rounded shadow-lg">
+                  {tooltipStates[item.id] === "min" ? "Minimum quantity reached" : "Maximum quantity reached"}
+                </div>
+              </div>
+            )}
+            
+            <span className="text-sm font-medium w-16 text-center">
+              {parseFloat(item.quantity.toFixed(3))}
+            </span>
+            
+            <button
+              onClick={() => onQuantityChange(1)}
+              disabled={isRemoving}
+              className="hover:bg-gray-100 p-1 rounded-full disabled:opacity-50 transition-colors"
+            >
+              <Plus size={16} />
+            </button>
+          </div>
+        </div>
+
+        {/* Price Information Grid */}
+        <div className="space-y-2 pt-2 border-t border-gray-100">
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-gray-600">Price</span>
+            <span className="font-medium">Rs. {formatPrice(getDisplayPrice(item))}</span>
+          </div>
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-gray-600">Discount</span>
+            <span className="font-medium text-[#3E206D]">Rs. {formatPrice(getDisplayDiscount(item))}</span>
+          </div>
+          <div className="flex justify-between items-center text-base font-bold pt-1">
+            <span>Final Price</span>
+            <span className="text-[#3E206D]">
+              Rs. {formatPrice(getDisplayPrice(item) - getDisplayDiscount(item))}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Horizontal Scroll Component with Indicators
+  const HorizontalScrollWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const [showLeftArrow, setShowLeftArrow] = useState(false);
+    const [showRightArrow, setShowRightArrow] = useState(false);
+
+    const checkScroll = () => {
+      const container = scrollContainerRef.current;
+      if (container) {
+        setShowLeftArrow(container.scrollLeft > 0);
+        setShowRightArrow(
+          container.scrollLeft < container.scrollWidth - container.clientWidth - 10
+        );
+      }
+    };
+
+    useEffect(() => {
+      const container = scrollContainerRef.current;
+      if (container) {
+        checkScroll();
+        container.addEventListener('scroll', checkScroll);
+        window.addEventListener('resize', checkScroll);
+        
+        return () => {
+          container.removeEventListener('scroll', checkScroll);
+          window.removeEventListener('resize', checkScroll);
+        };
+      }
+    }, []);
+
+    const scroll = (direction: 'left' | 'right') => {
+      const container = scrollContainerRef.current;
+      if (container) {
+        const scrollAmount = direction === 'left' ? -300 : 300;
+        container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+      }
+    };
+
+    return (
+      <div className="relative">
+        {showLeftArrow && (
+          <button
+            onClick={() => scroll('left')}
+            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 backdrop-blur-sm rounded-full p-2 shadow-lg border border-gray-200 hover:bg-gray-50 transition-all cursor-pointer"
+            aria-label="Scroll left"
+          >
+            <ChevronLeft size={20} className="text-[#3E206D]" />
+          </button>
+        )}
+        
+        {showRightArrow && (
+          <button
+            onClick={() => scroll('right')}
+            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 backdrop-blur-sm rounded-full p-2 shadow-lg border border-gray-200 hover:bg-gray-50 transition-all cursor-pointer"
+            aria-label="Scroll right"
+          >
+            <ChevronRight size={20} className="text-[#3E206D]" />
+          </button>
+        )}
+
+        <div
+          ref={scrollContainerRef}
+          className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
+          style={{
+            scrollbarWidth: 'thin',
+            WebkitOverflowScrolling: 'touch',
+          }}
+        >
+          <div className="md:hidden text-center text-xs text-gray-400 mb-2 animate-pulse">
+            ← Swipe to see more →
+          </div>
+          {children}
+        </div>
+      </div>
+    );
+  };
+
+  // Desktop Table Component
+  const TableDesktop = ({ itemGroup }: { itemGroup: AdditionalItems }) => (
+    <div className="bg-white rounded-xl border border-[#CFCFCF] overflow-hidden">
+      <div className="overflow-x-auto">
+        <div className="min-w-[800px]">
+          <table className="w-full">
+            <thead className="border-b border-gray-200 font-bold">
+              <tr>
+                <th className="p-4 text-left w-12">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                    checked={selectAll}
+                    onChange={handleSelectAll}
+                  />
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  ITEM
+                </th>
+                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  UNIT
+                </th>
+                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  QUANTITY
+                </th>
+                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  PRICE
+                </th>
+                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  DISCOUNT
+                </th>
+                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  FINAL PRICE
+                </th>
+                <th className="px-4 py-3 text-center w-12"></th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-100">
+              {itemGroup.Items.map((item) => {
+                const selectedUnit = unitSelection[item.id] || item.unit;
+                const isRemoving = removingItems.has(`product-${item.id}`);
+                const isSelected = selectedProducts.has(item.id);
+
+                return (
+                  <tr
+                    key={item.id}
+                    className={`hover:bg-gray-50 transition-colors ${isRemoving ? "opacity-50" : ""} ${isSelected ? "bg-blue-50" : ""}`}
+                  >
+                    <td className="p-4 align-middle">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer disabled:cursor-not-allowed"
+                        checked={isSelected}
+                        onChange={() => handleSelectProduct(item.id)}
+                        disabled={isRemoving}
+                      />
+                    </td>
+                    <td className="px-4 py-4 align-middle">
+                      <div className="flex items-center gap-3">
+                        <div className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden">
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            className="w-full h-full object-contain"
+                            onError={(e) => {
+                              e.currentTarget.src = "/placeholder-image.jpg";
+                            }}
+                          />
+                        </div>
+                        <span className="text-sm font-medium text-gray-900">
+                          {item.name}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 align-middle">
+                      <div className="flex gap-1 justify-center">
+                        {(["kg", "g"] as const).map((unit) => (
+                          <button
+                            key={unit}
+                            onClick={() => handleUnitChange(item.id, unit)}
+                            disabled={isRemoving}
+                            className={`px-3 py-1 text-sm rounded-md border transition-colors cursor-pointer ${
+                              selectedUnit === unit
+                                ? "bg-purple-100 text-purple-700 border-purple-300 font-medium"
+                                : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+                            } disabled:opacity-50 disabled:cursor-not-allowed`}
+                          >
+                            {unit}
+                          </button>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 align-middle">
+                      <div className="relative flex items-center gap-2 border border-gray-300 rounded-lg px-3 py-2 w-32 mx-auto bg-white">
+                        <div className="relative">
+                          <button
+                            onClick={() => handleProductQuantityChange(item.id, -1)}
+                            disabled={isRemoving}
+                            className="hover:bg-gray-100 p-1 rounded-full flex items-center justify-center disabled:opacity-50 transition-colors cursor-pointer disabled:cursor-not-allowed"
+                          >
+                            <Minus size={14} />
+                          </button>
+
+                          {tooltipStates[item.id] && (
+                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 z-10">
+                              <div className="bg-[#191D28] text-white text-xs px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
+                                {tooltipStates[item.id] === "min" ? (
+                                  <>
+                                    Minimum quantity is{" "}
+                                    {(() => {
+                                      const selectedUnit = unitSelection[item.id] || item.unit;
+                                      let startValue = item.startValue || 1;
+                                      if (selectedUnit === "g" && item.unit === "kg") {
+                                        startValue = parseFloat((startValue * 1000).toFixed(3));
+                                      } else if (selectedUnit === "kg" && item.unit === "g") {
+                                        startValue = parseFloat((startValue / 1000).toFixed(3));
+                                      }
+                                      return parseFloat(startValue.toFixed(3));
+                                    })()}{" "}
+                                    {unitSelection[item.id] || item.unit}
+                                  </>
+                                ) : (
+                                  <>
+                                    Maximum quantity is{" "}
+                                    {(() => {
+                                      const selectedUnit = unitSelection[item.id] || item.unit;
+                                      let maxValue = item.maxQuantity || Infinity;
+                                      if (maxValue !== Infinity && selectedUnit !== item.unit) {
+                                        if (selectedUnit === "g" && item.unit === "kg") {
+                                          maxValue = parseFloat((maxValue * 1000).toFixed(3));
+                                        } else if (selectedUnit === "kg" && item.unit === "g") {
+                                          maxValue = parseFloat((maxValue / 1000).toFixed(3));
+                                        }
+                                      }
+                                      return parseFloat(maxValue.toFixed(3));
+                                    })()}{" "}
+                                    {unitSelection[item.id] || item.unit}
+                                  </>
+                                )}
+                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-red-600"></div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        <span className="text-sm font-medium flex-1 text-center">
+                          {parseFloat(item.quantity.toFixed(3))}
+                        </span>
+
+                        <button
+                          onClick={() => handleProductQuantityChange(item.id, 1)}
+                          disabled={isRemoving}
+                          className="hover:bg-gray-100 p-1 rounded-full flex items-center justify-center disabled:opacity-50 transition-colors cursor-pointer disabled:cursor-not-allowed"
+                        >
+                          <Plus size={14} />
+                        </button>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 align-middle text-center">
+                      <span className="text-sm font-bold text-[#212121] whitespace-nowrap">
+                        Rs. {formatPrice(getDisplayPrice(item))}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4 align-middle text-center">
+                      <span className="text-sm font-medium text-[#3E206D] whitespace-nowrap">
+                        Rs. {formatPrice(getDisplayDiscount(item))}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4 align-middle text-center">
+                      <span className="text-sm font-bold text-[#212121] whitespace-nowrap">
+                        Rs. {formatPrice(getDisplayPrice(item) - getDisplayDiscount(item))}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4 align-middle text-center">
+                      <button
+                        onClick={() => handleRemoveProduct(item.id)}
+                        disabled={isRemoving}
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed inline-flex items-center justify-center"
+                        title={isRemoving ? "Removing..." : "Remove item"}
+                      >
+                        <Trash size={20} fill="red" strokeWidth={2} />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -822,7 +1123,6 @@ const Page: React.FC = () => {
     );
   }
 
-  // Empty cart state - improved logic
   if (isCartEmpty()) {
     return (
       <>
@@ -835,7 +1135,6 @@ const Page: React.FC = () => {
         <div className="px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5">
           <TopNavigation NavArray={NavArray} />
           <div className="flex flex-col items-center justify-center py-8 px-4">
-            {/* Empty Cart Image/Icon */}
             <div className="mb-6">
               <Image
                 src={empty}
@@ -848,7 +1147,6 @@ const Page: React.FC = () => {
               <ShoppingCart size={80} className="text-gray-400 hidden" />
             </div>
 
-            {/* Empty Cart Text */}
             <div className="text-center max-w-md">
               <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-3">
                 Your Cart is Empty
@@ -858,7 +1156,6 @@ const Page: React.FC = () => {
                 shopping to fill it up!
               </p>
 
-              {/* Continue Shopping Button */}
               <button
                 onClick={handleContinueShopping}
                 className="bg-[#3E206D] text-white font-semibold px-8 py-3 rounded-lg text-lg hover:bg-[#2F1A5B] transition-colors shadow-lg cursor-pointer"
@@ -874,7 +1171,6 @@ const Page: React.FC = () => {
 
   return (
     <>
-      {/* Confirmation Modal - Moved to top level */}
       <SuccessPopup
         key={successPopupKey}
         isVisible={showSuccessPopup}
@@ -883,56 +1179,52 @@ const Page: React.FC = () => {
         }}
         title="Successfully Deleted!"
       />
+      
       {showConfirmModal && (
-  <div className="fixed inset-0 bg-black/40 bg-opacity-50 flex items-center justify-center z-50 p-4">
-    <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-sm md:max-w-md lg:max-w-lg text-center mx-4 md:mx-0">
-      <p className="text-base md:text-lg font-medium mb-4 md:mb-6">
-        {showConfirmModal.type === "bulk"
-          ? `Are you sure you want to remove ${showConfirmModal.selectedIds?.length === 1 ? "" : showConfirmModal.selectedIds?.length} selected ${showConfirmModal.selectedIds?.length === 1 ? "product" : "products"}?`
-          : `Are you sure you want to remove this package?`}
-      </p>
-      <div className="flex justify-center gap-3 md:gap-4">
-        <button
-          onClick={() => setShowConfirmModal(null)}
-          className="px-4 md:px-6 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors cursor-pointer"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={async () => {
-            // Show success popup immediately when Remove is clicked
-            setSuccessPopupKey((prev) => prev + 1);
-            setShowSuccessPopup(true);
-
-            // Close modal
-            setShowConfirmModal(null);
-
-            // Execute delete operation in background
-            if (showConfirmModal.type === "bulk") {
-              confirmBulkDelete(showConfirmModal.selectedIds || []);
-            } else {
-              confirmRemovePackage(showConfirmModal.id);
-            }
-          }}
-          disabled={showConfirmModal.type === "bulk" && bulkDeleteLoading}
-          className="px-4 md:px-6 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors disabled:opacity-50 cursor-pointer"
-        >
-          {showConfirmModal.type === "bulk" && bulkDeleteLoading
-            ? "Removing..."
-            : "Remove"}
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+        <div className="fixed inset-0 bg-black/40 bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-sm md:max-w-md lg:max-w-lg text-center mx-4 md:mx-0">
+            <p className="text-base md:text-lg font-medium mb-4 md:mb-6">
+              {showConfirmModal.type === "bulk"
+                ? `Are you sure you want to remove ${showConfirmModal.selectedIds?.length === 1 ? "" : showConfirmModal.selectedIds?.length} selected ${showConfirmModal.selectedIds?.length === 1 ? "product" : "products"}?`
+                : `Are you sure you want to remove this package?`}
+            </p>
+            <div className="flex justify-center gap-3 md:gap-4">
+              <button
+                onClick={() => setShowConfirmModal(null)}
+                className="px-4 md:px-6 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  setSuccessPopupKey((prev) => prev + 1);
+                  setShowSuccessPopup(true);
+                  setShowConfirmModal(null);
+                  
+                  if (showConfirmModal.type === "bulk") {
+                    confirmBulkDelete(showConfirmModal.selectedIds || []);
+                  } else {
+                    confirmRemovePackage(showConfirmModal.id);
+                  }
+                }}
+                disabled={showConfirmModal.type === "bulk" && bulkDeleteLoading}
+                className="px-4 md:px-6 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                {showConfirmModal.type === "bulk" && bulkDeleteLoading
+                  ? "Removing..."
+                  : "Remove"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showDeliveryModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
           <div className="bg-[#3E206D] p-8 rounded-2xl shadow-2xl w-full max-w-md relative">
-            {/* Close Button */}
             <button
               onClick={() => setShowDeliveryModal(false)}
-              className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors duration-200 border border-white  p-1 hover:border-gray-300 cursor-pointer"
+              className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors duration-200 border border-white p-1 hover:border-gray-300 cursor-pointer"
             >
               <X size={15} />
             </button>
@@ -941,7 +1233,6 @@ const Page: React.FC = () => {
             </h2>
 
             <div className="grid grid-cols-2 gap-4 mb-6">
-              {/* In-store Pickup Option */}
               <button
                 onClick={() => handleDeliveryMethodSelect("pickup")}
                 className="bg-white rounded-2xl p-6 flex flex-col items-center justify-center hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer"
@@ -959,7 +1250,6 @@ const Page: React.FC = () => {
                 </div>
               </button>
 
-              {/* Home Delivery Option */}
               <button
                 onClick={() => handleDeliveryMethodSelect("delivery")}
                 className="bg-white rounded-2xl p-6 flex flex-col items-center justify-center hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer"
@@ -973,15 +1263,14 @@ const Page: React.FC = () => {
                 </div>
                 <div className="text-center">
                   <p className="font-semibold text-gray-800 text-lg">HOME</p>
-                  <p className="font-semibold text-gray-800 text-lg">
-                    DELIVERY
-                  </p>
+                  <p className="font-semibold text-gray-800 text-lg">DELIVERY</p>
                 </div>
               </button>
             </div>
           </div>
         </div>
       )}
+      
       <div className="px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5">
         <TopNavigation NavArray={NavArray} />
 
@@ -989,7 +1278,6 @@ const Page: React.FC = () => {
           <div className="w-full lg:w-2/3">
             {cartData.additionalItems.map((itemGroup: AdditionalItems) => (
               <div key={itemGroup.id} className="my-4 sm:my-6 lg:my-8">
-                {/* Header section with package name on left, total on right */}
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex items-center gap-2">
                     <p className="text-[20px] font-normal text-gray-700">
@@ -1000,18 +1288,15 @@ const Page: React.FC = () => {
                     </p>
                   </div>
 
-                  {/* Total price in right corner */}
                   <span className="text-lg font-bold text-[#3E206D]">
                     Rs. {formatPrice(calculateItemGroupTotal(itemGroup))}
                   </span>
                 </div>
 
-                {/* Full width horizontal line */}
                 <div className="w-full h-0.5 bg-[#9E8FB5] mb-2"></div>
 
-                {/* Bulk Delete Button - Only show when items are selected */}
                 {selectedProducts.size > 0 && (
-                  <div className="flex justify-end mb-4 ">
+                  <div className="flex justify-end mb-4">
                     <button
                       onClick={handleBulkDelete}
                       disabled={bulkDeleteLoading}
@@ -1025,198 +1310,40 @@ const Page: React.FC = () => {
                   </div>
                 )}
 
-                {/* Updated table design to match UI */}
-                <div className="bg-white rounded-xl border border-[#CFCFCF] overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <div className="min-w-[800px]">
-                      <table className="w-full">
-                        <thead className="border-b border-gray-200 font-bold">
-                          <tr>
-                            <th className="p-4 text-left">
-                              <input
-                                type="checkbox"
-                                className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
-                                checked={selectAll}
-                                onChange={handleSelectAll}
-                              />
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              ITEM
-                            </th>
-                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              UNIT
-                            </th>
-                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              QUANTITY
-                            </th>
-                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              PRICE
-                            </th>
-                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              DISCOUNT
-                            </th>
-                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              FINAL PRICE
-                            </th>
-                            <th className="px-4 py-3 text-center w-12"></th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-100">
-                          {itemGroup.Items.map((item) => {
-                            const selectedUnit = unitSelection[item.id] || item.unit;
-                            const isRemoving = removingItems.has(`product-${item.id}`);
-                            const isSelected = selectedProducts.has(item.id);
+                {/* Conditional rendering based on screen size */}
+                {isMobile ? (
+                  <>
+                    {/* Mobile Card View */}
+                    {itemGroup.Items.map((item) => {
+                      const selectedUnit = unitSelection[item.id] || item.unit;
+                      const isRemoving = removingItems.has(`product-${item.id}`);
+                      const isSelected = selectedProducts.has(item.id);
 
-                            return (
-                              <tr
-                                key={item.id}
-                                className={`hover:bg-gray-50 transition-colors ${isRemoving ? "opacity-50" : ""} ${isSelected ? "bg-blue-50" : ""}`}
-                              >
-                                <td className="p-4">
-                                  <input
-                                    type="checkbox"
-                                    className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer disabled:cursor-not-allowed"
-                                    checked={isSelected}
-                                    onChange={() => handleSelectProduct(item.id)}
-                                    disabled={isRemoving}
-                                  />
-                                </td>
-                                <td className="px-4 py-4">
-                                  <div className="flex items-center gap-3">
-                                    <div className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden">
-                                      <img
-                                        src={item.image}
-                                        alt={item.name}
-                                        className="w-full h-full object-contain"
-                                        onError={(e) => {
-                                          e.currentTarget.src = "/placeholder-image.jpg";
-                                        }}
-                                      />
-                                    </div>
-                                    <span className="text-sm font-medium text-gray-900">
-                                      {item.name}
-                                    </span>
-                                  </div>
-                                </td>
-                                <td className="px-4 py-4">
-                                  <div className="flex gap-1 justify-center">
-                                    {(["kg", "g"] as const).map((unit) => (
-                                      <button
-                                        key={unit}
-                                        onClick={() => handleUnitChange(item.id, unit)}
-                                        disabled={isRemoving}
-                                        className={`px-3 py-1 text-sm rounded-md border transition-colors cursor-pointer ${selectedUnit === unit
-                                          ? "bg-purple-100 text-purple-700 border-purple-300 font-medium"
-                                          : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
-                                          } disabled:opacity-50 disabled:cursor-not-allowed`}
-                                      >
-                                        {unit}
-                                      </button>
-                                    ))}
-                                  </div>
-                                </td>
-                                <td className="px-4 py-4 relative">
-                                  <div className="flex items-center gap-2 border border-gray-300 rounded-lg px-3 py-2 w-32 mx-auto bg-white">
-                                    <div className="relative">
-                                      <button
-                                        onClick={() => handleProductQuantityChange(item.id, -1)}
-                                        disabled={isRemoving}
-                                        className="hover:bg-gray-100 p-1 rounded-full flex items-center justify-center disabled:opacity-50 transition-colors cursor-pointer disabled:cursor-not-allowed"
-                                      >
-                                        <Minus size={14} />
-                                      </button>
-
-                                      {tooltipStates[item.id] && (
-                                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 z-10">
-                                          <div className="bg-[#191D28] text-white text-xs px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
-                                            {tooltipStates[item.id] === "min" ? (
-                                              <>
-                                                Minimum quantity is{" "}
-                                                {(() => {
-                                                  const selectedUnit = unitSelection[item.id] || item.unit;
-                                                  let startValue = item.startValue || 1;
-                                                  if (selectedUnit === "g" && item.unit === "kg") {
-                                                    startValue = parseFloat((startValue * 1000).toFixed(3));
-                                                  } else if (selectedUnit === "kg" && item.unit === "g") {
-                                                    startValue = parseFloat((startValue / 1000).toFixed(3));
-                                                  }
-                                                  return parseFloat(startValue.toFixed(3));
-                                                })()}{" "}
-                                                {unitSelection[item.id] || item.unit}
-                                              </>
-                                            ) : (
-                                              <>
-                                                Maximum quantity is{" "}
-                                                {(() => {
-                                                  const selectedUnit = unitSelection[item.id] || item.unit;
-                                                  let maxValue = item.maxQuantity || Infinity;
-                                                  if (maxValue !== Infinity && selectedUnit !== item.unit) {
-                                                    if (selectedUnit === "g" && item.unit === "kg") {
-                                                      maxValue = parseFloat((maxValue * 1000).toFixed(3));
-                                                    } else if (selectedUnit === "kg" && item.unit === "g") {
-                                                      maxValue = parseFloat((maxValue / 1000).toFixed(3));
-                                                    }
-                                                  }
-                                                  return parseFloat(maxValue.toFixed(3));
-                                                })()}{" "}
-                                                {unitSelection[item.id] || item.unit}
-                                              </>
-                                            )}
-                                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-red-600"></div>
-                                          </div>
-                                        </div>
-                                      )}
-                                    </div>
-
-                                    <span className="text-sm font-medium flex-1 text-center">
-                                      {parseFloat(item.quantity.toFixed(3))}
-                                    </span>
-
-                                    <button
-                                      onClick={() => handleProductQuantityChange(item.id, 1)}
-                                      disabled={isRemoving}
-                                      className="hover:bg-gray-100 p-1 rounded-full flex items-center justify-center disabled:opacity-50 transition-colors cursor-pointer disabled:cursor-not-allowed"
-                                    >
-                                      <Plus size={14} />
-                                    </button>
-                                  </div>
-                                </td>
-                                {/* PRICE */}
-                                <td className="px-4 py-4 text-center">
-                                  <span className="text-sm font-bold text-[#212121] whitespace-nowrap">
-                                    Rs. {formatPrice(getDisplayPrice(item))}
-                                  </span>
-                                </td>
-                                {/* DISCOUNT */}
-                                <td className="px-4 py-4 text-center">
-                                  <span className="text-sm font-medium text-[#3E206D] whitespace-nowrap">
-                                    Rs. {formatPrice(getDisplayDiscount(item))}
-                                  </span>
-                                </td>
-                                {/* FINAL PRICE */}
-                                <td className="px-4 py-4 text-center">
-                                  <span className="text-sm font-bold text-[#212121] whitespace-nowrap">
-                                    Rs. {formatPrice(getDisplayPrice(item) - getDisplayDiscount(item))}
-                                  </span>
-                                </td>
-                                <td className="px-4 py-4 text-center">
-                                  <button
-                                    onClick={() => handleRemoveProduct(item.id)}
-                                    disabled={isRemoving}
-                                    className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-                                    title={isRemoving ? "Removing..." : "Remove item"}
-                                  >
-                                    <Trash size={20} fill="red" strokeWidth={2} />
-                                  </button>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
+                      return (
+                        <MobileProductCard
+                          key={item.id}
+                          item={item}
+                          selectedUnit={selectedUnit}
+                          isRemoving={isRemoving}
+                          isSelected={isSelected}
+                          tooltipStates={tooltipStates}
+                          unitSelection={unitSelection}
+                          onSelect={() => handleSelectProduct(item.id)}
+                          onUnitChange={(unit) => handleUnitChange(item.id, unit)}
+                          onQuantityChange={(delta) => handleProductQuantityChange(item.id, delta)}
+                          onRemove={() => handleRemoveProduct(item.id)}
+                          formatPrice={formatPrice}
+                          getDisplayPrice={getDisplayPrice}
+                          getDisplayDiscount={getDisplayDiscount}
+                        />
+                      );
+                    })}
+                  </>
+                ) : (
+                  <HorizontalScrollWrapper>
+                    <TableDesktop itemGroup={itemGroup} />
+                  </HorizontalScrollWrapper>
+                )}
               </div>
             ))}
 
@@ -1330,7 +1457,6 @@ const Page: React.FC = () => {
                       </p>
                     </div>
                     <button
-                      // onClick={handleRemoveCoupon}
                       disabled={couponLoading}
                       className="text-red-500 hover:text-red-700 text-sm font-medium"
                     >
@@ -1344,10 +1470,11 @@ const Page: React.FC = () => {
 
               {couponMessage && (
                 <div
-                  className={`mt-2 text-sm p-2 rounded ${couponMessage.type === "success"
-                    ? "bg-green-100 text-green-800 border border-green-200"
-                    : "bg-red-100 text-red-800 border border-red-200"
-                    }`}
+                  className={`mt-2 text-sm p-2 rounded ${
+                    couponMessage.type === "success"
+                      ? "bg-green-100 text-green-800 border border-green-200"
+                      : "bg-red-100 text-red-800 border border-red-200"
+                  }`}
                 >
                   {couponMessage.text}
                 </div>
