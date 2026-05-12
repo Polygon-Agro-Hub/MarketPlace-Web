@@ -1053,13 +1053,12 @@ function PickupOrderView({
                         <div className="flex justify-end items-center gap-2">
                           {order.discount && order.discount !== "Rs. 0.00" && (
                             <span
-                              className="text-xs font-normal"
-                              style={{ color: "rgb(62,32,109)" }}
+                              className="text-xs font-normal text-[#3E206D]"
                             >
                               You have saved {order.discount} with us!
                             </span>
                           )}
-                          <span style={{ color: "rgb(62,32,109)" }}>
+                          <span className="text-[#3E206D]">
                             Rs. {additionalItemsTotal}
                           </span>
                         </div>
@@ -1311,11 +1310,11 @@ function DeliveryOrderView({
                     Items)
                   </span>
                   {order.discount && order.discount !== "Rs. 0.00" && (
-                    <div className="text-sm text-purple-700">
+                    <div className="text-sm text-[#3E206D]">
                       You have saved {order.discount} with us!
                     </div>
                   )}
-                  <span className="font-semibold text-purple-700">
+                  <span className="font-semibold text-[#3E206D]">
                     Rs. {additionalItemsTotal}
                   </span>
                 </div>
