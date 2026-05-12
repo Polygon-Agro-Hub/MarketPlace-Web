@@ -884,47 +884,47 @@ const Page: React.FC = () => {
         title="Successfully Deleted!"
       />
       {showConfirmModal && (
-        <div className="fixed inset-0 bg-black/40 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-96 text-center">
-            <p className="text-lg font-medium mb-6">
-              {showConfirmModal.type === "bulk"
-                ? `Are you sure you want to remove ${showConfirmModal.selectedIds?.length === 1 ? "" : showConfirmModal.selectedIds?.length} selected ${showConfirmModal.selectedIds?.length === 1 ? "product" : "products"}?`
-                : `Are you sure you want to remove this package?`}
-            </p>
-            <div className="flex justify-center gap-4">
-              <button
-                onClick={() => setShowConfirmModal(null)}
-                className="px-6 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={async () => {
-                  // Show success popup immediately when Remove is clicked
-                  setSuccessPopupKey((prev) => prev + 1);
-                  setShowSuccessPopup(true);
+  <div className="fixed inset-0 bg-black/40 bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-sm md:max-w-md lg:max-w-lg text-center mx-4 md:mx-0">
+      <p className="text-base md:text-lg font-medium mb-4 md:mb-6">
+        {showConfirmModal.type === "bulk"
+          ? `Are you sure you want to remove ${showConfirmModal.selectedIds?.length === 1 ? "" : showConfirmModal.selectedIds?.length} selected ${showConfirmModal.selectedIds?.length === 1 ? "product" : "products"}?`
+          : `Are you sure you want to remove this package?`}
+      </p>
+      <div className="flex justify-center gap-3 md:gap-4">
+        <button
+          onClick={() => setShowConfirmModal(null)}
+          className="px-4 md:px-6 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors cursor-pointer"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={async () => {
+            // Show success popup immediately when Remove is clicked
+            setSuccessPopupKey((prev) => prev + 1);
+            setShowSuccessPopup(true);
 
-                  // Close modal
-                  setShowConfirmModal(null);
+            // Close modal
+            setShowConfirmModal(null);
 
-                  // Execute delete operation in background
-                  if (showConfirmModal.type === "bulk") {
-                    confirmBulkDelete(showConfirmModal.selectedIds || []);
-                  } else {
-                    confirmRemovePackage(showConfirmModal.id);
-                  }
-                }}
-                disabled={showConfirmModal.type === "bulk" && bulkDeleteLoading}
-                className="px-6 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors disabled:opacity-50 cursor-pointer"
-              >
-                {showConfirmModal.type === "bulk" && bulkDeleteLoading
-                  ? "Removing..."
-                  : "Remove"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+            // Execute delete operation in background
+            if (showConfirmModal.type === "bulk") {
+              confirmBulkDelete(showConfirmModal.selectedIds || []);
+            } else {
+              confirmRemovePackage(showConfirmModal.id);
+            }
+          }}
+          disabled={showConfirmModal.type === "bulk" && bulkDeleteLoading}
+          className="px-4 md:px-6 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors disabled:opacity-50 cursor-pointer"
+        >
+          {showConfirmModal.type === "bulk" && bulkDeleteLoading
+            ? "Removing..."
+            : "Remove"}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
       {showDeliveryModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
