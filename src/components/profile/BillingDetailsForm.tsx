@@ -34,8 +34,8 @@ type BillingFormData = {
   phone1: string;
   phonecode2?: string;
   phone2?: string;
-  geoLatitude?: number | null;   // Add this
-  geoLongitude?: number | null;  // Add this
+  geoLatitude?: number | null;
+  geoLongitude?: number | null;
 };
 
 // Custom Dropdown Component
@@ -175,7 +175,6 @@ const CancelSuccessPopup = ({ isVisible, onClose, title, duration }: CancelSucce
 const BillingDetailsForm = () => {
   const token = useSelector((state: RootState) => state.auth.token);
 
-  // State for popup notifications and loader
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [showCancelSuccessPopup, setShowCancelSuccessPopup] = useState(false);
   const [showErrorPopup, setShowErrorPopup] = useState(false);
@@ -186,50 +185,35 @@ const BillingDetailsForm = () => {
   const [cities, setCities] = useState<string[]>([]);
   const [hasFormChanged, setHasFormChanged] = useState(false);
   const [isGeoModalOpen, setIsGeoModalOpen] = useState(false);
-  const [mapCenter, setMapCenter] = useState<[number, number]>([6.9271, 79.8612]); // Default to Colombo
+  const [mapCenter, setMapCenter] = useState<[number, number]>([6.9271, 79.8612]);
   const [isViewingLocation, setIsViewingLocation] = useState(false);
-  const [hasGeoLocation, setHasGeoLocation] = useState(false); // Track if geo location exists
-  const [isMounted, setIsMounted] = useState(false); // Track if component is mounted on client
+  const [hasGeoLocation, setHasGeoLocation] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  // Function to view saved location
   const handleViewLocation = () => {
     const lat = watch('geoLatitude');
     const lng = watch('geoLongitude');
     if (lat && lng) {
       setMapCenter([lat, lng]);
-      setIsViewingLocation(true); // Set viewing mode
+      setIsViewingLocation(true);
       setIsGeoModalOpen(true);
     }
   };
 
-  // Function to attach new location
   const handleAttachLocation = () => {
-    setIsViewingLocation(false); // Set to attach mode
+    setIsViewingLocation(false);
     setIsGeoModalOpen(true);
   };
 
-  useEffect(() => {
-    const loadCities = async () => {
-      if (!token) return; // Additional safeguard
-      try {
-        const fetchedCities = await fetchCities(token as string); // Type assertion
-        setCities(fetchedCities);
-      } catch (error: any) {
-        console.error('Error fetching cities:', error);
-        setErrorMessage('Failed to fetch cities. Using default cities.');
-        setShowErrorPopup(true);
-        setCities(['Colombo', 'Kandy', 'Galle', 'Jaffna', 'Negombo', 'Anuradhapura']);
-      }
-    };
-
-    if (token) {
-      loadCities();
-    }
-  }, [token]);
+  // ── Helper: match city case-insensitively against fetched list ──────────────
+  const findMatchingCity = (cityValue: string, citiesList: string[]): string => {
+    if (!cityValue) return '';
+    return citiesList.find(c => c.toLowerCase() === cityValue.toLowerCase()) || cityValue;
+  };
 
   const compareFormData = (current: BillingFormData, initial: BillingFormData | null): boolean => {
     if (!initial) return false;
@@ -242,7 +226,6 @@ const BillingDetailsForm = () => {
       'phonecode2', 'phone2'
     ];
 
-    // Check string fields
     const stringFieldsChanged = stringFieldsToCompare.some(field => {
       const currentValue = current[field] || '';
       const initialValue = initial[field] || '';
@@ -251,13 +234,11 @@ const BillingDetailsForm = () => {
 
     if (stringFieldsChanged) return true;
 
-    // Check geo location fields separately (number comparison)
     const geoLatChanged = (current.geoLatitude ?? null) !== (initial.geoLatitude ?? null);
     const geoLngChanged = (current.geoLongitude ?? null) !== (initial.geoLongitude ?? null);
 
     return geoLatChanged || geoLngChanged;
   };
-
 
   const billingTitleOptions = [
     { value: 'Mr.', label: 'Mr' },
@@ -270,6 +251,7 @@ const BillingDetailsForm = () => {
     { value: 'house', label: 'House' },
     { value: 'apartment', label: 'Apartment' },
   ];
+
   const cityOptions = cities.map((city) => ({
     value: city,
     label: city,
@@ -321,13 +303,12 @@ const BillingDetailsForm = () => {
       phone1: '',
       phonecode2: '+94',
       phone2: '',
-      geoLatitude: null,    // Add this
+      geoLatitude: null,
       geoLongitude: null,
     },
     mode: 'onChange',
   });
 
-  // Watch form values for dropdowns
   const buildingType = watch('buildingType');
   const billingTitleValue = watch('billingTitle');
   const houseCityValue = watch('houseCity');
@@ -335,7 +316,6 @@ const BillingDetailsForm = () => {
   const phonecode1Value = watch('phonecode1');
   const phonecode2Value = watch('phonecode2');
 
-  // Clear fields based on buildingType
   useEffect(() => {
     if (buildingType !== 'apartment') {
       setValue('apartmentName', '');
@@ -356,14 +336,19 @@ const BillingDetailsForm = () => {
     }
   }, [buildingType, setValue]);
 
-  // Fetch billing details and store initial data
+  // ── Combined load: cities first, then billing details ──────────────────────
   useEffect(() => {
-    const loadBillingDetails = async () => {
+    const loadAll = async () => {
       if (!token) return;
-
       setIsLoading(true);
       try {
+        // 1. Fetch cities first so we can match against them immediately
+        const fetchedCities = await fetchCities(token as string);
+        setCities(fetchedCities);
+
+        // 2. Fetch billing details using the freshly fetched cities list
         const data = await fetchBillingDetails({ token });
+
         const formData: BillingFormData = {
           billingTitle: data.billingTitle || '',
           billingName: data.billingName || '',
@@ -378,9 +363,14 @@ const BillingDetailsForm = () => {
           apartmentFloor: data.buildingType?.toLowerCase() === 'apartment' ? data.address?.floorNo || '' : '',
           apartmentHouseNo: data.buildingType?.toLowerCase() === 'apartment' ? data.address?.houseNo || '' : '',
           houseStreet: data.buildingType?.toLowerCase() === 'house' ? data.address?.streetName || '' : '',
-          houseCity: data.buildingType?.toLowerCase() === 'house' ? data.address?.city?.toLowerCase() || '' : '',
+          // ── Use findMatchingCity to fix case-mismatch ──
+          houseCity: data.buildingType?.toLowerCase() === 'house'
+            ? findMatchingCity(data.address?.city || '', fetchedCities)
+            : '',
           apartmentStreet: data.buildingType?.toLowerCase() === 'apartment' ? data.address?.streetName || '' : '',
-          apartmentCity: data.buildingType?.toLowerCase() === 'apartment' ? data.address?.city?.toLowerCase() || '' : '',
+          apartmentCity: data.buildingType?.toLowerCase() === 'apartment'
+            ? findMatchingCity(data.address?.city || '', fetchedCities)
+            : '',
           phonecode1: data.phoneCode || '+94',
           phone1: data.phoneNumber || '',
           phonecode2: data.phoneCode2 || '+94',
@@ -388,29 +378,36 @@ const BillingDetailsForm = () => {
           geoLatitude: data.geoLatitude || data.address?.geoLatitude || null,
           geoLongitude: data.geoLongitude || data.address?.geoLongitude || null,
         };
+
         setInitialFormData(formData);
         reset(formData);
-        setValue('buildingType', formData.buildingType); 
+        setValue('buildingType', formData.buildingType);
+
         setTimeout(() => {
           if (formData.geoLatitude && formData.geoLongitude) {
             setValue('geoLatitude', formData.geoLatitude, { shouldValidate: false });
             setValue('geoLongitude', formData.geoLongitude, { shouldValidate: false });
-            setHasGeoLocation(true); 
+            setHasGeoLocation(true);
           } else {
             setHasGeoLocation(false);
           }
         }, 100);
+
       } catch (error: any) {
-        console.error('Fetch error:', error);
-        setErrorMessage(error.message || 'Failed to fetch billing details');
+        console.error('Error loading data:', error);
+        setErrorMessage(error.message || 'Failed to load billing details');
         setShowErrorPopup(true);
+        // Fallback cities in case fetchCities fails
+        setCities(['Colombo', 'Kandy', 'Galle', 'Jaffna', 'Negombo', 'Anuradhapura']);
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadBillingDetails();
-  }, [token, reset, setValue, getValues]);
+    if (token) {
+      loadAll();
+    }
+  }, [token, reset, setValue]);
 
   useEffect(() => {
     const subscription = watch((value) => {
@@ -424,10 +421,8 @@ const BillingDetailsForm = () => {
   }, [watch, initialFormData]);
 
   useEffect(() => {
-    // Register building type as required
     register('buildingType', { required: 'Building Type is required' });
 
-    // Register house fields with conditional validation
     register('houseNo', {
       validate: (value) => buildingType === 'house' && !value ? 'House No is required' : true
     });
@@ -438,7 +433,6 @@ const BillingDetailsForm = () => {
       validate: (value) => buildingType === 'house' && !value ? 'City is required' : true
     });
 
-    // Register apartment fields with conditional validation
     register('buildingNo', {
       validate: (value) => buildingType === 'apartment' && !value ? 'Building No is required' : true
     });
@@ -461,25 +455,20 @@ const BillingDetailsForm = () => {
       validate: (value) => buildingType === 'apartment' && !value ? 'City is required' : true
     });
 
-    // Register phone code as required
     register('phonecode1', { required: 'Phone code is required' });
-    
-    // Register geo location fields (optional but tracked)
     register('geoLatitude');
     register('geoLongitude');
   }, [register, buildingType]);
 
-  // Add this function before the onSubmit function
   const handleLocationSelect = (lat: number, lng: number) => {
     setValue('geoLatitude', lat, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
     setValue('geoLongitude', lng, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
-    setHasGeoLocation(true); // Mark that geo location exists
-    
-    // Force form change detection
+    setHasGeoLocation(true);
+
     if (initialFormData) {
       const currentData = getValues();
       const hasChanged = compareFormData(currentData as BillingFormData, initialFormData);
-      setHasFormChanged(hasChanged || true); // Force true since location was just selected
+      setHasFormChanged(hasChanged || true);
     }
   };
 
@@ -507,7 +496,6 @@ const BillingDetailsForm = () => {
       return;
     }
 
-    // Additional validation for building type
     if (!data.buildingType) {
       setErrorMessage('Please select a building type.');
       setShowErrorPopup(true);
@@ -515,7 +503,6 @@ const BillingDetailsForm = () => {
       return;
     }
 
-    // Validate required fields based on building type
     if (data.buildingType === 'house') {
       if (!data.houseNo || !data.houseStreet || !data.houseCity) {
         setErrorMessage('Please fill all required house address fields including city.');
@@ -523,7 +510,6 @@ const BillingDetailsForm = () => {
         setIsLoading(false);
         return;
       }
-      // Validate geo location for house
       if (!data.geoLatitude || !data.geoLongitude) {
         setErrorMessage('Geo Location is required. Please attach your geo location.');
         setShowErrorPopup(true);
@@ -539,7 +525,6 @@ const BillingDetailsForm = () => {
         setIsLoading(false);
         return;
       }
-      // Validate geo location for apartment
       if (!data.geoLatitude || !data.geoLongitude) {
         setErrorMessage('Geo Location is required. Please attach your geo location.');
         setShowErrorPopup(true);
@@ -548,7 +533,6 @@ const BillingDetailsForm = () => {
       }
     }
 
-    // Validate phone number
     if (!data.phonecode1 || !data.phone1) {
       setErrorMessage('Phone Number 1 is required.');
       setShowErrorPopup(true);
@@ -556,7 +540,6 @@ const BillingDetailsForm = () => {
       return;
     }
 
-    // Rest of the existing onSubmit logic...
     const address: BillingAddress = {
       title: data.title || data.billingTitle,
       firstName: data.firstName || '',
@@ -572,8 +555,8 @@ const BillingDetailsForm = () => {
       floorNo: data.buildingType === 'apartment' ? data.apartmentFloor || undefined : undefined,
       streetName: data.buildingType === 'house' ? data.houseStreet || undefined : data.buildingType === 'apartment' ? data.apartmentStreet || undefined : undefined,
       city: data.buildingType === 'house' ? data.houseCity || undefined : data.buildingType === 'apartment' ? data.apartmentCity || undefined : undefined,
-      geoLatitude: data.geoLatitude || undefined,    // Keep this
-      geoLongitude: data.geoLongitude || undefined,  // Keep this
+      geoLatitude: data.geoLatitude || undefined,
+      geoLongitude: data.geoLongitude || undefined,
     };
 
     const billingDetails: BillingDetails = {
@@ -608,7 +591,6 @@ const BillingDetailsForm = () => {
   };
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    // Block leading space
     if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
       e.preventDefault();
     }
@@ -618,7 +600,6 @@ const BillingDetailsForm = () => {
     const isNumber = /[0-9]/.test(e.key);
     const isInvalidChar = /[0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?]/.test(e.key);
 
-    // Block leading space
     if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
       e.preventDefault();
       return;
@@ -632,26 +613,18 @@ const BillingDetailsForm = () => {
   };
 
   const handlePhoneKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    // Allow: backspace, delete, tab, escape, enter, arrows
     const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
-    
-    if (allowedKeys.includes(e.key)) {
-      return;
-    }
 
-    // Allow: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
-    if ((e.ctrlKey || e.metaKey) && ['a', 'c', 'v', 'x'].includes(e.key.toLowerCase())) {
-      return;
-    }
+    if (allowedKeys.includes(e.key)) return;
 
-    // Block everything except numbers 0-9
+    if ((e.ctrlKey || e.metaKey) && ['a', 'c', 'v', 'x'].includes(e.key.toLowerCase())) return;
+
     if (!/^[0-9]$/.test(e.key)) {
       e.preventDefault();
     }
   };
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: 'phone1' | 'phone2') => {
-    // Remove all non-numeric characters
     const numericValue = e.target.value.replace(/\D/g, '');
     setValue(fieldName, numericValue, { shouldValidate: true });
   };
@@ -660,13 +633,12 @@ const BillingDetailsForm = () => {
     setIsLoading(true);
     if (initialFormData) {
       reset(initialFormData);
-      setValue('buildingType', initialFormData.buildingType); // Ensure buildingType is reset
-      // Explicitly reset geo location values
+      setValue('buildingType', initialFormData.buildingType);
       if (initialFormData.geoLatitude && initialFormData.geoLongitude) {
         setValue('geoLatitude', initialFormData.geoLatitude);
         setValue('geoLongitude', initialFormData.geoLongitude);
       }
-      setHasFormChanged(false); // Reset the change flag
+      setHasFormChanged(false);
     }
     setTimeout(() => {
       setIsLoading(false);
@@ -805,7 +777,6 @@ const BillingDetailsForm = () => {
                     placeholder='Street Name'
                     onKeyDown={handleInputKeyDown}
                   />
-
                   <p className="text-red-500 text-xs">{errors.houseStreet?.message}</p>
                 </div>
 
@@ -842,7 +813,7 @@ const BillingDetailsForm = () => {
                         <LocateFixed size={18} />
                         <span className="text-[12px] md:text-[14px]">Re-attach My Geo Location</span>
                       </button>
-                      <div 
+                      <div
                         className="flex items-start gap-2 text-[#D32F2F] cursor-pointer"
                         onClick={handleViewLocation}
                       >
@@ -863,9 +834,7 @@ const BillingDetailsForm = () => {
                     </button>
                   )}
                 </div>
-                <div className="w-full lg:w-1/2">
-                  {/* Empty space for alignment */}
-                </div>
+                <div className="w-full lg:w-1/2" />
               </div>
             </>
           )}
@@ -883,7 +852,6 @@ const BillingDetailsForm = () => {
                     placeholder='Apartment or Building Name'
                     onKeyDown={handleInputKeyDown}
                   />
-
                   <p className="text-red-500 text-xs">{errors.apartmentName?.message}</p>
                 </div>
 
@@ -976,7 +944,7 @@ const BillingDetailsForm = () => {
                         <LocateFixed size={18} />
                         <span className="text-[12px] md:text-[14px]">Re-attach My Geo Location</span>
                       </button>
-                      <div 
+                      <div
                         className="flex items-start gap-2 text-[#D32F2F] cursor-pointer"
                         onClick={handleViewLocation}
                       >
@@ -997,9 +965,7 @@ const BillingDetailsForm = () => {
                     </button>
                   )}
                 </div>
-                <div className="w-full lg:w-1/2">
-                  {/* Empty space for alignment */}
-                </div>
+                <div className="w-full lg:w-1/2" />
               </div>
             </>
           )}
@@ -1088,16 +1054,17 @@ const BillingDetailsForm = () => {
             Save
           </button>
         </div>
+
         <GeoLocationModal
           isOpen={isGeoModalOpen}
           onClose={() => {
             setIsGeoModalOpen(false);
-            setIsViewingLocation(false); // Reset viewing mode when closing
+            setIsViewingLocation(false);
           }}
           onLocationSelect={handleLocationSelect}
           initialCenter={mapCenter}
-          savedLocation={isViewingLocation && watch('geoLatitude') && watch('geoLongitude') 
-            ? [Number(watch('geoLatitude')), Number(watch('geoLongitude'))] 
+          savedLocation={isViewingLocation && watch('geoLatitude') && watch('geoLongitude')
+            ? [Number(watch('geoLatitude')), Number(watch('geoLongitude'))]
             : null}
           viewOnly={isViewingLocation}
         />
@@ -1107,4 +1074,3 @@ const BillingDetailsForm = () => {
 };
 
 export default BillingDetailsForm;
-

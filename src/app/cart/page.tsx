@@ -139,10 +139,10 @@ const Page: React.FC = () => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
-    
+
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
@@ -383,14 +383,48 @@ const Page: React.FC = () => {
       }
 
       const updatedCartData = await getUserCart(token);
+
+      // ── Merge pending quantity changes back into the fresh server data ──
+      const mergedAdditionalItems = updatedCartData.additionalItems?.map(
+        (itemGroup: AdditionalItems) => ({
+          ...itemGroup,
+          Items: itemGroup.Items.map((item: CartItem) => {
+            // If this item has a pending (unsaved) quantity update, restore it
+            const pendingUpdate = pendingUpdates.find(
+              (u) => u.productId === item.id,
+            );
+            if (pendingUpdate) {
+              return { ...item, quantity: pendingUpdate.newQuantity };
+            }
+            return item;
+          }),
+        }),
+      );
+
       dispatch(
         setCartData({
           cart: updatedCartData.cart,
           packages: updatedCartData.packages,
-          additionalItems: updatedCartData.additionalItems,
+          additionalItems: mergedAdditionalItems ?? updatedCartData.additionalItems,
           summary: updatedCartData.summary,
         }),
       );
+
+      // ── Re-apply the unit selections for items that had pending updates ──
+      // (server returns items in their original unit, so we keep our local unit state)
+      setUnitSelection((prev) => {
+        const updated = { ...prev };
+        updatedCartData.additionalItems?.forEach((itemGroup: AdditionalItems) => {
+          itemGroup.Items.forEach((item: CartItem) => {
+            // Only set unit from server if we don't already have a local override
+            if (!updated[item.id]) {
+              updated[item.id] =
+                item.unit.toLowerCase() === "kg" ? "kg" : "g";
+            }
+          });
+        });
+        return updated;
+      });
 
       setSuccessPopupKey((prev) => prev + 1);
       setShowSuccessPopup(true);
@@ -536,13 +570,56 @@ const Page: React.FC = () => {
       }
 
       const updatedCartData = await getUserCart(token);
+
+      // ── Merge pending quantity changes back (for items NOT deleted) ──
+      const remainingPendingUpdates = pendingUpdates.filter(
+        (u) => !validProductIds.includes(u.productId),
+      );
+
+      const mergedAdditionalItems = updatedCartData.additionalItems?.map(
+        (itemGroup: AdditionalItems) => ({
+          ...itemGroup,
+          Items: itemGroup.Items.map((item: CartItem) => {
+            const pendingUpdate = remainingPendingUpdates.find(
+              (u) => u.productId === item.id,
+            );
+            if (pendingUpdate) {
+              return { ...item, quantity: pendingUpdate.newQuantity };
+            }
+            return item;
+          }),
+        }),
+      );
+
       dispatch(
         setCartData({
           cart: updatedCartData.cart,
           packages: updatedCartData.packages,
-          additionalItems: updatedCartData.additionalItems,
+          additionalItems: mergedAdditionalItems ?? updatedCartData.additionalItems,
           summary: updatedCartData.summary,
         }),
+      );
+
+      // ── Preserve local unit selections for remaining items ──
+      setUnitSelection((prev) => {
+        const updated = { ...prev };
+        // Remove deleted items from unit selection
+        validProductIds.forEach((id) => delete updated[id]);
+        // Keep existing selections for remaining items
+        updatedCartData.additionalItems?.forEach((itemGroup: AdditionalItems) => {
+          itemGroup.Items.forEach((item: CartItem) => {
+            if (!updated[item.id]) {
+              updated[item.id] =
+                item.unit.toLowerCase() === "kg" ? "kg" : "g";
+            }
+          });
+        });
+        return updated;
+      });
+
+      // Also clean up pending updates for deleted items
+      setPendingUpdates((prev) =>
+        prev.filter((u) => !validProductIds.includes(u.productId)),
       );
 
       setSelectedProducts(new Set());
@@ -556,7 +633,6 @@ const Page: React.FC = () => {
       setBulkDeleteLoading(false);
     }
   };
-
   const handleCheckout = async () => {
     if (
       isCartEmpty() ||
@@ -720,121 +796,120 @@ const Page: React.FC = () => {
     getDisplayPrice,
     getDisplayDiscount,
   }) => {
-    return (
-      <div className={`bg-white rounded-lg border border-gray-200 p-4 mb-3 ${isSelected ? 'bg-blue-50 border-blue-300' : ''}`}>
-        {/* Top Row - Checkbox, Image, Name, and Delete Button - Vertically Centered */}
-        <div className="flex items-center gap-3 mb-4">
-          {/* Checkbox - Vertically Centered */}
-          <input
-            type="checkbox"
-            className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer flex-shrink-0"
-            checked={isSelected}
-            onChange={onSelect}
-            disabled={isRemoving}
-          />
-          
-          {/* Product Image */}
-          <div className="w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-gray-50">
-            <img
-              src={item.image}
-              alt={item.name}
-              className="w-full h-full object-contain"
-              onError={(e) => {
-                e.currentTarget.src = "/placeholder-image.jpg";
-              }}
+      return (
+        <div className={`bg-white rounded-lg border border-gray-200 p-4 mb-3 ${isSelected ? 'bg-blue-50 border-blue-300' : ''}`}>
+          {/* Top Row - Checkbox, Image, Name, and Delete Button - Vertically Centered */}
+          <div className="flex items-center gap-3 mb-4">
+            {/* Checkbox - Vertically Centered */}
+            <input
+              type="checkbox"
+              className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer flex-shrink-0"
+              checked={isSelected}
+              onChange={onSelect}
+              disabled={isRemoving}
             />
-          </div>
-          
-          {/* Product Name and Unit Buttons Container */}
-          <div className="flex-1 min-w-0">
-            <h3 className="font-medium text-gray-900 text-sm mb-2 line-clamp-2">
-              {item.name}
-            </h3>
-            
-            {/* Unit Buttons */}
-            <div className="flex gap-2">
-              {(["kg", "g"] as const).map((unit) => (
-                <button
-                  key={unit}
-                  onClick={() => onUnitChange(unit)}
-                  disabled={isRemoving}
-                  className={`px-3 py-1 text-xs rounded-md border transition-colors cursor-pointer ${
-                    selectedUnit === unit
+
+            {/* Product Image */}
+            <div className="w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-gray-50">
+              <img
+                src={item.image}
+                alt={item.name}
+                className="w-full h-full object-contain"
+                onError={(e) => {
+                  e.currentTarget.src = "/placeholder-image.jpg";
+                }}
+              />
+            </div>
+
+            {/* Product Name and Unit Buttons Container */}
+            <div className="flex-1 min-w-0">
+              <h3 className="font-medium text-gray-900 text-sm mb-2 line-clamp-2">
+                {item.name}
+              </h3>
+
+              {/* Unit Buttons */}
+              <div className="flex gap-2">
+                {(["kg", "g"] as const).map((unit) => (
+                  <button
+                    key={unit}
+                    onClick={() => onUnitChange(unit)}
+                    disabled={isRemoving}
+                    className={`px-3 py-1 text-xs rounded-md border transition-colors cursor-pointer ${selectedUnit === unit
                       ? "bg-purple-100 text-purple-700 border-purple-300 font-medium"
                       : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
-                  } disabled:opacity-50`}
-                >
-                  {unit}
-                </button>
-              ))}
+                      } disabled:opacity-50`}
+                  >
+                    {unit}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Delete Button - Vertically Centered */}
+            <button
+              onClick={onRemove}
+              disabled={isRemoving}
+              className="text-red-500 hover:text-red-700 p-2 flex-shrink-0 disabled:opacity-50 transition-colors"
+              title={isRemoving ? "Removing..." : "Remove item"}
+            >
+              <Trash size={20} fill="red" strokeWidth={2} />
+            </button>
+          </div>
+
+          {/* Quantity Controls */}
+          <div className="flex items-center justify-between mb-4 pt-2 border-t border-gray-100">
+            <span className="text-sm text-gray-600">Quantity</span>
+            <div className="relative flex items-center gap-3 border border-gray-300 rounded-lg px-3 py-2 bg-white">
+              <button
+                onClick={() => onQuantityChange(-1)}
+                disabled={isRemoving}
+                className="hover:bg-gray-100 p-1 rounded-full disabled:opacity-50 transition-colors"
+              >
+                <Minus size={16} />
+              </button>
+
+              {tooltipStates[item.id] && (
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 z-10 whitespace-nowrap">
+                  <div className="bg-[#191D28] text-white text-xs px-2 py-1 rounded shadow-lg">
+                    {tooltipStates[item.id] === "min" ? "Minimum quantity reached" : "Maximum quantity reached"}
+                  </div>
+                </div>
+              )}
+
+              <span className="text-sm font-medium w-16 text-center">
+                {parseFloat(item.quantity.toFixed(3))}
+              </span>
+
+              <button
+                onClick={() => onQuantityChange(1)}
+                disabled={isRemoving}
+                className="hover:bg-gray-100 p-1 rounded-full disabled:opacity-50 transition-colors"
+              >
+                <Plus size={16} />
+              </button>
             </div>
           </div>
-          
-          {/* Delete Button - Vertically Centered */}
-          <button
-            onClick={onRemove}
-            disabled={isRemoving}
-            className="text-red-500 hover:text-red-700 p-2 flex-shrink-0 disabled:opacity-50 transition-colors"
-            title={isRemoving ? "Removing..." : "Remove item"}
-          >
-            <Trash size={20} fill="red" strokeWidth={2} />
-          </button>
-        </div>
 
-        {/* Quantity Controls */}
-        <div className="flex items-center justify-between mb-4 pt-2 border-t border-gray-100">
-          <span className="text-sm text-gray-600">Quantity</span>
-          <div className="relative flex items-center gap-3 border border-gray-300 rounded-lg px-3 py-2 bg-white">
-            <button
-              onClick={() => onQuantityChange(-1)}
-              disabled={isRemoving}
-              className="hover:bg-gray-100 p-1 rounded-full disabled:opacity-50 transition-colors"
-            >
-              <Minus size={16} />
-            </button>
-            
-            {tooltipStates[item.id] && (
-              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 z-10 whitespace-nowrap">
-                <div className="bg-[#191D28] text-white text-xs px-2 py-1 rounded shadow-lg">
-                  {tooltipStates[item.id] === "min" ? "Minimum quantity reached" : "Maximum quantity reached"}
-                </div>
-              </div>
-            )}
-            
-            <span className="text-sm font-medium w-16 text-center">
-              {parseFloat(item.quantity.toFixed(3))}
-            </span>
-            
-            <button
-              onClick={() => onQuantityChange(1)}
-              disabled={isRemoving}
-              className="hover:bg-gray-100 p-1 rounded-full disabled:opacity-50 transition-colors"
-            >
-              <Plus size={16} />
-            </button>
+          {/* Price Information Grid */}
+          <div className="space-y-2 pt-2 border-t border-gray-100">
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-gray-600">Price</span>
+              <span className="font-medium">Rs. {formatPrice(getDisplayPrice(item))}</span>
+            </div>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-gray-600">Discount</span>
+              <span className="font-medium text-[#3E206D]">Rs. {formatPrice(getDisplayDiscount(item))}</span>
+            </div>
+            <div className="flex justify-between items-center text-base font-bold pt-1">
+              <span>Final Price</span>
+              <span className="text-[#3E206D]">
+                Rs. {formatPrice(getDisplayPrice(item) - getDisplayDiscount(item))}
+              </span>
+            </div>
           </div>
         </div>
-
-        {/* Price Information Grid */}
-        <div className="space-y-2 pt-2 border-t border-gray-100">
-          <div className="flex justify-between items-center text-sm">
-            <span className="text-gray-600">Price</span>
-            <span className="font-medium">Rs. {formatPrice(getDisplayPrice(item))}</span>
-          </div>
-          <div className="flex justify-between items-center text-sm">
-            <span className="text-gray-600">Discount</span>
-            <span className="font-medium text-[#3E206D]">Rs. {formatPrice(getDisplayDiscount(item))}</span>
-          </div>
-          <div className="flex justify-between items-center text-base font-bold pt-1">
-            <span>Final Price</span>
-            <span className="text-[#3E206D]">
-              Rs. {formatPrice(getDisplayPrice(item) - getDisplayDiscount(item))}
-            </span>
-          </div>
-        </div>
-      </div>
-    );
-  };
+      );
+    };
 
   // Horizontal Scroll Component with Indicators
   const HorizontalScrollWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -858,7 +933,7 @@ const Page: React.FC = () => {
         checkScroll();
         container.addEventListener('scroll', checkScroll);
         window.addEventListener('resize', checkScroll);
-        
+
         return () => {
           container.removeEventListener('scroll', checkScroll);
           window.removeEventListener('resize', checkScroll);
@@ -885,7 +960,7 @@ const Page: React.FC = () => {
             <ChevronLeft size={20} className="text-[#3E206D]" />
           </button>
         )}
-        
+
         {showRightArrow && (
           <button
             onClick={() => scroll('right')}
@@ -994,11 +1069,10 @@ const Page: React.FC = () => {
                             key={unit}
                             onClick={() => handleUnitChange(item.id, unit)}
                             disabled={isRemoving}
-                            className={`px-3 py-1 text-sm rounded-md border transition-colors cursor-pointer ${
-                              selectedUnit === unit
-                                ? "bg-purple-100 text-purple-700 border-purple-300 font-medium"
-                                : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
-                            } disabled:opacity-50 disabled:cursor-not-allowed`}
+                            className={`px-3 py-1 text-sm rounded-md border transition-colors cursor-pointer ${selectedUnit === unit
+                              ? "bg-purple-100 text-purple-700 border-purple-300 font-medium"
+                              : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+                              } disabled:opacity-50 disabled:cursor-not-allowed`}
                           >
                             {unit}
                           </button>
@@ -1179,7 +1253,7 @@ const Page: React.FC = () => {
         }}
         title="Successfully Deleted!"
       />
-      
+
       {showConfirmModal && (
         <div className="fixed inset-0 bg-black/40 bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-sm md:max-w-md lg:max-w-lg text-center mx-4 md:mx-0">
@@ -1200,7 +1274,7 @@ const Page: React.FC = () => {
                   setSuccessPopupKey((prev) => prev + 1);
                   setShowSuccessPopup(true);
                   setShowConfirmModal(null);
-                  
+
                   if (showConfirmModal.type === "bulk") {
                     confirmBulkDelete(showConfirmModal.selectedIds || []);
                   } else {
@@ -1270,7 +1344,7 @@ const Page: React.FC = () => {
           </div>
         </div>
       )}
-      
+
       <div className="px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5">
         <TopNavigation NavArray={NavArray} />
 
@@ -1470,11 +1544,10 @@ const Page: React.FC = () => {
 
               {couponMessage && (
                 <div
-                  className={`mt-2 text-sm p-2 rounded ${
-                    couponMessage.type === "success"
-                      ? "bg-green-100 text-green-800 border border-green-200"
-                      : "bg-red-100 text-red-800 border border-red-200"
-                  }`}
+                  className={`mt-2 text-sm p-2 rounded ${couponMessage.type === "success"
+                    ? "bg-green-100 text-green-800 border border-green-200"
+                    : "bg-red-100 text-red-800 border border-red-200"
+                    }`}
                 >
                   {couponMessage.text}
                 </div>

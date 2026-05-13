@@ -192,7 +192,7 @@ const ComplaintsHistory = () => {
                     {selectedComplaint.reply || 'No reply available yet.'}
                   </p>
                   <p className="text-sm">Sincerely,</p>
-                  <p className="text-sm">Customer Support Team</p>
+                  <p className="text-sm">Polygon Customer Support Team</p>
                   <p className="text-sm">
                     {formatReplyTime(selectedComplaint.replyTime)}
                   </p>
