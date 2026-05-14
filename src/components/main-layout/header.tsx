@@ -460,18 +460,18 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
           )}
 
           <div onClick={handleCartClick} className="cursor-pointer">
-            <div className="flex items-center space-x-4 bg-[#000000] px-8 py-2 rounded-full h-12">
-              <div className="relative">
-                <FontAwesomeIcon className="text-2xl" icon={faBagShopping} />
-                <span className="absolute top-3 -right-2 bg-[#FF8F66] text-white rounded-full w-4 h-4 flex items-center justify-center text-xs">
-                  {isHydrated ? cartState.count || 0 : 0}
-                </span>
-              </div>
-              <div className="text-sm">
-                Rs. {isHydrated ? formatPrice(cartState.price) : "0.00"}
-              </div>
-            </div>
-          </div>
+  <div className="flex items-center justify-center bg-[#000000] px-4.5 md:px-8 py-2 rounded-full h-12">
+    <div className="relative">
+      <FontAwesomeIcon className="text-2xl" icon={faBagShopping} />
+      <span className="absolute top-3 -right-1 bg-[#FF8F66] text-white rounded-full w-4 h-4 flex items-center justify-center text-xs">
+        {isHydrated ? cartState.count || 0 : 0}
+      </span>
+    </div>
+    <div className="text-sm hidden md:block md:ml-4">
+      Rs. {isHydrated ? formatPrice(cartState.price) : "0.00"}
+    </div>
+  </div>
+</div>
 
           {!isMobile && isAuthenticated() && (
             <Link href="/history/order">
