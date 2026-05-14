@@ -352,8 +352,7 @@ const ItemCard = ({
   };
 
   return (
-    // h-full: fills the grid cell so all cards in a row are equal height
-    <div className="relative bg-white rounded-xl md:rounded-3xl shadow-sm border border-gray-200 w-full h-full flex flex-col items-center transition-all duration-300 hover:shadow-md cursor-default">
+    <div className="relative bg-white rounded-xl md:rounded-3xl shadow-sm border border-gray-200 w-full max-w-[160px] xs:max-w-[180px] sm:max-w-[200px] md:max-w-none h-[240px] sm:h-[280px] md:h-[340px] flex flex-col items-center transition-all duration-300 hover:shadow-md cursor-default overflow-hidden">
       {error && (
         <div className="absolute top-0 left-0 right-0 bg-red-100 text-red-700 text-xs p-1 text-center z-30 rounded-t-xl md:rounded-t-3xl">
           {error}
@@ -366,64 +365,63 @@ const ItemCard = ({
         </div>
       )}
 
-      {/* Discount badge */}
-      {discount && discount > 0 && (
+      {/* Discount badge - hidden when quantity selector is active */}
+      {discount && discount > 0 && !showQuantitySelector && (
         <div className="absolute top-0 left-0 z-20">
           <div
-            className="w-15 h-15 rounded-tl-xl md:rounded-tl-3xl sm:w-14 sm:h-14 md:w-20 md:h-20 bg-purple-900 flex flex-col items-center justify-center text-white"
+            className="w-12 h-12 sm:w-14 sm:h-14 md:w-20 md:h-20 bg-purple-900 flex flex-col items-center justify-center text-white rounded-tl-xl md:rounded-tl-3xl"
             style={{ clipPath: "polygon(0 0, 0 100%, 100% 0)" }}
           >
-            <div className="transform -translate-y-1/3 -translate-x-1/3 text-[8px] sm:text-[9px] md:text-[10px] absolute top-4 left-4 md:top-5 md:left-6">
-              <span className="text-xs">{discount}%</span>
+            <div className="transform -translate-y-1/3 -translate-x-1/3 text-[6px] sm:text-[9px] md:text-[10px] absolute top-3 left-3 sm:top-4 sm:left-4 md:top-5 md:left-6">
+              <span className="text-[10px] sm:text-xs">{discount}%</span>
               <br />
-              <span className="text-[7px] md:text-xs">Off</span>
+              <span className="text-[5px] sm:text-[7px] md:text-xs">Off</span>
             </div>
           </div>
         </div>
       )}
 
-      {/* Card body — flex column, auto height */}
-      {/* justify-between: pushes button to bottom so all cards align */}
-      <div className="w-full flex-1 flex flex-col items-center justify-between p-2 pt-3 pb-4 gap-2">
-        {/* Top content group — image + name + price */}
-        <div className="w-full flex flex-col items-center gap-2">
-          {/* Product image */}
+      {/* Scrollable content area */}
+      <div className="w-full h-full flex flex-col items-center justify-between p-2 pt-2 pb-3 gap-1 overflow-y-auto">
+        {/* Top content group */}
+        <div className="w-full flex flex-col items-center gap-1 flex-shrink-0">
+          {/* Product image - hidden when quantity selector is active */}
           {!addedToCart && !showQuantitySelector && (
             <div
-              className={`w-full flex items-center justify-center ${discount ? "mt-5" : "mt-1"}`}
+              className={`w-full flex items-center justify-center ${discount ? "mt-3 sm:mt-5" : "mt-1"}`}
             >
               <Image
                 src={image}
                 alt={name}
-                width={120}
-                height={120}
-                className="object-contain w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 xl:w-28 xl:h-28"
+                width={80}
+                height={80}
+                className="object-contain w-10 h-10 sm:w-14 sm:h-14 md:w-24 md:h-24 lg:w-28 lg:h-28"
               />
             </div>
           )}
 
           {/* Product name */}
-          <div className="w-full text-center px-1">
-            <h3 className="text-xs md:text-sm lg:text-base font-medium text-gray-800 line-clamp-2 leading-snug">
+          <div className="w-full text-center px-0.5">
+            <h3 className="text-xs sm:text-sm md:text-base font-medium text-gray-800 line-clamp-2 leading-tight">
               {name}
             </h3>
           </div>
 
-          {/* Card face price */}
-          {!showQuantitySelector && (
+          {/* Show either price OR quantity selector */}
+          {!showQuantitySelector ? (
             <>
               <div className="w-full text-center">
                 <span className="text-purple-600 text-xs font-medium">
                   {getStartValueDisplay()}
                 </span>
               </div>
-              <div className="flex flex-col items-center gap-0.5">
+              <div className="flex flex-col items-center gap-0">
                 {discount &&
                 discount > 0 &&
                 originalPrice &&
                 cardFaceOriginalPrice > cardFaceCurrentPrice ? (
                   <>
-                    <span className="text-purple-900 text-xs md:text-sm font-semibold">
+                    <span className="text-purple-900 text-sm font-semibold">
                       Rs. {formatPrice(cardFaceCurrentPrice)}
                     </span>
                     <span className="text-gray-500 text-xs line-through">
@@ -431,22 +429,20 @@ const ItemCard = ({
                     </span>
                   </>
                 ) : (
-                  <span className="text-purple-900 text-xs md:text-sm font-semibold">
+                  <span className="text-purple-900 text-sm font-semibold">
                     Rs. {formatPrice(cardFaceOriginalPrice)}
                   </span>
                 )}
               </div>
             </>
-          )}
-
-          {/* Quantity selector */}
-          {token &&
+          ) : (
+            /* Quantity selector */
+            token &&
             user &&
-            showQuantitySelector &&
             buyerType !== "Wholesale" &&
             !isInCart && (
-              <div className="w-full flex flex-col items-center gap-2 py-1">
-                <div className="flex flex-col items-center gap-0.5">
+              <div className="w-full flex flex-col items-center gap-1 py-0.5">
+                <div className="flex flex-col items-center gap-0">
                   {discount &&
                   discount > 0 &&
                   originalPrice &&
@@ -455,12 +451,12 @@ const ItemCard = ({
                       <span className="text-gray-500 text-xs line-through">
                         Rs. {formatPrice(selectorOriginalPrice)}
                       </span>
-                      <span className="text-purple-900 text-sm md:text-base font-semibold">
+                      <span className="text-purple-900 text-sm font-semibold">
                         Rs. {formatPrice(selectorCurrentPrice)}
                       </span>
                     </>
                   ) : (
-                    <span className="text-purple-900 text-sm md:text-base font-semibold">
+                    <span className="text-purple-900 text-sm font-semibold">
                       Rs. {formatPrice(selectorOriginalPrice)}
                     </span>
                   )}
@@ -519,11 +515,12 @@ const ItemCard = ({
                   </div>
                 </div>
               </div>
-            )}
+            )
+          )}
         </div>
 
-        {/* Add to Cart button — always at bottom due to justify-between */}
-        <div className="relative flex justify-center w-full">
+        {/* Add to Cart button */}
+        <div className="relative flex justify-center w-full flex-shrink-0">
           <Tooltip />
           {addedToCart ? (
             <button className="w-full hover:shadow-md transition-shadow duration-300 cursor-pointer max-w-[180px] sm:max-w-[200px] md:max-w-[220px] py-2 px-1.5 rounded-lg md:rounded-xl flex items-center justify-center gap-1 text-xs md:text-sm bg-[#EDE1FF] text-purple-900 border border-[#3E206D]">
@@ -592,6 +589,21 @@ const ItemCard = ({
       </div>
 
       <LoginPopup />
+
+      {/* Custom scrollbar styles */}
+      <style jsx>{`
+        .overflow-y-auto::-webkit-scrollbar {
+          width: 2px;
+        }
+        .overflow-y-auto::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 10px;
+        }
+        .overflow-y-auto::-webkit-scrollbar-thumb {
+          background: #c4c4c4;
+          border-radius: 10px;
+        }
+      `}</style>
     </div>
   );
 };

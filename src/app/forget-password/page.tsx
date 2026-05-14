@@ -226,7 +226,7 @@ const Page = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-white relative p-4">
-      <div className="w-full max-w-6xl h-auto min-h-[90vh] md:h-[90vh] bg-white rounded-xl shadow-none md:shadow-lg flex flex-col md:flex-row overflow-hidden">
+      <div className="w-full max-w-6xl h-auto min-h-[90vh] md:h-[90vh] bg-white rounded-xl shadow-none md:shadow-lg flex flex-col md:flex-row overflow-y-auto">
 
         {/* ── LEFT / TOP: Illustration ── */}
         <div className="relative w-full md:w-1/2 flex items-center justify-center bg-white p-4 md:p-8 order-1 md:order-1">
