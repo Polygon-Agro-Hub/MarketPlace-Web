@@ -188,7 +188,7 @@ const filterOptions = [
   { value: "last-2-weeks", label: "Last 2 Weeks" },
   { value: "this-month", label: "Last Month" },
   { value: "last-3-months", label: "Last 3 Months" },
-  { value: "all", label: "All" },
+  // { value: "all", label: "All" },
 ];
 
 export default function OrderHistoryPage() {
