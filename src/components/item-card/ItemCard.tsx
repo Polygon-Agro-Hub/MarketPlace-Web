@@ -365,8 +365,8 @@ const ItemCard = ({
         </div>
       )}
 
-      {/* Discount badge - hidden when quantity selector is active */}
-      {discount && discount > 0 && !showQuantitySelector && (
+      {/* Discount badge - always visible */}
+      {discount && discount > 0 && (
         <div className="absolute top-0 left-0 z-20">
           <div
             className="w-12 h-12 sm:w-14 sm:h-14 md:w-20 md:h-20 bg-purple-900 flex flex-col items-center justify-center text-white rounded-tl-xl md:rounded-tl-3xl"
@@ -381,15 +381,12 @@ const ItemCard = ({
         </div>
       )}
 
-      {/* Scrollable content area */}
-      <div className="w-full h-full flex flex-col items-center justify-between p-2 pt-2 pb-3 gap-1 overflow-y-auto">
-        {/* Top content group */}
-        <div className="w-full flex flex-col items-center gap-1 flex-shrink-0">
-          {/* Product image - hidden when quantity selector is active */}
-          {!addedToCart && !showQuantitySelector && (
-            <div
-              className={`w-full flex items-center justify-center ${discount ? "mt-3 sm:mt-5" : "mt-1"}`}
-            >
+      {/* Content area - fixed height to maintain alignment */}
+      <div className="w-full h-full flex flex-col items-center justify-between p-2 pt-2 pb-3 gap-1">
+        {/* Image container with fixed height to maintain spacing */}
+        <div className="w-full flex items-center justify-center flex-shrink-0" style={{ minHeight: '80px' }}>
+          {!showQuantitySelector ? (
+            <div className={`flex items-center justify-center ${discount ? "mt-3 sm:mt-5" : "mt-1"}`}>
               <Image
                 src={image}
                 alt={name}
@@ -398,16 +395,23 @@ const ItemCard = ({
                 className="object-contain w-10 h-10 sm:w-14 sm:h-14 md:w-24 md:h-24 lg:w-28 lg:h-28"
               />
             </div>
+          ) : (
+            /* Empty div to maintain space when image is hidden */
+            <div className="invisible">
+              <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-24 md:h-24 lg:w-28 lg:h-28"></div>
+            </div>
           )}
+        </div>
 
-          {/* Product name */}
-          <div className="w-full text-center px-0.5">
-            <h3 className="text-xs sm:text-sm md:text-base font-medium text-gray-800 line-clamp-2 leading-tight">
-              {name}
-            </h3>
-          </div>
+        {/* Product name */}
+        <div className="w-full text-center px-0.5 flex-shrink-0">
+          <h3 className="text-xs sm:text-sm md:text-base font-medium text-gray-800 line-clamp-2 leading-tight">
+            {name}
+          </h3>
+        </div>
 
-          {/* Show either price OR quantity selector */}
+        {/* Show either price OR quantity selector */}
+        <div className="w-full flex-shrink-0">
           {!showQuantitySelector ? (
             <>
               <div className="w-full text-center">
@@ -441,7 +445,7 @@ const ItemCard = ({
             user &&
             buyerType !== "Wholesale" &&
             !isInCart && (
-              <div className="w-full flex flex-col items-center gap-1 py-0.5">
+              <div className="w-full flex flex-col items-center gap-2">
                 <div className="flex flex-col items-center gap-0">
                   {discount &&
                   discount > 0 &&
@@ -589,21 +593,6 @@ const ItemCard = ({
       </div>
 
       <LoginPopup />
-
-      {/* Custom scrollbar styles */}
-      <style jsx>{`
-        .overflow-y-auto::-webkit-scrollbar {
-          width: 2px;
-        }
-        .overflow-y-auto::-webkit-scrollbar-track {
-          background: #f1f1f1;
-          border-radius: 10px;
-        }
-        .overflow-y-auto::-webkit-scrollbar-thumb {
-          background: #c4c4c4;
-          border-radius: 10px;
-        }
-      `}</style>
     </div>
   );
 };
