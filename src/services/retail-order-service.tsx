@@ -53,9 +53,9 @@ export const submitPayment = async (payload: PaymentPayload) => {
   }
 };
 
-export const getOrderHistory = async (token: string | null): Promise<any> => {
+export const getOrderHistory = async (token: string | null, filter: string): Promise<any> => {
   try {
-    const response = await axios.get("/retail-order/order-history", {
+    const response = await axios.get(`/retail-order/order-history?filter=${filter}`, {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",

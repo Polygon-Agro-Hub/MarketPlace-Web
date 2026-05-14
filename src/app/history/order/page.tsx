@@ -212,7 +212,7 @@ export default function OrderHistoryPage() {
     const fetchOrders = async () => {
       try {
         setLoading(true);
-        const data = await getOrderHistory(token);
+        const data = await getOrderHistory(token, filter);
         const orderHistory = data.orderHistory || [];
         if (!Array.isArray(orderHistory)) {
           setOrders([]);
@@ -246,7 +246,7 @@ export default function OrderHistoryPage() {
     };
 
     fetchOrders();
-  }, [token]);
+  }, [token, filter]);
 
   useEffect(() => {
     if (selectedOrder && modalContentRef.current && mainRef.current) {
@@ -369,41 +369,41 @@ export default function OrderHistoryPage() {
     }
   };
 
-  const filteredOrders =
-    filter === "all"
-      ? orders
-      : orders.filter((order) => {
-          const now = new Date();
-          const orderDate = order.createdAt;
+  // const filteredOrders =
+  //   filter === "all"
+  //     ? orders
+  //     : orders.filter((order) => {
+  //         const now = new Date();
+  //         const orderDate = order.createdAt;
 
-          if (filter === "this-week") {
-            const startOfThisWeek = new Date(now);
-            startOfThisWeek.setDate(now.getDate() - now.getDay());
-            startOfThisWeek.setHours(0, 0, 0, 0);
-            return orderDate >= startOfThisWeek && orderDate <= now;
-          } else if (filter === "last-week") {
-            const startOfThisWeek = new Date(now);
-            startOfThisWeek.setDate(now.getDate() - now.getDay());
-            startOfThisWeek.setHours(0, 0, 0, 0);
-            const startOfLastWeek = new Date(startOfThisWeek);
-            startOfLastWeek.setDate(startOfThisWeek.getDate() - 7);
-            return orderDate >= startOfLastWeek && orderDate < startOfThisWeek;
-          } else if (filter === "last-2-weeks") {
-            const startOfThisWeek = new Date(now);
-            startOfThisWeek.setDate(now.getDate() - now.getDay());
-            startOfThisWeek.setHours(0, 0, 0, 0);
-            const startOfLast2Weeks = new Date(startOfThisWeek);
-            startOfLast2Weeks.setDate(startOfThisWeek.getDate() - 14);
-            return orderDate >= startOfLast2Weeks && orderDate < startOfThisWeek;
-          } else if (filter === "this-month") {
-            const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1);
-            return orderDate >= oneMonthAgo;
-          } else if (filter === "last-3-months") {
-            const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3);
-            return orderDate >= threeMonthsAgo;
-          }
-          return true;
-        });
+  //         if (filter === "this-week") {
+  //           const startOfThisWeek = new Date(now);
+  //           startOfThisWeek.setDate(now.getDate() - now.getDay());
+  //           startOfThisWeek.setHours(0, 0, 0, 0);
+  //           return orderDate >= startOfThisWeek && orderDate <= now;
+  //         } else if (filter === "last-week") {
+  //           const startOfThisWeek = new Date(now);
+  //           startOfThisWeek.setDate(now.getDate() - now.getDay());
+  //           startOfThisWeek.setHours(0, 0, 0, 0);
+  //           const startOfLastWeek = new Date(startOfThisWeek);
+  //           startOfLastWeek.setDate(startOfThisWeek.getDate() - 7);
+  //           return orderDate >= startOfLastWeek && orderDate < startOfThisWeek;
+  //         } else if (filter === "last-2-weeks") {
+  //           const startOfThisWeek = new Date(now);
+  //           startOfThisWeek.setDate(now.getDate() - now.getDay());
+  //           startOfThisWeek.setHours(0, 0, 0, 0);
+  //           const startOfLast2Weeks = new Date(startOfThisWeek);
+  //           startOfLast2Weeks.setDate(startOfThisWeek.getDate() - 14);
+  //           return orderDate >= startOfLast2Weeks && orderDate < startOfThisWeek;
+  //         } else if (filter === "this-month") {
+  //           const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1);
+  //           return orderDate >= oneMonthAgo;
+  //         } else if (filter === "last-3-months") {
+  //           const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3);
+  //           return orderDate >= threeMonthsAgo;
+  //         }
+  //         return true;
+  //       });
 
   const handleFilterChange = (
     newValue: SingleValue<{ value: string; label: string }>,
@@ -430,7 +430,7 @@ export default function OrderHistoryPage() {
           <>
             <div className="flex flex-row justify-between items-center mb-6 space-x-2 lg:mx-[72px]">
               <h1 className="text-sm lg:text-xl font-bold">
-                Your Orders ({filteredOrders.length.toString().padStart(2, "0")})
+                Your Orders ({orders.length.toString().padStart(2, "0")})
               </h1>
               <div className="relative w-[140px] sm:w-[180px]">
                 <Select
@@ -499,9 +499,9 @@ export default function OrderHistoryPage() {
               <div className="flex flex-col items-center justify-center h-[50vh] text-center">
                 <Loader isVisible={true} />
               </div>
-            ) : filteredOrders.length > 0 ? (
+            ) : orders.length > 0 ? (
               <div className="lg:mx-[72px] space-y-4">
-                {filteredOrders.map((order) => (
+                {orders.map((order) => (
                   <div
                     key={order.orderId}
                     className="border rounded-xl overflow-hidden"
