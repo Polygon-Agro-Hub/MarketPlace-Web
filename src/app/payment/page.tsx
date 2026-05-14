@@ -130,7 +130,8 @@ const Page: React.FC = () => {
       couponValue: isCouponApplied ? Number(couponDiscountAmount) : 0,
       isCoupon: isCouponApplied,
       couponCode: isCouponApplied ? couponCode : "",
-      geoLatitude: checkoutDetails.geoLatitude || null, // Add this
+      couponType: isCouponApplied ? couponType : "",
+      geoLatitude: checkoutDetails.geoLatitude || null,
       geoLongitude: checkoutDetails.geoLongitude || null,
       companycenterId: checkoutDetails.companycenterId || null,
     };

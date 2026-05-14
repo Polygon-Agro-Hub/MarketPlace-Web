@@ -346,6 +346,7 @@ export interface OrderPayload {
     couponValue: number;
     isCoupon: boolean;
     couponCode?: string;
+    couponType?: string;
     geoLatitude?: number | null;
     geoLongitude?: number | null;
   };

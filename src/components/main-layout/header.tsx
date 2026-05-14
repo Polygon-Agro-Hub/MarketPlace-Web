@@ -386,7 +386,9 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
             <nav className="hidden md:flex space-x-6">
               <Link
                 href={getHomeUrl()}
-                className={`hover:text-[#383d39] text-[#000000] ${isHydrated && isOnHomePage ? "underline underline-offset-4" : ""
+                className={`hover:text-[#383d39] text-[#000000] ${isHydrated && pathname === getHomeUrl()
+                    ? "underline underline-offset-4"
+                    : ""
                   }`}
               >
                 Home
