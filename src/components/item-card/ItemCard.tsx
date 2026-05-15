@@ -384,7 +384,7 @@ const ItemCard = ({
       {/* Content area - flexible height with proper spacing */}
       <div className="w-full h-full flex flex-col items-center justify-between p-2 pt-2 pb-3 gap-1">
         {/* Image container with fixed height to maintain spacing */}
-        <div className="w-full flex items-center justify-center flex-shrink-0" style={{ minHeight: '80px' }}>
+        <div className="w-full flex items-center justify-center flex-shrink-0">
           {!showQuantitySelector ? (
             <div className={`flex items-center justify-center ${discount ? "mt-3 sm:mt-5" : "mt-1"}`}>
               <Image
@@ -398,7 +398,7 @@ const ItemCard = ({
           ) : (
             /* Empty div to maintain space when image is hidden */
             <div className="invisible">
-              <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-24 md:h-24 lg:w-28 lg:h-28"></div>
+              <div className="w-5 h-5 sm:w-14 sm:h-14 md:w-24 md:h-24 lg:w-28 lg:h-28"></div>
             </div>
           )}
         </div>
