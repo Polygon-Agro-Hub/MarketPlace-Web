@@ -352,7 +352,7 @@ const ItemCard = ({
   };
 
   return (
-    <div className="relative bg-white rounded-xl md:rounded-3xl shadow-sm border border-gray-200 w-full max-w-[160px] xs:max-w-[180px] sm:max-w-[200px] md:max-w-none h-[240px] sm:h-[280px] md:h-[340px] flex flex-col items-center transition-all duration-300 hover:shadow-md cursor-default overflow-hidden">
+    <div className="relative bg-white rounded-xl md:rounded-3xl shadow-sm border border-gray-200 w-full max-w-[160px] xs:max-w-[180px] sm:max-w-[200px] md:max-w-none h-auto min-h-[280px] sm:min-h-[320px] md:min-h-[360px] flex flex-col items-center transition-all duration-300 hover:shadow-md cursor-default overflow-visible">
       {error && (
         <div className="absolute top-0 left-0 right-0 bg-red-100 text-red-700 text-xs p-1 text-center z-30 rounded-t-xl md:rounded-t-3xl">
           {error}
@@ -381,7 +381,7 @@ const ItemCard = ({
         </div>
       )}
 
-      {/* Content area - fixed height to maintain alignment */}
+      {/* Content area - flexible height with proper spacing */}
       <div className="w-full h-full flex flex-col items-center justify-between p-2 pt-2 pb-3 gap-1">
         {/* Image container with fixed height to maintain spacing */}
         <div className="w-full flex items-center justify-center flex-shrink-0" style={{ minHeight: '80px' }}>
@@ -411,7 +411,7 @@ const ItemCard = ({
         </div>
 
         {/* Show either price OR quantity selector */}
-        <div className="w-full flex-shrink-0">
+        <div className="w-full flex-shrink-0 px-1">
           {!showQuantitySelector ? (
             <>
               <div className="w-full text-center">
@@ -523,8 +523,8 @@ const ItemCard = ({
           )}
         </div>
 
-        {/* Add to Cart button */}
-        <div className="relative flex justify-center w-full flex-shrink-0">
+        {/* Add to Cart button - with mt-auto for better spacing */}
+        <div className="relative flex justify-center w-full flex-shrink-0 mt-1">
           <Tooltip />
           {addedToCart ? (
             <button className="w-full hover:shadow-md transition-shadow duration-300 cursor-pointer max-w-[180px] sm:max-w-[200px] md:max-w-[220px] py-2 px-1.5 rounded-lg md:rounded-xl flex items-center justify-center gap-1 text-xs md:text-sm bg-[#EDE1FF] text-purple-900 border border-[#3E206D]">
