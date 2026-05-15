@@ -10,7 +10,7 @@ import {
   getOrderDetails,
 } from "@/services/retail-order-service";
 import { useRouter } from "next/navigation";
-import Select, { ActionMeta, SingleValue } from "react-select"; // Import react-select
+import Select, { ActionMeta, SingleValue } from "react-select";
 import Loader from "@/components/loader-spinner/Loader";
 import cart from "../../../../public/images/History.jpg";
 
@@ -23,7 +23,7 @@ interface DetailedItem {
   quantity: string;
   unit: string;
   image?: string;
-  amount?: string; 
+  amount?: string;
 }
 
 interface DetailedPackage {
@@ -67,7 +67,7 @@ interface OrderSummary {
   total: string;
   orderPlaced: string;
   status: string;
-  createdAt: Date; 
+  createdAt: Date;
 }
 
 interface DetailedOrder {
@@ -116,12 +116,9 @@ function formatDateTime(
   });
 }
 
-// Helper function to format quantity - removes unnecessary decimal zeros
 function formatQuantity(quantity: string | number, unit: string = ""): string {
   const numQty = typeof quantity === "string" ? parseFloat(quantity) : quantity;
   if (isNaN(numQty)) return `${quantity}${unit}`;
-
-  // If it's a whole number, display without decimals
   const formattedQty =
     numQty % 1 === 0
       ? numQty.toString()
@@ -164,7 +161,6 @@ function formatAmount(amount: string | number, decimals: number = 2): string {
   if (amount === null || amount === undefined || amount === "N/A") {
     return "N/A";
   }
-
   let numValue: number;
   if (typeof amount === "string") {
     const cleanAmount = amount.replace(/Rs\.\s*/g, "").trim();
@@ -172,11 +168,9 @@ function formatAmount(amount: string | number, decimals: number = 2): string {
   } else {
     numValue = amount;
   }
-
   if (isNaN(numValue)) {
     return "N/A";
   }
-
   return numValue.toLocaleString("en-US", {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
@@ -188,14 +182,13 @@ function formatCurrency(amount: string | number, decimals: number = 2): string {
   return formatted === "N/A" ? "N/A" : `Rs. ${formatted}`;
 }
 
-// Define filter options for react-select
 const filterOptions = [
   { value: "this-week", label: "This Week" },
   { value: "last-week", label: "Last Week" },
   { value: "last-2-weeks", label: "Last 2 Weeks" },
   { value: "this-month", label: "Last Month" },
   { value: "last-3-months", label: "Last 3 Months" },
-  { value: "all", label: "All" },
+  // { value: "all", label: "All" },
 ];
 
 export default function OrderHistoryPage() {
@@ -205,20 +198,13 @@ export default function OrderHistoryPage() {
   const [loading, setLoading] = useState(true);
   const [filterLoading, setFilterLoading] = useState(false);
   const [filter, setFilter] = useState("this-week");
-  const [selectedOrder, setSelectedOrder] = useState<DetailedOrder | null>(
-    null,
-  );
+  const [selectedOrder, setSelectedOrder] = useState<DetailedOrder | null>(null);
   const modalContentRef = useRef<HTMLDivElement>(null);
   const mainRef = useRef<HTMLElement>(null);
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
-  const HEADER_HEIGHT = 64;
-  const FOOTER_HEIGHT = 64;
 
   useEffect(() => {
     if (!token) {
-      console.error(
-        "Token not found in Redux store at 04:37 PM +0530, July 07, 2025",
-      );
       setLoading(false);
       return;
     }
@@ -226,13 +212,9 @@ export default function OrderHistoryPage() {
     const fetchOrders = async () => {
       try {
         setLoading(true);
-        const data = await getOrderHistory(token);
+        const data = await getOrderHistory(token, filter);
         const orderHistory = data.orderHistory || [];
         if (!Array.isArray(orderHistory)) {
-          console.error(
-            "orderHistory is not an array at 04:37 PM +0530, July 07, 2025:",
-            orderHistory,
-          );
           setOrders([]);
           return;
         }
@@ -257,10 +239,6 @@ export default function OrderHistoryPage() {
 
         setOrders(normalizedOrders);
       } catch (err) {
-        console.error(
-          "Error fetching orders at 04:37 PM +0530, July 07, 2025:",
-          err,
-        );
         setOrders([]);
       } finally {
         setLoading(false);
@@ -268,7 +246,7 @@ export default function OrderHistoryPage() {
     };
 
     fetchOrders();
-  }, [token]);
+  }, [token, filter]);
 
   useEffect(() => {
     if (selectedOrder && modalContentRef.current && mainRef.current) {
@@ -284,7 +262,7 @@ export default function OrderHistoryPage() {
   const fetchDetailedOrder = async (orderId: string) => {
     if (!token) return;
     try {
-      setIsFetchingDetails(true); // Start loading
+      setIsFetchingDetails(true);
       setSelectedOrder(null);
       const {
         order: orderData,
@@ -294,11 +272,8 @@ export default function OrderHistoryPage() {
 
       if (orderData.status && orderData.order) {
         const apiOrder = orderData.order;
-        
-        // Backend's discount field already includes all discounts (packages + additional items)
-        // So we use it directly, not add additional items discount again
         const totalDiscount = parseFloat(apiOrder.discount || "0");
-        
+
         const detailedOrder: DetailedOrder = {
           orderId: String(apiOrder.id) || "N/A",
           invoiceNo: String(apiOrder.invoiceNo) || "N/A",
@@ -370,19 +345,16 @@ export default function OrderHistoryPage() {
               : [],
           additionalItems:
             additionalItemsData.status && additionalItemsData.data
-              ? additionalItemsData.data.map((item: any) => {
-                  return {
-                    id: item.id || 0,
-                    name: item.displayName || "Unknown",
-                    quantity: String(item.qty || 1),
-                    unit: item.unit || "kg",
-                    weight: `${item.qty || "1"} ${item.unit || "kg"}`,
-                    price: formatCurrency(parseFloat(item.price || "0"), 2),
-                    image: item.image || undefined,
-                    // Use price directly as amount since backend already calculated it
-                    amount: formatCurrency(parseFloat(item.price || "0"), 2),
-                  };
-                })
+              ? additionalItemsData.data.map((item: any) => ({
+                  id: item.id || 0,
+                  name: item.displayName || "Unknown",
+                  quantity: String(item.qty || 1),
+                  unit: item.unit || "kg",
+                  weight: `${item.qty || "1"} ${item.unit || "kg"}`,
+                  price: formatCurrency(parseFloat(item.price || "0"), 2),
+                  image: item.image || undefined,
+                  amount: formatCurrency(parseFloat(item.price || "0"), 2),
+                }))
               : [],
           discount: formatCurrency(
             totalDiscount > 0 ? ` ${totalDiscount.toFixed(2)}` : " 0.00",
@@ -391,51 +363,47 @@ export default function OrderHistoryPage() {
         setSelectedOrder(detailedOrder);
       }
     } catch (err) {
-      console.error(
-        "Error fetching detailed order at 04:32 PM +0530, July 07, 2025:",
-        err,
-      );
       setSelectedOrder(null);
     } finally {
-      setIsFetchingDetails(false); // Stop loading
+      setIsFetchingDetails(false);
     }
   };
 
-  const filteredOrders =
-    filter === "all"
-      ? orders
-      : orders.filter((order) => {
-          const now = new Date();
-          const orderDate = order.createdAt;
+  // const filteredOrders =
+  //   filter === "all"
+  //     ? orders
+  //     : orders.filter((order) => {
+  //         const now = new Date();
+  //         const orderDate = order.createdAt;
 
-          if (filter === "this-week") {
-            const startOfThisWeek = new Date(now);
-            startOfThisWeek.setDate(now.getDate() - now.getDay()); // Sunday
-            startOfThisWeek.setHours(0, 0, 0, 0);
-            return orderDate >= startOfThisWeek && orderDate <= now;
-          } else if (filter === "last-week") {
-            const startOfThisWeek = new Date(now);
-            startOfThisWeek.setDate(now.getDate() - now.getDay());
-            startOfThisWeek.setHours(0, 0, 0, 0);
-            const startOfLastWeek = new Date(startOfThisWeek);
-            startOfLastWeek.setDate(startOfThisWeek.getDate() - 7);
-            return orderDate >= startOfLastWeek && orderDate < startOfThisWeek;
-          } else if (filter === "last-2-weeks") {
-            const startOfThisWeek = new Date(now);
-            startOfThisWeek.setDate(now.getDate() - now.getDay());
-            startOfThisWeek.setHours(0, 0, 0, 0);
-            const startOfLast2Weeks = new Date(startOfThisWeek);
-            startOfLast2Weeks.setDate(startOfThisWeek.getDate() - 14);
-            return orderDate >= startOfLast2Weeks && orderDate < startOfThisWeek;
-          } else if (filter === "this-month") {
-            const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1);
-            return orderDate >= oneMonthAgo;
-          } else if (filter === "last-3-months") {
-            const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3);
-            return orderDate >= threeMonthsAgo;
-          }
-          return true;
-        });
+  //         if (filter === "this-week") {
+  //           const startOfThisWeek = new Date(now);
+  //           startOfThisWeek.setDate(now.getDate() - now.getDay());
+  //           startOfThisWeek.setHours(0, 0, 0, 0);
+  //           return orderDate >= startOfThisWeek && orderDate <= now;
+  //         } else if (filter === "last-week") {
+  //           const startOfThisWeek = new Date(now);
+  //           startOfThisWeek.setDate(now.getDate() - now.getDay());
+  //           startOfThisWeek.setHours(0, 0, 0, 0);
+  //           const startOfLastWeek = new Date(startOfThisWeek);
+  //           startOfLastWeek.setDate(startOfThisWeek.getDate() - 7);
+  //           return orderDate >= startOfLastWeek && orderDate < startOfThisWeek;
+  //         } else if (filter === "last-2-weeks") {
+  //           const startOfThisWeek = new Date(now);
+  //           startOfThisWeek.setDate(now.getDate() - now.getDay());
+  //           startOfThisWeek.setHours(0, 0, 0, 0);
+  //           const startOfLast2Weeks = new Date(startOfThisWeek);
+  //           startOfLast2Weeks.setDate(startOfThisWeek.getDate() - 14);
+  //           return orderDate >= startOfLast2Weeks && orderDate < startOfThisWeek;
+  //         } else if (filter === "this-month") {
+  //           const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1);
+  //           return orderDate >= oneMonthAgo;
+  //         } else if (filter === "last-3-months") {
+  //           const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3);
+  //           return orderDate >= threeMonthsAgo;
+  //         }
+  //         return true;
+  //       });
 
   const handleFilterChange = (
     newValue: SingleValue<{ value: string; label: string }>,
@@ -443,7 +411,6 @@ export default function OrderHistoryPage() {
   ): void => {
     if (newValue) {
       setFilterLoading(true);
-      // Use setTimeout to show loading state while filtering is applied
       setTimeout(() => {
         setFilter(newValue.value);
         setFilterLoading(false);
@@ -463,16 +430,13 @@ export default function OrderHistoryPage() {
           <>
             <div className="flex flex-row justify-between items-center mb-6 space-x-2 lg:mx-[72px]">
               <h1 className="text-sm lg:text-xl font-bold">
-                Your Orders ({filteredOrders.length.toString().padStart(2, "0")}
-                )
+                Your Orders ({orders.length.toString().padStart(2, "0")})
               </h1>
               <div className="relative w-[140px] sm:w-[180px]">
                 <Select
                   instanceId="order-history-filter"
                   options={filterOptions}
-                  value={filterOptions.find(
-                    (option) => option.value === filter,
-                  )}
+                  value={filterOptions.find((option) => option.value === filter)}
                   onChange={handleFilterChange}
                   isSearchable={false}
                   className="text-xs lg:text-sm"
@@ -535,19 +499,18 @@ export default function OrderHistoryPage() {
               <div className="flex flex-col items-center justify-center h-[50vh] text-center">
                 <Loader isVisible={true} />
               </div>
-            ) : filteredOrders.length > 0 ? (
+            ) : orders.length > 0 ? (
               <div className="lg:mx-[72px] space-y-4">
-                {filteredOrders.map((order) => (
+                {orders.map((order) => (
                   <div
                     key={order.orderId}
                     className="border rounded-xl overflow-hidden"
                     style={{ borderColor: "rgb(215,215,215)" }}
                   >
+                    {/* ── DESKTOP TOP ROW ── */}
                     <div className="hidden sm:grid grid-cols-5 gap-4 p-4 bg-[rgb(248,248,248)] text-xs lg:text-sm">
                       <div>
-                        <span className="text-[rgb(107,114,128)]">
-                          Scheduled Date:
-                        </span>
+                        <span className="text-[rgb(107,114,128)]">Scheduled Date:</span>
                         <p className="font-medium">{order.scheduleDate}</p>
                       </div>
                       <div>
@@ -555,9 +518,7 @@ export default function OrderHistoryPage() {
                         <p className="font-medium">{order.total}</p>
                       </div>
                       <div>
-                        <span className="text-[rgb(107,114,128)]">
-                          Order ID:
-                        </span>
+                        <span className="text-[rgb(107,114,128)]">Order ID:</span>
                         <p className="font-medium">#{order.invoiceNo}</p>
                       </div>
                       <div />
@@ -571,9 +532,7 @@ export default function OrderHistoryPage() {
                         </button>
                         <button
                           onClick={() =>
-                            router.push(
-                              `/history/invoice?orderId=${order.orderId}`,
-                            )
+                            router.push(`/history/invoice?orderId=${order.orderId}`)
                           }
                           className="bg-[rgb(255,255,255)] border text-xs lg:text-sm cursor-pointer border-[rgb(209,213,219)] rounded-lg px-4 py-1.5 hover:bg-[rgb(62,32,109)] hover:text-[rgb(255,255,255)]"
                           disabled={isFetchingDetails}
@@ -583,31 +542,43 @@ export default function OrderHistoryPage() {
                       </div>
                     </div>
 
-                    <div className="sm:hidden bg-[rgb(248,248,248)] p-4 space-y-2 text-sm">
+                    {/* ── MOBILE TOP CARD ── */}
+                    <div className="sm:hidden bg-[rgb(248,248,248)] p-5 space-y-4 text-sm">
                       <div>
-                        <strong>Scheduled Date:</strong> {order.scheduleDate}
+                        <span className="text-[rgb(107,114,128)] text-xs">
+                          Scheduled Date :
+                        </span>
+                        <p className="font-semibold text-[rgb(31,41,55)] mt-0.5">
+                          {order.scheduleDate}
+                        </p>
                       </div>
                       <div>
-                        <strong>Total:</strong> {order.total}
+                        <span className="text-[rgb(107,114,128)] text-xs">Total :</span>
+                        <p className="font-semibold text-[rgb(31,41,55)] mt-0.5">
+                          {order.total}
+                        </p>
                       </div>
                       <div>
-                        <strong>Order ID:</strong> #{order.invoiceNo}
+                        <span className="text-[rgb(107,114,128)] text-xs">
+                          Order ID :
+                        </span>
+                        <p className="font-semibold text-[rgb(31,41,55)] mt-0.5">
+                          #{order.invoiceNo}
+                        </p>
                       </div>
-                      <div className="flex gap-2 justify-end">
+                      <div className="flex flex-col gap-2 pt-1">
                         <button
                           onClick={() => fetchDetailedOrder(order.orderId)}
-                          className="bg-[rgb(255,255,255)] border text-xs cursor-pointer border-[rgb(209,213,219)] rounded-lg px-4 py-1.5 hover:bg-[rgb(62,32,109)] hover:text-[rgb(255,255,255)]"
+                          className="w-full bg-[rgb(255,255,255)] border text-sm cursor-pointer border-[rgb(209,213,219)] rounded-lg px-4 py-2.5 hover:bg-[rgb(62,32,109)] hover:text-[rgb(255,255,255)] transition-colors"
                           disabled={isFetchingDetails}
                         >
                           View Order
                         </button>
                         <button
                           onClick={() =>
-                            router.push(
-                              `/history/invoice?orderId=${order.orderId}`,
-                            )
+                            router.push(`/history/invoice?orderId=${order.orderId}`)
                           }
-                          className="bg-[rgb(255,255,255)] border text-xs cursor-pointer border-[rgb(209,213,219)] rounded-lg px-4 py-1.5 hover:bg-[rgb(62,32,109)] hover:text-[rgb(255,255,255)]"
+                          className="w-full bg-[rgb(255,255,255)] border text-sm cursor-pointer border-[rgb(209,213,219)] rounded-lg px-4 py-2.5 hover:bg-[rgb(62,32,109)] hover:text-[rgb(255,255,255)] transition-colors"
                           disabled={isFetchingDetails}
                         >
                           View Invoice
@@ -619,6 +590,8 @@ export default function OrderHistoryPage() {
                       className="border-t"
                       style={{ borderColor: "rgb(215,215,215)" }}
                     />
+
+                    {/* ── DESKTOP BOTTOM ROW ── */}
                     <div className="hidden sm:grid grid-cols-5 gap-4 p-4 bg-[rgb(255,255,255)] text-xs lg:text-sm mt-4">
                       <div>
                         <span className="text-[rgb(107,114,128)]">Status:</span>
@@ -633,46 +606,56 @@ export default function OrderHistoryPage() {
                         </p>
                       </div>
                       <div>
-                        <span className="text-[rgb(107,114,128)]">
-                          Order Placed:
-                        </span>
+                        <span className="text-[rgb(107,114,128)]">Order Placed:</span>
                         <p className="text-[rgb(0,0,0)]">{order.orderPlaced}</p>
                       </div>
                       <div>
-                        <span className="text-[rgb(107,114,128)]">
-                          Scheduled Time:
+                        <span className="text-[rgb(107,114,128)]">Scheduled Time:</span>
+                        <p className="text-[rgb(0,0,0)]">{order.scheduleTime}</p>
+                      </div>
+                      <div>
+                        <span className="text-[rgb(107,114,128)]">Delivery / Pickup:</span>
+                        <p className="text-[rgb(0,0,0)]">{order.deliveryType}</p>
+                      </div>
+                    </div>
+
+                    {/* ── MOBILE BOTTOM CARD ── */}
+                    <div className="sm:hidden p-5 bg-[rgb(255,255,255)] space-y-4 text-sm">
+                      <div>
+                        <span className="text-[rgb(107,114,128)] text-xs">Status :</span>
+                        <div className="mt-1">
+                          <span
+                            className={`inline-flex justify-center items-center font-medium px-4 py-1 rounded-full text-xs ${getStatusClass(
+                              order.status,
+                            )}`}
+                          >
+                            {order.status}
+                          </span>
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-[rgb(107,114,128)] text-xs">
+                          Order Placed :
                         </span>
-                        <p className="text-[rgb(0,0,0)]">
+                        <p className="font-semibold text-[rgb(31,41,55)] mt-0.5">
+                          {order.orderPlaced}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-[rgb(107,114,128)] text-xs">
+                          Scheduled Time :
+                        </span>
+                        <p className="font-semibold text-[rgb(31,41,55)] mt-0.5">
                           {order.scheduleTime}
                         </p>
                       </div>
                       <div>
-                        <span className="text-[rgb(107,114,128)]">
-                          Delivery / Pickup:
+                        <span className="text-[rgb(107,114,128)] text-xs">
+                          Delivery / Pickup :
                         </span>
-                        <p className="text-[rgb(0,0,0)]">
+                        <p className="font-semibold text-[rgb(31,41,55)] mt-0.5">
                           {order.deliveryType}
                         </p>
-                      </div>
-                    </div>
-
-                    <div className="sm:hidden p-4 bg-[rgb(255,255,255)] space-y-2 text-sm">
-                      <div>
-                        <strong>Status:</strong>
-                        <span
-                          className={`ml-2 px-2 py-0.5 rounded-full ${getStatusClass(order.status)}`}
-                        >
-                          {order.status}
-                        </span>
-                      </div>
-                      <div>
-                        <strong>Order Placed:</strong> {order.orderPlaced}
-                      </div>
-                      <div>
-                        <strong>Scheduled Time:</strong> {order.scheduleTime}
-                      </div>
-                      <div>
-                        <strong>Delivery / Pickup:</strong> {order.deliveryType}
                       </div>
                     </div>
                   </div>
@@ -680,9 +663,7 @@ export default function OrderHistoryPage() {
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-[70vh] text-center text-[rgb(75,85,99)] -mt-32">
-                <Image src={cart} alt="No
-
- Orders" width={200} height={200} />
+                <Image src={cart} alt="No Orders" width={200} height={200} />
                 <p className="mt-4 text-sm italic">--No orders available here--</p>
               </div>
             )}
@@ -730,32 +711,25 @@ function PickupOrderView({
     order.familyPackItems?.reduce(
       (sum, pack) =>
         sum +
-        parseFloat(
-          pack.totalPrice.replace("Rs. ", "").replace(/,/g, "") || "0",
-        ),
+        parseFloat(pack.totalPrice.replace("Rs. ", "").replace(/,/g, "") || "0"),
       0,
     ) || 0;
 
-  // Use pre-calculated amount from backend, don't recalculate
   const additionalItemsTotalNum =
-    order.additionalItems?.reduce(
-      (sum, item) => {
-        const itemAmount = parseFloat(item.amount?.replace("Rs. ", "").replace(/,/g, "") || "0");
-        return sum + itemAmount;
-      },
-      0,
-    ) || 0;
+    order.additionalItems?.reduce((sum, item) => {
+      const itemAmount = parseFloat(
+        item.amount?.replace("Rs. ", "").replace(/,/g, "") || "0",
+      );
+      return sum + itemAmount;
+    }, 0) || 0;
 
   const familyPackTotal = formatAmount(familyPackTotalNum, 2);
   const additionalItemsTotal = formatAmount(additionalItemsTotalNum, 2);
-  const totalPrice = formatAmount(
-    familyPackTotalNum + additionalItemsTotalNum,
-    2,
-  );
+  const totalPrice = formatAmount(familyPackTotalNum + additionalItemsTotalNum, 2);
 
   return (
     <div className="w-full">
-      {/* Desktop Header - hidden on mobile */}
+      {/* Desktop Header */}
       <div className="hidden sm:flex justify-between items-center mb-4">
         <h2
           className="text-xl font-bold text-[rgb(31,41,55)] flex items-center gap-5 cursor-pointer"
@@ -773,39 +747,29 @@ function PickupOrderView({
 
       {/* Mobile Content */}
       <div className="sm:hidden bg-gray-50 min-h-screen p-4">
-        {/* Order Details Grid */}
         <div className="bg-white p-4 space-y-4 text-sm border-b border-gray-200">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <span className="text-gray-600 block">Order Placed :</span>
-              <span className="font-semibold">
-                {order.orderPlaced || "N/A"}
-              </span>
+              <span className="font-semibold">{order.orderPlaced || "N/A"}</span>
             </div>
             <div>
               <span className="text-gray-600 block">Scheduled Date :</span>
-              <span className="font-semibold">
-                {order.scheduleDate || "N/A"}
-              </span>
+              <span className="font-semibold">{order.scheduleDate || "N/A"}</span>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <span className="text-gray-600 block">Scheduled Time :</span>
-              <span className="font-semibold">
-                {order.scheduleTime || "N/A"}
-              </span>
+              <span className="font-semibold">{order.scheduleTime || "N/A"}</span>
             </div>
             <div>
               <span className="text-gray-600 block">Delivery / Pickup :</span>
-              <span className="font-semibold">
-                {order.deliveryType || "N/A"}
-              </span>
+              <span className="font-semibold">{order.deliveryType || "N/A"}</span>
             </div>
           </div>
         </div>
 
-        {/* Pickup Information */}
         <div className="bg-white mt-2 p-4 border-b border-gray-200">
           <h3 className="text-lg font-semibold mb-3 text-black">
             Pickup Information
@@ -818,8 +782,14 @@ function PickupOrderView({
                   {order.pickupInfo?.centerName || "N/A"}
                 </span>
                 <div className="text-sm text-gray-700 mt-1">
-                  <p>{order.pickupInfo?.city || "N/A"}, {order.pickupInfo?.district || "N/A"}</p>
-                  <p>{order.pickupInfo?.province || "N/A"} province, {order.pickupInfo?.country || "N/A"}</p>
+                  <p>
+                    {order.pickupInfo?.city || "N/A"},{" "}
+                    {order.pickupInfo?.district || "N/A"}
+                  </p>
+                  <p>
+                    {order.pickupInfo?.province || "N/A"} province,{" "}
+                    {order.pickupInfo?.country || "N/A"}
+                  </p>
                 </div>
               </div>
             </div>
@@ -832,21 +802,15 @@ function PickupOrderView({
                   {order.title || "N/A"}. {order.fullName || "N/A"}
                 </span>
                 <div className="text-sm text-gray-700">
-                  {order.phone1
-                    ? `${order.phonecode1 || ""} ${order.phone1}`
-                    : ""}
-                  {order.phone2
-                    ? `, ${order.phonecode2 || ""} ${order.phone2}`
-                    : ""}
+                  {order.phone1 ? `${order.phonecode1 || ""} ${order.phone1}` : ""}
+                  {order.phone2 ? `, ${order.phonecode2 || ""} ${order.phone2}` : ""}
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Ordered Items */}
         <div className="bg-white mt-2 rounded-[15px] border border-gray-200 overflow-hidden shadow-lg">
-          {/* Header */}
           <div className="bg-[#F8F8F8] p-4 border-b border-gray-200">
             <div className="flex flex-col space-y-2">
               <span className="font-semibold text-black">Ordered Items</span>
@@ -856,23 +820,24 @@ function PickupOrderView({
             </div>
           </div>
 
-          {/* Family Pack Items */}
           {order.familyPackItems && order.familyPackItems.length > 0 && (
             <div>
               {order.familyPackItems.map((pack, packIndex) => (
-                <div
-                  key={packIndex}
-                  className="border-b border-gray-200 last:border-b-0"
-                >
+                <div key={packIndex} className="border-b border-gray-200 last:border-b-0">
                   <div className="p-4">
                     <div className="flex justify-between items-center mb-4">
                       <span className="font-medium text-black">
                         {pack.name} (
-                        {String(pack.items?.reduce((sum, item) => sum + (parseFloat(item.quantity) || 0), 0) ?? 0).padStart(2, "0")}{" "}
+                        {String(
+                          pack.items?.reduce(
+                            (sum, item) => sum + (parseFloat(item.quantity) || 0),
+                            0,
+                          ) ?? 0,
+                        ).padStart(2, "0")}{" "}
                         Items)
                       </span>
                       <span className="font-semibold text-[#3E206D]">
-                        Rs. {familyPackTotal}
+                        Rs.  {pack.totalPrice}
                       </span>
                     </div>
                     <div className="space-y-3">
@@ -894,7 +859,6 @@ function PickupOrderView({
             </div>
           )}
 
-          {/* Additional Items */}
           {order.additionalItems && order.additionalItems.length > 0 && (
             <div className="border-t border-gray-200">
               <div className="p-4">
@@ -930,9 +894,7 @@ function PickupOrderView({
                         )}
                       </div>
                       <div className="flex-1">
-                        <div className="font-medium text-black">
-                          {item.name}
-                        </div>
+                        <div className="font-medium text-black">{item.name}</div>
                       </div>
                       <div className="text-center">
                         <div className="text-sm text-gray-600">
@@ -940,9 +902,7 @@ function PickupOrderView({
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="font-semibold text-black">
-                          {item.price}
-                        </div>
+                        <div className="font-semibold text-black">{item.price}</div>
                       </div>
                     </div>
                   ))}
@@ -953,36 +913,27 @@ function PickupOrderView({
         </div>
       </div>
 
-      {/* Desktop Content - hidden on mobile */}
+      {/* Desktop Content */}
       <div className="hidden sm:block">
         <div className="border-t border-[rgb(0,0,0)] mb-4 mt-4" />
         <div className="grid grid-cols-4 gap-4 text-sm mb-4">
           <div>
-            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">
-              Order Placed:
-            </h4>
+            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Order Placed:</h4>
             <p className="font-semibold">{order.orderPlaced || "N/A"}</p>
           </div>
           <div>
-            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">
-              Scheduled Date:
-            </h4>
+            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Scheduled Date:</h4>
             <p className="font-semibold">{order.scheduleDate || "N/A"}</p>
           </div>
           <div>
-            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">
-              Scheduled Time:
-            </h4>
+            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Scheduled Time:</h4>
             <p className="font-semibold">{order.scheduleTime || "N/A"}</p>
           </div>
           <div>
-            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">
-              Delivery / Pickup:
-            </h4>
+            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Delivery / Pickup:</h4>
             <p className="font-semibold">{order.deliveryType || "N/A"}</p>
           </div>
         </div>
-        {/* Rest of desktop content remains the same */}
         <div className="border-t border-[rgb(229,231,235)] mb-4" />
         <div className="mb-4">
           <h3 className="text-lg font-semibold mb-2 text-[rgb(31,41,55)]">
@@ -998,8 +949,14 @@ function PickupOrderView({
                   </span>
                 </div>
                 <div className="text-sm">
-                  <p>{order.pickupInfo?.city || "N/A"}, {order.pickupInfo?.district || "N/A"}</p>
-                  <p>{order.pickupInfo?.province || "N/A"} province, {order.pickupInfo?.country || "N/A"}</p>
+                  <p>
+                    {order.pickupInfo?.city || "N/A"},{" "}
+                    {order.pickupInfo?.district || "N/A"}
+                  </p>
+                  <p>
+                    {order.pickupInfo?.province || "N/A"} province,{" "}
+                    {order.pickupInfo?.country || "N/A"}
+                  </p>
                 </div>
               </div>
             </div>
@@ -1012,12 +969,8 @@ function PickupOrderView({
               </p>
               <div>
                 <p>
-                  {order.phone1
-                    ? `${order.phonecode1 || ""} ${order.phone1}`
-                    : ""}
-                  {order.phone2
-                    ? `, ${order.phonecode2 || ""} ${order.phone2}`
-                    : ""}
+                  {order.phone1 ? `${order.phonecode1 || ""} ${order.phone1}` : ""}
+                  {order.phone2 ? `, ${order.phonecode2 || ""} ${order.phone2}` : ""}
                 </p>
               </div>
             </div>
@@ -1027,11 +980,7 @@ function PickupOrderView({
         <div className="mb-4">
           <div
             className="mb-4"
-            style={{
-              border: "1px solid rgb(215,215,215)",
-              borderRadius: "15px",
-              overflow: "hidden",
-            }}
+            style={{ border: "1px solid rgb(215,215,215)", borderRadius: "15px", overflow: "hidden" }}
           >
             <table className="w-full text-sm">
               <tbody>
@@ -1039,10 +988,7 @@ function PickupOrderView({
                   className="w-full border-b border-[rgb(229,231,235)]"
                   style={{ backgroundColor: "rgb(248,248,248)" }}
                 >
-                  <td
-                    colSpan={3}
-                    className="font-semibold text-[rgb(31,41,55)] py-2 p-4"
-                  >
+                  <td colSpan={3} className="font-semibold text-[rgb(31,41,55)] py-2 p-4">
                     Ordered Items
                   </td>
                   <td
@@ -1058,14 +1004,19 @@ function PickupOrderView({
                       <tr className="border-b border-t border-[rgb(229,231,235)]">
                         <td colSpan={3} className="font-medium py-2 p-4">
                           {pack.name} (
-                          {String(pack.items?.reduce((sum, item) => sum + (parseFloat(item.quantity) || 0), 0) ?? 0).padStart(2, "0")}{" "}
+                          {String(
+                            pack.items?.reduce(
+                              (sum, item) => sum + (parseFloat(item.quantity) || 0),
+                              0,
+                            ) ?? 0,
+                          ).padStart(2, "0")}{" "}
                           items)
                         </td>
                         <td
                           className="text-right font-semibold py-2 p-4"
                           style={{ color: "rgb(62,32,109)" }}
                         >
-                          Rs. {familyPackTotal}
+                          Rs. {pack.totalPrice}
                         </td>
                       </tr>
                       <tr>
@@ -1095,23 +1046,19 @@ function PickupOrderView({
                     <tr className="border-b border-t border-[rgb(229,231,235)]">
                       <td colSpan={3} className="font-medium py-2 p-4">
                         Additional Items (
-                        {String(order.additionalItems.length ?? 0).padStart(
-                          2,
-                          "0",
-                        )}{" "}
+                        {String(order.additionalItems.length ?? 0).padStart(2, "0")}{" "}
                         Item{order.additionalItems.length > 1 ? "s" : ""})
                       </td>
                       <td className="text-right font-semibold py-2 p-4">
                         <div className="flex justify-end items-center gap-2">
                           {order.discount && order.discount !== "Rs. 0.00" && (
                             <span
-                              className="text-xs font-normal"
-                              style={{ color: "rgb(62,32,109)" }}
+                              className="text-xs font-normal text-[#3E206D]"
                             >
                               You have saved {order.discount} with us!
                             </span>
                           )}
-                          <span style={{ color: "rgb(62,32,109)" }}>
+                          <span className="text-[#3E206D]">
                             Rs. {additionalItemsTotal}
                           </span>
                         </div>
@@ -1122,10 +1069,7 @@ function PickupOrderView({
                         <div className="p-4">
                           <div className="space-y-4">
                             {order.additionalItems.map((item, index) => (
-                              <div
-                                key={index}
-                                className="flex items-center gap-6 py-3"
-                              >
+                              <div key={index} className="flex items-center gap-6 py-3">
                                 <div className="w-12 h-12 flex-shrink-0">
                                   {item.image ? (
                                     <img
@@ -1135,9 +1079,7 @@ function PickupOrderView({
                                     />
                                   ) : (
                                     <div className="w-full h-full bg-gray-200 rounded flex items-center justify-center">
-                                      <span className="text-gray-500 text-xs">
-                                        No Image
-                                      </span>
+                                      <span className="text-gray-500 text-xs">No Image</span>
                                     </div>
                                   )}
                                 </div>
@@ -1184,28 +1126,21 @@ function DeliveryOrderView({
     order.familyPackItems?.reduce(
       (sum, pack) =>
         sum +
-        parseFloat(
-          pack.totalPrice.replace("Rs. ", "").replace(/,/g, "") || "0",
-        ),
+        parseFloat(pack.totalPrice.replace("Rs. ", "").replace(/,/g, "") || "0"),
       0,
     ) || 0;
 
-  // Use pre-calculated amount from backend, don't recalculate
   const additionalItemsTotalNum =
-    order.additionalItems?.reduce(
-      (sum, item) => {
-        const itemAmount = parseFloat(item.amount?.replace("Rs. ", "").replace(/,/g, "") || "0");
-        return sum + itemAmount;
-      },
-      0,
-    ) || 0;
+    order.additionalItems?.reduce((sum, item) => {
+      const itemAmount = parseFloat(
+        item.amount?.replace("Rs. ", "").replace(/,/g, "") || "0",
+      );
+      return sum + itemAmount;
+    }, 0) || 0;
 
   const familyPackTotal = formatAmount(familyPackTotalNum, 2);
   const additionalItemsTotal = formatAmount(additionalItemsTotalNum, 2);
-  const totalPrice = formatAmount(
-    familyPackTotalNum + additionalItemsTotalNum,
-    2,
-  );
+  const totalPrice = formatAmount(familyPackTotalNum + additionalItemsTotalNum, 2);
 
   return (
     <div className="w-full">
@@ -1216,9 +1151,7 @@ function DeliveryOrderView({
             <span className="text-xl">←</span>
           </button>
           <div className="text-center flex-1">
-            <h2 className="text-lg font-semibold">
-              Order ID : #{order.invoiceNo}
-            </h2>
+            <h2 className="text-lg font-semibold">Order ID : #{order.invoiceNo}</h2>
             <span
               className={`inline-block px-3 py-1 rounded-full text-sm font-medium mt-2 ${getStatusClass(order.status)}`}
             >
@@ -1228,7 +1161,7 @@ function DeliveryOrderView({
         </div>
       </div>
 
-      {/* Desktop Header - hidden on mobile */}
+      {/* Desktop Header */}
       <div className="hidden sm:flex justify-between items-center mb-4">
         <h2
           className="text-xl font-bold text-[rgb(31,41,55)] flex items-center gap-5 cursor-pointer"
@@ -1246,39 +1179,29 @@ function DeliveryOrderView({
 
       {/* Mobile Content */}
       <div className="sm:hidden bg-gray-50 min-h-screen p-4">
-        {/* Order Details Grid */}
         <div className="bg-white p-4 space-y-4 text-sm border-b border-gray-200">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <span className="text-gray-600 block">Order Placed :</span>
-              <span className="font-semibold">
-                {order.orderPlaced || "N/A"}
-              </span>
+              <span className="font-semibold">{order.orderPlaced || "N/A"}</span>
             </div>
             <div>
               <span className="text-gray-600 block">Scheduled Date :</span>
-              <span className="font-semibold">
-                {order.scheduleDate || "N/A"}
-              </span>
+              <span className="font-semibold">{order.scheduleDate || "N/A"}</span>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <span className="text-gray-600 block">Scheduled Time :</span>
-              <span className="font-semibold">
-                {order.scheduleTime || "N/A"}
-              </span>
+              <span className="font-semibold">{order.scheduleTime || "N/A"}</span>
             </div>
             <div>
               <span className="text-gray-600 block">Delivery / Pickup :</span>
-              <span className="font-semibold">
-                {order.deliveryType || "N/A"}
-              </span>
+              <span className="font-semibold">{order.deliveryType || "N/A"}</span>
             </div>
           </div>
         </div>
 
-        {/* Delivery Information */}
         <div className="bg-white mt-2 p-4 border-b border-gray-200">
           <h3 className="text-lg font-semibold mb-3 text-black">
             Delivery Information
@@ -1294,9 +1217,7 @@ function DeliveryOrderView({
                   {order.deliveryInfo?.buildingType === "Apartment" ? (
                     <>
                       <div>No : {order.deliveryInfo?.buildingNo || "--"}</div>
-                      <div>
-                        Name : {order.deliveryInfo?.buildingName || "--"}
-                      </div>
+                      <div>Name : {order.deliveryInfo?.buildingName || "--"}</div>
                       <div>Flat : {order.deliveryInfo?.flatNo || "--"}</div>
                       <div>Floor : {order.deliveryInfo?.floorNo || "--"}</div>
                       <div>House No: {order.deliveryInfo?.houseNo || "--"}</div>
@@ -1322,21 +1243,15 @@ function DeliveryOrderView({
                   {order.title || "N/A"}. {order.fullName || "N/A"}
                 </span>
                 <div className="text-sm text-gray-700">
-                  {order.phone1
-                    ? `${order.phonecode1 || ""} ${order.phone1}`
-                    : ""}
-                  {order.phone2
-                    ? `, ${order.phonecode2 || ""} ${order.phone2}`
-                    : ""}
+                  {order.phone1 ? `${order.phonecode1 || ""} ${order.phone1}` : ""}
+                  {order.phone2 ? `, ${order.phonecode2 || ""} ${order.phone2}` : ""}
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Ordered Items - Mobile */}
         <div className="bg-white mt-2 rounded-[15px] border border-gray-200 overflow-hidden">
-          {/* Header */}
           <div className="bg-gray-50 p-4 border-b border-gray-200">
             <div className="flex flex-col space-y-2">
               <span className="font-semibold text-black">Ordered Items</span>
@@ -1346,23 +1261,24 @@ function DeliveryOrderView({
             </div>
           </div>
 
-          {/* Family Pack Items */}
           {order.familyPackItems && order.familyPackItems.length > 0 && (
             <div>
               {order.familyPackItems.map((pack, packIndex) => (
-                <div
-                  key={packIndex}
-                  className="border-b border-gray-200 last:border-b-0"
-                >
+                <div key={packIndex} className="border-b border-gray-200 last:border-b-0">
                   <div className="p-4">
                     <div className="flex justify-between items-center mb-4">
                       <span className="font-medium text-black">
                         {pack.name} (
-                        {String(pack.items?.reduce((sum, item) => sum + (parseFloat(item.quantity) || 0), 0) ?? 0).padStart(2, "0")}{" "}
+                        {String(
+                          pack.items?.reduce(
+                            (sum, item) => sum + (parseFloat(item.quantity) || 0),
+                            0,
+                          ) ?? 0,
+                        ).padStart(2, "0")}{" "}
                         Items)
                       </span>
                       <span className="font-semibold text-[#3E206D]">
-                        Rs. {familyPackTotal}
+                        Rs.  {pack.totalPrice}
                       </span>
                     </div>
                     <div className="space-y-3">
@@ -1384,7 +1300,6 @@ function DeliveryOrderView({
             </div>
           )}
 
-          {/* Additional Items */}
           {order.additionalItems && order.additionalItems.length > 0 && (
             <div className="border-t border-gray-200">
               <div className="p-4">
@@ -1395,11 +1310,11 @@ function DeliveryOrderView({
                     Items)
                   </span>
                   {order.discount && order.discount !== "Rs. 0.00" && (
-                    <div className="text-sm text-purple-700">
+                    <div className="text-sm text-[#3E206D]">
                       You have saved {order.discount} with us!
                     </div>
                   )}
-                  <span className="font-semibold text-purple-700">
+                  <span className="font-semibold text-[#3E206D]">
                     Rs. {additionalItemsTotal}
                   </span>
                 </div>
@@ -1420,9 +1335,7 @@ function DeliveryOrderView({
                         )}
                       </div>
                       <div className="flex-1">
-                        <div className="font-medium text-black">
-                          {item.name}
-                        </div>
+                        <div className="font-medium text-black">{item.name}</div>
                       </div>
                       <div className="text-center">
                         <div className="text-sm text-gray-600">
@@ -1430,9 +1343,7 @@ function DeliveryOrderView({
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="font-semibold text-black">
-                          {item.price}
-                        </div>
+                        <div className="font-semibold text-black">{item.price}</div>
                       </div>
                     </div>
                   ))}
@@ -1443,31 +1354,24 @@ function DeliveryOrderView({
         </div>
       </div>
 
+      {/* Desktop Content */}
       <div className="hidden sm:block">
         <div className="border-t border-[rgb(0,0,0)] mb-4 mt-4"></div>
         <div className="grid grid-cols-4 gap-4 text-sm mb-4">
           <div>
-            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">
-              Order Placed:
-            </h4>
+            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Order Placed:</h4>
             <p className="font-semibold">{order.orderPlaced || "N/A"}</p>
           </div>
           <div>
-            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">
-              Scheduled Date:
-            </h4>
+            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Scheduled Date:</h4>
             <p className="font-semibold">{order.scheduleDate || "N/A"}</p>
           </div>
           <div>
-            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">
-              Scheduled Time:
-            </h4>
+            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Scheduled Time:</h4>
             <p className="font-semibold">{order.scheduleTime || "N/A"}</p>
           </div>
           <div>
-            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">
-              Delivery / Pickup:
-            </h4>
+            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Delivery / Pickup:</h4>
             <p className="font-semibold">{order.deliveryType || "N/A"}</p>
           </div>
         </div>
@@ -1478,79 +1382,56 @@ function DeliveryOrderView({
           </h3>
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div className="space-y-1 text-sm text-[rgb(31,41,55)]">
-              <h4 className="font-medium text-[rgb(55,65,81)] mb-1">
-                Address:
-              </h4>
+              <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Address:</h4>
               <div className="space-y-1 text-sm">
                 <div>
                   <span className="font-semibold">
                     {order.deliveryInfo?.buildingType || "N/A"}
                   </span>
                 </div>
-
                 {order.deliveryInfo?.buildingType === "Apartment" ? (
                   <>
                     <div className="flex gap-2">
-                      <span className="font-medium text-[rgb(146,146,146)]">
-                        No :
-                      </span>
+                      <span className="font-medium text-[rgb(146,146,146)]">No :</span>
                       <span>{order.deliveryInfo?.buildingNo || "--"}</span>
                     </div>
                     <div className="flex gap-2">
-                      <span className="font-medium text-[rgb(146,146,146)]">
-                        Name :
-                      </span>
+                      <span className="font-medium text-[rgb(146,146,146)]">Name :</span>
                       <span>{order.deliveryInfo?.buildingName || "--"}</span>
                     </div>
                     <div className="flex gap-2">
-                      <span className="font-medium text-[rgb(146,146,146)]">
-                        Flat :
-                      </span>
+                      <span className="font-medium text-[rgb(146,146,146)]">Flat :</span>
                       <span>{order.deliveryInfo?.flatNo || "--"}</span>
                     </div>
                     <div className="flex gap-2">
-                      <span className="font-medium text-[rgb(146,146,146)]">
-                        Floor :
-                      </span>
+                      <span className="font-medium text-[rgb(146,146,146)]">Floor :</span>
                       <span>{order.deliveryInfo?.floorNo || "--"}</span>
                     </div>
                     <div className="flex gap-2">
-                      <span className="font-medium text-[rgb(146,146,146)]">
-                        House No :
-                      </span>
+                      <span className="font-medium text-[rgb(146,146,146)]">House No :</span>
                       <span>{order.deliveryInfo?.houseNo || "N/A"}</span>
                     </div>
                     <div className="flex gap-2">
-                      <span className="font-medium text-[rgb(146,146,146)]">
-                        Street :
-                      </span>
+                      <span className="font-medium text-[rgb(146,146,146)]">Street :</span>
                       <span>{order.deliveryInfo?.street || "N/A"}</span>
                     </div>
                     <div className="flex gap-2">
-                      <span className="font-medium text-[rgb(146,146,146)]">
-                        City :
-                      </span>
+                      <span className="font-medium text-[rgb(146,146,146)]">City :</span>
                       <span>{order.deliveryInfo?.city || "N/A"}</span>
                     </div>
                   </>
                 ) : (
                   <>
                     <div className="flex gap-2">
-                      <span className="font-medium text-[rgb(146,146,146)]">
-                        House No :
-                      </span>
+                      <span className="font-medium text-[rgb(146,146,146)]">House No :</span>
                       <span>{order.deliveryInfo?.houseNo || "N/A"}</span>
                     </div>
                     <div className="flex gap-2">
-                      <span className="font-medium text-[rgb(146,146,146)]">
-                        Street :
-                      </span>
+                      <span className="font-medium text-[rgb(146,146,146)]">Street :</span>
                       <span>{order.deliveryInfo?.street || "N/A"}</span>
                     </div>
                     <div className="flex gap-2">
-                      <span className="font-medium text-[rgb(146,146,146)]">
-                        City :
-                      </span>
+                      <span className="font-medium text-[rgb(146,146,146)]">City :</span>
                       <span>{order.deliveryInfo?.city || "N/A"}</span>
                     </div>
                   </>
@@ -1565,12 +1446,8 @@ function DeliveryOrderView({
                 {order.title || "N/A"}. {order.fullName || "N/A"}
               </p>
               <p>
-                {order.phone1
-                  ? `${order.phonecode1 || ""} ${order.phone1}`
-                  : ""}
-                {order.phone2
-                  ? `, ${order.phonecode2 || ""} ${order.phone2}`
-                  : ""}
+                {order.phone1 ? `${order.phonecode1 || ""} ${order.phone1}` : ""}
+                {order.phone2 ? `, ${order.phonecode2 || ""} ${order.phone2}` : ""}
               </p>
             </div>
           </div>
@@ -1579,25 +1456,15 @@ function DeliveryOrderView({
         <div className="mb-4" style={{ borderColor: "rgb(215,215,215)" }}>
           <div
             className="mb-4"
-            style={{
-              border: "1px solid rgb(215,215,215)",
-              borderRadius: "15px",
-              overflow: "hidden",
-            }}
+            style={{ border: "1px solid rgb(215,215,215)", borderRadius: "15px", overflow: "hidden" }}
           >
-            <table
-              className="w-full text-sm"
-              style={{ borderColor: "rgb(215,215,215)" }}
-            >
+            <table className="w-full text-sm" style={{ borderColor: "rgb(215,215,215)" }}>
               <tbody>
                 <tr
                   className="w-full border-b border-[rgb(229,231,235)]"
                   style={{ backgroundColor: "rgb(248,248,248)" }}
                 >
-                  <td
-                    colSpan={3}
-                    className="font-semibold text-[rgb(31,41,55)] py-2 p-4"
-                  >
+                  <td colSpan={3} className="font-semibold text-[rgb(31,41,55)] py-2 p-4">
                     Ordered Items
                   </td>
                   <td
@@ -1613,14 +1480,19 @@ function DeliveryOrderView({
                       <tr className="border-b border-t border-[rgb(229,231,235)]">
                         <td colSpan={3} className="font-medium py-2 p-4">
                           {pack.name} (
-                          {String(pack.items?.reduce((sum, item) => sum + (parseFloat(item.quantity) || 0), 0) ?? 0).padStart(2, "0")}{" "}
+                          {String(
+                            pack.items?.reduce(
+                              (sum, item) => sum + (parseFloat(item.quantity) || 0),
+                              0,
+                            ) ?? 0,
+                          ).padStart(2, "0")}{" "}
                           Items)
                         </td>
                         <td
                           className="text-right font-semibold py-2 p-4"
                           style={{ color: "rgb(62,32,109)" }}
                         >
-                          Rs. {familyPackTotal}
+                          Rs.  {pack.totalPrice}
                         </td>
                       </tr>
                       <tr>
@@ -1650,10 +1522,7 @@ function DeliveryOrderView({
                     <tr className="border-b border-t border-[rgb(229,231,235)]">
                       <td colSpan={3} className="font-medium py-2 p-4">
                         Additional Items (
-                        {String(order.additionalItems.length ?? 0).padStart(
-                          2,
-                          "0",
-                        )}{" "}
+                        {String(order.additionalItems.length ?? 0).padStart(2, "0")}{" "}
                         Items)
                       </td>
                       <td className="text-right font-semibold py-2 p-4">
@@ -1674,10 +1543,7 @@ function DeliveryOrderView({
                         <div className="p-4">
                           <div className="space-y-4">
                             {order.additionalItems.map((item, index) => (
-                              <div
-                                key={index}
-                                className="flex items-center gap-6 py-3"
-                              >
+                              <div key={index} className="flex items-center gap-6 py-3">
                                 <div className="w-12 h-12 flex-shrink-0">
                                   {item.image ? (
                                     <img
@@ -1687,9 +1553,7 @@ function DeliveryOrderView({
                                     />
                                   ) : (
                                     <div className="w-full h-full bg-gray-200 rounded flex items-center justify-center">
-                                      <span className="text-gray-500 text-xs">
-                                        No Image
-                                      </span>
+                                      <span className="text-gray-500 text-xs">No Image</span>
                                     </div>
                                   )}
                                 </div>

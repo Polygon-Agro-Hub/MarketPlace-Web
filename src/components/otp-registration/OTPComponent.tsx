@@ -211,7 +211,7 @@ export default function OTPComponent({
         }
       } else if (statusCode === "1001") {
         setIsError(true);
-        setModalMessage("This Password Reset Link is expired.");
+        setModalMessage("This OTP is Invalid. Please enter correct OTP.");
         setIsModalOpen(true);
       } else if (statusCode === "1002" || statusCode === "1003") {
         // Handle expired OTP from server response
