@@ -338,8 +338,8 @@ export default function ExcludedItems() {
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-xl text-center w-full max-w-md">
               {/* Bin Icon */}
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-50 flex items-center justify-center">
-                <Trash fill="red" className="text-red-600 w-8 h-8" />
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center">
+                <Trash fill="red" className="text-red-600 w-10 h-10" />
               </div>
 
               <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-2">
