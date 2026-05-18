@@ -326,6 +326,14 @@ export default function SignupForm() {
       newErrors.phoneNumber = `Please enter a valid Phone Number (format: ${formData.phoneCode}7XXXXXXXX)`;
     }
 
+    if (!formData.companyPhoneNumber) {
+      newErrors.companyPhoneNumber = "Company phone number is required";
+    } else if (!/^\d{9}$/.test(formData.companyPhoneNumber)) {
+      newErrors.companyPhoneNumber = `Please enter a valid mobile number (format: ${formData.companyPhoneCode}7XXXXXXXX)`;
+    } else if (!formData.companyPhoneNumber.startsWith("7")) {
+      newErrors.companyPhoneNumber = `Please enter a valid Phone Number (format: ${formData.companyPhoneCode}7XXXXXXXX)`;
+    }
+
     if (!formData.email) {
       newErrors.email = "Email is required";
     } else {

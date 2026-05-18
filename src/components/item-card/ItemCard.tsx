@@ -27,6 +27,7 @@ type ItemCardProps = {
   unitType?: string;
   startValue?: string | number;
   changeby?: string | number;
+  displayType?: string | null;
 };
 
 const ItemCard = ({
@@ -39,6 +40,7 @@ const ItemCard = ({
   unitType = "g",
   startValue = "1000",
   changeby = "1000",
+  displayType = "",
 }: ItemCardProps) => {
   const router = useRouter();
   const { token, user } = useAppSelector((state) => state.auth);
@@ -48,6 +50,12 @@ const ItemCard = ({
   const [isInCart, setIsInCart] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
   const [showMinQuantityTooltip, setShowMinQuantityTooltip] = useState(false);
+
+  // ─── displayType helpers ───────────────────────────────────────────────────
+  const dt = (displayType ?? "").toUpperCase();
+  const showBadge = dt === "D&AP" || dt === "AP&SP&D";
+  const showStrikethrough = dt === "AP&SP" || dt === "AP&SP&D";
+  // ──────────────────────────────────────────────────────────────────────────
 
   const getInitialQuantity = () => {
     const parsedStartValue =
@@ -131,8 +139,6 @@ const ItemCard = ({
     const parsedStartValue =
       typeof startValue === "string" ? parseFloat(startValue) : startValue;
     if (unitType?.toLowerCase() === "kg") {
-      if (parsedStartValue < 1)
-        return `${Math.round(parsedStartValue * 1000)} g`;
       return `${parsedStartValue} kg`;
     }
     if (parsedStartValue >= 1000) return `${parsedStartValue / 1000} kg`;
@@ -352,7 +358,6 @@ const ItemCard = ({
   };
 
   return (
-    // h-full: fills the grid cell so all cards in a row are equal height
     <div className="relative bg-white rounded-xl md:rounded-3xl shadow-sm border border-gray-200 w-full h-full flex flex-col items-center transition-all duration-300 hover:shadow-md cursor-default">
       {error && (
         <div className="absolute top-0 left-0 right-0 bg-red-100 text-red-700 text-xs p-1 text-center z-30 rounded-t-xl md:rounded-t-3xl">
@@ -366,8 +371,8 @@ const ItemCard = ({
         </div>
       )}
 
-      {/* Discount badge */}
-      {discount && discount > 0 && (
+      {/* Discount badge — only shown when displayType is D&AP or AP&SP&D */}
+      {showBadge && discount && discount > 0 && (
         <div className="absolute top-0 left-0 z-20">
           <div
             className="w-15 h-15 rounded-tl-xl md:rounded-tl-3xl sm:w-14 sm:h-14 md:w-20 md:h-20 bg-purple-900 flex flex-col items-center justify-center text-white"
@@ -382,15 +387,14 @@ const ItemCard = ({
         </div>
       )}
 
-      {/* Card body — flex column, auto height */}
-      {/* justify-between: pushes button to bottom so all cards align */}
+      {/* Card body */}
       <div className="w-full flex-1 flex flex-col items-center justify-between p-2 pt-3 pb-4 gap-2">
         {/* Top content group — image + name + price */}
         <div className="w-full flex flex-col items-center gap-2">
           {/* Product image */}
           {!addedToCart && !showQuantitySelector && (
             <div
-              className={`w-full flex items-center justify-center ${discount ? "mt-5" : "mt-1"}`}
+              className={`w-full flex items-center justify-center ${showBadge && discount ? "mt-5" : "mt-1"}`}
             >
               <Image
                 src={image}
@@ -418,8 +422,13 @@ const ItemCard = ({
                 </span>
               </div>
               <div className="flex flex-col items-center gap-0.5">
-                {discount &&
-                discount > 0 &&
+                {/*
+                  AP&SP  → strikethrough original + current price, no badge
+                  AP&SP&D → badge + strikethrough original + current price
+                  D&AP   → badge + actual (normal) price only, no strikethrough
+                  ""     → just normal price, no badge, no strikethrough
+                */}
+                {showStrikethrough &&
                 originalPrice &&
                 cardFaceOriginalPrice > cardFaceCurrentPrice ? (
                   <>
@@ -431,6 +440,7 @@ const ItemCard = ({
                     </span>
                   </>
                 ) : (
+                  // D&AP or no displayType: show normal/actual price only
                   <span className="text-purple-900 text-xs md:text-sm font-semibold">
                     Rs. {formatPrice(cardFaceOriginalPrice)}
                   </span>
@@ -447,8 +457,7 @@ const ItemCard = ({
             !isInCart && (
               <div className="w-full flex flex-col items-center gap-2 py-1">
                 <div className="flex flex-col items-center gap-0.5">
-                  {discount &&
-                  discount > 0 &&
+                  {showStrikethrough &&
                   originalPrice &&
                   selectorOriginalPrice > selectorCurrentPrice ? (
                     <>
@@ -469,21 +478,19 @@ const ItemCard = ({
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleUnitChange("kg")}
-                    className={`w-8 text-xs py-1 border rounded-md cursor-pointer ${
-                      unit === "kg"
+                    className={`w-8 text-xs py-1 border rounded-md cursor-pointer ${unit === "kg"
                         ? "bg-purple-100 text-purple-900 border-purple-300"
                         : "bg-gray-100 text-gray-500 border-gray-200"
-                    }`}
+                      }`}
                   >
                     kg
                   </button>
                   <button
                     onClick={() => handleUnitChange("g")}
-                    className={`w-8 text-xs py-1 border cursor-pointer rounded-md ${
-                      unit === "g"
+                    className={`w-8 text-xs py-1 border cursor-pointer rounded-md ${unit === "g"
                         ? "bg-purple-100 text-purple-900 border-purple-300"
                         : "bg-gray-100 text-gray-500 border-gray-200"
-                    }`}
+                      }`}
                   >
                     g
                   </button>
@@ -501,9 +508,8 @@ const ItemCard = ({
                           setShowMinQuantityTooltip(true);
                       }}
                       onMouseLeave={() => setShowMinQuantityTooltip(false)}
-                      className={`flex-none px-2 py-1 bg-[#3E206D] text-white font-bold rounded-l-md hover:bg-purple-800 cursor-pointer ${
-                        quantity <= getMinQuantity() ? "opacity-50" : ""
-                      }`}
+                      className={`flex-none px-2 py-1 bg-[#3E206D] text-white font-bold rounded-l-md hover:bg-purple-800 cursor-pointer ${quantity <= getMinQuantity() ? "opacity-50" : ""
+                        }`}
                     >
                       −
                     </button>
@@ -522,7 +528,7 @@ const ItemCard = ({
             )}
         </div>
 
-        {/* Add to Cart button — always at bottom due to justify-between */}
+        {/* Add to Cart button */}
         <div className="relative flex justify-center w-full">
           <Tooltip />
           {addedToCart ? (
@@ -547,16 +553,15 @@ const ItemCard = ({
               onMouseEnter={() => setIsHovering(true)}
               onMouseLeave={() => setIsHovering(false)}
               disabled={isLoading || isInCart}
-              className={`whitespace-nowrap w-full max-w-[180px] sm:max-w-[200px] md:max-w-[220px] py-2 px-1.5 rounded-lg md:rounded-xl flex items-center justify-center gap-1 text-xs md:text-sm transition-all duration-200 ${
-                isInCart
+              className={`whitespace-nowrap w-full max-w-[180px] sm:max-w-[200px] md:max-w-[220px] py-2 px-1.5 rounded-lg md:rounded-xl flex items-center justify-center gap-1 text-xs md:text-sm transition-all duration-200 ${isInCart
                   ? "bg-[#EDE1FF] text-gray-500 cursor-not-allowed"
                   : token &&
-                      user &&
-                      showQuantitySelector &&
-                      buyerType !== "Wholesale"
+                    user &&
+                    showQuantitySelector &&
+                    buyerType !== "Wholesale"
                     ? "bg-purple-900 text-white hover:bg-purple-800 cursor-pointer hover:shadow-md hover:shadow-purple-300"
                     : "bg-white border border-[#D7D7D7] text-gray-400 hover:bg-[#3E206D] hover:text-white cursor-pointer shadow-[0px_1px_0px_0px_#D7D7D7] hover:shadow-md hover:shadow-purple-300"
-              } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+                } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               {!showQuantitySelector && !isInCart && (
                 <svg
@@ -577,9 +582,9 @@ const ItemCard = ({
               {isInCart
                 ? "Already in Cart"
                 : token &&
-                    user &&
-                    showQuantitySelector &&
-                    buyerType !== "Wholesale"
+                  user &&
+                  showQuantitySelector &&
+                  buyerType !== "Wholesale"
                   ? "Add to Cart"
                   : buyerType === "Wholesale"
                     ? "Add to Cart"
