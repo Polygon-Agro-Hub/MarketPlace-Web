@@ -225,8 +225,8 @@ const Page = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white relative p-4">
-      <div className="w-full max-w-6xl h-auto min-h-[90vh] md:h-[90vh] bg-white rounded-xl shadow-none md:shadow-lg flex flex-col md:flex-row overflow-y-auto">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 relative p-4">
+      <div className="w-full max-w-6xl h-auto min-h-[90vh] md:h-[90vh] bg-white rounded-lg shadow-lg md:shadow-lg flex flex-col md:flex-row overflow-y-auto">
 
         {/* ── LEFT / TOP: Illustration ── */}
         <div className="relative w-full md:w-1/2 flex items-center justify-center bg-white p-4 md:p-8 order-1 md:order-1">
@@ -396,7 +396,7 @@ const Page = () => {
           </button>
 
           {isCountryDropdownOpen && (
-            <div className="absolute z-10 mt-1 left-0 w-40 max-h-60 overflow-auto bg-white border border-gray-300 rounded-xl md:rounded-md shadow-lg">
+            <div className="absolute z-10 mt-1 left-0 md:w-30 sm:w-22 max-h-60 overflow-auto bg-white border border-gray-300 rounded-xl md:rounded-md shadow-lg">
               {countries.map((country) => (
                 <button
                   key={country.code}

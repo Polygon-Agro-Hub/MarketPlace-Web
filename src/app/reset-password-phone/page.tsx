@@ -96,11 +96,11 @@ const Page = () => {
       setIsError(true);
       // Check for specific error messages from backend
       const errorMessage = err.message || 'Failed to reset password';
-      
+
       // Handle "same password" error specifically
-      if (errorMessage.toLowerCase().includes('same') || 
-          errorMessage.toLowerCase().includes('current password') ||
-          errorMessage.toLowerCase().includes('old password')) {
+      if (errorMessage.toLowerCase().includes('same') ||
+        errorMessage.toLowerCase().includes('current password') ||
+        errorMessage.toLowerCase().includes('old password')) {
         setModalMessage('New password cannot be the same as your current password. Please choose a different password.');
       } else {
         setModalMessage(errorMessage);
@@ -137,6 +137,7 @@ const Page = () => {
                 placeholder="Enter New Password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
+                onKeyDown={(e) => e.key === " " && e.preventDefault()}
                 className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
                 title=""
               />
@@ -155,6 +156,7 @@ const Page = () => {
                 placeholder="Re-enter New Password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
+                onKeyDown={(e) => e.key === " " && e.preventDefault()}
                 className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
                 title=""
               />
@@ -234,9 +236,9 @@ const Page = () => {
               /* Success Icon - Using Image */
               <div className="flex justify-center mb-6">
                 <div className="w-24 h-24 sm:w-28 sm:h-28">
-                  <img 
-                    src="/images/correct.png" 
-                    alt="Success" 
+                  <img
+                    src="/images/correct.png"
+                    alt="Success"
                     className="w-full h-full object-contain"
                   />
                 </div>

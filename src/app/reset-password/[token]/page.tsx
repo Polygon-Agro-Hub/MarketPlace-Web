@@ -142,7 +142,7 @@ const Page = () => {
 
   if (!isTokenValid) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white p-4">
+      <div className="min-h-screen flex items-center justify-center bg-black/40 p-4">
         <div className="bg-white p-6 sm:p-8 rounded-xl text-center w-full max-w-md">
           <div className="flex justify-center mb-4">
             <div className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 relative">
@@ -202,10 +202,10 @@ const Page = () => {
 
               <div className="mb-4 relative">
                 <input
-                  type={showConfirmPassword ? "text" : "password"}
-                  placeholder="Re-enter New Password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  type={showNewPassword ? "text" : "password"}
+                  placeholder="Enter New Password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
                   onKeyDown={(e) => e.key === " " && e.preventDefault()}
                   className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 text-sm sm:text-base"
                 />
