@@ -548,7 +548,7 @@ const ItemCard = ({
               onMouseEnter={() => setIsHovering(true)}
               onMouseLeave={() => setIsHovering(false)}
               disabled={isLoading || isInCart}
-              className={`whitespace-nowrap w-full max-w-[180px] sm:max-w-[200px] md:max-w-[220px] py-2 px-1.5 rounded-lg md:rounded-xl flex items-center justify-center gap-1 text-xs md:text-sm transition-all duration-200 ${
+              className={`whitespace-nowrap w-full max-w-[180px] sm:max-w-[200px] md:max-w-[260px] py-2 px-1.5 rounded-lg md:rounded-xl flex items-center justify-center gap-1 text-xs md:text-sm transition-all duration-200 ${
                 isInCart
                   ? "bg-[#EDE1FF] text-gray-500 cursor-not-allowed"
                   : token &&
