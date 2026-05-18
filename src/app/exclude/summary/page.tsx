@@ -231,8 +231,7 @@ export default function ExcludedItems() {
           Items you have chosen to exclude
         </h2>
         <p className="text-[14px] md:text-[22px] text-[#4C5160] mb-4 text-center px-4">
-          We’ll make sure these items are not included in any 
-          package unless you update your preferences.
+          We’ll make sure these items are not included in any package unless you update your preferences.
         </p>
 
         <div className="w-full max-w-[700px]">
