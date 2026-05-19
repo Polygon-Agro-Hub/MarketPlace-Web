@@ -31,6 +31,7 @@ export default function OTPComponent({
   const [disabledResend, setDisabledResend] = useState(true);
   const [isVerified, setIsVerified] = useState(false);
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
+  const [isResendSuccess, setIsResendSuccess] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isError, setIsError] = useState(false);
@@ -192,11 +193,11 @@ export default function OTPComponent({
       if (statusCode === "1000") {
         setIsVerified(true);
         setIsError(false);
-        
+
         // Complete signup first
         try {
           await onVerificationSuccess();
-          
+
           // After successful signup, show success popup and redirect to login
           setShowSuccessPopup(true);
           setTimeout(() => {
@@ -261,8 +262,7 @@ export default function OTPComponent({
         setIsOtpExpired(false); // Reset expiration status
         setOtp(["", "", "", "", ""]); // Clear current OTP inputs
 
-        // Reset modal states properly before showing success message
-        setIsVerified(false); // Reset verification status
+        setIsResendSuccess(true); // Add this line
         setIsError(false);
         setModalMessage("New OTP has been sent to your mobile number.");
         setIsModalOpen(true);
@@ -273,6 +273,7 @@ export default function OTPComponent({
         throw new Error("Failed to get reference ID for new OTP");
       }
     } catch (error: any) {
+      setIsResendSuccess(false);
       setIsError(true);
       setModalMessage(error.message || "Failed to resend OTP");
       setIsModalOpen(true);
@@ -334,11 +335,10 @@ export default function OTPComponent({
         <button
           onClick={handleResendOTP}
           disabled={disabledResend || isResending}
-          className={`text-xs sm:text-sm mb-6 ${
-            disabledResend || isResending
-              ? "text-gray-400 cursor-not-allowed"
-              : "text-[#3E206D] font-semibold hover:underline cursor-pointer"
-          }`}
+          className={`text-xs sm:text-sm mb-6 ${disabledResend || isResending
+            ? "text-gray-400 cursor-not-allowed"
+            : "text-[#3E206D] font-semibold hover:underline cursor-pointer"
+            }`}
         >
           {isResending
             ? "Sending..."
@@ -350,11 +350,10 @@ export default function OTPComponent({
         <button
           onClick={handleVerify}
           disabled={isVerifying || isOtpExpired || !isOtpComplete || isVerified}
-          className={`font-semibold w-full max-w-[307px] h-[45px] rounded-[10px] mt-1 transition-colors ${
-            isVerifying || isOtpExpired || !isOtpComplete || isVerified
-              ? "bg-gray-400 text-gray-200 cursor-not-allowed"
-              : "bg-[#3E206D] text-white hover:bg-[#2D1A4F] cursor-pointer"
-          }`}
+          className={`font-semibold w-full max-w-[307px] h-[45px] rounded-[10px] mt-1 transition-colors ${isVerifying || isOtpExpired || !isOtpComplete || isVerified
+            ? "bg-gray-400 text-gray-200 cursor-not-allowed"
+            : "bg-[#3E206D] text-white hover:bg-[#2D1A4F] cursor-pointer"
+            }`}
         >
           {isVerifying
             ? "Verifying..."
@@ -425,19 +424,9 @@ export default function OTPComponent({
                 </div>
               </div>
             ) : (
-              /* Success Icon with Animation */
               <div className="flex justify-center mb-4">
                 <div className="relative w-28 h-28">
-                  {/* Animated Circle */}
-                  <div
-                    className="absolute inset-0 rounded-full border-4 border-green-500 scale-100 opacity-100 transition-all duration-700 ease-out"
-                    style={{
-                      transformOrigin: "center",
-                      animationDelay: "0.2s",
-                    }}
-                  />
-
-                  {/* Animated Checkmark */}
+                  {/* Removed the border circle div that was causing the green artifact */}
                   <div className="absolute inset-0 flex items-center justify-center">
                     <Image
                       src={checkImg}
@@ -445,29 +434,19 @@ export default function OTPComponent({
                       width={112}
                       height={112}
                       className="w-28 h-28 object-contain opacity-100 transition-all duration-700 ease-out"
-                      style={{
-                        transitionDelay: "0.6s",
-                      }}
+                      style={{ transitionDelay: "0.6s" }}
                     />
                   </div>
-
-                  {/* Pulse Animation */}
-                  <div
-                    className="absolute inset-0 rounded-full bg-green-500 scale-125 opacity-0 transition-all duration-1000"
-                    style={{
-                      animationDelay: "0.8s",
-                    }}
-                  />
                 </div>
               </div>
             )}
 
             <h2 className="text-xl font-bold mb-2 text-gray-900">
-              {isError ? "Error" : "OTP Verified"}
+              {isError ? "Error" : isResendSuccess ? "Success" : "OTP Verified"}
             </h2>
             <p className="text-gray-500 mb-6">{modalMessage}</p>
             <button
-              onClick={() => setIsModalOpen(false)}
+              onClick={() => { setIsModalOpen(false); setIsResendSuccess(false); }}
               className="px-6 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition cursor-pointer text-gray-700 font-medium"
             >
               Close
