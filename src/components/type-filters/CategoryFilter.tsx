@@ -270,6 +270,7 @@ export default function CategoryFilter({}: CategoryFilterProps) {
                         ? product.changeby * 1000
                         : product.changeby
                     }
+                    displayType={product.displayType}
                   />
                 ))
               ) : (

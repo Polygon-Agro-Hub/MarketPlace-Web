@@ -222,6 +222,7 @@ export default function CategoryFilterWholesale() {
                                         startValue={product.startValue}
                                         changeby={product.changeby}
                                         unitType={product.unitType}
+                                        displayType={product.displayType}
                                     />
                                 </div>
                             ))

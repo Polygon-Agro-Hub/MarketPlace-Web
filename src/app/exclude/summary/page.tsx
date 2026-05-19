@@ -230,9 +230,9 @@ export default function ExcludedItems() {
         <h2 className="text-[20px] md:text-[30px] font-bold mb-2 text-center text-[#001535]">
           Items you have chosen to exclude
         </h2>
-        <p className="text-[14px] md:text-[22px] text-[#4C5160] mb-4 whitespace-nowrap text-center px-4">
-          We’ll make sure these items are not included in any 
-          package unless you update your preferences.
+        <p className="text-[14px] md:text-[22px] text-[#4C5160] mb-4 text-center px-4">
+          We’ll make sure these items are not included in any package unless you
+          update your preferences.
         </p>
 
         <div className="w-full max-w-[700px]">
@@ -335,33 +335,36 @@ export default function ExcludedItems() {
 
         {/* Delete Confirmation Modal */}
         {showDeleteModal && (
-          <div className="bg-white rounded-xl p-5 sm:p-8 shadow-xl text-center w-[85%] sm:w-full max-w-sm sm:max-w-md mx-4">
-            <div className="bg-white rounded-xl p-6 sm:p-8 shadow-xl text-center w-full max-w-md">
-              <Trash
-                fill="red"
-                className="mx-auto text-red-600 w-12 h-12 mb-4"
-              />
-              <h2 className="text-lg sm:text-xl font-semibold text-black">
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-xl text-center w-full max-w-md">
+              {/* Bin Icon */}
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center">
+                <Trash fill="red" className="text-red-600 w-10 h-10" />
+              </div>
+
+              <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-2">
                 {isBulkDelete
-                  ? "Are you sure you want to remove these items from your exclude list?"
-                  : `Are you sure you want to remove "${itemToDelete}" from your exclude list?`}
+                  ? "Remove selected items?"
+                  : `Remove "${itemToDelete}"?`}
               </h2>
-              <p className="text-gray-500 text-sm mt-2">
-                This action will allow{" "}
-                {isBulkDelete ? "these items" : "this item"} to be included in
-                future packages unless re-added to the exclude list.
+
+              <p className="text-gray-500 text-sm sm:text-base mb-6">
+                {isBulkDelete
+                  ? "These items will be removed from your exclude list and may appear in future packages unless re-added."
+                  : "This item will be removed from your exclude list and may appear in future packages unless re-added."}
               </p>
-              <div className="mt-6 flex flex-col sm:flex-row justify-center gap-4">
+
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <button
                   onClick={handleCancelDelete}
-                  className="w-full sm:w-32 px-4 py-2 cursor-pointer rounded-md border bg-white text-[#3E206D] border-[#3E206D] hover:bg-gray-50"
+                  className="px-6 py-2.5 rounded-lg border border-gray-300 bg-white text-gray-700 font-medium hover:bg-gray-50 transition-colors cursor-pointer"
                   aria-label="Cancel deletion"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleConfirmDelete}
-                  className="w-full sm:w-32 px-4 py-2 rounded-md cursor-pointer bg-red-600 text-white hover:bg-red-700"
+                  className="px-6 py-2.5 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700 transition-colors cursor-pointer"
                   aria-label="Confirm deletion"
                 >
                   Delete
@@ -375,7 +378,7 @@ export default function ExcludedItems() {
           <button
             onClick={handleContinue}
             disabled={continueLoading}
-            className={`w-full bg-[#3E206D] text-white p-3 rounded mt-13 font-semibold text-base md:text-lg ${
+            className={`w-full h-15 bg-[#3E206D] text-white p-3 rounded mt-13 font-semibold text-base md:text-lg ${
               continueLoading
                 ? "opacity-50 cursor-not-allowed"
                 : "cursor-pointer hover:bg-[#341a5a]"
