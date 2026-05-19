@@ -94,11 +94,13 @@ const ItemCard = ({
   // ──────────────────────────────────────────────────────────────────────────
 
   const [quantity, setQuantity] = useState(getInitialQuantity());
-  const [unit, setUnit] = useState<"kg" | "g">("g");
+  const [unit, setUnit] = useState<"kg" | "g">(
+    unitType?.toLowerCase() === "kg" ? "kg" : "g"
+  );
 
   useEffect(() => {
     setQuantity(getInitialQuantity());
-    setUnit("g");
+    setUnit(unitType?.toLowerCase() === "kg" ? "kg" : "g");
   }, [unitType, startValue, changeby]);
 
   const [addedToCart, setAddedToCart] = useState(false);
@@ -264,7 +266,7 @@ const ItemCard = ({
       setTimeout(() => {
         setAddedToCart(false);
         setQuantity(getInitialQuantity());
-        setUnit("g");
+        setUnit(unitType?.toLowerCase() === "kg" ? "kg" : "g");
       }, 2000);
     }
   };
@@ -423,8 +425,8 @@ const ItemCard = ({
               </div>
               <div className="flex flex-col items-center gap-0.5">
                 {showStrikethrough &&
-                originalPrice &&
-                cardFaceOriginalPrice > cardFaceCurrentPrice ? (
+                  originalPrice &&
+                  cardFaceOriginalPrice > cardFaceCurrentPrice ? (
                   <>
                     <span className="text-purple-900 text-xs md:text-sm font-semibold">
                       Rs. {formatPrice(cardFaceCurrentPrice)}
@@ -451,8 +453,8 @@ const ItemCard = ({
               <div className="w-full flex flex-col items-center gap-2 py-1">
                 <div className="flex flex-col items-center gap-0.5">
                   {showStrikethrough &&
-                  originalPrice &&
-                  selectorOriginalPrice > selectorCurrentPrice ? (
+                    originalPrice &&
+                    selectorOriginalPrice > selectorCurrentPrice ? (
                     <>
                       <span className="text-gray-500 text-xs line-through">
                         Rs. {formatPrice(selectorOriginalPrice)}
@@ -471,21 +473,19 @@ const ItemCard = ({
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleUnitChange("kg")}
-                    className={`w-8 text-xs py-1 border rounded-md cursor-pointer ${
-                      unit === "kg"
-                        ? "bg-purple-100 text-purple-900 border-purple-300"
-                        : "bg-gray-100 text-gray-500 border-gray-200"
-                    }`}
+                    className={`w-8 text-xs py-1 border rounded-md cursor-pointer ${unit === "kg"
+                      ? "bg-purple-100 text-purple-900 border-purple-300"
+                      : "bg-gray-100 text-gray-500 border-gray-200"
+                      }`}
                   >
                     kg
                   </button>
                   <button
                     onClick={() => handleUnitChange("g")}
-                    className={`w-8 text-xs py-1 border cursor-pointer rounded-md ${
-                      unit === "g"
-                        ? "bg-purple-100 text-purple-900 border-purple-300"
-                        : "bg-gray-100 text-gray-500 border-gray-200"
-                    }`}
+                    className={`w-8 text-xs py-1 border cursor-pointer rounded-md ${unit === "g"
+                      ? "bg-purple-100 text-purple-900 border-purple-300"
+                      : "bg-gray-100 text-gray-500 border-gray-200"
+                      }`}
                   >
                     g
                   </button>
@@ -503,9 +503,8 @@ const ItemCard = ({
                           setShowMinQuantityTooltip(true);
                       }}
                       onMouseLeave={() => setShowMinQuantityTooltip(false)}
-                      className={`flex-none px-2 py-1 bg-[#3E206D] text-white font-bold rounded-l-md hover:bg-purple-800 cursor-pointer ${
-                        quantity <= getMinQuantity() ? "opacity-50" : ""
-                      }`}
+                      className={`flex-none px-2 py-1 bg-[#3E206D] text-white font-bold rounded-l-md hover:bg-purple-800 cursor-pointer ${quantity <= getMinQuantity() ? "opacity-50" : ""
+                        }`}
                     >
                       −
                     </button>
@@ -549,16 +548,15 @@ const ItemCard = ({
               onMouseEnter={() => setIsHovering(true)}
               onMouseLeave={() => setIsHovering(false)}
               disabled={isLoading || isInCart}
-              className={`whitespace-nowrap w-full max-w-[180px] sm:max-w-[200px] md:max-w-[220px] py-2 px-1.5 rounded-lg md:rounded-xl flex items-center justify-center gap-1 text-xs md:text-sm transition-all duration-200 ${
-                isInCart
-                  ? "bg-[#EDE1FF] text-gray-500 cursor-not-allowed"
-                  : token &&
-                      user &&
-                      showQuantitySelector &&
-                      buyerType !== "Wholesale"
-                    ? "bg-purple-900 text-white hover:bg-purple-800 cursor-pointer hover:shadow-md hover:shadow-purple-300"
-                    : "bg-white border border-[#D7D7D7] text-gray-400 hover:bg-[#3E206D] hover:text-white cursor-pointer shadow-[0px_1px_0px_0px_#D7D7D7] hover:shadow-md hover:shadow-purple-300"
-              } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+              className={`whitespace-nowrap w-full max-w-[180px] sm:max-w-[200px] md:max-w-[220px] py-2 px-1.5 rounded-lg md:rounded-xl flex items-center justify-center gap-1 text-xs md:text-sm transition-all duration-200 ${isInCart
+                ? "bg-[#EDE1FF] text-gray-500 cursor-not-allowed"
+                : token &&
+                  user &&
+                  showQuantitySelector &&
+                  buyerType !== "Wholesale"
+                  ? "bg-purple-900 text-white hover:bg-purple-800 cursor-pointer hover:shadow-md hover:shadow-purple-300"
+                  : "bg-white border border-[#D7D7D7] text-gray-400 hover:bg-[#3E206D] hover:text-white cursor-pointer shadow-[0px_1px_0px_0px_#D7D7D7] hover:shadow-md hover:shadow-purple-300"
+                } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               {!showQuantitySelector && !isInCart && (
                 <svg
@@ -579,9 +577,9 @@ const ItemCard = ({
               {isInCart
                 ? "Already in Cart"
                 : token &&
-                    user &&
-                    showQuantitySelector &&
-                    buyerType !== "Wholesale"
+                  user &&
+                  showQuantitySelector &&
+                  buyerType !== "Wholesale"
                   ? "Add to Cart"
                   : buyerType === "Wholesale"
                     ? "Add to Cart"
