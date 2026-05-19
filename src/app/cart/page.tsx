@@ -281,22 +281,29 @@ const Page: React.FC = () => {
 
     if (!currentItem) return;
 
-    const currentQuantity = currentItem.quantity;
     const selectedUnit =
       unitSelection[productId] ||
       (currentItem.unit.toLowerCase() as "kg" | "g");
 
+    // quantity in Redux is already in selectedUnit (handleUnitChange keeps it in sync)
+    const currentQuantity = currentItem.quantity;
+
     let changeBy: number;
     let startValue: number;
-    let maxQuantity = currentItem.maxQuantity || Infinity;
+    let maxQuantity =
+      currentItem.maxQuantity !== undefined && currentItem.maxQuantity !== null
+        ? currentItem.maxQuantity
+        : Infinity;
 
     if (selectedUnit === "g") {
+      // changeby, startValue, maxQuantity all come in kg from API — convert to grams
       changeBy = parseFloat((currentItem.changeby * 1000).toFixed(3));
       startValue = parseFloat((currentItem.startValue * 1000).toFixed(3));
       if (maxQuantity !== Infinity) {
         maxQuantity = parseFloat((maxQuantity * 1000).toFixed(3));
       }
     } else {
+      // selectedUnit === "kg" — all API values already in kg, no conversion needed
       changeBy = currentItem.changeby || 1;
       startValue = currentItem.startValue || 1;
     }
@@ -338,13 +345,15 @@ const Page: React.FC = () => {
     const updatedItems = cartData.additionalItems.flatMap(g => g.Items).map(item =>
       item.id === productId ? { ...item, quantity: newQuantity } : item
     );
-    const updatedPackageTotal = cartData.packages?.reduce((sum, pkg) => sum + pkg.price * pkg.quantity, 0) ?? 0;
+    const updatedPackageTotal =
+      cartData.packages?.reduce((sum, pkg) => sum + pkg.price * pkg.quantity, 0) ?? 0;
     const updatedProductTotal = updatedItems.reduce((item_acc, item) => {
       const unit = unitSelection[item.id] || item.unit;
       const price = calculatePrice(item.normalPrice, unit, item.quantity);
       const discount = calculateDiscount(item.discount, unit, item.quantity);
       return item_acc + (price - discount);
     }, 0);
+
     dispatch(updateCartInfo({
       price: parseFloat((updatedPackageTotal + updatedProductTotal).toFixed(2)),
       count: authCart.count,
@@ -354,9 +363,7 @@ const Page: React.FC = () => {
       const existing = prev.find((update) => update.productId === productId);
       if (existing) {
         return prev.map((update) =>
-          update.productId === productId
-            ? { ...update, newQuantity }
-            : update,
+          update.productId === productId ? { ...update, newQuantity } : update,
         );
       }
       return [...prev, { productId, newQuantity }];
@@ -871,7 +878,24 @@ const Page: React.FC = () => {
               {tooltipStates[item.id] && (
                 <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 z-10 whitespace-nowrap">
                   <div className="bg-[#191D28] text-white text-xs px-2 py-1 rounded shadow-lg">
-                    {tooltipStates[item.id] === "min" ? "Minimum quantity reached" : "Maximum quantity reached"}
+                    {tooltipStates[item.id] === "min"
+                      ? `Minimum quantity is ${(() => {
+                        const selectedUnit = unitSelection[item.id] || item.unit;
+                        return selectedUnit === "g"
+                          ? parseFloat((item.startValue * 1000).toFixed(3))
+                          : item.startValue || 1;
+                      })()
+                      } ${unitSelection[item.id] || item.unit}`
+                      : `Maximum quantity is ${(() => {
+                        const selectedUnit = unitSelection[item.id] || item.unit;
+                        const maxValueInKg = item.maxQuantity;
+                        if (!maxValueInKg) return "∞";
+                        return selectedUnit === "g"
+                          ? parseFloat((maxValueInKg * 1000).toFixed(3))
+                          : maxValueInKg;
+                      })()
+                      } ${unitSelection[item.id] || item.unit}`
+                    }
                   </div>
                 </div>
               )}
@@ -1098,13 +1122,11 @@ const Page: React.FC = () => {
                                     Minimum quantity is{" "}
                                     {(() => {
                                       const selectedUnit = unitSelection[item.id] || item.unit;
-                                      let startValue = item.startValue || 1;
-                                      if (selectedUnit === "g" && item.unit === "kg") {
-                                        startValue = parseFloat((startValue * 1000).toFixed(3));
-                                      } else if (selectedUnit === "kg" && item.unit === "g") {
-                                        startValue = parseFloat((startValue / 1000).toFixed(3));
-                                      }
-                                      return parseFloat(startValue.toFixed(3));
+                                      // startValue always comes in kg from API
+                                      const displayValue = selectedUnit === "g"
+                                        ? parseFloat((item.startValue * 1000).toFixed(3))
+                                        : item.startValue || 1;
+                                      return displayValue;
                                     })()}{" "}
                                     {unitSelection[item.id] || item.unit}
                                   </>
@@ -1113,15 +1135,13 @@ const Page: React.FC = () => {
                                     Maximum quantity is{" "}
                                     {(() => {
                                       const selectedUnit = unitSelection[item.id] || item.unit;
-                                      let maxValue = item.maxQuantity || Infinity;
-                                      if (maxValue !== Infinity && selectedUnit !== item.unit) {
-                                        if (selectedUnit === "g" && item.unit === "kg") {
-                                          maxValue = parseFloat((maxValue * 1000).toFixed(3));
-                                        } else if (selectedUnit === "kg" && item.unit === "g") {
-                                          maxValue = parseFloat((maxValue / 1000).toFixed(3));
-                                        }
-                                      }
-                                      return parseFloat(maxValue.toFixed(3));
+                                      // maxQuantity always comes in kg from API
+                                      const maxValueInKg = item.maxQuantity;
+                                      if (!maxValueInKg) return "∞";
+                                      const displayValue = selectedUnit === "g"
+                                        ? parseFloat((maxValueInKg * 1000).toFixed(3))
+                                        : maxValueInKg;
+                                      return displayValue;
                                     })()}{" "}
                                     {unitSelection[item.id] || item.unit}
                                   </>
