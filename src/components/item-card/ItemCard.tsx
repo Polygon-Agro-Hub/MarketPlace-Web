@@ -201,14 +201,29 @@ const ItemCard = ({
       try {
         setIsLoading(true);
         setError(null);
+
+        const parsedStartValue =
+          typeof startValue === "string" ? parseFloat(startValue) : startValue;
+
+        let apiQuantity: number;
+        let apiUnit: "kg" | "g";
+
+        if (unitType?.toLowerCase() === "kg") {
+          // Send as kg directly
+          apiQuantity = parsedStartValue;
+          apiUnit = "kg";
+        } else {
+          // Convert kg to grams (API always sends startValue in kg)
+          apiQuantity = parsedStartValue * 1000;
+          apiUnit = "g";
+        }
+
         const productData = {
           mpItemId: id,
-          quantityType: unitType as "kg" | "g",
-          quantity:
-            typeof startValue === "string"
-              ? parseFloat(startValue)
-              : startValue,
+          quantityType: apiUnit,
+          quantity: apiQuantity,
         };
+
         await productAddToCart(productData, token);
         try {
           const cartInfo = await getCartInfo(token);

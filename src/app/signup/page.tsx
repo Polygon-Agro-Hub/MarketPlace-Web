@@ -101,8 +101,8 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
                 setIsOpen(false);
               }}
               className={`w-full text-left px-3 py-3 hover:bg-gray-100 flex items-center gap-2 transition-colors ${selectedValue === option.value
-                  ? "bg-purple-50 text-purple-700 border-l-4 border-purple-700"
-                  : "text-gray-900"
+                ? "bg-purple-50 text-purple-700 border-l-4 border-purple-700"
+                : "text-gray-900"
                 }`}
             >
               {option.flag && (
@@ -326,12 +326,14 @@ export default function SignupForm() {
       newErrors.phoneNumber = `Please enter a valid Phone Number (format: ${formData.phoneCode}7XXXXXXXX)`;
     }
 
-    if (!formData.companyPhoneNumber) {
-      newErrors.companyPhoneNumber = "Company phone number is required";
-    } else if (!/^\d{9}$/.test(formData.companyPhoneNumber)) {
-      newErrors.companyPhoneNumber = `Please enter a valid mobile number (format: ${formData.companyPhoneCode}7XXXXXXXX)`;
-    } else if (!formData.companyPhoneNumber.startsWith("7")) {
-      newErrors.companyPhoneNumber = `Please enter a valid Phone Number (format: ${formData.companyPhoneCode}7XXXXXXXX)`;
+    if (!isHome) {
+      if (!formData.companyPhoneNumber) {
+        newErrors.companyPhoneNumber = "Company phone number is required";
+      } else if (!/^\d{9}$/.test(formData.companyPhoneNumber)) {
+        newErrors.companyPhoneNumber = `Please enter a valid mobile number (format: ${formData.companyPhoneCode}7XXXXXXXX)`;
+      } else if (!formData.companyPhoneNumber.startsWith("7")) {
+        newErrors.companyPhoneNumber = `Please enter a valid Phone Number (format: ${formData.companyPhoneCode}7XXXXXXXX)`;
+      }
     }
 
     if (!formData.email) {
@@ -391,18 +393,18 @@ export default function SignupForm() {
       newErrors.confirmPassword = "Passwords do not match";
     }
 
-    // Add company validation for business buyers
-    if (!isHome) {
-      if (!formData.companyName) {
-        newErrors.companyName = "Company name is required";
-      }
+    // // Add company validation for business buyers
+    // if (!isHome) {
+    //   if (!formData.companyName) {
+    //     newErrors.companyName = "Company name is required";
+    //   }
 
-      if (!formData.companyPhoneNumber) {
-        newErrors.companyPhoneNumber = "Company phone number is required";
-      } else if (!/^\d{9}$/.test(formData.companyPhoneNumber)) {
-        newErrors.companyPhoneNumber = `Please enter a valid mobile number (format: ${formData.companyPhoneCode}7XXXXXXXX)`;
-      }
-    }
+    //   if (!formData.companyPhoneNumber) {
+    //     newErrors.companyPhoneNumber = "Company phone number is required";
+    //   } else if (!/^\d{9}$/.test(formData.companyPhoneNumber)) {
+    //     newErrors.companyPhoneNumber = `Please enter a valid mobile number (format: ${formData.companyPhoneCode}7XXXXXXXX)`;
+    //   }
+    // }
 
     if (!formData.agreeToTerms)
       newErrors.agreeToTerms = "You must accept the terms and conditions";

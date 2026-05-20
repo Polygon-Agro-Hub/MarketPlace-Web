@@ -599,7 +599,7 @@ const Page: React.FC = () => {
                 <button
                   onClick={handleApplyCoupon}
                   disabled={!couponCode.trim() || isCouponApplied || couponValidationLoading}
-                  className={`px-5 py-2 rounded-lg text-sm font-medium transition ${
+                  className={`px-5 py-2 rounded-lg text-sm font-medium transition cursor-pointer  ${
                     isCouponApplied
                       ? "bg-[#3E206D] text-white cursor-not-allowed"
                       : couponValidationLoading
@@ -660,7 +660,7 @@ const Page: React.FC = () => {
             <button
               onClick={handleSubmitOrder}
               disabled={isSubmitting || orderSubmitted}
-              className={`w-full py-3.5 rounded-xl font-semibold text-white transition ${
+              className={`w-full py-3.5 rounded-xl font-semibold text-white transition cursor-pointer ${
                 isSubmitting || orderSubmitted ? "bg-gray-400 cursor-not-allowed" : "bg-[#3E206D] hover:bg-[#2f1854]"
               }`}
             >

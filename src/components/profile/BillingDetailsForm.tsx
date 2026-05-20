@@ -75,8 +75,8 @@ const CustomDropdown = ({ register, setValue, name, value, errors, options, plac
 
   const filteredOptions = withSearch
     ? options.filter(option =>
-        option.label.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+      option.label.toLowerCase().includes(searchTerm.toLowerCase())
+    )
     : options;
 
   const selectedOption = options.find((opt) => opt.value === value);
@@ -1000,7 +1000,7 @@ const BillingDetailsForm = () => {
                     {...register(`phone${num}` as 'phone1' | 'phone2', {
                       required: num === 1 ? 'Phone Number 1 is required' : false,
                       pattern: {
-                        value: /^[0-9]{9}$/,
+                        value: /^7[0-9]{8}$/,
                         message: 'Please enter a valid Phone Number (format: +947XXXXXXXX)',
                       },
                       validate: num === 2
