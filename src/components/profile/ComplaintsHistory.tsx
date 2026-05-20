@@ -192,7 +192,7 @@ const ComplaintsHistory = () => {
                     {selectedComplaint.reply || 'No reply available yet.'}
                   </p>
                   <p className="text-sm">Sincerely,</p>
-                  <p className="text-sm">Customer Support Team</p>
+                  <p className="text-sm">Polygon Customer Support Team</p>
                   <p className="text-sm">
                     {formatReplyTime(selectedComplaint.replyTime)}
                   </p>
@@ -302,15 +302,15 @@ const ComplaintsHistory = () => {
                       <div className="flex flex-col justify-center sm:items-center">
                         <div className="flex items-center">
                           <span
-                            className={`min-w-[100px] sm:min-w-[120px] text-center px-2 py-1 rounded-full text-[12px] md:text-[16px] ${complaint.status === 'Closed'
-                              ? 'bg-[#EDE1FF] text-[#3E206D]'
-                              : complaint.status === 'Opened'
-                                ? 'bg-[#CFE1FF] text-[#3B82F6]'
-                                : 'bg-gray-200 text-gray-800'
-                              }`}
-                          >
-                            {complaint.status || 'Unknown'}
-                          </span>
+  className={`min-w-[80px] sm:min-w-[120px] text-center px-2 py-1 rounded-full text-[12px] md:text-[16px] ${complaint.status === 'Closed'
+    ? 'bg-[#EDE1FF] text-[#3E206D]'
+    : complaint.status === 'Opened'
+      ? 'bg-[#CFE1FF] text-[#3B82F6]'
+      : 'bg-gray-200 text-gray-800'
+  }`}
+>
+  {complaint.status || 'Unknown'}
+</span>
                         </div>
                       </div>
                       <div className="flex flex-col justify-center sm:items-center">

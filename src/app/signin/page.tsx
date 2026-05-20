@@ -191,7 +191,7 @@ const Page = () => {
               passwordError
                 ? "Incorrect password. Please try again!"
                 : emailError
-                  ? "Incorrect email. Please try again!"
+                  ? "Incorrect email/phone number, Please Try again"
                   : "User not found. Please check your credentials!"
             }
           />
@@ -279,7 +279,7 @@ const Page = () => {
                   type="text"
                   name="email"
                   placeholder="Email / Phone Number (e.g. +947XXXXXXXX)"
-                  className={`w-full px-10 py-2 border rounded-md ${
+                  className={`w-full px-10 py-2 border rounded-md text-xs sm:text-base ${
                     emailError ? "border-red-500" : "border-gray-300"
                   }`}
                   value={email}

@@ -76,8 +76,8 @@ const CustomDropdown = ({ register, name, value, onChange, options, disabled, wi
   // Filter options based on search term
   const filteredOptions = withSearch && searchTerm
     ? options.filter(option =>
-        option.label.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+      option.label.toLowerCase().includes(searchTerm.toLowerCase())
+    )
     : options;
 
   return (
@@ -244,7 +244,7 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
     setIsDragging(false);
   };
 
- const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const filesArray = Array.from(e.target.files);
       const validImages: File[] = [];
@@ -252,11 +252,13 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
       let hasInvalidSize = false;
       let hasDuplicates = false;
 
-      filesArray.forEach((file) => {
-        const isValidType = ['image/jpeg', 'image/png'].includes(file.type);
-        const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB limit
+      const allowedTypes = ['image/jpeg', 'image/png'];
+      const allowedExtensions = ['jpg', 'jpeg', 'png'];
 
-        // More reliable duplicate check - just check name and size
+      filesArray.forEach((file) => {
+        const fileExtension = file.name.split('.').pop()?.toLowerCase();
+        const isValidType = allowedTypes.includes(file.type) && allowedExtensions.includes(fileExtension || '');
+        const isValidSize = file.size <= 5 * 1024 * 1024;
         const isDuplicate = images.some((img) => img.name === file.name && img.size === file.size);
 
         if (isDuplicate) {
@@ -266,7 +268,6 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
         } else if (!isValidSize) {
           hasInvalidSize = true;
         } else {
-          // Only add if it's valid and not a duplicate
           validImages.push(file);
         }
       });
@@ -312,11 +313,13 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
       let hasInvalidFiles = false;
       let hasDuplicates = false;
 
-      filesArray.forEach((file) => {
-        const isValidType = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'].includes(file.type);
-        const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB limit
+      const allowedTypes = ['image/jpeg', 'image/png'];
+      const allowedExtensions = ['jpg', 'jpeg', 'png'];
 
-        // More reliable duplicate check
+      filesArray.forEach((file) => {
+        const fileExtension = file.name.split('.').pop()?.toLowerCase();
+        const isValidType = allowedTypes.includes(file.type) && allowedExtensions.includes(fileExtension || '');
+        const isValidSize = file.size <= 5 * 1024 * 1024;
         const isDuplicate = images.some((img) => img.name === file.name && img.size === file.size);
 
         if (isDuplicate) {
@@ -324,7 +327,6 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
         } else if (!isValidType || !isValidSize) {
           hasInvalidFiles = true;
         } else {
-          // Only add if it's valid and not a duplicate
           validImages.push(file);
         }
       });
@@ -415,10 +417,10 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
       setSuccessMessage(
         `Complaint ${complaint?.id ? 'updated' : 'submitted'} successfully! Your feedback has been recorded. Thank you!`
       );
-      
+
       // Scroll to top of the page
       window.scrollTo({ top: 0, behavior: 'smooth' });
-      
+
       setShowSuccessPopup(true);
 
       setTimeout(() => {
@@ -541,7 +543,7 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
               <input
                 type="file"
                 multiple
-                accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml"
+                accept=".jpg,.jpeg,.png"
                 className="hidden"
                 onChange={handleImageUpload}
                 disabled={isLoading}

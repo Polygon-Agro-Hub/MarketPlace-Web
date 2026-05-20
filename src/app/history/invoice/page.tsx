@@ -11,7 +11,7 @@ pdfMake.vfs = (pdfFonts as any).vfs;
 import { Suspense } from "react";
 import Loader from "@/components/loader-spinner/Loader";
 import NextImage from "next/image";
-import Logo from "../../../../public/POLYGON ORIGINAL LOGO.png";
+import Logo from "../../../../public/glogo.png";
 
 // Define interfaces based on the API responses
 export interface InvoiceItem {
@@ -121,6 +121,69 @@ function formatItemCount(count: number): string {
   return count === 1 ? "01 Item" : `${count.toString().padStart(2, "0")} Items`;
 }
 
+// Horizontal Scrollable Table Component with visible scroll indicators
+const ScrollableTable = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => {
+  const [showLeftShadow, setShowLeftShadow] = useState(false);
+  const [showRightShadow, setShowRightShadow] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const handleScroll = () => {
+    if (scrollContainerRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+      setShowLeftShadow(scrollLeft > 0);
+      setShowRightShadow(scrollLeft + clientWidth < scrollWidth - 5);
+    }
+  };
+
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (container) {
+      handleScroll();
+      container.addEventListener('scroll', handleScroll);
+      window.addEventListener('resize', handleScroll);
+      return () => {
+        container.removeEventListener('scroll', handleScroll);
+        window.removeEventListener('resize', handleScroll);
+      };
+    }
+  }, []);
+
+  return (
+    <div className="relative">
+      {/* Scroll indicator shadows */}
+      {showLeftShadow && (
+        <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white to-transparent pointer-events-none z-10 hidden sm:block" />
+      )}
+      {showRightShadow && (
+        <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white to-transparent pointer-events-none z-10 hidden sm:block" />
+      )}
+      
+      {/* Scrollable container */}
+      <div
+        ref={scrollContainerRef}
+        className={`overflow-x-auto scrollbar-visible ${className}`}
+        style={{
+          scrollbarWidth: 'thin',
+          WebkitOverflowScrolling: 'touch',
+        }}
+      >
+        {children}
+      </div>
+      
+      {/* Scroll hint for mobile */}
+      <div className="sm:hidden text-center mt-2 text-xs text-gray-400 flex items-center justify-center gap-1">
+        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+        <span>Swipe to see more</span>
+        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        </svg>
+      </div>
+    </div>
+  );
+};
+
 function InvoiceView({
   invoice,
   onClose,
@@ -158,7 +221,7 @@ function InvoiceView({
       ref={invoiceRef}
     >
       <h1
-        className="text-xl sm:text-2xl font-bold text-center"
+        className="text-xl sm:text-2xl font-bold text-center mb-7"
         style={{ color: "rgb(62,32,109)" }}
       >
         <div className="flex justify-start mb-2 sm:mb-0">
@@ -322,46 +385,48 @@ function InvoiceView({
                   </span>
                 </div>
                 <div className="border-t mb-4 mt-4 border-gray-300" />
-                <div className="mb-4 border border-gray-300 rounded-lg overflow-x-auto">
-                  <table className="w-full text-xs sm:text-sm min-w-[500px] sm:min-w-0">
-                    <thead>
-                      <tr className="border-b bg-gray-100 border-gray-300">
-                        <th className="p-2 sm:p-3 text-left w-16">Index</th>
-                        <th className="p-2 sm:p-3 text-left">
-                          Item Description
-                        </th>
-                        <th className="p-2 sm:p-3 text-left w-16">QTY</th>
-                        <th className="p-2 sm:p-3 text-left w-16"></th>
-                        <th className="p-2 sm:p-3 text-left w-16"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {pack.packageDetails && pack.packageDetails.length > 0 ? (
-                        pack.packageDetails.map((detail, index) => (
-                          <tr key={index} className="border-b border-gray-200">
-                            <td className="p-2 sm:p-5 text-left">{`${index + 1}.`}</td>
-                            <td className="p-2 sm:p-3 text-left">
-                              {detail.typeName}
-                            </td>
-                            <td className="p-2 sm:p-3 text-center">
-                              {detail.qty}
-                            </td>
-                            <td className="p-2 sm:p-3 text-left"></td>
-                            <td className="p-2 sm:p-3 text-left"></td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td
-                            colSpan={5}
-                            className="p-2 sm:p-3 text-center text-gray-600"
-                          >
-                            No package details available.
-                          </td>
+                <div className="mb-4 border border-gray-300 rounded-lg">
+                  <ScrollableTable>
+                    <table className="w-full text-xs sm:text-sm min-w-[500px] sm:min-w-0">
+                      <thead>
+                        <tr className="border-b bg-gray-100 border-gray-300">
+                          <th className="p-2 sm:p-3 text-left w-16">Index</th>
+                          <th className="p-2 sm:p-3 text-left">
+                            Item Description
+                          </th>
+                          <th className="p-2 sm:p-3 text-left w-16">QTY</th>
+                          <th className="p-2 sm:p-3 text-left w-16"></th>
+                          <th className="p-2 sm:p-3 text-left w-16"></th>
                         </tr>
-                      )}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {pack.packageDetails && pack.packageDetails.length > 0 ? (
+                          pack.packageDetails.map((detail, index) => (
+                            <tr key={index} className="border-b border-gray-200">
+                              <td className="p-2 sm:p-5 text-left">{`${index + 1}.`}</td>
+                              <td className="p-2 sm:p-3 text-left">
+                                {detail.typeName}
+                              </td>
+                              <td className="p-2 sm:p-3 text-center">
+                                {detail.qty}
+                              </td>
+                              <td className="p-2 sm:p-3 text-left"></td>
+                              <td className="p-2 sm:p-3 text-left"></td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td
+                              colSpan={5}
+                              className="p-2 sm:p-3 text-center text-gray-600"
+                            >
+                              No package details available.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </ScrollableTable>
                 </div>
               </div>
             ))}
@@ -380,35 +445,37 @@ function InvoiceView({
             </span>
           </div>
           <div className="border-t mb-4 mt-4 border-gray-300" />
-          <div className="mb-4 border border-gray-300 rounded-lg overflow-x-auto">
-            <table className="w-full text-xs sm:text-sm min-w-[600px] sm:min-w-0">
-              <thead>
-                <tr className="border-b bg-gray-100 border-gray-300">
-                  <th className="p-2 sm:p-3 text-left w-16">Index</th>
-                  <th className="p-2 sm:p-3 text-left">Item Description</th>
-                  <th className="p-2 sm:p-3 text-left">Unit Price (Rs.)</th>
-                  <th className="p-2 sm:p-3 text-left w-20">QTY</th>
-                  <th className="p-2 sm:p-3 text-left">Amount (Rs.)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {invoice.additionalItems.map((item, index) => (
-                  <tr key={item.id} className="border-b border-gray-200">
-                    <td className="p-2 sm:p-5 text-left">{`${index + 1}.`}</td>
-                    <td className="p-2 sm:p-3 text-left">{item.name}</td>
-                    <td className="p-2 sm:p-3 text-left">
-                      {formatCurrencyWithCommas(item.unitPrice)}
-                    </td>
-                    <td className="p-2 sm:p-3 text-left">
-                      {formatQuantity(item.quantity, item.unit)}
-                    </td>
-                    <td className="p-2 sm:p-3 text-left">
-                      {formatCurrencyWithCommas(item.amount)}
-                    </td>
+          <div className="mb-4 border border-gray-300 rounded-lg">
+            <ScrollableTable>
+              <table className="w-full text-xs sm:text-sm min-w-[600px] sm:min-w-0">
+                <thead>
+                  <tr className="border-b bg-gray-100 border-gray-300">
+                    <th className="p-2 sm:p-3 text-left w-16">Index</th>
+                    <th className="p-2 sm:p-3 text-left">Item Description</th>
+                    <th className="p-2 sm:p-3 text-left">Unit Price (Rs.)</th>
+                    <th className="p-2 sm:p-3 text-left w-20">QTY</th>
+                    <th className="p-2 sm:p-3 text-left">Amount (Rs.)</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {invoice.additionalItems.map((item, index) => (
+                    <tr key={item.id} className="border-b border-gray-200">
+                      <td className="p-2 sm:p-5 text-left">{`${index + 1}.`}</td>
+                      <td className="p-2 sm:p-3 text-left">{item.name}</td>
+                      <td className="p-2 sm:p-3 text-left">
+                        {formatCurrencyWithCommas(item.unitPrice)}
+                      </td>
+                      <td className="p-2 sm:p-3 text-left">
+                        {formatQuantity(item.quantity, item.unit)}
+                      </td>
+                      <td className="p-2 sm:p-3 text-left">
+                        {formatCurrencyWithCommas(item.amount)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </ScrollableTable>
           </div>
         </div>
       )}
@@ -418,7 +485,7 @@ function InvoiceView({
           Grand Total for all items
         </h2>
         <div className="border-t mb-4 mt-4 border-gray-300" />
-        <div className="overflow-x-auto">
+        <ScrollableTable>
           <table
             className="w-full text-xs sm:text-sm min-w-[400px] sm:min-w-0"
             id="grandTotalTable"
@@ -511,7 +578,7 @@ function InvoiceView({
               </tr>
             </tbody>
           </table>
-        </div>
+        </ScrollableTable>
       </div>
 
       <div className="text-xs sm:text-sm">
@@ -608,7 +675,7 @@ function InvoicePageContent() {
         // Load logo image as base64 - FIXED: Use HTMLImageElement explicitly
         const img = new (window as any).Image() as HTMLImageElement;
 
-        img.src = `${window.location.origin}/POLYGON%20ORIGINAL%20LOGO.png`;
+        img.src = `${window.location.origin}/glogo.png`;
         img.crossOrigin = "anonymous";
         img.onload = () => {
           const canvas = document.createElement("canvas");

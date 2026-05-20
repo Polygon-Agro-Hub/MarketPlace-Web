@@ -1,5 +1,7 @@
+// app/checkout/payment/page.tsx
 "use client";
-import React, { useEffect, useState, MouseEvent } from "react";
+
+import React, { useState, useEffect, MouseEvent } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import TopNavigation from "@/components/top-navigation/TopNavigation";
@@ -17,8 +19,6 @@ import {
 import summary from "../../../public/summary.png";
 import { updateCartInfo } from "@/store/slices/authSlice";
 import { getCartInfo } from "@/services/auth-service";
-import wrongImg from "../../../public/images/wrong.png";
-import correct from "../../../public/images/correct.png";
 
 const Page: React.FC = () => {
   const router = useRouter();
@@ -32,6 +32,9 @@ const Page: React.FC = () => {
   const cartItems = useSelector((state: RootState) => state.cartItems);
   const checkoutDetails = useSelector((state: RootState) => state.checkout);
   const token = useSelector((state: RootState) => state.auth?.token) || null;
+  const user = useSelector((state: RootState) => state.auth.user);
+  const dispatch = useDispatch();
+  const authCart = useSelector((state: RootState) => state.auth.cart);
 
   // Local state
   const [paymentMethod, setPaymentMethod] = useState<"card" | "cash">("card");
@@ -52,8 +55,6 @@ const Page: React.FC = () => {
   const [couponValidationLoading, setCouponValidationLoading] = useState(false);
   const [couponError, setCouponError] = useState("");
   const [deliveryCharge, setDeliveryCharge] = useState<number>(0);
-  const user = useSelector((state: RootState) => state.auth.user);
-  const dispatch = useDispatch();
   const [couponType, setCouponType] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isError, setIsError] = useState(false);
@@ -65,19 +66,14 @@ const Page: React.FC = () => {
   };
 
   useEffect(() => {
-    // Load delivery charge from localStorage if available
     const savedCharge = localStorage.getItem("deliveryCharge");
-
     if (savedCharge) {
       setDeliveryCharge(parseFloat(savedCharge));
     }
   }, []);
 
   const handleCardInputChange = (field: string, value: string) => {
-    setCardDetails((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+    setCardDetails((prev) => ({ ...prev, [field]: value }));
   };
 
   const prepareOrderPayload = (): OrderPayload => {
@@ -85,12 +81,9 @@ const Page: React.FC = () => {
     const originalGrandTotal = calculatedSummary?.finalTotal || 0;
     const discountAmount = calculatedSummary?.totalDiscount || 0;
 
-    const couponDiscountAmount = isCouponApplied
-      ? Number(couponDiscount) || 0
-      : 0;
+    const couponDiscountAmount = isCouponApplied ? Number(couponDiscount) || 0 : 0;
     const shouldApplyDeliveryCharge = checkoutDetails.deliveryMethod === "home";
 
-    // FIXED: Check for both possible spellings
     const isFreeDeliveryCoupon =
       isCouponApplied &&
       (couponType === "Free Delivery" || couponType === "Free Delivary");
@@ -105,7 +98,7 @@ const Page: React.FC = () => {
       ? originalGrandTotal - couponDiscountAmount + effectiveDeliveryCharge
       : originalGrandTotal + effectiveDeliveryCharge;
 
-    let finalCheckoutDetails = {
+    let finalCheckoutDetails: any = {
       deliveryMethod: checkoutDetails.deliveryMethod || "home",
       title: checkoutDetails.title || "",
       fullName: checkoutDetails.fullName || "",
@@ -128,16 +121,14 @@ const Page: React.FC = () => {
       couponValue: isCouponApplied ? Number(couponDiscountAmount) : 0,
       isCoupon: isCouponApplied,
       couponCode: isCouponApplied ? couponCode : "",
-      geoLatitude: checkoutDetails.geoLatitude || null, // Add this
+      couponType: isCouponApplied ? couponType : "",
+      geoLatitude: checkoutDetails.geoLatitude || null,
       geoLongitude: checkoutDetails.geoLongitude || null,
       companycenterId: checkoutDetails.companycenterId || null,
     };
 
-    // ... rest of the address handling code remains the same
     if (checkoutDetails.deliveryMethod === "home") {
-      finalCheckoutDetails.buildingType = (
-        checkoutDetails.buildingType || "apartment"
-      ).toLowerCase();
+      finalCheckoutDetails.buildingType = (checkoutDetails.buildingType || "apartment").toLowerCase();
       finalCheckoutDetails.houseNo = checkoutDetails.houseNo || "";
       finalCheckoutDetails.street = checkoutDetails.street || "";
       finalCheckoutDetails.cityName = checkoutDetails.cityName || "";
@@ -164,13 +155,9 @@ const Page: React.FC = () => {
   };
 
   const formatPrice = (price: number): string => {
-    // Convert to fixed decimal first, then add commas
     const fixedPrice = Number(price).toFixed(2);
     const [integerPart, decimalPart] = fixedPrice.split(".");
-
-    // Add commas to integer part
     const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-
     return `${formattedInteger}.${decimalPart}`;
   };
 
@@ -185,20 +172,12 @@ const Page: React.FC = () => {
         throw new Error("Please log in to apply coupon");
       }
 
-      // Get deliveryMethod from Redux state
       const deliveryMethod = checkoutDetails.deliveryMethod || "home";
-
-      const response = await validateCoupon(
-        couponCode.trim(),
-        token,
-        deliveryMethod,
-      );
+      const response = await validateCoupon(couponCode.trim(), token, deliveryMethod);
 
       if (response.status) {
         setIsCouponApplied(true);
-        // Parse the discount value - remove commas and convert to number
-        const discountValue =
-          parseFloat(response.discount.toString().replace(/,/g, "")) || 0;
+        const discountValue = parseFloat(response.discount.toString().replace(/,/g, "")) || 0;
         setCouponDiscount(discountValue);
         setCouponType(response.type || "");
       } else {
@@ -219,48 +198,28 @@ const Page: React.FC = () => {
   };
 
   const validateCartData = (): { isValid: boolean; error?: string } => {
-    // Check if cart exists and has valid ID
     if (!cartItems.cartId || cartItems.cartId === 0) {
-      return {
-        isValid: false,
-        error: "Cart ID is missing. Please refresh and try again.",
-      };
+      return { isValid: false, error: "Cart ID is missing. Please refresh and try again." };
     }
 
-    // Check if cart has items (packages or additional items)
     const hasPackages = cartItems.packages && cartItems.packages.length > 0;
     const hasAdditionalItems =
       cartItems.additionalItems &&
       cartItems.additionalItems.length > 0 &&
-      cartItems.additionalItems.some(
-        (group) => group.Items && group.Items.length > 0,
-      );
+      cartItems.additionalItems.some((group: any) => group.Items && group.Items.length > 0);
 
     if (!hasPackages && !hasAdditionalItems) {
-      return {
-        isValid: false,
-        error: "No items in cart. Please add items before placing order.",
-      };
+      return { isValid: false, error: "No items in cart. Please add items before placing order." };
     }
 
-    // Check if calculated summary exists
     if (!cartItems.calculatedSummary) {
-      return {
-        isValid: false,
-        error: "Cart summary is missing. Please refresh and try again.",
-      };
+      return { isValid: false, error: "Cart summary is missing. Please refresh and try again." };
     }
 
-    // Check if checkout details are complete
     if (!checkoutDetails) {
-      return {
-        isValid: false,
-        error:
-          "Checkout details are missing. Please complete the checkout process.",
-      };
+      return { isValid: false, error: "Checkout details are missing. Please complete the checkout process." };
     }
 
-    // Validate required checkout fields
     const requiredFields = ["deliveryMethod", "title", "fullName", "phone1"];
     for (const field of requiredFields) {
       if (!checkoutDetails[field as keyof typeof checkoutDetails]) {
@@ -268,38 +227,22 @@ const Page: React.FC = () => {
       }
     }
 
-    // Validate delivery method specific fields
     if (checkoutDetails.deliveryMethod === "home") {
-      // Validate building type specific fields for home delivery
       if (checkoutDetails.buildingType?.toLowerCase() === "apartment") {
-        const apartmentFields = [
-          "buildingNo",
-          "buildingName",
-          "flatNumber",
-          "floorNumber",
-        ];
+        const apartmentFields = ["buildingNo", "buildingName", "flatNumber", "floorNumber"];
         for (const field of apartmentFields) {
           if (!checkoutDetails[field as keyof typeof checkoutDetails]) {
-            return {
-              isValid: false,
-              error: `Missing required apartment field: ${field}`,
-            };
+            return { isValid: false, error: `Missing required apartment field: ${field}` };
           }
         }
       }
-
-      // Common home delivery fields (required for both house and apartment)
       const homeDeliveryFields = ["houseNo", "street", "cityName"];
       for (const field of homeDeliveryFields) {
         if (!checkoutDetails[field as keyof typeof checkoutDetails]) {
-          return {
-            isValid: false,
-            error: `Missing required home delivery field: ${field}`,
-          };
+          return { isValid: false, error: `Missing required home delivery field: ${field}` };
         }
       }
     } else if (checkoutDetails.deliveryMethod === "pickup") {
-      // Validate pickup center selection
       if (!checkoutDetails.centerId) {
         return { isValid: false, error: "Please select a pickup center." };
       }
@@ -313,18 +256,15 @@ const Page: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      // Validate authentication
       if (!token) {
         throw new Error("Authentication required. Please log in again.");
       }
 
-      // Validate cart data
       const cartValidation = validateCartData();
       if (!cartValidation.isValid) {
         throw new Error(cartValidation.error);
       }
 
-      // Additional validation for card payment
       if (paymentMethod === "card") {
         const { cardNumber, nameOnCard, expirationDate, cvv } = cardDetails;
         if (!cardNumber || !nameOnCard || !expirationDate || !cvv) {
@@ -333,8 +273,6 @@ const Page: React.FC = () => {
       }
 
       const payload = prepareOrderPayload();
-
-      // Validate the payload
       const validation = validateOrderData(payload);
       if (!validation.isValid) {
         console.error("Validation errors:", validation.errors);
@@ -345,18 +283,15 @@ const Page: React.FC = () => {
 
       const result = await submitOrderToBackend(payload, token);
 
-      // Check if the response has the expected structure
       if (result.status && result.processOrderId) {
         setOrderId(result.processOrderId);
-        setOrderSubmitted(true); // Mark order as submitted
+        setOrderSubmitted(true);
         localStorage.removeItem("deliveryCharge");
 
-        // Show success modal
         setIsError(false);
         setModalMessage("Your order has been placed.");
         setIsModalOpen(true);
 
-        // Fetch updated cart info after successful order creation
         try {
           const cartInfo = await getCartInfo(token);
           dispatch(updateCartInfo(cartInfo));
@@ -368,10 +303,7 @@ const Page: React.FC = () => {
       }
     } catch (error: any) {
       console.error("Error submitting order:", error);
-      const errorMsg =
-        error.message || "Order submission failed. Please try again.";
-
-      // Show error modal
+      const errorMsg = error.message || "Order submission failed. Please try again.";
       setIsError(true);
       setModalMessage(errorMsg);
       setIsModalOpen(true);
@@ -383,50 +315,34 @@ const Page: React.FC = () => {
   const handleModalClose = () => {
     setIsModalOpen(false);
     if (!isError) {
-      // If success, redirect to home
       router.push(getHomeUrl());
     }
   };
 
-  // Handle view invoice
   const handleViewInvoice = () => {
     setIsModalOpen(false);
-
     if (orderId) {
       router.push(`/history/invoice/?orderId=${orderId}`);
     } else {
-      console.error("Order ID is not available");
-      // Handle case where orderId is not available
       setIsError(true);
       setModalMessage("Order ID not available. Please try again.");
       setIsModalOpen(true);
     }
   };
-  // Calculate display values for OrderSummary
+
   const getDisplayValues = () => {
     const calculatedSummary = cartItems.calculatedSummary;
     const originalGrandTotal = calculatedSummary?.finalTotal || 0;
-
-    // Only show delivery charges if delivery method is 'home' (delivery)
     const shouldShowDeliveryCharge = checkoutDetails.deliveryMethod === "home";
-
-    // FIXED: Check for both possible spellings of Free Delivery
     const isFreeDeliveryCoupon =
       isCouponApplied &&
       (couponType === "Free Delivery" || couponType === "Free Delivary");
-
-    // Handle Free Delivery coupon type - only applicable for home delivery
     const effectiveDeliveryCharge = shouldShowDeliveryCharge
       ? isFreeDeliveryCoupon
         ? 0
         : deliveryCharge
       : 0;
-
-    // Ensure couponDiscount is a valid number
-    const couponDiscountAmount = isCouponApplied
-      ? Number(couponDiscount) || 0
-      : 0;
-
+    const couponDiscountAmount = isCouponApplied ? Number(couponDiscount) || 0 : 0;
     const finalGrandTotal = isCouponApplied
       ? originalGrandTotal - couponDiscountAmount + effectiveDeliveryCharge
       : originalGrandTotal + effectiveDeliveryCharge;
@@ -446,130 +362,62 @@ const Page: React.FC = () => {
 
   const displayValues = getDisplayValues();
 
+  useEffect(() => {
+    dispatch(
+      updateCartInfo({
+        price: parseFloat(displayValues.grandTotal.toFixed(2)),
+        count: authCart.count,
+      })
+    );
+  }, [displayValues.grandTotal, isCouponApplied, couponDiscount, deliveryCharge]);
+
   return (
     <div className="px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5">
+      {/* Modal - same as original */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white p-8 rounded-2xl text-center w-[90%] max-w-md shadow-xl">
             {isError ? (
-              /* Error Icon with Animation */
               <div className="flex justify-center mb-4">
                 <div className="relative w-28 h-28">
-                  {/* Animated Circle Background */}
-                  <div
-                    className="absolute inset-0 rounded-full bg-red-500 transition-all duration-700 ease-out scale-100 opacity-100"
-                    style={{
-                      transformOrigin: "center",
-                      animationDelay: "0.2s",
-                    }}
-                  />
-
-                  {/* Animated X Icon */}
+                  <div className="absolute inset-0 rounded-full bg-red-500 transition-all duration-700 ease-out scale-100 opacity-100" />
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <svg
-                      className="w-16 h-16 text-white"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                    >
-                      <path
-                        className="opacity-100 transition-all duration-700 ease-out"
-                        d="M18 6L6 18M6 6L18 18"
-                        stroke="currentColor"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        style={{
-                          strokeDasharray: "24",
-                          strokeDashoffset: "0",
-                          transitionDelay: "0.6s",
-                        }}
-                      />
+                    <svg className="w-16 h-16 text-white" viewBox="0 0 24 24" fill="none">
+                      <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   </div>
-
-                  {/* Pulse Animation */}
-                  <div
-                    className="absolute inset-0 rounded-full bg-red-500 scale-125 opacity-0 transition-all duration-1000"
-                    style={{
-                      animationDelay: "0.8s",
-                    }}
-                  />
                 </div>
               </div>
             ) : (
-              /* Success Icon with Animation */
               <div className="flex justify-center mb-4">
                 <div className="relative w-28 h-28">
-                  {/* Animated Circle */}
-                  <div
-                    className="absolute inset-0 rounded-full border-4 border-purple-500 scale-100 opacity-100 transition-all duration-700 ease-out"
-                    style={{
-                      transformOrigin: "center",
-                      animationDelay: "0.2s",
-                    }}
-                  />
-
-                  {/* Animated Checkmark */}
+                  <div className="absolute inset-0 rounded-full border-4 border-purple-500 scale-100 opacity-100 transition-all duration-700 ease-out" />
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <svg
-                      className="w-14 h-14 text-[#8746ff]"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                    >
-                      <path
-                        className="opacity-100 transition-all duration-700 ease-out"
-                        d="M20 6L9 17L4 12"
-                        stroke="currentColor"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        style={{
-                          strokeDasharray: "20",
-                          strokeDashoffset: "0",
-                          transitionDelay: "0.6s",
-                        }}
-                      />
+                    <svg className="w-14 h-14 text-[#8746ff]" viewBox="0 0 24 24" fill="none">
+                      <path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   </div>
-
-                  {/* Pulse Animation */}
-                  <div
-                    className="absolute inset-0 rounded-full bg-[#8746ff] scale-125 opacity-0 transition-all duration-1000"
-                    style={{
-                      animationDelay: "0.8s",
-                    }}
-                  />
                 </div>
               </div>
             )}
-
             <h2 className="text-xl font-bold mb-2 text-gray-900">
               {isError ? "Error" : "Thank you for ordering!"}
             </h2>
             <p className="text-gray-500 mb-6">{modalMessage}</p>
-
             {isError ? (
-              <button
-                onClick={handleModalClose}
-                className="px-6 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition cursor-pointer text-gray-700 font-medium"
-              >
+              <button onClick={handleModalClose} className="px-6 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition cursor-pointer text-gray-700 font-medium">
                 Close
               </button>
             ) : (
               <div className="flex gap-3 justify-center">
-                <button
-                  onClick={handleModalClose}
-                  className="px-6 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition cursor-pointer text-gray-700 font-medium"
-                >
+                <button onClick={handleModalClose} className="px-6 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition cursor-pointer text-gray-700 font-medium">
                   Go Back
                 </button>
                 <button
                   onClick={handleViewInvoice}
                   disabled={!orderId}
                   className={`px-6 py-2 rounded-lg transition cursor-pointer font-medium ${
-                    !orderId
-                      ? "bg-gray-400 text-gray-600 cursor-not-allowed"
-                      : "bg-[#3E206D] text-white hover:bg-[#3E206D]"
+                    !orderId ? "bg-gray-400 text-gray-600 cursor-not-allowed" : "bg-[#3E206D] text-white hover:bg-[#3E206D]"
                   }`}
                 >
                   View Invoice
@@ -579,142 +427,94 @@ const Page: React.FC = () => {
           </div>
         </div>
       )}
+
       <TopNavigation NavArray={NavArray} />
 
-      <div className="flex flex-col lg:flex-row lg:items-start gap-4 sm:gap-6 items-start">
-        <div className="w-full lg:w-2/3 mt-6 pt-8">
-          <div className="bg-white rounded-3xl border border-gray-200 p-8">
-            <h1 className="text-2xl font-semibold mb-6">
+      {/* Two Column Layout - Matches the image exactly */}
+      <div className="flex flex-col lg:flex-row gap-6 mt-6 lg:mt-8">
+        {/* Left Column - Payment Methods */}
+        <div className="w-full lg:w-2/3">
+          <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 md:p-8">
+            <h1 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">
               Select Payment Method
             </h1>
 
-            {/* Credit/Debit Card Option */}
-            <div className="mb-5 border border-gray-200 rounded-lg overflow-hidden">
+            {/* Credit/Debit Card */}
+            <div className="mb-5 border border-gray-200 rounded-xl overflow-hidden">
               <div
-                className="rounded-t-lg p-4 flex justify-between items-center cursor-pointer"
+                className="p-4 flex justify-between items-center cursor-pointer bg-white hover:bg-gray-50 transition"
                 onClick={() => setPaymentMethod("card")}
               >
                 <div className="flex items-center">
                   <div
                     className={`w-5 h-5 rounded-full ${
                       paymentMethod === "card"
-                        ? "bg-indigo-800 border-2 border-indigo-800 ring-2 ring-indigo-100"
+                        ? "bg-[#3E206D] border-2 border-[#3E206D] ring-2 ring-purple-100"
                         : "border border-gray-400"
                     }`}
-                  ></div>
-                  <span className="ml-3 text-base">Credit / Debit Card</span>
+                  />
+                  <span className="ml-3 text-base font-medium">Credit / Debit Card</span>
                 </div>
-                <div className="flex space-x-2 lg:mr-8">
-                  <Image
-                    src={Visa}
-                    alt="Visa"
-                    className="w-auto h-6 object-cover mr-2"
-                  />
-                  <Image
-                    src={MasterCard}
-                    alt="MasterCard"
-                    className="w-auto h-6 object-cover"
-                  />
+                <div className="flex space-x-2">
+                  <Image src={Visa} alt="Visa" className="w-auto h-6 object-cover" />
+                  <Image src={MasterCard} alt="MasterCard" className="w-auto h-6 object-cover" />
                 </div>
               </div>
+
               {paymentMethod === "card" && (
-                <div className="mb-5 rounded-b-lg p-4 sm:p-6 md:p-8 lg:p-10 border-t border-gray-200">
+                <div className="p-5 border-t border-gray-200 bg-gray-50/30">
                   <div className="space-y-4">
-                    <div>
-                      <input
-                        type="text"
-                        placeholder="Enter Card Number"
-                        value={cardDetails.cardNumber}
-                        onChange={(e) => {
-                          // Only allow digits and format with spaces every 4 digits
-                          const value = e.target.value.replace(/[^0-9]/g, "");
-                          const formattedValue = value.replace(
-                            /(\d{4})(?=\d)/g,
-                            "$1 ",
-                          );
-                          if (value.length <= 16) {
-                            handleCardInputChange("cardNumber", formattedValue);
-                          }
-                        }}
-                        maxLength={19} // 16 digits + 3 spaces
-                        className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <input
-                        type="text"
-                        placeholder="Enter Name on Card"
-                        value={cardDetails.nameOnCard}
-                        onChange={(e) => {
-                          let value = e.target.value;
-
-                          // Block leading spaces
-                          if (value.startsWith(" ")) {
-                            value = value.trimStart();
-                          }
-
-                          // Only allow letters and spaces (no numbers or special characters)
-                          value = value.replace(/[^a-zA-Z\s]/g, "");
-
-                          // Capitalize first letter and first letter after each space
-                          value = value.replace(/\b\w/g, (char) =>
-                            char.toUpperCase(),
-                          );
-
-                          handleCardInputChange("nameOnCard", value);
-                        }}
-                        className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm"
-                      />
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-4">
+                    <input
+                      type="text"
+                      placeholder="Enter Card Number"
+                      value={cardDetails.cardNumber}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^0-9]/g, "");
+                        const formattedValue = value.replace(/(\d{4})(?=\d)/g, "$1 ");
+                        if (value.length <= 16) handleCardInputChange("cardNumber", formattedValue);
+                      }}
+                      maxLength={19}
+                      className="w-full p-3 border border-gray-200 rounded-lg bg-white text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Enter Name on Card"
+                      value={cardDetails.nameOnCard}
+                      onChange={(e) => {
+                        let value = e.target.value;
+                        if (value.startsWith(" ")) value = value.trimStart();
+                        value = value.replace(/[^a-zA-Z\s]/g, "");
+                        value = value.replace(/\b\w/g, (char) => char.toUpperCase());
+                        handleCardInputChange("nameOnCard", value);
+                      }}
+                      className="w-full p-3 border border-gray-200 rounded-lg bg-white text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
+                    />
+                    <div className="flex gap-4">
                       <input
                         type="text"
                         placeholder="Enter Expiration Date (MM/YY)"
                         value={cardDetails.expirationDate}
                         onChange={(e) => {
-                          const inputValue = e.target.value;
-                          const value = inputValue.replace(/[^0-9/]/g, "");
+                          const value = e.target.value.replace(/[^0-9/]/g, "");
                           let formattedValue = value;
-
-                          if (
-                            value.length === 2 &&
-                            !value.includes("/") &&
-                            inputValue.length >
-                              cardDetails.expirationDate.length
-                          ) {
+                          if (value.length === 2 && !value.includes("/") && e.target.value.length > cardDetails.expirationDate.length) {
                             formattedValue = value + "/";
-                          } else if (
-                            value.length >= 2 &&
-                            !value.includes("/") &&
-                            value.length <= 4
-                          ) {
-                            formattedValue = value;
                           }
-
-                          if (formattedValue.length <= 5) {
-                            handleCardInputChange(
-                              "expirationDate",
-                              formattedValue,
-                            );
-                          }
+                          if (formattedValue.length <= 5) handleCardInputChange("expirationDate", formattedValue);
                         }}
                         maxLength={5}
-                        className="w-full sm:w-3/5 p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm"
+                        className="w-2/3 p-3 border border-gray-200 rounded-lg bg-white text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
                       />
-
                       <input
                         type="text"
                         placeholder="Enter CVV"
                         value={cardDetails.cvv}
                         onChange={(e) => {
-                          // Remove all non-numeric characters and limit to exactly 3 digits
                           const value = e.target.value.replace(/[^0-9]/g, "");
-                          if (value.length <= 3) {
-                            handleCardInputChange("cvv", value);
-                          }
+                          if (value.length <= 3) handleCardInputChange("cvv", value);
                         }}
                         maxLength={3}
-                        className="w-full sm:w-2/5 p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm"
+                        className="w-1/3 p-3 border border-gray-200 rounded-lg bg-white text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
                       />
                     </div>
                   </div>
@@ -722,187 +522,150 @@ const Page: React.FC = () => {
               )}
             </div>
 
-            {/* Cash Payment Option */}
-            <div className="mb-5 border border-gray-200 rounded-lg">
+            {/* Pay by Cash */}
+            <div className="border border-gray-200 rounded-xl overflow-hidden">
               <div
-                className="rounded-lg p-4 flex justify-between items-center cursor-pointer"
+                className="p-4 flex justify-between items-center cursor-pointer bg-white hover:bg-gray-50 transition"
                 onClick={() => setPaymentMethod("cash")}
               >
                 <div className="flex items-center">
                   <div
                     className={`w-5 h-5 rounded-full ${
                       paymentMethod === "cash"
-                        ? "bg-indigo-800 border-2 border-indigo-800 ring-2 ring-indigo-100"
+                        ? "bg-[#3E206D] border-2 border-[#3E206D] ring-2 ring-purple-100"
                         : "border border-gray-400"
                     }`}
-                  ></div>
-                  <span className="ml-3 text-base">Pay by Cash</span>
+                  />
+                  <span className="ml-3 text-base font-medium">Pay by Cash</span>
                 </div>
               </div>
+
               {paymentMethod === "cash" && (
-                <div className="p-10 border-t border-gray-200">
-                  <div className="text-gray-700 space-y-6">
-                    <p>
-                      - You may pay in cash to our courier upon receiving your
-                      parcel at the doorstep.
-                    </p>
-                    <p>
-                      - Before agreeing to receive the parcel, check if your
-                      delivery status has been updated to "Out of Delivery".
-                    </p>
-                    <p>
-                      - Before receiving, confirm that the airway bill shows
-                      that the parcel from Polygon Holdings.
-                    </p>
-                    <p>
-                      - Before you make the payment to the courier, confirm your
-                      order number, sender information, and tracking number on
-                      the parcel.
-                    </p>
+                <div className="p-5 border-t border-gray-200 bg-gray-50/30">
+                  <div className="text-gray-700 space-y-3">
+                    <div className="flex gap-2">
+                      <span className="flex-shrink-0">-</span>
+                      <span>You may pay in cash to our courier upon receiving your parcel at the doorstep.</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <span className="flex-shrink-0">-</span>
+                      <span>Before agreeing to receive the parcel, check if your delivery status has been updated to "Out of Delivery".</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <span className="flex-shrink-0">-</span>
+                      <span>Before receiving, confirm that the airway bill shows that the parcel from Polygon Holdings.</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <span className="flex-shrink-0">-</span>
+                      <span>Before you make the payment to the courier, confirm your order number, sender information, and tracking number on the parcel.</span>
+                    </div>
                   </div>
                 </div>
               )}
             </div>
           </div>
         </div>
-        <div className="w-full lg:w-1/3 mt-6 lg:mt-0 pt-14">
-          <div className="border border-gray-300 rounded-lg shadow-md p-4 sm:p-5 md:p-6">
+
+        {/* Right Column - Order Summary */}
+        <div className="w-full lg:w-1/3">
+          <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 shadow-sm">
             <h2 className="font-semibold text-lg mb-4">Your Order</h2>
 
-            <div className="flex justify-between items-center mb-3 sm:mb-4">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="w-12 sm:w-14 md:w-16 h-12 sm:h-14 md:h-16 border border-[gray] rounded-lg flex items-center justify-center">
-                  <Image
-                    src={summary}
-                    alt="Shopping bag"
-                    width={40}
-                    height={40}
-                    className="object-contain"
-                  />
+            {/* Items count with icon */}
+            <div className="flex justify-between items-center mb-5">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 border border-gray-300 rounded-lg flex items-center justify-center bg-gray-50">
+                  <Image src={summary} alt="Shopping bag" width={28} height={28} className="object-contain" />
                 </div>
-                <p className="text-gray-600">
-                  {displayValues.totalItems || 0}{" "}
-                  {(displayValues.totalItems || 0) === 1 ? "item" : "items"}
+                <p className="text-gray-700">
+                  {displayValues.totalItems} {displayValues.totalItems === 1 ? "item" : "items"}
                 </p>
               </div>
-              <p className="font-semibold">
-                Rs.{" "}{formatPrice(displayValues.totalPrice || 0)}
-              </p>
+              <p className="font-semibold">Rs. {formatPrice(displayValues.totalPrice)}</p>
             </div>
 
-            <div className="mb-4">
-              <h3 className="font-semibold text-base mb-3">Coupon Code</h3>
+            {/* Coupon Code Section */}
+            <div className="mb-5">
+              <h3 className="font-semibold text-sm mb-2">Coupon Code</h3>
               <div className="flex gap-2">
                 <input
                   type="text"
                   placeholder="Add Coupon Code"
                   value={couponCode}
                   onChange={(e) => setCouponCode(e.target.value)}
-                  className="flex-1 p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm"
+                  className="flex-1 p-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-600 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
                   disabled={isCouponApplied || couponValidationLoading}
                 />
                 <button
                   onClick={handleApplyCoupon}
-                  disabled={
-                    !couponCode.trim() ||
-                    isCouponApplied ||
-                    couponValidationLoading
-                  }
-                  className={`px-4 py-2 rounded-lg text-sm cursor-pointer font-medium ${
+                  disabled={!couponCode.trim() || isCouponApplied || couponValidationLoading}
+                  className={`px-5 py-2 rounded-lg text-sm font-medium transition cursor-pointer  ${
                     isCouponApplied
                       ? "bg-[#3E206D] text-white cursor-not-allowed"
                       : couponValidationLoading
-                        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                        : "bg-[#3E206D] text-white hover:bg-[#2f1854] disabled:bg-gray-300 disabled:cursor-not-allowed"
+                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      : "bg-[#3E206D] text-white hover:bg-[#2f1854]"
                   }`}
                 >
-                  {couponValidationLoading
-                    ? "Verifying..."
-                    : isCouponApplied
-                      ? "Applied"
-                      : "Apply"}
+                  {couponValidationLoading ? "Verifying..." : isCouponApplied ? "Applied" : "Apply"}
                 </button>
               </div>
+              {isCouponApplied && <p className="text-[#3E206D] text-sm mt-2">✓ Coupon applied successfully</p>}
+              {couponError && <p className="text-red-600 text-sm mt-2">{couponError}</p>}
+            </div>
+
+            <div className="border-t border-gray-200 my-4" />
+
+            {/* Price Breakdown */}
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Total</span>
+                <span className="font-medium">Rs. {formatPrice(displayValues.totalPrice)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Discount</span>
+                <span className="font-medium text-gray-700">Rs. {formatPrice(displayValues.discountAmount)}</span>
+              </div>
               {isCouponApplied && (
-                <p className="text-[#3E206D] text-sm mt-2">
-                  ✓ Coupon applied successfully
-                </p>
-              )}
-              {couponError && (
-                <p className="text-red-600 text-sm mt-2">{couponError}!</p>
-              )}
-            </div>
-
-            <div className="border-t border-gray-300 my-4" />
-
-            <div className="flex justify-between text-sm mb-2">
-              <p className="text-gray-600">Total</p>
-              <p className="font-semibold">
-                Rs.{" "}{formatPrice(displayValues.totalPrice || 0)}
-              </p>
-            </div>
-
-            <div className="flex justify-between text-sm mb-2">
-              <p className="text-gray-600">Discount</p>
-              <p className="text-gray-600">
-                Rs.{" "}{formatPrice(displayValues.discountAmount || 0)}
-              </p>
-            </div>
-
-            {isCouponApplied && (
-              <div className="flex justify-between text-sm mb-2">
-                <p className="text-gray-600">Coupon Discount</p>
-                <p className="text-gray-600">
-                  Rs.{" "}{formatPrice(displayValues.couponDiscount || 0)}
-                </p>
-              </div>
-            )}
-            {displayValues.showDeliveryCharges && (
-              <div className="flex justify-between text-sm mb-2">
-                <p className="text-gray-600">
-                  Delivery Charges
-                  {displayValues.isFreeDelivery && (
-                    <span className="font-semibold ml-1">(Free)</span>
-                  )}
-                </p>
-                <div className="flex items-center gap-2">
-                  {displayValues.isFreeDelivery && (
-                    <p className="text-gray-600 line-through">
-                      Rs.{" "}{formatPrice(deliveryCharge || 0)}
-                    </p>
-                  )}
-                  <p className="text-gray-600 font-semibold">
-                    Rs.{" "}{formatPrice(displayValues.deliveryCharges || 0)}
-                  </p>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Coupon Discount</span>
+                  <span className="font-medium text-green-600">- Rs. {formatPrice(displayValues.couponDiscount)}</span>
                 </div>
-              </div>
-            )}
-
-            <div className="border-t border-gray-300 my-4" />
-
-            <div className="flex justify-between mb-4 text-[20px] text-[#414347]">
-              <p className="font-semibold">Grand Total</p>
-              <p className="font-semibold">
-                Rs.{" "}{formatPrice(displayValues.grandTotal || 0)}
-              </p>
+              )}
+              {displayValues.showDeliveryCharges && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">
+                    Delivery Charges
+                    {displayValues.isFreeDelivery && <span className="font-semibold ml-1">(Free)</span>}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    {displayValues.isFreeDelivery && (
+                      <span className="text-gray-400 line-through">Rs. {formatPrice(deliveryCharge)}</span>
+                    )}
+                    <span className="font-medium">Rs. {formatPrice(displayValues.deliveryCharges)}</span>
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="mt-8">
-              <button
-                onClick={handleSubmitOrder}
-                disabled={isSubmitting || orderSubmitted}
-                className={`w-full py-4 px-6 rounded-lg cursor-pointer text-white font-semibold ${
-                  isSubmitting || orderSubmitted
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-[#3E206D] hover:bg-[#3E206D]"
-                } transition-colors`}
-              >
-                {orderSubmitted
-                  ? "Order Submitted"
-                  : isSubmitting
-                    ? "Processing Order..."
-                    : "Confirm Order"}
-              </button>
+
+            <div className="border-t border-gray-200 my-4" />
+
+            {/* Grand Total */}
+            <div className="flex justify-between items-center mb-6">
+              <span className="font-semibold text-lg">Grand Total</span>
+              <span className="font-bold text-xl text-[#3E206D]">Rs. {formatPrice(displayValues.grandTotal)}</span>
             </div>
+
+            {/* Confirm Order Button */}
+            <button
+              onClick={handleSubmitOrder}
+              disabled={isSubmitting || orderSubmitted}
+              className={`w-full py-3.5 rounded-xl font-semibold text-white transition cursor-pointer ${
+                isSubmitting || orderSubmitted ? "bg-gray-400 cursor-not-allowed" : "bg-[#3E206D] hover:bg-[#2f1854]"
+              }`}
+            >
+              {orderSubmitted ? "Order Submitted" : isSubmitting ? "Processing Order..." : "Confirm Order"}
+            </button>
           </div>
         </div>
       </div>

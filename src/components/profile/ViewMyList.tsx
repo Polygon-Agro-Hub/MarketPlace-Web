@@ -209,8 +209,8 @@ const ViewMyList = () => {
                     />
                   </th>
                   <th className="p-1 text-left w-[20%] text-[#8492A3] font-medium">ITEM ({String(items.length).padStart(2, '0')})</th>
-                  <th className="p-1 text-left w-[50%] text-[#8492A3] font-medium">NAME</th>
-                  <th className="p-1 text-left w-[20%] text-[#8492A3] font-medium">ACT</th>
+                  <th className="p-1 text-left w-[50%] text-[#8492A3] font-medium">ITEM NAME</th>
+                  <th className="p-1 text-center w-[20%] text-[#8492A3] font-medium">ACTION</th>
                 </tr>
               </thead>
               <tbody>
@@ -235,7 +235,7 @@ const ViewMyList = () => {
                       />
                     </td>
                     <td className="p-1 font-medium truncate">{item.displayName}</td>
-                    <td className="p-1">
+                    <td className="p-1 flex justify-center">
                       <Trash
                         fill="red"
                         onClick={() => handleDeleteClick(item.displayName)}
@@ -277,20 +277,20 @@ const ViewMyList = () => {
               This action will allow {isBulkDelete ? 'these items' : 'this item'} to be included in
               future packages unless re-added.
             </p>
-            <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
-              <button
-                onClick={handleCancelDelete}
-                className="w-full sm:w-32 px-3 sm:px-4 py-1 sm:py-2 cursor-pointer rounded-md border bg-white text-[#3E206D] border-[#3E206D] hover:bg-gray-50 text-[10px] sm:text-base"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirmDelete}
-                className="w-full sm:w-32 px-3 sm:px-4 py-1 sm:py-2 rounded-md cursor-pointer bg-red-600 text-white hover:bg-red-700 text-[10px] sm:text-base"
-              >
-                Delete
-              </button>
-            </div>
+            <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-4">
+  <button
+    onClick={handleCancelDelete}
+    className="w-50 sm:w-24 px-3 sm:px-4 py-2 sm:py-2 cursor-pointer rounded-md border bg-white text-[#3E206D] border-[#3E206D] hover:bg-gray-50 text-sm sm:text-base min-h-[44px] sm:min-h-auto"
+  >
+    Cancel
+  </button>
+  <button
+    onClick={handleConfirmDelete}
+    className="w-50 sm:w-24 px-3 sm:px-4 py-2 sm:py-2 rounded-md cursor-pointer bg-red-600 text-white hover:bg-red-700 text-sm sm:text-base min-h-[44px] sm:min-h-auto"
+  >
+    Delete
+  </button>
+</div>
           </div>
         </div>
       )}

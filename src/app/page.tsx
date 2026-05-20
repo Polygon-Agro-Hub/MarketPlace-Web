@@ -513,36 +513,36 @@ function HomeContent() {
           >
             <div className="flex-1 max-w-xl mx-auto">
               <form onSubmit={handleSearchSubmit}>
-                <div className="relative shadow-lg">
-                  <input
-                    type="text"
-                    placeholder="Search for Product"
-                    value={localSearchInput}
-                    onChange={handleSearchChange}
-                    onKeyPress={handleSearchKeyPress}
-                    className="italic w-full py-2 px-4 rounded-[10px] text-[#3E206D] focus:outline-none bg-[#EFE4FF]"
-                  />
-                  {isSearchActive && searchTerm ? (
-                    <button
-                      type="button"
-                      onClick={handleResetSearch}
-                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-[#3E206D] transition-colors"
-                    >
-                      <X size={16} color="#3E206D" className="cursor-pointer" />
-                    </button>
-                  ) : (
-                    <button
-                      type="submit"
-                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-[#3E206D]"
-                    >
-                      <FontAwesomeIcon
-                        icon={faMagnifyingGlass}
-                        color="#3E206D"
-                        className="cursor-pointer"
-                      />
-                    </button>
-                  )}
-                </div>
+                <div className="relative">
+  <input
+    type="text"
+    placeholder="Search for Product"
+    value={localSearchInput}
+    onChange={handleSearchChange}
+    onKeyPress={handleSearchKeyPress}
+    className="italic w-full py-2 px-4 rounded-[10px] text-[#3E206D] focus:outline-none bg-[#EFE4FF] border-0 ring-0 focus:ring-0"
+  />
+  {isSearchActive && searchTerm ? (
+    <button
+      type="button"
+      onClick={handleResetSearch}
+      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-[#3E206D] transition-colors"
+    >
+      <X size={16} color="#3E206D" className="cursor-pointer" />
+    </button>
+  ) : (
+    <button
+      type="submit"
+      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-[#3E206D]"
+    >
+      <FontAwesomeIcon
+        icon={faMagnifyingGlass}
+        color="#3E206D"
+        className="cursor-pointer"
+      />
+    </button>
+  )}
+</div>
               </form>
             </div>
           </div>

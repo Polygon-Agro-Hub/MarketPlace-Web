@@ -1,12 +1,10 @@
-import React, { useState } from 'react';
-import { useViewport } from './hooks/useViewport';
+import React from 'react';
 import Image from 'next/image';
 import { packageAddToCart } from '@/services/product-service';
 import { getCartInfo } from '@/services/auth-service';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store';
 import { updateCartInfo } from '@/store/slices/authSlice';
-import { useRouter } from 'next/navigation';
 import vegebox from '../../../public/Vegetables_Box.png';
 
 interface PackageItem {
@@ -52,27 +50,20 @@ const PackageCard: React.FC<PackageProps> = ({
   onShowLoginPopup,
   isSingleCardMobile = false
 }) => {
-  const { isMobile } = useViewport();
   const dispatch = useDispatch();
   const token = useSelector((state: RootState) => state.auth.token) as string | null;
-  const user = useSelector((state: RootState) => state.auth.user) as string | null;
-  const router = useRouter();
-  const [showLoginPopup, setShowLoginPopup] = useState(false);
+  // FIX: typed as object | null, not string | null — avoids silent truthy/falsy bugs
+  const user = useSelector((state: RootState) => state.auth.user) as object | null;
 
   const handlePackageAddToCart = async () => {
     if (!packageDetails || packageDetails.length === 0) {
-      if (onAddToCartError) {
-        onAddToCartError('Package details are empty');
-      }
+      onAddToCartError?.('Package details are empty');
       return;
     }
 
+    // FIX: call onShowLoginPopup directly instead of wrapping it inside onAddToCartError
     if (!token || !user) {
-      if (onAddToCartError) {
-        if (onShowLoginPopup) {
-          onShowLoginPopup();
-        }
-      }
+      onShowLoginPopup();
       return;
     }
 
@@ -87,20 +78,14 @@ const PackageCard: React.FC<PackageProps> = ({
           console.error('Error fetching cart info:', cartError);
         }
 
-        if (onAddToCartSuccess) {
-          onAddToCartSuccess(res.message || 'Package added to cart successfully!');
-        }
+        onAddToCartSuccess?.(res.message || 'Package added to cart successfully!');
         onClosePopup();
       } else {
-        if (onAddToCartError) {
-          onAddToCartError(res.message || 'Failed to add package to cart');
-        }
+        onAddToCartError?.(res.message || 'Failed to add package to cart');
       }
     } catch (error) {
       console.error('Error adding to cart:', error);
-      if (onAddToCartError) {
-        onAddToCartError('Failed to add package to cart. Please try again.');
-      }
+      onAddToCartError?.('Failed to add package to cart. Please try again.');
     }
   };
 
@@ -113,14 +98,12 @@ const PackageCard: React.FC<PackageProps> = ({
   };
 
   const formatPrice = (price: number): string => {
-    // Convert to fixed decimal first, then add commas
     const fixedPrice = Number(price).toFixed(2);
     const [integerPart, decimalPart] = fixedPrice.split('.');
     const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     return `${formattedInteger}.${decimalPart}`;
   };
 
-  // Dynamic height classes based on isSingleCardMobile prop
   const getCardHeight = () => {
     if (isSingleCardMobile) {
       return 'h-[400px] md:h-[320px] lg:h-[360px]';
@@ -142,7 +125,6 @@ const PackageCard: React.FC<PackageProps> = ({
     return 'h-[200px] md:h-[200px] lg:h-[250px]';
   };
 
-  // Image container dimensions
   const getImageContainerHeight = () => {
     if (isSingleCardMobile) {
       return 'h-[100px] md:h-[160px] lg:h-[180px]';
@@ -174,7 +156,7 @@ const PackageCard: React.FC<PackageProps> = ({
             <p className="font-bold text-sm lg:text-xl text-center line-clamp-2 leading-tight mb-2">
               {packageItem.displayName}
             </p>
-            <p className="text-[#3E206D] text-xs sm:text-lg font-bold ">
+            <p className="text-[#3E206D] text-xs sm:text-lg font-bold">
               Rs. {formatPrice(packageItem.subTotal)}
             </p>
           </div>
@@ -208,7 +190,7 @@ const PackageCard: React.FC<PackageProps> = ({
 
             <div className={`px-8 pt-2 overflow-y-auto ${getScrollAreaHeight()} scrollbar mb-4`}>
               {isLoadingDetails ? (
-                <div className="">Loading products...</div>
+                <div>Loading products...</div>
               ) : errorDetails ? (
                 <div className="text-red-200 text-center py-8">{errorDetails}</div>
               ) : (

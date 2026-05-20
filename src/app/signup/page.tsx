@@ -100,11 +100,10 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
                 onSelect(option.value);
                 setIsOpen(false);
               }}
-              className={`w-full text-left px-3 py-3 hover:bg-gray-100 flex items-center gap-2 transition-colors ${
-                selectedValue === option.value
-                  ? "bg-purple-50 text-purple-700 border-l-4 border-purple-700"
-                  : "text-gray-900"
-              }`}
+              className={`w-full text-left px-3 py-3 hover:bg-gray-100 flex items-center gap-2 transition-colors ${selectedValue === option.value
+                ? "bg-purple-50 text-purple-700 border-l-4 border-purple-700"
+                : "text-gray-900"
+                }`}
             >
               {option.flag && (
                 <img
@@ -323,6 +322,18 @@ export default function SignupForm() {
       newErrors.phoneNumber = "Phone number is required";
     } else if (!/^\d{9}$/.test(formData.phoneNumber)) {
       newErrors.phoneNumber = `Please enter a valid mobile number (format: ${formData.phoneCode}7XXXXXXXX)`;
+    } else if (!formData.phoneNumber.startsWith("7")) {
+      newErrors.phoneNumber = `Please enter a valid Phone Number (format: ${formData.phoneCode}7XXXXXXXX)`;
+    }
+
+    if (!isHome) {
+      if (!formData.companyPhoneNumber) {
+        newErrors.companyPhoneNumber = "Company phone number is required";
+      } else if (!/^\d{9}$/.test(formData.companyPhoneNumber)) {
+        newErrors.companyPhoneNumber = `Please enter a valid mobile number (format: ${formData.companyPhoneCode}7XXXXXXXX)`;
+      } else if (!formData.companyPhoneNumber.startsWith("7")) {
+        newErrors.companyPhoneNumber = `Please enter a valid Phone Number (format: ${formData.companyPhoneCode}7XXXXXXXX)`;
+      }
     }
 
     if (!formData.email) {
@@ -382,18 +393,18 @@ export default function SignupForm() {
       newErrors.confirmPassword = "Passwords do not match";
     }
 
-    // Add company validation for business buyers
-    if (!isHome) {
-      if (!formData.companyName) {
-        newErrors.companyName = "Company name is required";
-      }
+    // // Add company validation for business buyers
+    // if (!isHome) {
+    //   if (!formData.companyName) {
+    //     newErrors.companyName = "Company name is required";
+    //   }
 
-      if (!formData.companyPhoneNumber) {
-        newErrors.companyPhoneNumber = "Company phone number is required";
-      } else if (!/^\d{9}$/.test(formData.companyPhoneNumber)) {
-        newErrors.companyPhoneNumber = `Please enter a valid mobile number (format: ${formData.companyPhoneCode}7XXXXXXXX)`;
-      }
-    }
+    //   if (!formData.companyPhoneNumber) {
+    //     newErrors.companyPhoneNumber = "Company phone number is required";
+    //   } else if (!/^\d{9}$/.test(formData.companyPhoneNumber)) {
+    //     newErrors.companyPhoneNumber = `Please enter a valid mobile number (format: ${formData.companyPhoneCode}7XXXXXXXX)`;
+    //   }
+    // }
 
     if (!formData.agreeToTerms)
       newErrors.agreeToTerms = "You must accept the terms and conditions";
@@ -485,7 +496,7 @@ export default function SignupForm() {
 
   const handleOTPVerificationSuccess = async () => {
     setLoading(true);
-    
+
     try {
       await signup({
         ...formData,
@@ -499,7 +510,7 @@ export default function SignupForm() {
         err.message || "Registration failed. Please try again.";
       setErrorMessage(errorMessage);
       setShowErrorPopup(true);
-      throw err; 
+      throw err;
     }
   };
 
@@ -626,7 +637,7 @@ export default function SignupForm() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="flex flex-col md:flex-row md:space-x-4 space-y-2 md:space-y-0">
                   <div className="flex flex-row w-full md:w-1/2 space-x-2">
-                    <div className="w-42 md:w-42">
+                    <div className="w-20 md:w-42">
                       <CustomDropdown
                         options={[
                           { value: "Rev", label: "Rev." },
@@ -954,7 +965,7 @@ export default function SignupForm() {
                         </div>
 
                         <div className="flex flex-row w-full md:w-1/2 space-x-3">
-                          <div className="w-23 md:w-26">
+                          <div className="w-42 md:w-26">
                             <CustomDropdown
                               options={countryOptions}
                               selectedValue={formData.companyPhoneCode}
@@ -1026,9 +1037,8 @@ export default function SignupForm() {
                       name="agreeToTerms"
                       checked={formData.agreeToTerms}
                       onChange={handleChange}
-                      className={`h-4 w-4 accent-[#318831] cursor-pointer focus:ring-purple-500 border-gray-300 rounded ${
-                        errors.agreeToTerms ? "border-red-500" : ""
-                      }`}
+                      className={`h-4 w-4 accent-[#318831] cursor-pointer focus:ring-purple-500 border-gray-300 rounded ${errors.agreeToTerms ? "border-red-500" : ""
+                        }`}
                     />
                     <label
                       htmlFor="terms"
