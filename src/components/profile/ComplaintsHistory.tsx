@@ -149,7 +149,7 @@ const ComplaintsHistory = () => {
     if (newValue) {
       setFilterLoading(true);
       setFilter(newValue.value);
-      
+
       // Show loader for a brief moment to indicate filtering is happening
       setTimeout(() => {
         setFilterLoading(false);
@@ -184,7 +184,9 @@ const ComplaintsHistory = () => {
                   className="w-8 h-8 mb-2"
                 />
                 <h3 className="text-lg font-semibold mb-4">Reply for your complaint</h3>
-                <div className="w-full border border-gray-300 rounded-md p-4 mb-4">
+
+                {/* Scrollable content area — fixed height, scrolls if content overflows */}
+                <div className="w-full border border-gray-300 rounded-md p-4 mb-4 max-h-60 overflow-y-auto">
                   <p className="text-sm mb-2">
                     Dear {selectedComplaint.customerName || 'Customer'},
                   </p>
@@ -197,6 +199,7 @@ const ComplaintsHistory = () => {
                     {formatReplyTime(selectedComplaint.replyTime)}
                   </p>
                 </div>
+
                 <button
                   onClick={handleGoBack}
                   className="w-24 h-9 text-sm text-gray-700 rounded-lg cursor-pointer hover:bg-gray-300"
@@ -234,7 +237,7 @@ const ComplaintsHistory = () => {
                       display: 'flex',
                       alignItems: 'center',
                       textAlign: 'center',
-                      
+
                       paddingRight: '1.5rem',
                       boxShadow: 'none',
                       ':hover': {
@@ -302,15 +305,15 @@ const ComplaintsHistory = () => {
                       <div className="flex flex-col justify-center sm:items-center">
                         <div className="flex items-center">
                           <span
-  className={`min-w-[80px] sm:min-w-[120px] text-center px-2 py-1 rounded-full text-[12px] md:text-[16px] ${complaint.status === 'Closed'
-    ? 'bg-[#EDE1FF] text-[#3E206D]'
-    : complaint.status === 'Opened'
-      ? 'bg-[#CFE1FF] text-[#3B82F6]'
-      : 'bg-gray-200 text-gray-800'
-  }`}
->
-  {complaint.status || 'Unknown'}
-</span>
+                            className={`min-w-[80px] sm:min-w-[120px] text-center px-2 py-1 rounded-full text-[12px] md:text-[16px] ${complaint.status === 'Closed'
+                              ? 'bg-[#EDE1FF] text-[#3E206D]'
+                              : complaint.status === 'Opened'
+                                ? 'bg-[#CFE1FF] text-[#3B82F6]'
+                                : 'bg-gray-200 text-gray-800'
+                              }`}
+                          >
+                            {complaint.status || 'Unknown'}
+                          </span>
                         </div>
                       </div>
                       <div className="flex flex-col justify-center sm:items-center">

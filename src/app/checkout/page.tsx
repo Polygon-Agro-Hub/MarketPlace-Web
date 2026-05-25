@@ -1511,25 +1511,23 @@ const Page: React.FC = () => {
                             </p>
 
                             {/* View Here link - only show if this is from saved address */}
-                            {usePreviousAddress &&
-                              formData.geoLatitude &&
-                              formData.geoLongitude && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setViewingSavedLocation(true);
-                                    setIsGeoModalOpen(true);
-                                    setIsViewOnly(true);
-                                  }}
-                                  className="flex items-center gap-1 text-red-600 hover:text-red-700 transition-colors text-sm font-medium group cursor-pointer"
-                                >
-                                  <LocateFixed
-                                    size={16}
-                                    className="group-hover:scale-110 transition-transform"
-                                  />
-                                  <span className="underline">View here</span>
-                                </button>
-                              )}
+                            {formData.geoLatitude && formData.geoLongitude && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setViewingSavedLocation(true);
+                                  setIsGeoModalOpen(true);
+                                  setIsViewOnly(true);
+                                }}
+                                className="flex items-center gap-1 text-red-600 hover:text-red-700 transition-colors text-sm font-medium group cursor-pointer"
+                              >
+                                <LocateFixed
+                                  size={16}
+                                  className="group-hover:scale-110 transition-transform"
+                                />
+                                <span className="underline">View here</span>
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>
@@ -1615,9 +1613,9 @@ const Page: React.FC = () => {
                     Date *
                   </label>
                   <div className="relative w-full">
-  <input
-    type="date"
-    className={`
+                    <input
+                      type="date"
+                      className={`
       date-input 
       w-full 
       border 
@@ -1642,102 +1640,102 @@ const Page: React.FC = () => {
       [&::-webkit-calendar-picker-indicator]:bg-transparent
       ${formData.deliveryDate ? "has-value" : ""}
     `}
-    style={{
-      colorScheme: "light",
-    }}
-    value={formData.deliveryDate}
-    onChange={(e) => {
-      const selectedValue = e.target.value;
-      // Additional client-side validation
-      if (selectedValue) {
-        const selectedDate = new Date(selectedValue);
-        const today = new Date();
-        const minDate = new Date(
-          today.getFullYear(),
-          today.getMonth(),
-          today.getDate() + 3,
-        );
+                      style={{
+                        colorScheme: "light",
+                      }}
+                      value={formData.deliveryDate}
+                      onChange={(e) => {
+                        const selectedValue = e.target.value;
+                        // Additional client-side validation
+                        if (selectedValue) {
+                          const selectedDate = new Date(selectedValue);
+                          const today = new Date();
+                          const minDate = new Date(
+                            today.getFullYear(),
+                            today.getMonth(),
+                            today.getDate() + 3,
+                          );
 
-        selectedDate.setHours(0, 0, 0, 0);
-        minDate.setHours(0, 0, 0, 0);
+                          selectedDate.setHours(0, 0, 0, 0);
+                          minDate.setHours(0, 0, 0, 0);
 
-        if (selectedDate >= minDate) {
-          handleFieldChange("deliveryDate", selectedValue);
-        } else {
-          // Don't update the field value, just trigger validation error
-          handleFieldChange("deliveryDate", selectedValue);
-        }
-      } else {
-        handleFieldChange("deliveryDate", selectedValue);
-      }
-    }}
-    onClick={(e) => {
-      // Ensure the date picker opens on click (Chrome, Edge, Safari)
-      const target = e.target as HTMLInputElement;
-      if (
-        target.showPicker &&
-        typeof target.showPicker === "function"
-      ) {
-        try {
-          target.showPicker();
-        } catch (error) {
-          console.error(error);
-        }
-      }
-    }}
-    min={getMinDate()}
-  />
-  
-  {/* Custom Calendar Icon */}
-  <button
-    type="button"
-    onClick={(e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const input = e.currentTarget.parentElement?.querySelector('input[type="date"]') as HTMLInputElement;
-      if (input && input.showPicker && typeof input.showPicker === "function") {
-        try {
-          input.showPicker();
-        } catch (error) {
-          console.error(error);
-        }
-      }
-    }}
-    className="absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer hover:opacity-70 transition-opacity z-10"
-    aria-label="Select date"
-  >
-    <svg 
-      width="20" 
-      height="20" 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      xmlns="http://www.w3.org/2000/svg"
-      className="text-gray-500"
-    >
-      <path 
-        d="M8 2V6M16 2V6M3 10H21M5 4H19C20.1046 4 21 4.89543 21 6V20C21 21.1046 20.1046 22 19 22H5C3.89543 22 3 21.1046 3 20V6C3 4.89543 3.89543 4 5 4Z" 
-        stroke="currentColor" 
-        strokeWidth="1.5" 
-        strokeLinecap="round" 
-        strokeLinejoin="round"
-      />
-      <path 
-        d="M12 12H16V16H12V12Z" 
-        stroke="currentColor" 
-        strokeWidth="1.5" 
-        strokeLinecap="round" 
-        strokeLinejoin="round"
-      />
-    </svg>
-  </button>
-  
-  {/* Custom placeholder */}
-  {!formData.deliveryDate && (
-    <div className="custom-date-placeholder absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none text-base">
-      mm/dd/yyyy
-    </div>
-  )}
-</div>
+                          if (selectedDate >= minDate) {
+                            handleFieldChange("deliveryDate", selectedValue);
+                          } else {
+                            // Don't update the field value, just trigger validation error
+                            handleFieldChange("deliveryDate", selectedValue);
+                          }
+                        } else {
+                          handleFieldChange("deliveryDate", selectedValue);
+                        }
+                      }}
+                      onClick={(e) => {
+                        // Ensure the date picker opens on click (Chrome, Edge, Safari)
+                        const target = e.target as HTMLInputElement;
+                        if (
+                          target.showPicker &&
+                          typeof target.showPicker === "function"
+                        ) {
+                          try {
+                            target.showPicker();
+                          } catch (error) {
+                            console.error(error);
+                          }
+                        }
+                      }}
+                      min={getMinDate()}
+                    />
+
+                    {/* Custom Calendar Icon */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const input = e.currentTarget.parentElement?.querySelector('input[type="date"]') as HTMLInputElement;
+                        if (input && input.showPicker && typeof input.showPicker === "function") {
+                          try {
+                            input.showPicker();
+                          } catch (error) {
+                            console.error(error);
+                          }
+                        }
+                      }}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer hover:opacity-70 transition-opacity z-10"
+                      aria-label="Select date"
+                    >
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="text-gray-500"
+                      >
+                        <path
+                          d="M8 2V6M16 2V6M3 10H21M5 4H19C20.1046 4 21 4.89543 21 6V20C21 21.1046 20.1046 22 19 22H5C3.89543 22 3 21.1046 3 20V6C3 4.89543 3.89543 4 5 4Z"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        <path
+                          d="M12 12H16V16H12V12Z"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </button>
+
+                    {/* Custom placeholder */}
+                    {!formData.deliveryDate && (
+                      <div className="custom-date-placeholder absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none text-base">
+                        mm/dd/yyyy
+                      </div>
+                    )}
+                  </div>
 
 
                   {errors.deliveryDate && (

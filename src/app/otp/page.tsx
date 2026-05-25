@@ -306,6 +306,8 @@ export default function Page() {
               key={idx}
               ref={el => { inputsRef.current[idx] = el; }}
               type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
               maxLength={1}
               value={digit}
               onChange={e => handleChange(e.target.value, idx)}
@@ -321,20 +323,20 @@ export default function Page() {
           I didn't receive the OTP message
         </div>
         <button
-  onClick={handleResendOTP}
-  disabled={disabledResend || isResending}
-  className={`text-sm sm:text-sm mb-6 ${disabledResend || isResending
-    ? 'text-gray-400 cursor-not-allowed'
-    : 'text-[#3E206D] font-semibold hover:underline cursor-pointer'
-    }`}
->
-  {isResending
-    ? 'Sending...'
-    : disabledResend
-      ? `Resend in ${timerText}`
-      : 'Resend OTP'
-  }
-</button>
+          onClick={handleResendOTP}
+          disabled={disabledResend || isResending}
+          className={`text-sm sm:text-sm mb-6 ${disabledResend || isResending
+            ? 'text-gray-400 cursor-not-allowed'
+            : 'text-[#3E206D] font-semibold hover:underline cursor-pointer'
+            }`}
+        >
+          {isResending
+            ? 'Sending...'
+            : disabledResend
+              ? `Resend in ${timerText}`
+              : 'Resend OTP'
+          }
+        </button>
 
         <button
           onClick={handleVerify}

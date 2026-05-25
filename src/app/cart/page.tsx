@@ -1105,6 +1105,8 @@ const Page: React.FC = () => {
                     </td>
                     <td className="px-4 py-4 align-middle">
                       <div className="relative flex items-center gap-2 border border-gray-300 rounded-lg px-3 py-2 w-32 mx-auto bg-white">
+
+                        {/* Minus button with MIN tooltip */}
                         <div className="relative">
                           <button
                             onClick={() => handleProductQuantityChange(item.id, -1)}
@@ -1114,38 +1116,18 @@ const Page: React.FC = () => {
                             <Minus size={14} />
                           </button>
 
-                          {tooltipStates[item.id] && (
+                          {tooltipStates[item.id] === "min" && (
                             <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 z-10">
                               <div className="bg-[#191D28] text-white text-xs px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
-                                {tooltipStates[item.id] === "min" ? (
-                                  <>
-                                    Minimum quantity is{" "}
-                                    {(() => {
-                                      const selectedUnit = unitSelection[item.id] || item.unit;
-                                      // startValue always comes in kg from API
-                                      const displayValue = selectedUnit === "g"
-                                        ? parseFloat((item.startValue * 1000).toFixed(3))
-                                        : item.startValue || 1;
-                                      return displayValue;
-                                    })()}{" "}
-                                    {unitSelection[item.id] || item.unit}
-                                  </>
-                                ) : (
-                                  <>
-                                    Maximum quantity is{" "}
-                                    {(() => {
-                                      const selectedUnit = unitSelection[item.id] || item.unit;
-                                      // maxQuantity always comes in kg from API
-                                      const maxValueInKg = item.maxQuantity;
-                                      if (!maxValueInKg) return "∞";
-                                      const displayValue = selectedUnit === "g"
-                                        ? parseFloat((maxValueInKg * 1000).toFixed(3))
-                                        : maxValueInKg;
-                                      return displayValue;
-                                    })()}{" "}
-                                    {unitSelection[item.id] || item.unit}
-                                  </>
-                                )}
+                                Minimum quantity is{" "}
+                                {(() => {
+                                  const selectedUnit = unitSelection[item.id] || item.unit;
+                                  const displayValue = selectedUnit === "g"
+                                    ? parseFloat((item.startValue * 1000).toFixed(3))
+                                    : item.startValue || 1;
+                                  return displayValue;
+                                })()}{" "}
+                                {unitSelection[item.id] || item.unit}
                                 <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-red-600"></div>
                               </div>
                             </div>
@@ -1156,13 +1138,36 @@ const Page: React.FC = () => {
                           {parseFloat(item.quantity.toFixed(3))}
                         </span>
 
-                        <button
-                          onClick={() => handleProductQuantityChange(item.id, 1)}
-                          disabled={isRemoving}
-                          className="hover:bg-gray-100 p-1 rounded-full flex items-center justify-center disabled:opacity-50 transition-colors cursor-pointer disabled:cursor-not-allowed"
-                        >
-                          <Plus size={14} />
-                        </button>
+                        {/* Plus button with MAX tooltip */}
+                        <div className="relative">
+                          <button
+                            onClick={() => handleProductQuantityChange(item.id, 1)}
+                            disabled={isRemoving}
+                            className="hover:bg-gray-100 p-1 rounded-full flex items-center justify-center disabled:opacity-50 transition-colors cursor-pointer disabled:cursor-not-allowed"
+                          >
+                            <Plus size={14} />
+                          </button>
+
+                          {tooltipStates[item.id] === "max" && (
+                            <div className="absolute bottom-full left-0 mb-2 z-10">
+                              <div className="bg-[#191D28] text-white text-xs px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
+                                Maximum quantity is{" "}
+                                {(() => {
+                                  const selectedUnit = unitSelection[item.id] || item.unit;
+                                  const maxValueInKg = item.maxQuantity;
+                                  if (!maxValueInKg) return "∞";
+                                  const displayValue = selectedUnit === "g"
+                                    ? parseFloat((maxValueInKg * 1000).toFixed(3))
+                                    : maxValueInKg;
+                                  return displayValue;
+                                })()}{" "}
+                                {unitSelection[item.id] || item.unit}
+                                <div className="absolute top-full left-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-red-600"></div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
                       </div>
                     </td>
                     <td className="px-4 py-4 align-middle text-center">

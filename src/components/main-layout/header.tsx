@@ -16,7 +16,7 @@ import { useDispatch } from "react-redux";
 import { logout } from "../../store/slices/authSlice";
 import { clearCart } from "@/store/slices/cartSlice";
 import { useRouter, usePathname } from "next/navigation";
-import { LogOut } from "lucide-react";
+import { LogOut, ChevronUp, ChevronDown } from "lucide-react";
 import {
   setSearchTerm,
   clearSearch,
@@ -341,13 +341,13 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
       <>
         <Link
           href="/signin"
-          className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800 flex items-center gap-2"
+          className="py-4 px-6 border-b border-[#828282] hover:bg- flex items-center gap-2"
         >
           Login
         </Link>
         <Link
           href="/signup"
-          className="py-4 px-6 border-b border-purple-800 hover:bg-purple-800 flex items-center gap-2"
+          className="py-4 px-6 border-b border-[#828282] hover:bg-purple-800 flex items-center gap-2"
         >
           Signup
         </Link>
@@ -387,8 +387,8 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
               <Link
                 href={getHomeUrl()}
                 className={`hover:text-[#383d39] text-[#000000] ${isHydrated && pathname === getHomeUrl()
-                    ? "underline underline-offset-4"
-                    : ""
+                  ? "underline underline-offset-4"
+                  : ""
                   }`}
               >
                 Home
@@ -462,18 +462,18 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
           )}
 
           <div onClick={handleCartClick} className="cursor-pointer">
-  <div className="flex items-center justify-center bg-[#000000] px-4.5 md:px-8 py-2 rounded-full h-12">
-    <div className="relative">
-      <FontAwesomeIcon className="text-2xl" icon={faBagShopping} />
-      <span className="absolute top-3 -right-1 bg-[#FF8F66] text-white rounded-full w-4 h-4 flex items-center justify-center text-xs">
-        {isHydrated ? cartState.count || 0 : 0}
-      </span>
-    </div>
-    <div className="text-sm hidden md:block md:ml-4">
-      Rs. {isHydrated ? formatPrice(cartState.price) : "0.00"}
-    </div>
-  </div>
-</div>
+            <div className="flex items-center justify-center bg-[#000000] px-4.5 md:px-8 py-2 rounded-full h-12">
+              <div className="relative">
+                <FontAwesomeIcon className="text-2xl" icon={faBagShopping} />
+                <span className="absolute top-3 -right-1 bg-[#FF8F66] text-white rounded-full w-4 h-4 flex items-center justify-center text-xs">
+                  {isHydrated ? cartState.count || 0 : 0}
+                </span>
+              </div>
+              <div className="text-sm hidden md:block md:ml-4">
+                Rs. {isHydrated ? formatPrice(cartState.price) : "0.00"}
+              </div>
+            </div>
+          </div>
 
           {!isMobile && isAuthenticated() && (
             <Link href="/history/order">
@@ -535,7 +535,11 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
                     >
                       Category
                       <span className="text-xs">
-                        {isCategoryExpanded ? "▲" : "▼"}
+                        {isCategoryExpanded ? (
+                          <ChevronUp size={14} />
+                        ) : (
+                          <ChevronDown size={14} />
+                        )}
                       </span>
                     </button>
                     {isCategoryExpanded && (
@@ -582,7 +586,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
 
       {showLogoutModal && (
         <div className="fixed inset-0 bg-black/60 bg-opacity-50 flex min-h-screen items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-[25px] shadow-lg w-96 text-center">
+          <div className="bg-white p-6 rounded-[25px] shadow-lg w-72 md:w-96 text-center">
             <p className="text-lg font-medium mb-6">
               Are you sure you want to logout?
             </p>
@@ -595,7 +599,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
               </button>
               <button
                 onClick={confirmLogout}
-                className="px-6 py-2 bg-[#E4001A] text-white rounded-[15px] hover:bg-red-700 transition- cursor-pointer"
+                className="px-6 py-2 bg-[#E4001A] text-white rounded-[15px] hover:bg-red-700 transition-colors cursor-pointer"
               >
                 Logout
               </button>
