@@ -1447,27 +1447,92 @@ const Page: React.FC = () => {
             ))}
 
             <div className="space-y-4 sm:space-y-6 mt-6 sm:mt-8">
-              {cartData.packages.map((pkg, index) => {
-                const isRemoving = removingItems.has(`package-${pkg.id}`);
+              {/* Mobile View */}
+              {isMobile && cartData.packages.length > 0 && (
+                <div>
+                  <div className="flex justify-between items-center mb-3 pb-2 border-b border-gray-300">
+                    <h3 className="text-[18px] font-normal text-[#252525]">
+                      Your Selected Packages
+                    </h3>
+                  </div>
 
+                  <div className="space-y-3">
+                    {cartData.packages.map((pkg, index) => {
+                      const isRemoving = removingItems.has(`package-${pkg.id}`);
+                      return (
+                        <div
+                          key={index}
+                          className={`bg-white border border-gray-200 rounded-xl p-4 shadow-sm ${isRemoving ? "opacity-50" : ""}`}
+                        >
+                          {/* Package Name Row */}
+                          <div className="flex items-start justify-between gap-2 mb-1">
+                            <span className="font-semibold text-[#252525] text-base leading-snug flex-1">
+                              {pkg.packageName}
+                            </span>
+                            <button
+                              onClick={() => handleRemovePackage(pkg.id)}
+                              disabled={isRemoving}
+                              className="text-red-500 hover:scale-105 transition-transform disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed flex-shrink-0"
+                              title={isRemoving ? "Removing..." : "Remove package"}
+                            >
+                              <Trash size={18} fill="red" strokeWidth={2} />
+                            </button>
+                          </div>
+
+                          {/* Items Count */}
+                          <p className="text-sm text-gray-500 mb-3">
+                            {pkg.totalItems} {pkg.totalItems === 1 ? "Item" : "Items"}
+                          </p>
+
+                          {/* Price */}
+                          <div className="flex justify-between items-center mb-3 pb-3 border-b border-gray-100">
+                            <span className="text-sm text-gray-500">Package Price</span>
+                            <span className="font-bold text-[#3E206D]">
+                              Rs. {formatPrice(pkg.price * pkg.quantity)}
+                            </span>
+                          </div>
+
+                          {/* Items List */}
+                          <div className="space-y-2">
+                            <div className="grid grid-cols-2 mb-2">
+                              <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">Items</span>
+                              <span className="text-xs font-medium text-gray-400 uppercase tracking-wide text-right">Quantity</span>
+                            </div>
+                            {pkg.items.map((item, idx) => (
+                              <div key={idx} className="grid grid-cols-2 items-center">
+                                <span className="text-sm text-gray-900 font-medium">{item.name}</span>
+                                <span className="text-sm text-gray-900 font-medium text-right">
+                                  {String(item.quantity).padStart(2, "0")}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Desktop View - unchanged */}
+              {!isMobile && cartData.packages.map((pkg, index) => {
+                const isRemoving = removingItems.has(`package-${pkg.id}`);
                 return (
                   <div
                     key={index}
                     className={`w-full ${isRemoving ? "opacity-50" : ""}`}
                   >
                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-3 sm:mb-4 pb-2 border-b border-gray-300 gap-2 sm:gap-0">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-start gap-2">
                         <h3 className="text-[20px] font-normal text-[#252525] leading-relaxed">
                           Your Selected Package :{" "}
-                          <span className="font-semibold">
-                            {pkg.packageName}
-                          </span>{" "}
+                          <span className="font-semibold">{pkg.packageName}</span>{" "}
                           ({pkg.totalItems} Items)
                         </h3>
                         <button
                           onClick={() => handleRemovePackage(pkg.id)}
                           disabled={isRemoving}
-                          className="text-red-500 hover:scale-105 transition-transform disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                          className="text-red-500 hover:scale-105 transition-transform disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed flex-shrink-0 mt-1"
                           title={isRemoving ? "Removing..." : "Remove package"}
                         >
                           <Trash size={20} fill="red" strokeWidth={2} />
@@ -1489,18 +1554,12 @@ const Page: React.FC = () => {
                           QUANTITY
                         </span>
                       </div>
-
                       <div className="space-y-3 sm:space-y-4">
                         {pkg.items.map((item, index) => (
-                          <div
-                            key={index}
-                            className="grid grid-cols-2 items-center gap-2"
-                          >
-                            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                              <span className="text-sm sm:text-base text-gray-900 font-medium truncate pr-1">
-                                {item.name}
-                              </span>
-                            </div>
+                          <div key={index} className="grid grid-cols-2 items-center gap-2">
+                            <span className="text-sm sm:text-base text-gray-900 font-medium truncate pr-1">
+                              {item.name}
+                            </span>
                             <div className="text-right">
                               <span className="text-sm sm:text-base text-gray-900 font-medium">
                                 {String(item.quantity).padStart(2, "0")}
@@ -1516,7 +1575,7 @@ const Page: React.FC = () => {
             </div>
           </div>
 
-          <div className="w-full lg:w-1/3 mt-6 lg:mt-0 pt-14">
+          <div className="w-full lg:w-1/3 mt-2 lg:mt-0 lg:pt-14">
             <div className="border border-[#171717] rounded-lg shadow-md p-4 sm:p-5 md:p-6 md:mx-10 sm:mr-10">
               <h2 className="font-semibold text-base sm:text-lg mb-3 sm:mb-4">
                 Your Order
@@ -1610,7 +1669,7 @@ const Page: React.FC = () => {
                   isCartEmpty() ||
                   dynamicSummary.totalItems === 0
                 }
-                className="w-full bg-[#3E206D] text-white font-semibold rounded-lg py-3 text-sm sm:text-base hover:bg-[#2F1A5B] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="w-full bg-[#3E206D] text-white font-semibold rounded-xl py-3.5 hover:bg-[#2f1854] transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {checkoutLoading ? "Processing..." : "Checkout Now"}
               </button>

@@ -295,66 +295,66 @@ export default function OrderHistoryPage() {
           phone2: apiOrder.phone2 || "",
           pickupInfo:
             apiOrder.delivaryMethod?.toLowerCase() === "pickup" &&
-            apiOrder.pickupInfo
+              apiOrder.pickupInfo
               ? {
-                  centerName: apiOrder.pickupInfo.centerName || "N/A",
-                  contact01: apiOrder.pickupInfo.contact01 || "N/A",
-                  fullName: apiOrder.pickupInfo.fullName || "N/A",
-                  buildingNumber: apiOrder.pickupInfo.address?.street || "N/A",
-                  street: apiOrder.pickupInfo.address?.street || "N/A",
-                  city: apiOrder.pickupInfo.address?.city || "N/A",
-                  district: apiOrder.pickupInfo.address?.district || "N/A",
-                  province: apiOrder.pickupInfo.address?.province || "N/A",
-                  country: apiOrder.pickupInfo.address?.country || "N/A",
-                  zipCode: apiOrder.pickupInfo.address?.zipCode || "N/A",
-                  title: apiOrder.pickupInfo.title?.title || "N/A",
-                }
+                centerName: apiOrder.pickupInfo.centerName || "N/A",
+                contact01: apiOrder.pickupInfo.contact01 || "N/A",
+                fullName: apiOrder.pickupInfo.fullName || "N/A",
+                buildingNumber: apiOrder.pickupInfo.address?.street || "N/A",
+                street: apiOrder.pickupInfo.address?.street || "N/A",
+                city: apiOrder.pickupInfo.address?.city || "N/A",
+                district: apiOrder.pickupInfo.address?.district || "N/A",
+                province: apiOrder.pickupInfo.address?.province || "N/A",
+                country: apiOrder.pickupInfo.address?.country || "N/A",
+                zipCode: apiOrder.pickupInfo.address?.zipCode || "N/A",
+                title: apiOrder.pickupInfo.title?.title || "N/A",
+              }
               : undefined,
           deliveryInfo:
             apiOrder.delivaryMethod?.toLowerCase() === "delivery" &&
-            apiOrder.deliveryInfo
+              apiOrder.deliveryInfo
               ? {
-                  buildingType: apiOrder.deliveryInfo.buildingType || "N/A",
-                  houseNo: apiOrder.deliveryInfo.houseNo || "N/A",
-                  street:
-                    apiOrder.deliveryInfo.streetName ||
-                    apiOrder.deliveryInfo.street ||
-                    "N/A",
-                  city: apiOrder.deliveryInfo.city || "N/A",
-                  buildingNo: apiOrder.deliveryInfo.buildingNo || "N/A",
-                  buildingName: apiOrder.deliveryInfo.buildingName || "N/A",
-                  flatNo: apiOrder.deliveryInfo.flatNo || "N/A",
-                  floorNo: apiOrder.deliveryInfo.floorNo || "N/A",
-                }
+                buildingType: apiOrder.deliveryInfo.buildingType || "N/A",
+                houseNo: apiOrder.deliveryInfo.houseNo || "N/A",
+                street:
+                  apiOrder.deliveryInfo.streetName ||
+                  apiOrder.deliveryInfo.street ||
+                  "N/A",
+                city: apiOrder.deliveryInfo.city || "N/A",
+                buildingNo: apiOrder.deliveryInfo.buildingNo || "N/A",
+                buildingName: apiOrder.deliveryInfo.buildingName || "N/A",
+                flatNo: apiOrder.deliveryInfo.flatNo || "N/A",
+                floorNo: apiOrder.deliveryInfo.floorNo || "N/A",
+              }
               : undefined,
           familyPackItems:
             packagesData.status && packagesData.data
               ? packagesData.data.map((pack: any, index: number) => ({
-                  packageId: `${pack.packageId}_${index}`,
-                  name: pack.displayName || "Family Pack",
-                  items:
-                    pack.products?.map((item: any) => ({
-                      id: item.id || 0,
-                      name: item.typeName || "Unknown",
-                      weight: item.weight || "1 kg",
-                      price: formatCurrency(parseFloat(item.price || "0"), 2),
-                      quantity: String(item.qty || 1),
-                    })) || [],
-                  totalPrice: formatCurrency(pack.productPrice || 0, 2),
-                }))
+                packageId: `${pack.packageId}_${index}`,
+                name: pack.displayName || "Family Pack",
+                items:
+                  pack.products?.map((item: any) => ({
+                    id: item.id || 0,
+                    name: item.typeName || "Unknown",
+                    weight: item.weight || "1 kg",
+                    price: formatCurrency(parseFloat(item.price || "0"), 2),
+                    quantity: String(item.qty || 1),
+                  })) || [],
+                totalPrice: formatCurrency(pack.productPrice || 0, 2),
+              }))
               : [],
           additionalItems:
             additionalItemsData.status && additionalItemsData.data
               ? additionalItemsData.data.map((item: any) => ({
-                  id: item.id || 0,
-                  name: item.displayName || "Unknown",
-                  quantity: String(item.qty || 1),
-                  unit: item.unit || "kg",
-                  weight: `${item.qty || "1"} ${item.unit || "kg"}`,
-                  price: formatCurrency(parseFloat(item.price || "0"), 2),
-                  image: item.image || undefined,
-                  amount: formatCurrency(parseFloat(item.price || "0"), 2),
-                }))
+                id: item.id || 0,
+                name: item.displayName || "Unknown",
+                quantity: String(item.qty || 1),
+                unit: item.unit || "kg",
+                weight: `${item.qty || "1"} ${item.unit || "kg"}`,
+                price: formatCurrency(parseFloat(item.price || "0"), 2),
+                image: item.image || undefined,
+                amount: formatCurrency(parseFloat(item.price || "0"), 2),
+              }))
               : [],
           discount: formatCurrency(
             totalDiscount > 0 ? ` ${totalDiscount.toFixed(2)}` : " 0.00",
@@ -729,6 +729,21 @@ function PickupOrderView({
 
   return (
     <div className="w-full">
+      <div className="sm:hidden bg-white border-b border-gray-200 p-4 sticky top-0 z-10">
+        <div className="flex items-center justify-between">
+          <button onClick={onClose} className="text-gray-600">
+            <span className="text-xl">←</span>
+          </button>
+          <div className="text-center flex-1">
+            <h2 className="text-lg font-semibold">Order ID : #{order.invoiceNo}</h2>
+            <span
+              className={`inline-block px-3 py-1 rounded-full text-sm font-medium mt-2 ${getStatusClass(order.status)}`}
+            >
+              {order.status}
+            </span>
+          </div>
+        </div>
+      </div>
       {/* Desktop Header */}
       <div className="hidden sm:flex justify-between items-center mb-4">
         <h2
@@ -837,7 +852,7 @@ function PickupOrderView({
                         Items)
                       </span>
                       <span className="font-semibold text-[#3E206D]">
-                      {pack.totalPrice}
+                        {pack.totalPrice}
                       </span>
                     </div>
                     <div className="space-y-3">
@@ -877,6 +892,7 @@ function PickupOrderView({
                     Rs. {additionalItemsTotal}
                   </span>
                 </div>
+                <div className="border-t border-gray-200" /> 
                 <div className="space-y-4 mt-4">
                   {order.additionalItems.map((item, index) => (
                     <div key={index} className="flex items-center gap-4 py-2">
@@ -1016,7 +1032,7 @@ function PickupOrderView({
                           className="text-right font-semibold py-2 p-4"
                           style={{ color: "rgb(62,32,109)" }}
                         >
-                         {pack.totalPrice}
+                          {pack.totalPrice}
                         </td>
                       </tr>
                       <tr>
@@ -1318,6 +1334,7 @@ function DeliveryOrderView({
                     Rs. {additionalItemsTotal}
                   </span>
                 </div>
+                <div className="border-t border-gray-200" /> 
                 <div className="space-y-4 mt-4">
                   {order.additionalItems.map((item, index) => (
                     <div key={index} className="flex items-center gap-4 py-2">
@@ -1492,7 +1509,7 @@ function DeliveryOrderView({
                           className="text-right font-semibold py-2 p-4"
                           style={{ color: "rgb(62,32,109)" }}
                         >
-                         {pack.totalPrice}
+                          {pack.totalPrice}
                         </td>
                       </tr>
                       <tr>

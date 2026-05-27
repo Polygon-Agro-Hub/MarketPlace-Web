@@ -1832,9 +1832,9 @@ const Page: React.FC = () => {
                   <button
                     type="submit"
                     disabled={!isFormValidState || isLoading}
-                    className={`w-full font-semibold rounded-lg px-4 py-3 transition-colors ${!isFormValidState || isLoading
-                      ? "bg-[#EBEEF2] text-[#B1BAC3] cursor-not-allowed "
-                      : "bg-purple-800 text-white hover:bg-purple-900 cursor-pointer"
+                    className={`w-full font-semibold rounded-xl py-3.5 transition cursor-pointer ${!isFormValidState || isLoading
+                        ? "bg-[#EBEEF2] text-[#B1BAC3] cursor-not-allowed"
+                        : "bg-[#3E206D] text-white hover:bg-[#2f1854] cursor-pointer"
                       }`}
                   >
                     {isLoading ? "Processing..." : "Continue to Payment"}
