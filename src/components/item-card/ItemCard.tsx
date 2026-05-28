@@ -374,231 +374,239 @@ const ItemCard = ({
     );
   };
 
- return (
-    <div className="relative bg-white rounded-xl md:rounded-3xl shadow-sm border border-gray-200 w-full h-full flex flex-col items-center transition-all duration-300 hover:shadow-md cursor-default">
-      {error && (
-        <div className="absolute top-0 left-0 right-0 bg-red-100 text-red-700 text-xs p-1 text-center z-30 rounded-t-xl md:rounded-t-3xl">
-          {error}
-        </div>
-      )}
+return (
+  <div className="relative bg-white rounded-xl md:rounded-3xl shadow-sm border border-gray-200 w-full h-full flex flex-col items-center transition-all duration-300 hover:shadow-md cursor-default">
+    {error && (
+      <div className="absolute top-0 left-0 right-0 bg-red-100 text-red-700 text-xs p-1 text-center z-30 rounded-t-xl md:rounded-t-3xl">
+        {error}
+      </div>
+    )}
 
-      {isLoading && (
-        <div className="absolute inset-0 bg-white rounded-xl md:rounded-3xl bg-opacity-80 flex items-center justify-center z-40">
-          <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-purple-500"></div>
-        </div>
-      )}
+    {isLoading && (
+      <div className="absolute inset-0 bg-white rounded-xl md:rounded-3xl bg-opacity-80 flex items-center justify-center z-40">
+        <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-purple-500"></div>
+      </div>
+    )}
 
-      {/* Discount badge */}
-      {showBadge && discount && discount > 0 && (
-        <div className="absolute top-0 left-0 z-20">
-          <div
-            className="w-15 h-15 rounded-tl-xl md:rounded-tl-3xl sm:w-14 sm:h-14 md:w-20 md:h-20 bg-purple-900 flex flex-col items-center justify-center text-white"
-            style={{ clipPath: "polygon(0 0, 0 100%, 100% 0)" }}
-          >
-            <div className="transform -translate-y-1/3 -translate-x-1/3 text-[8px] sm:text-[9px] md:text-[10px] absolute top-4 left-4 md:top-5 md:left-6">
-              <span className="text-xs">{discount}%</span>
-              <br />
-              <span className="text-[7px] md:text-xs">Off</span>
-            </div>
+    {/* Discount badge — on mobile: hidden when quantity selector is open. On desktop: always visible */}
+    {showBadge && discount && discount > 0 && (
+      <div className={`absolute top-0 left-0 z-20 ${showQuantitySelector ? "hidden md:block" : "block"}`}>
+        <div
+          className="w-15 h-15 rounded-tl-xl md:rounded-tl-3xl sm:w-14 sm:h-14 md:w-20 md:h-20 bg-purple-900 flex flex-col items-center justify-center text-white"
+          style={{ clipPath: "polygon(0 0, 0 100%, 100% 0)" }}
+        >
+          <div className="transform -translate-y-1/3 -translate-x-1/3 text-[8px] sm:text-[9px] md:text-[10px] absolute top-4 left-4 md:top-5 md:left-6">
+            <span className="text-xs">{discount}%</span>
+            <br />
+            <span className="text-[7px] md:text-xs">Off</span>
           </div>
         </div>
+      </div>
+    )}
+
+    {/* Card body */}
+    <div className="w-full flex-1 flex flex-col items-center justify-center p-2 pt-3 pb-4 gap-3">
+
+      {/* Product image */}
+      {!addedToCart && !showQuantitySelector && (
+        <div className={`w-full flex items-center justify-center ${showBadge && discount ? "mt-5" : "mt-1"}`}>
+          <Image
+            src={image}
+            alt={name}
+            width={120}
+            height={120}
+            className="object-contain w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 xl:w-28 xl:h-28"
+          />
+        </div>
       )}
 
-      {/* Card body */}
-      <div className="w-full flex-1 flex flex-col items-center justify-center p-2 pt-3 pb-4 gap-3">
+      {/* Product name */}
+      <div className="w-full text-center px-1">
+        <h3 className="text-xs md:text-sm lg:text-base font-medium text-gray-800 line-clamp-2 leading-snug">
+          {name}
+        </h3>
+      </div>
 
-        {/* Product image */}
-        {!addedToCart && !showQuantitySelector && (
-          <div className={`w-full flex items-center justify-center ${showBadge && discount ? "mt-5" : "mt-1"}`}>
-            <Image
-              src={image}
-              alt={name}
-              width={120}
-              height={120}
-              className="object-contain w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 xl:w-28 xl:h-28"
-            />
+      {/* Card face price + quantity display */}
+      {!showQuantitySelector && (
+        <div className="w-full flex flex-col items-center gap-1">
+          <div className="w-full text-center">
+            <span className="text-purple-600 text-xs font-medium">
+              {getStartValueDisplay()}
+            </span>
           </div>
-        )}
-
-        {/* Product name */}
-        <div className="w-full text-center px-1">
-          <h3 className="text-xs md:text-sm lg:text-base font-medium text-gray-800 line-clamp-2 leading-snug">
-            {name}
-          </h3>
-        </div>
-
-        {/* Card face price + quantity display */}
-        {!showQuantitySelector && (
-          <div className="w-full flex flex-col items-center gap-1">
-            <div className="w-full text-center">
-              <span className="text-purple-600 text-xs font-medium">
-                {getStartValueDisplay()}
+          <div className="flex flex-col items-center gap-0.5">
+            {showStrikethrough && originalPrice && cardFaceOriginalPrice > cardFaceCurrentPrice ? (
+              <>
+                <span className="text-purple-900 text-xs md:text-sm font-semibold">
+                  Rs. {formatPrice(cardFaceCurrentPrice)}
+                </span>
+                <span className="text-gray-500 text-xs line-through">
+                  Rs. {formatPrice(cardFaceOriginalPrice)}
+                </span>
+              </>
+            ) : (
+              <span className="text-purple-900 text-xs md:text-sm font-semibold">
+                Rs. {formatPrice(cardFaceOriginalPrice)}
               </span>
-            </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Quantity selector + Add to Cart — grouped and centered */}
+      <div className="w-full flex flex-col items-center gap-2">
+
+        {/* Quantity selector */}
+        {token && user && showQuantitySelector && buyerType !== "Wholesale" && !isInCart && (
+          <div className="w-full flex flex-col items-center gap-2">
+
+            {/* Inline discount pill — mobile only, replaces corner badge when selector is open */}
+            {showBadge && discount && discount > 0 && (
+              <span className="md:hidden inline-block bg-purple-100 text-purple-800 text-xs font-semibold px-3 ">
+                {discount}% Off
+              </span>
+            )}
+
             <div className="flex flex-col items-center gap-0.5">
-              {showStrikethrough && originalPrice && cardFaceOriginalPrice > cardFaceCurrentPrice ? (
+              {showStrikethrough && originalPrice && selectorOriginalPrice > selectorCurrentPrice ? (
                 <>
-                  <span className="text-purple-900 text-xs md:text-sm font-semibold">
-                    Rs. {formatPrice(cardFaceCurrentPrice)}
-                  </span>
                   <span className="text-gray-500 text-xs line-through">
-                    Rs. {formatPrice(cardFaceOriginalPrice)}
+                    Rs. {formatPrice(selectorOriginalPrice)}
+                  </span>
+                  <span className="text-purple-900 text-sm md:text-base font-semibold">
+                    Rs. {formatPrice(selectorCurrentPrice)}
                   </span>
                 </>
               ) : (
-                <span className="text-purple-900 text-xs md:text-sm font-semibold">
-                  Rs. {formatPrice(cardFaceOriginalPrice)}
+                <span className="text-purple-900 text-sm md:text-base font-semibold">
+                  Rs. {formatPrice(selectorOriginalPrice)}
                 </span>
               )}
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleUnitChange("kg")}
+                className={`w-8 text-xs py-1 border rounded-md cursor-pointer ${
+                  unit === "kg"
+                    ? "bg-purple-100 text-purple-900 border-purple-300"
+                    : "bg-gray-100 text-gray-500 border-gray-200"
+                }`}
+              >
+                kg
+              </button>
+              <button
+                onClick={() => handleUnitChange("g")}
+                className={`w-8 text-xs py-1 border cursor-pointer rounded-md ${
+                  unit === "g"
+                    ? "bg-purple-100 text-purple-900 border-purple-300"
+                    : "bg-gray-100 text-gray-500 border-gray-200"
+                }`}
+              >
+                g
+              </button>
+            </div>
+
+            <div className="flex items-center justify-center w-full">
+              <div className="flex w-full max-w-28 rounded-lg bg-white border border-[#3E206D] relative">
+                <MinQuantityTooltip />
+                <button
+                  onClick={() => {
+                    if (quantity > getMinQuantity()) decrementQuantity();
+                  }}
+                  onMouseEnter={() => {
+                    if (quantity <= getMinQuantity()) setShowMinQuantityTooltip(true);
+                  }}
+                  onMouseLeave={() => setShowMinQuantityTooltip(false)}
+                  className={`flex-none px-2 py-1 bg-[#3E206D] text-white font-bold rounded-l-md hover:bg-purple-800 cursor-pointer ${
+                    quantity <= getMinQuantity() ? "opacity-50" : ""
+                  }`}
+                >
+                  −
+                </button>
+                <div className="flex-grow text-center py-1 text-sm">
+                  {getDisplayQuantity()}
+                </div>
+                <button
+                  onClick={incrementQuantity}
+                  className="flex-none px-2 py-1 bg-[#3E206D] text-white font-bold rounded-r-md hover:bg-purple-800 cursor-pointer"
+                >
+                  +
+                </button>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Quantity selector + Add to Cart — grouped and centered */}
-        <div className="w-full flex flex-col items-center gap-2 mt-1">
-
-          {/* Quantity selector */}
-          {token && user && showQuantitySelector && buyerType !== "Wholesale" && !isInCart && (
-            <div className="w-full flex flex-col items-center gap-2 py-1">
-              <div className="flex flex-col items-center gap-0.5">
-                {showStrikethrough && originalPrice && selectorOriginalPrice > selectorCurrentPrice ? (
-                  <>
-                    <span className="text-gray-500 text-xs line-through">
-                      Rs. {formatPrice(selectorOriginalPrice)}
-                    </span>
-                    <span className="text-purple-900 text-sm md:text-base font-semibold">
-                      Rs. {formatPrice(selectorCurrentPrice)}
-                    </span>
-                  </>
-                ) : (
-                  <span className="text-purple-900 text-sm md:text-base font-semibold">
-                    Rs. {formatPrice(selectorOriginalPrice)}
-                  </span>
-                )}
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleUnitChange("kg")}
-                  className={`w-8 text-xs py-1 border rounded-md cursor-pointer ${
-                    unit === "kg"
-                      ? "bg-purple-100 text-purple-900 border-purple-300"
-                      : "bg-gray-100 text-gray-500 border-gray-200"
-                  }`}
-                >
-                  kg
-                </button>
-                <button
-                  onClick={() => handleUnitChange("g")}
-                  className={`w-8 text-xs py-1 border cursor-pointer rounded-md ${
-                    unit === "g"
-                      ? "bg-purple-100 text-purple-900 border-purple-300"
-                      : "bg-gray-100 text-gray-500 border-gray-200"
-                  }`}
-                >
-                  g
-                </button>
-              </div>
-
-              <div className="flex items-center justify-center w-full">
-                <div className="flex w-full max-w-28 rounded-lg bg-white border border-[#3E206D] relative">
-                  <MinQuantityTooltip />
-                  <button
-                    onClick={() => {
-                      if (quantity > getMinQuantity()) decrementQuantity();
-                    }}
-                    onMouseEnter={() => {
-                      if (quantity <= getMinQuantity()) setShowMinQuantityTooltip(true);
-                    }}
-                    onMouseLeave={() => setShowMinQuantityTooltip(false)}
-                    className={`flex-none px-2 py-1 bg-[#3E206D] text-white font-bold rounded-l-md hover:bg-purple-800 cursor-pointer ${
-                      quantity <= getMinQuantity() ? "opacity-50" : ""
-                    }`}
-                  >
-                    −
-                  </button>
-                  <div className="flex-grow text-center py-1 text-sm">
-                    {getDisplayQuantity()}
-                  </div>
-                  <button
-                    onClick={incrementQuantity}
-                    className="flex-none px-2 py-1 bg-[#3E206D] text-white font-bold rounded-r-md hover:bg-purple-800 cursor-pointer"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Add to Cart button */}
-          <div className="relative flex justify-center w-full">
-            <Tooltip />
-            {addedToCart ? (
-              <button className="w-full hover:shadow-md transition-shadow duration-300 cursor-pointer max-w-[180px] sm:max-w-[200px] md:max-w-[220px] py-2 px-1.5 rounded-lg md:rounded-xl flex items-center justify-center gap-1 text-xs md:text-sm bg-[#EDE1FF] text-purple-900 border border-[#3E206D]">
+        {/* Add to Cart button */}
+        <div className="relative flex justify-center w-full">
+          <Tooltip />
+          {addedToCart ? (
+            <button className="w-full hover:shadow-md transition-shadow duration-300 cursor-pointer max-w-[180px] sm:max-w-[200px] md:max-w-[220px] py-2 px-1.5 rounded-lg md:rounded-xl flex items-center justify-center gap-1 text-xs md:text-sm bg-[#EDE1FF] text-purple-900 border border-[#3E206D]">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              Added to Cart
+            </button>
+          ) : (
+            <button
+              onClick={handleAddToCartClick}
+              onMouseEnter={() => setIsHovering(true)}
+              onMouseLeave={() => setIsHovering(false)}
+              disabled={isLoading || isInCart}
+              className={`whitespace-nowrap w-full max-w-[180px] sm:max-w-[200px] md:max-w-[220px] py-2 px-1.5 rounded-lg md:rounded-xl flex items-center justify-center gap-1 text-xs md:text-sm transition-all duration-200 ${
+                isInCart
+                  ? "bg-[#EDE1FF] text-gray-500 cursor-not-allowed"
+                  : token && user && showQuantitySelector && buyerType !== "Wholesale"
+                  ? "bg-purple-900 text-white hover:bg-purple-800 cursor-pointer hover:shadow-md hover:shadow-purple-300"
+                  : "bg-white border border-[#D7D7D7] text-gray-400 hover:bg-[#3E206D] hover:text-white cursor-pointer shadow-[0px_1px_0px_0px_#D7D7D7] hover:shadow-md hover:shadow-purple-300"
+              } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+            >
+              {!showQuantitySelector && !isInCart && (
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
+                  className="h-3 w-3 md:h-4 md:w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
                 >
                   <path
-                    fillRule="evenodd"
-                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                    clipRule="evenodd"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
                   />
                 </svg>
-                Added to Cart
-              </button>
-            ) : (
-              <button
-                onClick={handleAddToCartClick}
-                onMouseEnter={() => setIsHovering(true)}
-                onMouseLeave={() => setIsHovering(false)}
-                disabled={isLoading || isInCart}
-                className={`whitespace-nowrap w-full max-w-[180px] sm:max-w-[200px] md:max-w-[220px] py-2 px-1.5 rounded-lg md:rounded-xl flex items-center justify-center gap-1 text-xs md:text-sm transition-all duration-200 ${
-                  isInCart
-                    ? "bg-[#EDE1FF] text-gray-500 cursor-not-allowed"
-                    : token && user && showQuantitySelector && buyerType !== "Wholesale"
-                    ? "bg-purple-900 text-white hover:bg-purple-800 cursor-pointer hover:shadow-md hover:shadow-purple-300"
-                    : "bg-white border border-[#D7D7D7] text-gray-400 hover:bg-[#3E206D] hover:text-white cursor-pointer shadow-[0px_1px_0px_0px_#D7D7D7] hover:shadow-md hover:shadow-purple-300"
-                } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
-              >
-                {!showQuantitySelector && !isInCart && (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-3 w-3 md:h-4 md:w-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
-                    />
-                  </svg>
-                )}
-                {isInCart
-                  ? "Already in Cart"
-                  : token && user && showQuantitySelector && buyerType !== "Wholesale"
-                  ? "Add to Cart"
-                  : buyerType === "Wholesale"
-                  ? "Add to Cart"
-                  : isHovering
-                  ? "I want this !"
-                  : "Add to Cart"}
-              </button>
-            )}
-          </div>
-
+              )}
+              {isInCart
+                ? "Already in Cart"
+                : token && user && showQuantitySelector && buyerType !== "Wholesale"
+                ? "Add to Cart"
+                : buyerType === "Wholesale"
+                ? "Add to Cart"
+                : isHovering
+                ? "I want this !"
+                : "Add to Cart"}
+            </button>
+          )}
         </div>
-      </div>
 
-      <LoginPopup />
+      </div>
     </div>
-  );
+
+    <LoginPopup />
+  </div>
+);
 };
 
 export default ItemCard;
