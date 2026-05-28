@@ -876,8 +876,8 @@ function PickupOrderView({
 
           {order.additionalItems && order.additionalItems.length > 0 && (
             <div className="border-t border-gray-200">
-              <div className="p-4">
-                <div className="flex flex-col space-y-4 mb-2">
+              <div className="p-2">
+                <div className="flex flex-col space-y-1">
                   <span className="font-medium text-black">
                     Additional Items (
                     {String(order.additionalItems.length ?? 0).padStart(2, "0")}{" "}
@@ -892,36 +892,38 @@ function PickupOrderView({
                     Rs. {additionalItemsTotal}
                   </span>
                 </div>
-                <div className="border-t border-gray-200" /> 
-                <div className="space-y-4 mt-4">
-                  {order.additionalItems.map((item, index) => (
-                    <div key={index} className="flex items-center gap-4 py-2">
-                      <div className="w-12 h-12 flex-shrink-0">
-                        {item.image ? (
-                          <img
-                            src={item.image}
-                            alt={item.name}
-                            className="w-12 h-12 object-cover rounded"
-                          />
-                        ) : (
-                          <div className="w-12 h-12 bg-orange-200 rounded flex items-center justify-center">
-                            <span className="text-orange-600 text-xs">🥭</span>
+                <div className="border-t border-gray-200" />
+                <div className="overflow-x-auto -mx-4 px-4">
+                  <div className="space-y-4 mt-4">
+                    {order.additionalItems.map((item, index) => (
+                      <div key={index} className="flex items-center gap-4 py-2 min-w-[440px]">
+                        <div className="w-12 h-12 flex-shrink-0">
+                          {item.image ? (
+                            <img
+                              src={item.image}
+                              alt={item.name}
+                              className="w-12 h-12 object-cover rounded"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 bg-orange-200 rounded flex items-center justify-center">
+                              <span className="text-orange-600 text-xs">🥭</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-[120px]">
+                          <div className="font-medium text-black">{item.name}</div>
+                        </div>
+                        <div className="w-16 text-right flex-shrink-0">
+                          <div className="text-sm text-gray-500">
+                            {formatQuantity(item.quantity, item.unit)}
                           </div>
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-medium text-black">{item.name}</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-sm text-gray-600">
-                          {formatQuantity(item.quantity, item.unit)}
+                        </div>
+                        <div className="w-24 text-right flex-shrink-0">
+                          <div className="font-semibold text-black">{item.price}</div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="font-semibold text-black">{item.price}</div>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1318,8 +1320,8 @@ function DeliveryOrderView({
 
           {order.additionalItems && order.additionalItems.length > 0 && (
             <div className="border-t border-gray-200">
-              <div className="p-4">
-                <div className="flex flex-col space-y-7 mb-2">
+              <div className="p-2">
+                <div className="flex flex-col space-y-2">
                   <span className="font-medium text-black">
                     Additional Items (
                     {String(order.additionalItems.length ?? 0).padStart(2, "0")}{" "}
@@ -1334,36 +1336,38 @@ function DeliveryOrderView({
                     Rs. {additionalItemsTotal}
                   </span>
                 </div>
-                <div className="border-t border-gray-200" /> 
-                <div className="space-y-4 mt-4">
-                  {order.additionalItems.map((item, index) => (
-                    <div key={index} className="flex items-center gap-4 py-2">
-                      <div className="w-12 h-12 flex-shrink-0">
-                        {item.image ? (
-                          <img
-                            src={item.image}
-                            alt={item.name}
-                            className="w-12 h-12 object-cover rounded"
-                          />
-                        ) : (
-                          <div className="w-12 h-12 bg-orange-200 rounded flex items-center justify-center">
-                            <span className="text-orange-600 text-xs">🥭</span>
+                <div className="border-t border-gray-200" />
+                <div className="overflow-x-auto -mx-4 px-4">
+                  <div className="space-y-4 mt-4">
+                    {order.additionalItems.map((item, index) => (
+                      <div key={index} className="flex items-center gap-4 py-2 min-w-[440px]">
+                        <div className="w-12 h-12 flex-shrink-0">
+                          {item.image ? (
+                            <img
+                              src={item.image}
+                              alt={item.name}
+                              className="w-12 h-12 object-cover rounded"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 bg-orange-200 rounded flex items-center justify-center">
+                              <span className="text-orange-600 text-xs">🥭</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-[120px]">
+                          <div className="font-medium text-black">{item.name}</div>
+                        </div>
+                        <div className="w-16 text-right flex-shrink-0">
+                          <div className="text-sm text-gray-500">
+                            {formatQuantity(item.quantity, item.unit)}
                           </div>
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-medium text-black">{item.name}</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-sm text-gray-600">
-                          {formatQuantity(item.quantity, item.unit)}
+                        </div>
+                        <div className="w-24 text-right flex-shrink-0">
+                          <div className="font-semibold text-black">{item.price}</div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="font-semibold text-black">{item.price}</div>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
