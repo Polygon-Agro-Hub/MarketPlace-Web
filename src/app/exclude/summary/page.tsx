@@ -255,9 +255,9 @@ export default function ExcludedItems() {
           {!loading && !error && filteredItems.length > 0 && (
             <div className="overflow-hidden border border-[#CFCFCF] rounded-[15px] p-3">
               <table className="w-full">
-                <thead>
+              <thead>
                   <tr className="text-[#8492A3] font-semibold">
-                    <th className="p-2 text-left w-[10%]">
+                    <th className="p-2 text-left w-[8%]">
                       <input
                         type="checkbox"
                         checked={allSelected}
@@ -266,13 +266,13 @@ export default function ExcludedItems() {
                         aria-label="Select all items"
                       />
                     </th>
-                    <th className="p-2 text-left w-[20%] text-[#8492A3] font-small">
+                    <th className="p-2 text-left w-[15%] text-[#8492A3] text-[12px] md:text-sm font-medium whitespace-nowrap">
                       ITEM ({String(items.length).padStart(2, "0")})
                     </th>
-                    <th className="p-2 text-left w-[50%] text-[#8492A3] font-small">
+                    <th className="p-2 text-left w-[55%] text-[#8492A3] text-[12px] md:text-sm font-medium whitespace-nowrap">
                       ITEM NAME
                     </th>
-                    <th className="p-2 text-left w-[20%] text-[#8492A3] font-small">
+                    <th className="p-2 text-left w-[22%] text-[#8492A3] text-[12px] md:text-sm font-medium whitespace-nowrap">
                       ACTION
                     </th>
                   </tr>

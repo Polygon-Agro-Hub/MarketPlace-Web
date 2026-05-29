@@ -463,7 +463,7 @@ return (
 
             {/* Inline discount pill — mobile only, replaces corner badge when selector is open */}
             {showBadge && discount && discount > 0 && (
-              <span className="md:hidden inline-block bg-purple-100 text-purple-800 text-xs font-semibold px-3 ">
+              <span className="md:hidden inline-block bg-[#EDE1FF] text-[#3E206D] text-xs  px-1 ">
                 {discount}% Off
               </span>
             )}
@@ -541,7 +541,7 @@ return (
 
         {/* Add to Cart button */}
         <div className="relative flex justify-center w-full">
-          <Tooltip />
+          {/* <Tooltip /> */}
           {addedToCart ? (
             <button className="w-full hover:shadow-md transition-shadow duration-300 cursor-pointer max-w-[180px] sm:max-w-[200px] md:max-w-[220px] py-2 px-1.5 rounded-lg md:rounded-xl flex items-center justify-center gap-1 text-xs md:text-sm bg-[#EDE1FF] text-purple-900 border border-[#3E206D]">
               <svg

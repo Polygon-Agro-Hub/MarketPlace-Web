@@ -826,10 +826,10 @@ function PickupOrderView({
         </div>
 
         <div className="bg-white mt-2 rounded-[15px] border border-gray-200 overflow-hidden shadow-lg">
-          <div className="bg-[#F8F8F8] p-4 border-b border-gray-200">
+          <div className="bg-gray-50 p-4 border-b border-gray-200">
             <div className="flex flex-col space-y-2">
-              <span className="font-semibold text-black">Ordered Items</span>
-              <span className="font-semibold text-[#3E206D] text-lg">
+              <span className="text-[14px] font-semibold text-black">Ordered Items</span>
+              <span className="text-[14px] font-semibold text-[#3E206D]">
                 Total Price : Rs. {totalPrice}
               </span>
             </div>
@@ -840,8 +840,8 @@ function PickupOrderView({
               {order.familyPackItems.map((pack, packIndex) => (
                 <div key={packIndex} className="border-b border-gray-200 last:border-b-0">
                   <div className="p-4">
-                    <div className="flex justify-between items-center mb-4">
-                      <span className="font-medium text-black">
+                    <div className="flex flex-col mb-4">
+                      <span className="text-[14px] text-black">
                         {pack.name} (
                         {String(
                           pack.items?.reduce(
@@ -851,10 +851,11 @@ function PickupOrderView({
                         ).padStart(2, "0")}{" "}
                         Items)
                       </span>
-                      <span className="font-semibold text-[#3E206D]">
+                      <span className="font-semibold text-[#3E206D] mt-1">
                         {pack.totalPrice}
                       </span>
                     </div>
+                    <hr className="-mx-4 border-t border-gray-200 my-3" />
                     <div className="space-y-3">
                       {pack.items.map((item, itemIndex) => (
                         <div
@@ -1272,8 +1273,8 @@ function DeliveryOrderView({
         <div className="bg-white mt-2 rounded-[15px] border border-gray-200 overflow-hidden">
           <div className="bg-gray-50 p-4 border-b border-gray-200">
             <div className="flex flex-col space-y-2">
-              <span className="font-semibold text-black">Ordered Items</span>
-              <span className="font-semibold text-[#3E206D] text-lg">
+              <span className="text-[14px] font-semibold text-black">Ordered Items</span>
+              <span className="text-[14px] font-semibold text-[#3E206D]">
                 Total Price : Rs. {totalPrice}
               </span>
             </div>
@@ -1284,8 +1285,8 @@ function DeliveryOrderView({
               {order.familyPackItems.map((pack, packIndex) => (
                 <div key={packIndex} className="border-b border-gray-200 last:border-b-0">
                   <div className="p-4">
-                    <div className="flex justify-between items-center mb-4">
-                      <span className="font-medium text-black">
+                    <div className="flex flex-col mb-4">
+                      <span className="text-[14px] text-black">
                         {pack.name} (
                         {String(
                           pack.items?.reduce(
@@ -1295,10 +1296,11 @@ function DeliveryOrderView({
                         ).padStart(2, "0")}{" "}
                         Items)
                       </span>
-                      <span className="font-semibold text-[#3E206D]">
+                      <span className="font-semibold text-[#3E206D] mt-1">
                         {pack.totalPrice}
                       </span>
                     </div>
+                    <hr className="-mx-4 border-t border-gray-200 my-3" />
                     <div className="space-y-3">
                       {pack.items.map((item, itemIndex) => (
                         <div
