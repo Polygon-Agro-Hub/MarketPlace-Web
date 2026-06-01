@@ -295,66 +295,66 @@ export default function OrderHistoryPage() {
           phone2: apiOrder.phone2 || "",
           pickupInfo:
             apiOrder.delivaryMethod?.toLowerCase() === "pickup" &&
-            apiOrder.pickupInfo
+              apiOrder.pickupInfo
               ? {
-                  centerName: apiOrder.pickupInfo.centerName || "N/A",
-                  contact01: apiOrder.pickupInfo.contact01 || "N/A",
-                  fullName: apiOrder.pickupInfo.fullName || "N/A",
-                  buildingNumber: apiOrder.pickupInfo.address?.street || "N/A",
-                  street: apiOrder.pickupInfo.address?.street || "N/A",
-                  city: apiOrder.pickupInfo.address?.city || "N/A",
-                  district: apiOrder.pickupInfo.address?.district || "N/A",
-                  province: apiOrder.pickupInfo.address?.province || "N/A",
-                  country: apiOrder.pickupInfo.address?.country || "N/A",
-                  zipCode: apiOrder.pickupInfo.address?.zipCode || "N/A",
-                  title: apiOrder.pickupInfo.title?.title || "N/A",
-                }
+                centerName: apiOrder.pickupInfo.centerName || "N/A",
+                contact01: apiOrder.pickupInfo.contact01 || "N/A",
+                fullName: apiOrder.pickupInfo.fullName || "N/A",
+                buildingNumber: apiOrder.pickupInfo.address?.street || "N/A",
+                street: apiOrder.pickupInfo.address?.street || "N/A",
+                city: apiOrder.pickupInfo.address?.city || "N/A",
+                district: apiOrder.pickupInfo.address?.district || "N/A",
+                province: apiOrder.pickupInfo.address?.province || "N/A",
+                country: apiOrder.pickupInfo.address?.country || "N/A",
+                zipCode: apiOrder.pickupInfo.address?.zipCode || "N/A",
+                title: apiOrder.pickupInfo.title?.title || "N/A",
+              }
               : undefined,
           deliveryInfo:
             apiOrder.delivaryMethod?.toLowerCase() === "delivery" &&
-            apiOrder.deliveryInfo
+              apiOrder.deliveryInfo
               ? {
-                  buildingType: apiOrder.deliveryInfo.buildingType || "N/A",
-                  houseNo: apiOrder.deliveryInfo.houseNo || "N/A",
-                  street:
-                    apiOrder.deliveryInfo.streetName ||
-                    apiOrder.deliveryInfo.street ||
-                    "N/A",
-                  city: apiOrder.deliveryInfo.city || "N/A",
-                  buildingNo: apiOrder.deliveryInfo.buildingNo || "N/A",
-                  buildingName: apiOrder.deliveryInfo.buildingName || "N/A",
-                  flatNo: apiOrder.deliveryInfo.flatNo || "N/A",
-                  floorNo: apiOrder.deliveryInfo.floorNo || "N/A",
-                }
+                buildingType: apiOrder.deliveryInfo.buildingType || "N/A",
+                houseNo: apiOrder.deliveryInfo.houseNo || "N/A",
+                street:
+                  apiOrder.deliveryInfo.streetName ||
+                  apiOrder.deliveryInfo.street ||
+                  "N/A",
+                city: apiOrder.deliveryInfo.city || "N/A",
+                buildingNo: apiOrder.deliveryInfo.buildingNo || "N/A",
+                buildingName: apiOrder.deliveryInfo.buildingName || "N/A",
+                flatNo: apiOrder.deliveryInfo.flatNo || "N/A",
+                floorNo: apiOrder.deliveryInfo.floorNo || "N/A",
+              }
               : undefined,
           familyPackItems:
             packagesData.status && packagesData.data
               ? packagesData.data.map((pack: any, index: number) => ({
-                  packageId: `${pack.packageId}_${index}`,
-                  name: pack.displayName || "Family Pack",
-                  items:
-                    pack.products?.map((item: any) => ({
-                      id: item.id || 0,
-                      name: item.typeName || "Unknown",
-                      weight: item.weight || "1 kg",
-                      price: formatCurrency(parseFloat(item.price || "0"), 2),
-                      quantity: String(item.qty || 1),
-                    })) || [],
-                  totalPrice: formatCurrency(pack.productPrice || 0, 2),
-                }))
+                packageId: `${pack.packageId}_${index}`,
+                name: pack.displayName || "Family Pack",
+                items:
+                  pack.products?.map((item: any) => ({
+                    id: item.id || 0,
+                    name: item.typeName || "Unknown",
+                    weight: item.weight || "1 kg",
+                    price: formatCurrency(parseFloat(item.price || "0"), 2),
+                    quantity: String(item.qty || 1),
+                  })) || [],
+                totalPrice: formatCurrency(pack.productPrice || 0, 2),
+              }))
               : [],
           additionalItems:
             additionalItemsData.status && additionalItemsData.data
               ? additionalItemsData.data.map((item: any) => ({
-                  id: item.id || 0,
-                  name: item.displayName || "Unknown",
-                  quantity: String(item.qty || 1),
-                  unit: item.unit || "kg",
-                  weight: `${item.qty || "1"} ${item.unit || "kg"}`,
-                  price: formatCurrency(parseFloat(item.price || "0"), 2),
-                  image: item.image || undefined,
-                  amount: formatCurrency(parseFloat(item.price || "0"), 2),
-                }))
+                id: item.id || 0,
+                name: item.displayName || "Unknown",
+                quantity: String(item.qty || 1),
+                unit: item.unit || "kg",
+                weight: `${item.qty || "1"} ${item.unit || "kg"}`,
+                price: formatCurrency(parseFloat(item.price || "0"), 2),
+                image: item.image || undefined,
+                amount: formatCurrency(parseFloat(item.price || "0"), 2),
+              }))
               : [],
           discount: formatCurrency(
             totalDiscount > 0 ? ` ${totalDiscount.toFixed(2)}` : " 0.00",
@@ -729,6 +729,21 @@ function PickupOrderView({
 
   return (
     <div className="w-full">
+      <div className="sm:hidden bg-white border-b border-gray-200 p-4 sticky top-0 z-10">
+        <div className="flex items-center justify-between">
+          <button onClick={onClose} className="text-gray-600">
+            <span className="text-xl">←</span>
+          </button>
+          <div className="text-center flex-1">
+            <h2 className="text-lg font-semibold">Order ID : #{order.invoiceNo}</h2>
+            <span
+              className={`inline-block px-3 py-1 rounded-full text-sm font-medium mt-2 ${getStatusClass(order.status)}`}
+            >
+              {order.status}
+            </span>
+          </div>
+        </div>
+      </div>
       {/* Desktop Header */}
       <div className="hidden sm:flex justify-between items-center mb-4">
         <h2
@@ -811,10 +826,10 @@ function PickupOrderView({
         </div>
 
         <div className="bg-white mt-2 rounded-[15px] border border-gray-200 overflow-hidden shadow-lg">
-          <div className="bg-[#F8F8F8] p-4 border-b border-gray-200">
+          <div className="bg-gray-50 p-4 border-b border-gray-200">
             <div className="flex flex-col space-y-2">
-              <span className="font-semibold text-black">Ordered Items</span>
-              <span className="font-semibold text-[#3E206D] text-lg">
+              <span className="text-[14px] font-semibold text-black">Ordered Items</span>
+              <span className="text-[14px] font-semibold text-[#3E206D]">
                 Total Price : Rs. {totalPrice}
               </span>
             </div>
@@ -825,8 +840,8 @@ function PickupOrderView({
               {order.familyPackItems.map((pack, packIndex) => (
                 <div key={packIndex} className="border-b border-gray-200 last:border-b-0">
                   <div className="p-4">
-                    <div className="flex justify-between items-center mb-4">
-                      <span className="font-medium text-black">
+                    <div className="flex flex-col mb-4">
+                      <span className="text-[14px] text-black">
                         {pack.name} (
                         {String(
                           pack.items?.reduce(
@@ -836,10 +851,11 @@ function PickupOrderView({
                         ).padStart(2, "0")}{" "}
                         Items)
                       </span>
-                      <span className="font-semibold text-[#3E206D]">
-                      {pack.totalPrice}
+                      <span className="font-semibold text-[#3E206D] mt-1">
+                        {pack.totalPrice}
                       </span>
                     </div>
+                    <hr className="-mx-4 border-t border-gray-200 my-3" />
                     <div className="space-y-3">
                       {pack.items.map((item, itemIndex) => (
                         <div
@@ -861,8 +877,8 @@ function PickupOrderView({
 
           {order.additionalItems && order.additionalItems.length > 0 && (
             <div className="border-t border-gray-200">
-              <div className="p-4">
-                <div className="flex flex-col space-y-4 mb-2">
+              <div className="p-2">
+                <div className="flex flex-col space-y-1">
                   <span className="font-medium text-black">
                     Additional Items (
                     {String(order.additionalItems.length ?? 0).padStart(2, "0")}{" "}
@@ -877,35 +893,38 @@ function PickupOrderView({
                     Rs. {additionalItemsTotal}
                   </span>
                 </div>
-                <div className="space-y-4 mt-4">
-                  {order.additionalItems.map((item, index) => (
-                    <div key={index} className="flex items-center gap-4 py-2">
-                      <div className="w-12 h-12 flex-shrink-0">
-                        {item.image ? (
-                          <img
-                            src={item.image}
-                            alt={item.name}
-                            className="w-12 h-12 object-cover rounded"
-                          />
-                        ) : (
-                          <div className="w-12 h-12 bg-orange-200 rounded flex items-center justify-center">
-                            <span className="text-orange-600 text-xs">🥭</span>
+                <div className="border-t border-gray-200" />
+                <div className="overflow-x-auto -mx-4 px-4">
+                  <div className="space-y-4 mt-4">
+                    {order.additionalItems.map((item, index) => (
+                      <div key={index} className="flex items-center gap-4 py-2 min-w-[440px]">
+                        <div className="w-12 h-12 flex-shrink-0">
+                          {item.image ? (
+                            <img
+                              src={item.image}
+                              alt={item.name}
+                              className="w-12 h-12 object-cover rounded"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 bg-orange-200 rounded flex items-center justify-center">
+                              <span className="text-orange-600 text-xs">🥭</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-[120px]">
+                          <div className="font-medium text-black">{item.name}</div>
+                        </div>
+                        <div className="w-16 text-right flex-shrink-0">
+                          <div className="text-sm text-gray-500">
+                            {formatQuantity(item.quantity, item.unit)}
                           </div>
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-medium text-black">{item.name}</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-sm text-gray-600">
-                          {formatQuantity(item.quantity, item.unit)}
+                        </div>
+                        <div className="w-24 text-right flex-shrink-0">
+                          <div className="font-semibold text-black">{item.price}</div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="font-semibold text-black">{item.price}</div>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1016,7 +1035,7 @@ function PickupOrderView({
                           className="text-right font-semibold py-2 p-4"
                           style={{ color: "rgb(62,32,109)" }}
                         >
-                         {pack.totalPrice}
+                          {pack.totalPrice}
                         </td>
                       </tr>
                       <tr>
@@ -1254,8 +1273,8 @@ function DeliveryOrderView({
         <div className="bg-white mt-2 rounded-[15px] border border-gray-200 overflow-hidden">
           <div className="bg-gray-50 p-4 border-b border-gray-200">
             <div className="flex flex-col space-y-2">
-              <span className="font-semibold text-black">Ordered Items</span>
-              <span className="font-semibold text-[#3E206D] text-lg">
+              <span className="text-[14px] font-semibold text-black">Ordered Items</span>
+              <span className="text-[14px] font-semibold text-[#3E206D]">
                 Total Price : Rs. {totalPrice}
               </span>
             </div>
@@ -1266,8 +1285,8 @@ function DeliveryOrderView({
               {order.familyPackItems.map((pack, packIndex) => (
                 <div key={packIndex} className="border-b border-gray-200 last:border-b-0">
                   <div className="p-4">
-                    <div className="flex justify-between items-center mb-4">
-                      <span className="font-medium text-black">
+                    <div className="flex flex-col mb-4">
+                      <span className="text-[14px] text-black">
                         {pack.name} (
                         {String(
                           pack.items?.reduce(
@@ -1277,10 +1296,11 @@ function DeliveryOrderView({
                         ).padStart(2, "0")}{" "}
                         Items)
                       </span>
-                      <span className="font-semibold text-[#3E206D]">
+                      <span className="font-semibold text-[#3E206D] mt-1">
                         {pack.totalPrice}
                       </span>
                     </div>
+                    <hr className="-mx-4 border-t border-gray-200 my-3" />
                     <div className="space-y-3">
                       {pack.items.map((item, itemIndex) => (
                         <div
@@ -1302,8 +1322,8 @@ function DeliveryOrderView({
 
           {order.additionalItems && order.additionalItems.length > 0 && (
             <div className="border-t border-gray-200">
-              <div className="p-4">
-                <div className="flex flex-col space-y-7 mb-2">
+              <div className="p-2">
+                <div className="flex flex-col space-y-2">
                   <span className="font-medium text-black">
                     Additional Items (
                     {String(order.additionalItems.length ?? 0).padStart(2, "0")}{" "}
@@ -1318,35 +1338,38 @@ function DeliveryOrderView({
                     Rs. {additionalItemsTotal}
                   </span>
                 </div>
-                <div className="space-y-4 mt-4">
-                  {order.additionalItems.map((item, index) => (
-                    <div key={index} className="flex items-center gap-4 py-2">
-                      <div className="w-12 h-12 flex-shrink-0">
-                        {item.image ? (
-                          <img
-                            src={item.image}
-                            alt={item.name}
-                            className="w-12 h-12 object-cover rounded"
-                          />
-                        ) : (
-                          <div className="w-12 h-12 bg-orange-200 rounded flex items-center justify-center">
-                            <span className="text-orange-600 text-xs">🥭</span>
+                <div className="border-t border-gray-200" />
+                <div className="overflow-x-auto -mx-4 px-4">
+                  <div className="space-y-4 mt-4">
+                    {order.additionalItems.map((item, index) => (
+                      <div key={index} className="flex items-center gap-4 py-2 min-w-[440px]">
+                        <div className="w-12 h-12 flex-shrink-0">
+                          {item.image ? (
+                            <img
+                              src={item.image}
+                              alt={item.name}
+                              className="w-12 h-12 object-cover rounded"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 bg-orange-200 rounded flex items-center justify-center">
+                              <span className="text-orange-600 text-xs">🥭</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-[120px]">
+                          <div className="font-medium text-black">{item.name}</div>
+                        </div>
+                        <div className="w-16 text-right flex-shrink-0">
+                          <div className="text-sm text-gray-500">
+                            {formatQuantity(item.quantity, item.unit)}
                           </div>
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-medium text-black">{item.name}</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-sm text-gray-600">
-                          {formatQuantity(item.quantity, item.unit)}
+                        </div>
+                        <div className="w-24 text-right flex-shrink-0">
+                          <div className="font-semibold text-black">{item.price}</div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="font-semibold text-black">{item.price}</div>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1492,7 +1515,7 @@ function DeliveryOrderView({
                           className="text-right font-semibold py-2 p-4"
                           style={{ color: "rgb(62,32,109)" }}
                         >
-                         {pack.totalPrice}
+                          {pack.totalPrice}
                         </td>
                       </tr>
                       <tr>

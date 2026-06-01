@@ -319,31 +319,24 @@ const PersonalDetailsForm = () => {
 
   const hasErrors = Object.keys(errors).length > 0;
 
-  // Check if password fields are in an incomplete state
   const isPasswordFieldsIncomplete = () => {
-    const hasCurrentPassword = currentPassword && currentPassword.trim() !== '';
-    const hasNewPassword = newPassword && newPassword.trim() !== '';
-    const hasConfirmPassword = confirmPassword && confirmPassword.trim() !== '';
+    const hasCurrentPassword = !!(currentPassword?.trim());
+    const hasNewPassword = !!(newPassword?.trim());
+    const hasConfirmPassword = !!(confirmPassword?.trim());
 
-    // Count how many password fields are filled
-    const filledPasswordFields = [hasCurrentPassword, hasNewPassword, hasConfirmPassword].filter(Boolean).length;
+    const filledCount = [hasCurrentPassword, hasNewPassword, hasConfirmPassword].filter(Boolean).length;
 
-    if (filledPasswordFields > 0 && filledPasswordFields < 3) {
-      return true; // Incomplete - disable save button
-    }
-
-    return false; // Either all filled or all empty - allow save
+    // Only disable if SOME but not ALL fields are filled
+    return filledCount > 0 && filledCount < 3;
   };
 
 
   useEffect(() => {
-    if (currentPassword) {
-      trigger('newPassword');
+    if (!currentPassword?.trim() && !newPassword?.trim() && !confirmPassword?.trim()) {
+      // All password fields are empty — clear their errors
+      trigger(['currentPassword', 'newPassword', 'confirmPassword']);
     }
-    if (newPassword) {
-      trigger('confirmPassword');
-    }
-  }, [currentPassword, newPassword, trigger]);
+  }, [currentPassword, newPassword, confirmPassword, trigger]);
 
   useEffect(() => {
     const loadProfile = async () => {

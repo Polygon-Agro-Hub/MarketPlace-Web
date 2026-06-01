@@ -511,7 +511,7 @@ function HomeContent() {
           <div
             className={`w-full px-4 sm:hidden ${isSearchActive ? "mt-4" : "mt-4"}`}
           >
-            <div className="flex-1 max-w-xl mx-auto">
+            <div className="flex-1 max-w-xl mx-auto mt-6">
               <form onSubmit={handleSearchSubmit}>
                 <div className="relative">
   <input
