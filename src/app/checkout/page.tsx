@@ -486,17 +486,25 @@ const Page: React.FC = () => {
     label: center.label,
   }));
 
+  const getMinDaysOffset = (): number => {
+    const now = new Date();
+    const currentHour = now.getHours();
+    // If user picks the 2PM–8PM slot AND it's already past 6PM, require 4 days
+    const isLate2PMSlot =
+      formData.timeSlot === "Within 2PM - 8PM" && currentHour >= 18;
+    return isLate2PMSlot ? 4 : 3;
+  };
+
   const getMinDate = (): string => {
     const today = new Date();
+    const offset = getMinDaysOffset();
 
-    // Create a new date object and add 3 days
     const minDate = new Date(
       today.getFullYear(),
       today.getMonth(),
-      today.getDate() + 3,
+      today.getDate() + offset,
     );
 
-    // Ensure we get the correct local date without timezone issues
     const year = minDate.getFullYear();
     const month = String(minDate.getMonth() + 1).padStart(2, "0");
     const day = String(minDate.getDate()).padStart(2, "0");
@@ -566,6 +574,11 @@ const Page: React.FC = () => {
           ...basicInfo,
         }));
       }
+    }
+    if (field === "timeSlot" && formData.deliveryDate) {
+      const updatedData = { ...formData, timeSlot: value as string };
+      const dateError = validateField("deliveryDate", formData.deliveryDate, updatedData);
+      setErrors((prev) => ({ ...prev, deliveryDate: dateError }));
     }
   };
 
@@ -718,18 +731,25 @@ const Page: React.FC = () => {
 
         const selectedDate = new Date(value.toString());
         const today = new Date();
+
+        const currentHour = today.getHours();
+        const isLate2PMSlot =
+          formData.timeSlot === "Within 2PM - 8PM" && currentHour >= 18;
+        const minDaysOffset = isLate2PMSlot ? 4 : 3;
+
         const minDate = new Date(
           today.getFullYear(),
           today.getMonth(),
-          today.getDate() + 3,
+          today.getDate() + minDaysOffset,
         );
 
         selectedDate.setHours(0, 0, 0, 0);
         minDate.setHours(0, 0, 0, 0);
-        today.setHours(0, 0, 0, 0);
 
         if (selectedDate < minDate) {
-          return "Please select a date at least 3 days from today.";
+          return isLate2PMSlot
+            ? "For the 2PM–8PM slot after 6PM, please select a date at least 4 days from today."
+            : "Please select a date at least 3 days from today.";
         }
 
         return "";
@@ -1833,8 +1853,8 @@ const Page: React.FC = () => {
                     type="submit"
                     disabled={!isFormValidState || isLoading}
                     className={`w-full font-semibold rounded-xl py-3.5 transition cursor-pointer ${!isFormValidState || isLoading
-                        ? "bg-[#EBEEF2] text-[#B1BAC3] cursor-not-allowed"
-                        : "bg-[#3E206D] text-white hover:bg-[#2f1854] cursor-pointer"
+                      ? "bg-[#EBEEF2] text-[#B1BAC3] cursor-not-allowed"
+                      : "bg-[#3E206D] text-white hover:bg-[#2f1854] cursor-pointer"
                       }`}
                   >
                     {isLoading ? "Processing..." : "Continue to Payment"}
