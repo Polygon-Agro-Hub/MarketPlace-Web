@@ -300,41 +300,48 @@ export default function Page() {
           The OTP has been sent to your mobile number
         </p>
 
-        <div className="flex justify-center space-x-2 sm:space-x-3 mb-4">
-          {otp.map((digit, idx) => (
-            <input
-              key={idx}
-              ref={el => { inputsRef.current[idx] = el; }}
-              type="text"
-              maxLength={1}
-              value={digit}
-              onChange={e => handleChange(e.target.value, idx)}
-              onKeyDown={e => handleKeyDown(e, idx)}
-              onPaste={handlePaste}
-              placeholder="×"
-              className="w-10 sm:w-11 h-10 sm:h-11 text-center border border-gray-300 rounded-md text-xl sm:text-2xl focus:outline-none focus:border-[#3E206D] placeholder:text-[#DCDCDC]"
-            />
-          ))}
-        </div>
+        <div className="flex flex-col items-center w-full">
+          <div className="flex justify-center space-x-2 sm:space-x-3 mb-4">
+            {otp.map((digit, idx) => (
+              <input
+                key={idx}
+                ref={el => { inputsRef.current[idx] = el; }}
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={1}
+                value={digit}
+                onChange={e => handleChange(e.target.value, idx)}
+                onKeyDown={e => handleKeyDown(e, idx)}
+                onPaste={handlePaste}
+                placeholder="×"
+                className="w-10 sm:w-11 h-10 sm:h-11 text-center border border-gray-300 rounded-md text-xl sm:text-2xl focus:outline-none focus:border-[#3E206D] placeholder:text-[#DCDCDC]"
+              />
+            ))}
+          </div>
 
-        <div className="text-xs sm:text-sm text-gray-500 text-center mb-1">
-          I didn't receive the OTP message
+          {/* This div matches the OTP row width: 5 inputs + 4 gaps */}
+          <div className="w-[232px] sm:w-[259px]">
+            <div className="text-xs sm:text-sm text-gray-500 text-center mb-1">
+              I didn't receive the OTP message
+            </div>
+            <button
+              onClick={handleResendOTP}
+              disabled={disabledResend || isResending}
+              className={`w-full text-base  mb-6 text-center ${disabledResend || isResending
+                  ? 'text-gray-400 cursor-not-allowed'
+                  : 'text-[#3E206D] font-semibold hover:underline cursor-pointer'
+                }`}
+            >
+              {isResending
+                ? 'Sending...'
+                : disabledResend
+                  ? `Resend in ${timerText}`
+                  : 'Resend OTP'
+              }
+            </button>
+          </div>
         </div>
-        <button
-  onClick={handleResendOTP}
-  disabled={disabledResend || isResending}
-  className={`text-sm sm:text-sm mb-6 ${disabledResend || isResending
-    ? 'text-gray-400 cursor-not-allowed'
-    : 'text-[#3E206D] font-semibold hover:underline cursor-pointer'
-    }`}
->
-  {isResending
-    ? 'Sending...'
-    : disabledResend
-      ? `Resend in ${timerText}`
-      : 'Resend OTP'
-  }
-</button>
 
         <button
           onClick={handleVerify}

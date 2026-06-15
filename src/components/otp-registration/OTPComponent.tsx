@@ -317,6 +317,8 @@ export default function OTPComponent({
                 inputsRef.current[idx] = el;
               }}
               type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
               maxLength={1}
               value={digit}
               onChange={(e) => handleChange(e.target.value, idx)}
@@ -335,7 +337,7 @@ export default function OTPComponent({
         <button
           onClick={handleResendOTP}
           disabled={disabledResend || isResending}
-          className={`text-xs sm:text-sm mb-6 ${disabledResend || isResending
+          className={`text-base  mb-6 ${disabledResend || isResending
             ? "text-gray-400 cursor-not-allowed"
             : "text-[#3E206D] font-semibold hover:underline cursor-pointer"
             }`}
@@ -350,9 +352,9 @@ export default function OTPComponent({
         <button
           onClick={handleVerify}
           disabled={isVerifying || isOtpExpired || !isOtpComplete || isVerified}
-          className={`font-semibold w-full max-w-[307px] h-[45px] rounded-[10px] mt-1 transition-colors ${isVerifying || isOtpExpired || !isOtpComplete || isVerified
-            ? "bg-gray-400 text-gray-200 cursor-not-allowed"
-            : "bg-[#3E206D] text-white hover:bg-[#2D1A4F] cursor-pointer"
+          className={`font-semibold w-[232px] sm:w-[268px] h-[45px] rounded-[10px] mt-1 transition-colors ${isVerifying || isOtpExpired || !isOtpComplete || isVerified
+              ? "bg-gray-400 text-gray-200 cursor-not-allowed"
+              : "bg-[#3E206D] text-white hover:bg-[#2D1A4F] cursor-pointer"
             }`}
         >
           {isVerifying

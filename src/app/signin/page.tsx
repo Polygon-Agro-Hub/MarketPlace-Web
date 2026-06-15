@@ -302,7 +302,7 @@ const Page = () => {
                   type={showPassword ? "text" : "password"}
                   name="password"
                   placeholder="Password"
-                  className={`w-full px-10 py-2 border rounded-md ${
+                  className={`w-full px-10 py-2 border rounded-md text-xs sm:text-base ${
                     passwordError ? "border-red-500" : "border-gray-300"
                   }`}
                   value={password}
