@@ -42,11 +42,12 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showHeader, setShowHeader] = useState(true);
   const lastScrollY = useRef(0);
+  const [isTokenValid, setIsTokenValid] = useState(true);
+
 
   const user = useSelector((state: RootState) => state.auth.user);
-  const token = useSelector((state: RootState) => state.auth.token) as
-    | string
-    | null;
+  const token = useSelector((state: RootState) => state.auth.token) as string | null;
+  const tokenExpiration = useSelector((state: RootState) => state.auth.tokenExpiration);
   const cartState = useSelector((state: RootState) => state.auth.cart) || {
     count: 0,
     price: 0,
@@ -66,6 +67,46 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
   const profileImage = useSelector(
     (state: RootState) => state.auth.user?.image || null,
   );
+
+  useEffect(() => {
+    const publicRoutes = [
+      '/signin',
+      '/signup',
+      '/otp',
+      '/forget-password',
+      '/reset-password',
+      '/error/404',
+      '/error/451',
+      '/unsubscribe',
+      '/',
+    ];
+
+    const checkExpiry = () => {
+      if (!token || !tokenExpiration) {
+        setIsTokenValid(false);
+        return;
+      }
+      const currentTime = Math.floor(Date.now() / 1000);
+      if (currentTime >= tokenExpiration) {
+        setIsTokenValid(false);
+        dispatch(logout());
+        dispatch(clearCart());
+        const isPublicRoute = publicRoutes.some(
+          route => pathname === route || pathname.startsWith(`${route}/`)
+        );
+        if (!isPublicRoute) {
+          router.replace('/signin');
+        }
+      } else {
+        setIsTokenValid(true);
+      }
+    };
+
+    checkExpiry();
+    const interval = setInterval(checkExpiry, 1000);
+
+    return () => clearInterval(interval);
+  }, [token, tokenExpiration, pathname]);
 
   useEffect(() => {
     setLocalSearchInput(searchTerm);
@@ -210,7 +251,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
     (pathname === "/wholesale/home" && homeUrl === "/wholesale/home");
 
   const isAuthenticated = () => {
-    return isHydrated && token;
+    return isHydrated && token && isTokenValid;
   };
 
   const getUserInfo = () => {
