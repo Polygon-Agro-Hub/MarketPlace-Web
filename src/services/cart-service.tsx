@@ -354,6 +354,7 @@ export interface OrderPayload {
   discountAmount: number;
   grandTotal: number;
   orderApp: string;
+  deliveryCharge?: number;
 }
 
 export const submitOrderToBackend = async (
