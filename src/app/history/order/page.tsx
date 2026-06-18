@@ -194,64 +194,127 @@ const filterOptions = [
 export default function OrderHistoryPage() {
   const router = useRouter();
   const token = useSelector((state: RootState) => state.auth.token);
+
   const [orders, setOrders] = useState<OrderSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterLoading, setFilterLoading] = useState(false);
   const [filter, setFilter] = useState("this-week");
   const [selectedOrder, setSelectedOrder] = useState<DetailedOrder | null>(null);
-  const modalContentRef = useRef<HTMLDivElement>(null);
-  const mainRef = useRef<HTMLElement>(null);
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
 
+  // ── Pagination state ──
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const [limit, setLimit] = useState(10);
+
+  const modalContentRef = useRef<HTMLDivElement>(null);
+  const mainRef = useRef<HTMLElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  // ── Detect mobile/desktop and set limit ──
+  useEffect(() => {
+    const update = () => setLimit(window.innerWidth < 640 ? 5 : 10);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
+  // ── Normalize raw API rows → OrderSummary[] ──
+  const normalizeOrders = (orderHistory: any[]): OrderSummary[] =>
+    orderHistory.map((order: any) => ({
+      orderId: order.orderId ? String(order.orderId) : "N/A",
+      invoiceNo: order.invoiceNo ? String(order.invoiceNo) : "N/A",
+      scheduleDate: order.scheduleDate
+        ? formatDateTime(order.scheduleDate, "date")
+        : "N/A",
+      scheduleTime: order.scheduleTime || "N/A",
+      deliveryType: order.delivaryMethod || "N/A",
+      total: formatCurrency(order.fullTotal || "0"),
+      orderPlaced: order.createdAt
+        ? formatDateTime(order.createdAt, "date")
+        : "N/A",
+      status: order.processStatus || "Pending",
+      createdAt: new Date(order.createdAt || order.scheduleDate),
+    }));
+
+  // ── Reset + initial fetch whenever filter or limit changes ──
   useEffect(() => {
     if (!token) {
       setLoading(false);
       return;
     }
 
-    const fetchOrders = async () => {
+    const fetchInitial = async () => {
       try {
         setLoading(true);
-        const data = await getOrderHistory(token, filter);
+        setOrders([]);
+        setPage(1);
+        setHasMore(false);
+
+        const data = await getOrderHistory(token, filter, 1, limit);
         const orderHistory = data.orderHistory || [];
+
         if (!Array.isArray(orderHistory)) {
           setOrders([]);
           return;
         }
 
-        const normalizedOrders: OrderSummary[] = orderHistory.map(
-          (order: any) => ({
-            orderId: order.orderId ? String(order.orderId) : "N/A",
-            invoiceNo: order.invoiceNo ? String(order.invoiceNo) : "N/A",
-            scheduleDate: order.scheduleDate
-              ? formatDateTime(order.scheduleDate, "date")
-              : "N/A",
-            scheduleTime: order.scheduleTime || "N/A",
-            deliveryType: order.delivaryMethod || "N/A",
-            total: formatCurrency(order.fullTotal || "0"),
-            orderPlaced: order.createdAt
-              ? formatDateTime(order.createdAt, "date")
-              : "N/A",
-            status: order.processStatus || "Pending",
-            createdAt: new Date(order.createdAt || order.scheduleDate),
-          }),
-        );
-
-        setOrders(normalizedOrders);
-      } catch (err) {
+        setOrders(normalizeOrders(orderHistory));
+        setHasMore(data.pagination?.hasMore ?? false);
+        setPage(2);
+      } catch {
         setOrders([]);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchOrders();
-  }, [token, filter]);
+    fetchInitial();
+  }, [token, filter, limit]);
 
+  // ── Load next page ──
+  const loadMore = async () => {
+    if (!token || isFetchingMore || !hasMore) return;
+    try {
+      setIsFetchingMore(true);
+      const data = await getOrderHistory(token, filter, page, limit);
+      const orderHistory = data.orderHistory || [];
+
+      if (Array.isArray(orderHistory)) {
+        setOrders((prev) => [...prev, ...normalizeOrders(orderHistory)]);
+        setHasMore(data.pagination?.hasMore ?? false);
+        setPage((p) => p + 1);
+      }
+    } catch {
+      // silently ignore
+    } finally {
+      setIsFetchingMore(false);
+    }
+  };
+
+  // ── IntersectionObserver: trigger loadMore when sentinel is visible ──
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !isFetchingMore) {
+          loadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, isFetchingMore, page]);
+
+  // ── Modal height adjustment ──
   useEffect(() => {
     if (selectedOrder && modalContentRef.current && mainRef.current) {
-      const modalHeight = modalContentRef.current.scrollHeight;
-      mainRef.current.style.minHeight = `${modalHeight}px`;
+      mainRef.current.style.minHeight = `${modalContentRef.current.scrollHeight}px`;
       mainRef.current.style.overflowY = "auto";
     } else if (mainRef.current) {
       mainRef.current.style.minHeight = "";
@@ -259,6 +322,7 @@ export default function OrderHistoryPage() {
     }
   }, [selectedOrder]);
 
+  // ── Fetch detailed order for modal ──
   const fetchDetailedOrder = async (orderId: string) => {
     if (!token) return;
     try {
@@ -295,119 +359,90 @@ export default function OrderHistoryPage() {
           phone2: apiOrder.phone2 || "",
           pickupInfo:
             apiOrder.delivaryMethod?.toLowerCase() === "pickup" &&
-              apiOrder.pickupInfo
+            apiOrder.pickupInfo
               ? {
-                centerName: apiOrder.pickupInfo.centerName || "N/A",
-                contact01: apiOrder.pickupInfo.contact01 || "N/A",
-                fullName: apiOrder.pickupInfo.fullName || "N/A",
-                buildingNumber: apiOrder.pickupInfo.address?.street || "N/A",
-                street: apiOrder.pickupInfo.address?.street || "N/A",
-                city: apiOrder.pickupInfo.address?.city || "N/A",
-                district: apiOrder.pickupInfo.address?.district || "N/A",
-                province: apiOrder.pickupInfo.address?.province || "N/A",
-                country: apiOrder.pickupInfo.address?.country || "N/A",
-                zipCode: apiOrder.pickupInfo.address?.zipCode || "N/A",
-                title: apiOrder.pickupInfo.title?.title || "N/A",
-              }
+                  centerName: apiOrder.pickupInfo.centerName || "N/A",
+                  contact01: apiOrder.pickupInfo.contact01 || "N/A",
+                  fullName: apiOrder.pickupInfo.fullName || "N/A",
+                  buildingNumber:
+                    apiOrder.pickupInfo.address?.street || "N/A",
+                  street: apiOrder.pickupInfo.address?.street || "N/A",
+                  city: apiOrder.pickupInfo.address?.city || "N/A",
+                  district: apiOrder.pickupInfo.address?.district || "N/A",
+                  province: apiOrder.pickupInfo.address?.province || "N/A",
+                  country: apiOrder.pickupInfo.address?.country || "N/A",
+                  zipCode: apiOrder.pickupInfo.address?.zipCode || "N/A",
+                  title: apiOrder.pickupInfo.title?.title || "N/A",
+                }
               : undefined,
           deliveryInfo:
             apiOrder.delivaryMethod?.toLowerCase() === "delivery" &&
-              apiOrder.deliveryInfo
+            apiOrder.deliveryInfo
               ? {
-                buildingType: apiOrder.deliveryInfo.buildingType || "N/A",
-                houseNo: apiOrder.deliveryInfo.houseNo || "N/A",
-                street:
-                  apiOrder.deliveryInfo.streetName ||
-                  apiOrder.deliveryInfo.street ||
-                  "N/A",
-                city: apiOrder.deliveryInfo.city || "N/A",
-                buildingNo: apiOrder.deliveryInfo.buildingNo || "N/A",
-                buildingName: apiOrder.deliveryInfo.buildingName || "N/A",
-                flatNo: apiOrder.deliveryInfo.flatNo || "N/A",
-                floorNo: apiOrder.deliveryInfo.floorNo || "N/A",
-              }
+                  buildingType: apiOrder.deliveryInfo.buildingType || "N/A",
+                  houseNo: apiOrder.deliveryInfo.houseNo || "N/A",
+                  street:
+                    apiOrder.deliveryInfo.streetName ||
+                    apiOrder.deliveryInfo.street ||
+                    "N/A",
+                  city: apiOrder.deliveryInfo.city || "N/A",
+                  buildingNo: apiOrder.deliveryInfo.buildingNo || "N/A",
+                  buildingName: apiOrder.deliveryInfo.buildingName || "N/A",
+                  flatNo: apiOrder.deliveryInfo.flatNo || "N/A",
+                  floorNo: apiOrder.deliveryInfo.floorNo || "N/A",
+                }
               : undefined,
           familyPackItems:
             packagesData.status && packagesData.data
               ? packagesData.data.map((pack: any, index: number) => ({
-                packageId: `${pack.packageId}_${index}`,
-                name: pack.displayName || "Family Pack",
-                items:
-                  pack.products?.map((item: any) => ({
-                    id: item.id || 0,
-                    name: item.typeName || "Unknown",
-                    weight: item.weight || "1 kg",
-                    price: formatCurrency(parseFloat(item.price || "0"), 2),
-                    quantity: String(item.qty || 1),
-                  })) || [],
-                totalPrice: formatCurrency(pack.productPrice || 0, 2),
-              }))
+                  packageId: `${pack.packageId}_${index}`,
+                  name: pack.displayName || "Family Pack",
+                  items:
+                    pack.products?.map((item: any) => ({
+                      id: item.id || 0,
+                      name: item.typeName || "Unknown",
+                      weight: item.weight || "1 kg",
+                      price: formatCurrency(
+                        parseFloat(item.price || "0"),
+                        2
+                      ),
+                      quantity: String(item.qty || 1),
+                    })) || [],
+                  totalPrice: formatCurrency(pack.productPrice || 0, 2),
+                }))
               : [],
           additionalItems:
             additionalItemsData.status && additionalItemsData.data
               ? additionalItemsData.data.map((item: any) => ({
-                id: item.id || 0,
-                name: item.displayName || "Unknown",
-                quantity: String(item.qty || 1),
-                unit: item.unit || "kg",
-                weight: `${item.qty || "1"} ${item.unit || "kg"}`,
-                price: formatCurrency(parseFloat(item.price || "0"), 2),
-                image: item.image || undefined,
-                amount: formatCurrency(parseFloat(item.price || "0"), 2),
-              }))
+                  id: item.id || 0,
+                  name: item.displayName || "Unknown",
+                  quantity: String(item.qty || 1),
+                  unit: item.unit || "kg",
+                  weight: `${item.qty || "1"} ${item.unit || "kg"}`,
+                  price: formatCurrency(parseFloat(item.price || "0"), 2),
+                  image: item.image || undefined,
+                  amount: formatCurrency(parseFloat(item.price || "0"), 2),
+                }))
               : [],
           discount: formatCurrency(
-            totalDiscount > 0 ? ` ${totalDiscount.toFixed(2)}` : " 0.00",
+            totalDiscount > 0
+              ? ` ${totalDiscount.toFixed(2)}`
+              : " 0.00"
           ),
         };
+
         setSelectedOrder(detailedOrder);
       }
-    } catch (err) {
+    } catch {
       setSelectedOrder(null);
     } finally {
       setIsFetchingDetails(false);
     }
   };
 
-  // const filteredOrders =
-  //   filter === "all"
-  //     ? orders
-  //     : orders.filter((order) => {
-  //         const now = new Date();
-  //         const orderDate = order.createdAt;
-
-  //         if (filter === "this-week") {
-  //           const startOfThisWeek = new Date(now);
-  //           startOfThisWeek.setDate(now.getDate() - now.getDay());
-  //           startOfThisWeek.setHours(0, 0, 0, 0);
-  //           return orderDate >= startOfThisWeek && orderDate <= now;
-  //         } else if (filter === "last-week") {
-  //           const startOfThisWeek = new Date(now);
-  //           startOfThisWeek.setDate(now.getDate() - now.getDay());
-  //           startOfThisWeek.setHours(0, 0, 0, 0);
-  //           const startOfLastWeek = new Date(startOfThisWeek);
-  //           startOfLastWeek.setDate(startOfThisWeek.getDate() - 7);
-  //           return orderDate >= startOfLastWeek && orderDate < startOfThisWeek;
-  //         } else if (filter === "last-2-weeks") {
-  //           const startOfThisWeek = new Date(now);
-  //           startOfThisWeek.setDate(now.getDate() - now.getDay());
-  //           startOfThisWeek.setHours(0, 0, 0, 0);
-  //           const startOfLast2Weeks = new Date(startOfThisWeek);
-  //           startOfLast2Weeks.setDate(startOfThisWeek.getDate() - 14);
-  //           return orderDate >= startOfLast2Weeks && orderDate < startOfThisWeek;
-  //         } else if (filter === "this-month") {
-  //           const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1);
-  //           return orderDate >= oneMonthAgo;
-  //         } else if (filter === "last-3-months") {
-  //           const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3);
-  //           return orderDate >= threeMonthsAgo;
-  //         }
-  //         return true;
-  //       });
-
   const handleFilterChange = (
     newValue: SingleValue<{ value: string; label: string }>,
-    actionMeta: ActionMeta<{ value: string; label: string }>,
+    actionMeta: ActionMeta<{ value: string; label: string }>
   ): void => {
     if (newValue) {
       setFilterLoading(true);
@@ -436,7 +471,9 @@ export default function OrderHistoryPage() {
                 <Select
                   instanceId="order-history-filter"
                   options={filterOptions}
-                  value={filterOptions.find((option) => option.value === filter)}
+                  value={filterOptions.find(
+                    (option) => option.value === filter
+                  )}
                   onChange={handleFilterChange}
                   isSearchable={false}
                   className="text-xs lg:text-sm"
@@ -461,7 +498,9 @@ export default function OrderHistoryPage() {
                     option: (base, { isFocused }) => ({
                       ...base,
                       cursor: "pointer",
-                      backgroundColor: isFocused ? "rgb(243,244,246)" : "white",
+                      backgroundColor: isFocused
+                        ? "rgb(243,244,246)"
+                        : "white",
                       color: "rgb(31,41,55)",
                       textAlign: "center",
                       padding: "8px 12px",
@@ -510,7 +549,9 @@ export default function OrderHistoryPage() {
                     {/* ── DESKTOP TOP ROW ── */}
                     <div className="hidden sm:grid grid-cols-5 gap-4 p-4 bg-[rgb(248,248,248)] text-xs lg:text-sm">
                       <div>
-                        <span className="text-[rgb(107,114,128)]">Scheduled Date:</span>
+                        <span className="text-[rgb(107,114,128)]">
+                          Scheduled Date:
+                        </span>
                         <p className="font-medium">{order.scheduleDate}</p>
                       </div>
                       <div>
@@ -518,7 +559,9 @@ export default function OrderHistoryPage() {
                         <p className="font-medium">{order.total}</p>
                       </div>
                       <div>
-                        <span className="text-[rgb(107,114,128)]">Order ID:</span>
+                        <span className="text-[rgb(107,114,128)]">
+                          Order ID:
+                        </span>
                         <p className="font-medium">#{order.invoiceNo}</p>
                       </div>
                       <div />
@@ -532,7 +575,9 @@ export default function OrderHistoryPage() {
                         </button>
                         <button
                           onClick={() =>
-                            router.push(`/history/invoice?orderId=${order.orderId}`)
+                            router.push(
+                              `/history/invoice?orderId=${order.orderId}`
+                            )
                           }
                           className="bg-[rgb(255,255,255)] border text-xs lg:text-sm cursor-pointer border-[rgb(209,213,219)] rounded-lg px-4 py-1.5 hover:bg-[rgb(62,32,109)] hover:text-[rgb(255,255,255)]"
                           disabled={isFetchingDetails}
@@ -553,7 +598,9 @@ export default function OrderHistoryPage() {
                         </p>
                       </div>
                       <div>
-                        <span className="text-[rgb(107,114,128)] text-xs">Total :</span>
+                        <span className="text-[rgb(107,114,128)] text-xs">
+                          Total :
+                        </span>
                         <p className="font-semibold text-[rgb(31,41,55)] mt-0.5">
                           {order.total}
                         </p>
@@ -576,7 +623,9 @@ export default function OrderHistoryPage() {
                         </button>
                         <button
                           onClick={() =>
-                            router.push(`/history/invoice?orderId=${order.orderId}`)
+                            router.push(
+                              `/history/invoice?orderId=${order.orderId}`
+                            )
                           }
                           className="w-full bg-[rgb(255,255,255)] border text-sm cursor-pointer border-[rgb(209,213,219)] rounded-lg px-4 py-2.5 hover:bg-[rgb(62,32,109)] hover:text-[rgb(255,255,255)] transition-colors"
                           disabled={isFetchingDetails}
@@ -598,7 +647,7 @@ export default function OrderHistoryPage() {
                         <p>
                           <span
                             className={`inline-flex justify-center items-center font-medium px-3 py-0.5 rounded-full text-xs min-w-[100px] ${getStatusClass(
-                              order.status,
+                              order.status
                             )}`}
                           >
                             {order.status}
@@ -606,27 +655,41 @@ export default function OrderHistoryPage() {
                         </p>
                       </div>
                       <div>
-                        <span className="text-[rgb(107,114,128)]">Order Placed:</span>
-                        <p className="text-[rgb(0,0,0)]">{order.orderPlaced}</p>
+                        <span className="text-[rgb(107,114,128)]">
+                          Order Placed:
+                        </span>
+                        <p className="text-[rgb(0,0,0)]">
+                          {order.orderPlaced}
+                        </p>
                       </div>
                       <div>
-                        <span className="text-[rgb(107,114,128)]">Scheduled Time:</span>
-                        <p className="text-[rgb(0,0,0)]">{order.scheduleTime}</p>
+                        <span className="text-[rgb(107,114,128)]">
+                          Scheduled Time:
+                        </span>
+                        <p className="text-[rgb(0,0,0)]">
+                          {order.scheduleTime}
+                        </p>
                       </div>
                       <div>
-                        <span className="text-[rgb(107,114,128)]">Delivery / Pickup:</span>
-                        <p className="text-[rgb(0,0,0)]">{order.deliveryType}</p>
+                        <span className="text-[rgb(107,114,128)]">
+                          Delivery / Pickup:
+                        </span>
+                        <p className="text-[rgb(0,0,0)]">
+                          {order.deliveryType}
+                        </p>
                       </div>
                     </div>
 
                     {/* ── MOBILE BOTTOM CARD ── */}
                     <div className="sm:hidden p-5 bg-[rgb(255,255,255)] space-y-4 text-sm">
                       <div>
-                        <span className="text-[rgb(107,114,128)] text-xs">Status :</span>
+                        <span className="text-[rgb(107,114,128)] text-xs">
+                          Status :
+                        </span>
                         <div className="mt-1">
                           <span
                             className={`inline-flex justify-center items-center font-medium px-4 py-1 rounded-full text-xs ${getStatusClass(
-                              order.status,
+                              order.status
                             )}`}
                           >
                             {order.status}
@@ -660,11 +723,30 @@ export default function OrderHistoryPage() {
                     </div>
                   </div>
                 ))}
+
+                {/* ── Sentinel div: IntersectionObserver watches this ── */}
+                <div ref={sentinelRef} className="h-4" />
+
+                {/* ── Spinner while loading more ── */}
+                {isFetchingMore && (
+                  <div className="flex justify-center py-4">
+                    <Loader isVisible={true} />
+                  </div>
+                )}
+
+                {/* ── End of list message ── */}
+                {!hasMore && orders.length > 0 && !loading && (
+                  <p className="text-center text-sm text-[rgb(156,163,175)] py-4 italic">
+                    — You've reached the end —
+                  </p>
+                )}
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-[70vh] text-center text-[rgb(75,85,99)] -mt-32">
                 <Image src={cart} alt="No Orders" width={200} height={200} />
-                <p className="mt-4 text-sm italic">--No orders available here--</p>
+                <p className="mt-4 text-sm italic">
+                  --No orders available here--
+                </p>
               </div>
             )}
           </>
