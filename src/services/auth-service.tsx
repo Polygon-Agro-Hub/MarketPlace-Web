@@ -225,6 +225,14 @@ export interface Category {
   categoryEnglish: string;
 }
 
+export interface CityResult {
+  id: number;
+  city: string;
+  district: string;
+  province: string;
+  isAvailable: boolean;
+}
+
 export const login = async (payload: LoginPayload): Promise<LoginResponse> => {
   try {
     const response = await axios.post("/auth/login", payload, {
@@ -1237,35 +1245,131 @@ export const getCartInfo = async (token: string | null): Promise<any> => {
   }
 };
 
-export const fetchCities = async (token: string | null): Promise<string[]> => {
-  if (!token) {
-    throw new Error("Authentication required");
-  }
-
+export const getAllCities = async (): Promise<CityResult[]> => {
   try {
-    const response = await axios.get("/auth/get-cities", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
+    const response = await axios.get("/auth/cities", {
+      headers: { "Content-Type": "application/json" },
     });
-
+ 
     if (response.status >= 200 && response.status < 300) {
-      return response.data.data; // assuming response.data = { status: true, data: [...] }
+      const resData = response.data;
+      if (resData.status && Array.isArray(resData.data)) {
+        return resData.data.map((city: any) => ({
+          id: city.id,
+          city: city.city,
+          district: city.district || "",
+          province: city.province || "",
+          isAvailable: city.isAvailable === 1 || city.isAvailable === true,
+        }));
+      }
+      return [];
     }
-
+ 
     throw new Error(response.data?.message || "Failed to fetch cities");
   } catch (error: any) {
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
           error.response.data?.error ||
-          "Failed to fetch cities",
+          `Fetching cities failed with status ${error.response.status}`,
       );
     } else if (error.request) {
-      throw new Error("No response from server. Please try again.");
+      throw new Error(
+        "No response received from server. Please check your network connection.",
+      );
     } else {
       throw new Error(error.message || "Failed to fetch cities");
     }
   }
 };
+ 
+
+export const searchCities = async (query: string): Promise<CityResult[]> => {
+  if (!query || query.trim().length === 0) return [];
+ 
+  try {
+    const response = await axios.get("/auth/search", {
+      params: { q: query.trim() },
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+ 
+    if (response.status >= 200 && response.status < 300) {
+      const resData = response.data;
+      if (resData.status && Array.isArray(resData.data)) {
+        return resData.data.map((city: any) => ({
+          id: city.id,
+          city: city.city,
+          district: city.district || "",
+          province: city.province || "",
+          isAvailable: city.isAvailable === 1 || city.isAvailable === true,
+        }));
+      }
+      return [];
+    }
+ 
+    throw new Error(response.data?.message || "Failed to search cities");
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(
+        error.response.data?.message ||
+          error.response.data?.error ||
+          `City search failed with status ${error.response.status}`,
+      );
+    } else if (error.request) {
+      throw new Error(
+        "No response received from server. Please check your network connection.",
+      );
+    } else {
+      throw new Error(error.message || "Failed to search cities");
+    }
+  }
+};
+ 
+
+export const checkCityAvailability = async (
+  cityId: number,
+): Promise<CityResult | null> => {
+  try {
+    const response = await axios.get(`/auth/${cityId}/availability`, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+ 
+    if (response.status >= 200 && response.status < 300) {
+      const resData = response.data;
+      if (resData.status && resData.data) {
+        return {
+          id: resData.data.id,
+          city: resData.data.city,
+          district: resData.data.district || "",
+          province: resData.data.province || "",
+          isAvailable: resData.data.isAvailable === true,
+        };
+      }
+      return null;
+    }
+ 
+    throw new Error(
+      response.data?.message || "Failed to check city availability",
+    );
+  } catch (error: any) {
+    if (error.response) {
+      if (error.response.status === 404) return null;
+      throw new Error(
+        error.response.data?.message ||
+          error.response.data?.error ||
+          `City availability check failed with status ${error.response.status}`,
+      );
+    } else if (error.request) {
+      throw new Error(
+        "No response received from server. Please check your network connection.",
+      );
+    } else {
+      throw new Error(error.message || "Failed to check city availability");
+    }
+  }
+};
+ 
