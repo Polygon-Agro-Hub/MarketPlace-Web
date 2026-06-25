@@ -1372,4 +1372,37 @@ export const checkCityAvailability = async (
     }
   }
 };
+
+export const fetchCities = async (token: string | null): Promise<string[]> => {
+  if (!token) {
+    throw new Error("Authentication required");
+  }
+
+  try {
+    const response = await axios.get("/auth/get-cities", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (response.status >= 200 && response.status < 300) {
+      return response.data.data; // assuming response.data = { status: true, data: [...] }
+    }
+
+    throw new Error(response.data?.message || "Failed to fetch cities");
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(
+        error.response.data?.message ||
+          error.response.data?.error ||
+          "Failed to fetch cities",
+      );
+    } else if (error.request) {
+      throw new Error("No response from server. Please try again.");
+    } else {
+      throw new Error(error.message || "Failed to fetch cities");
+    }
+  }
+};
  
