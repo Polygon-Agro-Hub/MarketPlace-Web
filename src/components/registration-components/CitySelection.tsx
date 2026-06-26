@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { searchCities, getAllCities, CityResult } from "@/services/auth-service";
 import glogo from "../../../public/glogo.png";
-import LoginImg from "../../../public/newbg.png";
+import LoginImg from "../../../public/citypng.png";
 
 type CityStatus = "idle" | "not-found" | "available" | "unavailable";
 
@@ -196,14 +196,13 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
                             </div>
 
                             {/* Input row */}
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2" style={{ border: "1px solid #B8C2D5", borderRadius: "6px", padding: "0 8px" }}>
                                 <input
                                     ref={inputRef}
                                     type="text"
                                     value={searchTerm}
                                     onChange={(e) => handleSearch(e.target.value)}
                                     onFocus={() => {
-                                        // Re-open if there's something to show
                                         if (!isDropdownOpen && (results.length > 0 || allCities.length > 0)) {
                                             setResults(searchTerm.trim() ? results : allCities);
                                             setIsDropdownOpen(true);
@@ -365,22 +364,6 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
                     <div className="hidden lg:block lg:w-1/2 bg-[#EEE9F5] relative overflow-hidden">
                         <div className="absolute inset-0 flex items-center justify-center">
                             <Image src={LoginImg} alt="GoViMart Fresh Delivery" fill className="object-cover" priority />
-                        </div>
-                        <div className="absolute bottom-8 left-0 right-0 px-8">
-                            <div className="bg-white/90 backdrop-blur-sm rounded-2xl px-6 py-4 flex justify-between shadow-lg">
-                                <div>
-                                    <p className="text-sm font-bold text-[#3E206D]">Fast Delivery</p>
-                                    <p className="text-xs text-gray-500 mt-0.5">On-time and everytime</p>
-                                </div>
-                                <div>
-                                    <p className="text-sm font-bold text-[#2E7D32]">Farm Fresh</p>
-                                    <p className="text-xs text-gray-500 mt-0.5">Get our fresh vegetables & fruits</p>
-                                </div>
-                                <div>
-                                    <p className="text-sm font-bold text-[#E65100]">Safe & Secure</p>
-                                    <p className="text-xs text-gray-500 mt-0.5">Hygienic packing you can trust</p>
-                                </div>
-                            </div>
                         </div>
                     </div>
 
