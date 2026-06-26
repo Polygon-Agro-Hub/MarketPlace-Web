@@ -36,12 +36,14 @@ const Toggle = ({
   on,
   color,
   disabled,
+  legendOnly,
   onClick,
   ariaLabel,
 }: {
   on: boolean;
   color: "green" | "red";
   disabled?: boolean;
+  legendOnly?: boolean;
   onClick?: () => void;
   ariaLabel?: string;
 }) => {
@@ -49,11 +51,11 @@ const Toggle = ({
   return (
     <button
       onClick={onClick}
-      disabled={disabled}
+      disabled={disabled || legendOnly}
       aria-label={ariaLabel}
       className={`w-11 h-6 rounded-full transition-colors duration-200 flex items-center flex-shrink-0
         ${on ? `${bgOn} justify-end pr-[3px]` : "bg-[#D1D5DB] justify-start pl-[3px]"}
-        ${disabled ? "cursor-not-allowed" : "cursor-pointer"}
+        ${legendOnly ? "cursor-not-allowed" : disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}
       `}
     >
       <span className="w-[18px] h-[18px] rounded-full bg-white shadow-sm" />
@@ -144,7 +146,7 @@ const UpdatePreferences = () => {
     fetchItems();
   }, [authToken]);
 
-  // Toggles 
+  // Toggles
   const handleIncludeToggle = (displayName: string) => {
     setItems((prev) =>
       prev.map((item) => {
@@ -248,7 +250,7 @@ const UpdatePreferences = () => {
     items.some((i) => i.includeToggle !== i.includeOriginal) ||
     items.some((i) => i.excludeToggle !== i.excludeOriginal);
 
-  // Render 
+  // Render
   return (
     <div className="relative z-10 px-4 sm:px-6 md:px-8 min-h-screen bg-white py-6">
       <SuccessPopup
@@ -460,19 +462,19 @@ const UpdatePreferences = () => {
               <div className="p-4 flex-1 min-w-[150px]">
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center gap-3">
-                    <Toggle on={true} color="green" disabled />
+                    <Toggle on={true} color="green" legendOnly />
                     <span className="text-[12px] text-[#8A899E]">
                       Preferred to Include
                     </span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <Toggle on={true} color="red" disabled />
+                    <Toggle on={true} color="red" legendOnly />
                     <span className="text-[12px] text-[#8A899E]">
                       Preferred to Exclude
                     </span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <Toggle on={false} color="green" disabled />
+                    <Toggle on={false} color="green" legendOnly />
                     <span className="text-[12px] text-[#8A899E]">
                       No Preference
                     </span>
@@ -497,7 +499,7 @@ const UpdatePreferences = () => {
               <button
                 onClick={handleSave}
                 disabled={!hasChanges || saving}
-                className={`w-2xl p-2.5 rounded-full mt-6 font-semibold text-sm text-white transition-opacity
+                className={`w-2xl p-2.5 rounded-lg mt-6 font-semibold text-sm text-white transition-opacity
                   ${
                     hasChanges && !saving
                       ? "bg-[#3E206D] cursor-pointer"
