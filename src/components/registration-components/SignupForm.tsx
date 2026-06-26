@@ -428,13 +428,15 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
                 formData.phoneCode,
             );
 
-            // If verification passes, proceed with OTP sending
             const res = await sendOTPInSignup(
                 formData.phoneNumber,
                 formData.phoneCode,
+                { email: formData.email },
             );
             setSuccess(
-                `OTP code has been sent to ${formData.phoneCode}${formData.phoneNumber}`,
+                formData.phoneCode !== '+94'
+                    ? `Verification code has been sent to ${formData.email}`
+                    : `OTP code has been sent to ${formData.phoneCode}${formData.phoneNumber}`,
             );
             setShowSuccessPopup(true);
 
@@ -537,7 +539,12 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
         return (
             <OTPComponent
                 phoneNumber={fullPhoneNumber}
+                phoneCode={formData.phoneCode}
+                email={formData.email}
                 referenceId={otpReferenceId}
+                mode={formData.phoneCode !== '+94' ? 'email' : 'phone'}
+                contactValue={formData.phoneCode !== '+94' ? formData.email : fullPhoneNumber}
+                initialTimer={formData.phoneCode !== '+94' ? 240 : 60}
                 onVerificationSuccess={handleOTPVerificationSuccess}
                 onVerificationFailure={handleOTPVerificationFailure}
                 onResendOTP={handleOTPResend}

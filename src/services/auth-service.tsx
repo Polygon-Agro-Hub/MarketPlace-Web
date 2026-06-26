@@ -233,6 +233,8 @@ export interface CityResult {
   isAvailable: boolean;
 }
 
+const emailOtpReferenceIds = new Set<string>();
+
 export const login = async (payload: LoginPayload): Promise<LoginResponse> => {
   try {
     const response = await axios.post("/auth/login", payload, {
@@ -505,72 +507,189 @@ export const sendOTPInSignup = async (
   phoneNumber: string,
   countryCode: string,
   options?: {
-    checkPhoneExists?: boolean;
     message?: string;
     source?: string;
+    email?: string;
   },
 ): Promise<OTPServiceResponse> => {
-  try {
-    const formattedPhone = phoneNumber.replace(/\s+/g, "");
-    const fullPhoneNumber = `${countryCode}${formattedPhone}`;
 
-    // Default options
+  console.log('🚀 sendOTPInSignup called');
+  console.log('📞 phoneNumber:', phoneNumber);
+  console.log('🌍 countryCode:', countryCode);
+  console.log('⚙️ options:', options);
+  console.log('🔀 routing to:', countryCode !== '+94' ? 'EMAIL (backend)' : 'SMS (ShoutOut)');
+
+  // ── Non-+94: send OTP via backend email ───────────────────────────────────
+  if (countryCode !== '+94') {
+    console.log('📧 Entering EMAIL OTP path');
+    const emailTarget = options?.email;
+    console.log('📧 emailTarget:', emailTarget);
+
+    if (!emailTarget) {
+      console.error('❌ No email provided for international number');
+      throw new Error(
+        'Email address is required to send OTP for international numbers.',
+      );
+    }
+
+    try {
+      console.log('📤 Calling /auth/send-otp-email with:', {
+        email: emailTarget,
+        phoneNumber: phoneNumber.replace(/\s+/g, ''),
+        phoneCode: countryCode,
+      });
+
+      const response = await axios.post('/auth/send-otp-email', {
+        email: emailTarget,
+        phoneNumber: phoneNumber.replace(/\s+/g, ''),
+        phoneCode: countryCode,
+      });
+
+      console.log('✅ /auth/send-otp-email response:', response.data);
+      const resData = response.data;
+
+      if (resData.status && resData.referenceId) {
+        console.log('✅ Email OTP sent. referenceId:', resData.referenceId);
+        emailOtpReferenceIds.add(resData.referenceId);
+        console.log('📝 emailOtpReferenceIds set:', [...emailOtpReferenceIds]);
+        return { referenceId: resData.referenceId };
+      }
+
+      console.error('❌ send-otp-email returned bad response:', resData);
+      throw new Error(resData.message || 'Failed to send OTP email.');
+    } catch (error: any) {
+      console.error('❌ Email OTP error:', error);
+      console.error('❌ Error response:', error.response?.data);
+      if (error.response) {
+        throw new Error(
+          error.response.data?.message ||
+            `Failed to send OTP email (${error.response.status})`,
+        );
+      }
+      throw new Error(error.message || 'Failed to send OTP email');
+    }
+  }
+
+  // ── +94 only: ShoutOut SMS ─────────────────────────────────────────────────
+  console.log('📱 Entering SMS OTP path (ShoutOut)');
+  try {
+    const formattedPhone = phoneNumber.replace(/\s+/g, '');
+    const fullPhoneNumber = `${countryCode}${formattedPhone}`;
+    console.log('📱 fullPhoneNumber for ShoutOut:', fullPhoneNumber);
+
     const {
       message = `Your OTP for verification is: {{code}}`,
-      source = "PolygonAgro",
+      source = 'PolygonAgro',
     } = options || {};
 
-    // Step 2: Send OTP
-    const apiUrl = "https://api.getshoutout.com/otpservice/send";
+    const apiUrl = 'https://api.getshoutout.com/otpservice/send';
     const headers = {
       Authorization: `Apikey ${environment.SHOUTOUT_API_KEY}`,
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     };
-
     const body = {
       source,
-      transport: "sms",
-      content: {
-        sms: message,
-      },
+      transport: 'sms',
+      content: { sms: message },
       destination: fullPhoneNumber,
     };
 
+    console.log('📤 Calling ShoutOut with body:', body);
     const response = await axios.post(apiUrl, body, { headers });
+    console.log('✅ ShoutOut response:', response.data);
 
     if (response.data.referenceId) {
+      console.log('✅ SMS OTP sent. referenceId:', response.data.referenceId);
       return { referenceId: response.data.referenceId };
     }
-
-    throw new Error("Failed to send OTP: No reference ID received");
+    throw new Error('Failed to send OTP: No reference ID received');
   } catch (error: any) {
-    console.error("Error sending OTP:", error);
+    console.error('❌ ShoutOut SMS error:', error);
+    console.error('❌ ShoutOut error response:', error.response?.data);
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
           `Failed to send OTP (${error.response.status})`,
       );
     }
-    throw new Error(error.message || "Failed to send OTP");
+    throw new Error(error.message || 'Failed to send SMS OTP');
   }
 };
 
+
+
 export const verifyOTP = async (code: string, referenceId: string) => {
+  console.log('🔍 verifyOTP called');
+  console.log('🔑 code:', code);
+  console.log('🆔 referenceId:', referenceId);
+  console.log('📝 emailOtpReferenceIds set:', [...emailOtpReferenceIds]);
+
+  // ── Email OTP path (in-memory Set) ────────────────────────────────────────
+  if (emailOtpReferenceIds.has(referenceId)) {
+    console.log('🔀 routing to: EMAIL verify (from Set)');
+    try {
+      const response = await axios.post('/auth/verify-otp-email', {
+        code,
+        referenceId,
+      });
+      console.log('✅ verify-otp-email response:', response.data);
+      emailOtpReferenceIds.delete(referenceId);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Email OTP verification error:', error);
+      throw error;
+    }
+  }
+
+  // ── Set was lost (hot reload etc.) — try email verify first ───────────────
+  // If backend finds the referenceId it returns 1000/1001/1002
+  // If not found at all it returns 1001 with "Invalid OTP" — then we try ShoutOut
+  console.log('🔍 Set miss — trying email verify first as fallback...');
   try {
-    const url = "https://api.getshoutout.com/otpservice/verify";
+    const emailResponse = await axios.post('/auth/verify-otp-email', {
+      code,
+      referenceId,
+    });
+    console.log('🔍 verify-otp-email fallback response:', emailResponse.data);
+
+    // If backend recognised the referenceId (found it in DB), use its response
+    // statusCode 1002 = expired, 1000 = success — both mean it was an email OTP
+    // statusCode 1001 could mean wrong code OR not found — check message
+    if (
+      emailResponse.data.statusCode === '1000' ||
+      emailResponse.data.statusCode === '1002' ||
+      emailResponse.data.message !== 'Invalid OTP.'
+    ) {
+      console.log('🔀 confirmed EMAIL OTP — returning backend response');
+      return emailResponse.data;
+    }
+
+    // statusCode 1001 + message "Invalid OTP." = referenceId not in DB = SMS OTP
+    console.log('🔀 not an email OTP — falling through to ShoutOut');
+  } catch (error) {
+    console.warn('⚠️ email verify fallback failed, trying ShoutOut:', error);
+  }
+
+  // ── ShoutOut SMS path ─────────────────────────────────────────────────────
+  console.log('🔀 routing to: SMS verify (ShoutOut)');
+  try {
+    const url = 'https://api.getshoutout.com/otpservice/verify';
     const headers = {
       Authorization: `Apikey ${environment.SHOUTOUT_API_KEY}`,
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     };
     const body = { code, referenceId };
+    console.log('📤 Calling ShoutOut verify with:', body);
 
     const response = await axios.post(url, body, { headers });
+    console.log('✅ ShoutOut verify response:', response.data);
     return response.data;
   } catch (error) {
-    console.error("OTP verification error:", error);
+    console.error('❌ ShoutOut verify error:', error);
     throw error;
   }
 };
+
 
 export const resetPasswordByPhone = async (
   phoneNumber: string,
