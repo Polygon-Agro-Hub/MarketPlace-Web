@@ -49,6 +49,7 @@ interface CartSummary {
   packageTotal: number;
   productTotal: number;
   couponDiscount: number;
+  savedAmount?: number;   // add this
   grandTotal?: number;
   totalDiscount?: number;
   finalTotal?: number;
