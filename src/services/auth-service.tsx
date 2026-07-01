@@ -119,6 +119,8 @@ interface ApiProfile {
 }
 
 export interface BillingAddress {
+  id?: number;
+  saveAs?: string;
   houseNo?: string;
   buildingNo?: string;
   buildingName?: string;
@@ -138,6 +140,7 @@ export interface BillingAddress {
 }
 
 export interface BillingDetails {
+  id?: number;
   billingName: string | undefined;
   billingTitle: string; // Required
   title: string;
@@ -911,7 +914,7 @@ export const updatePassword = async (
 
 export const fetchBillingDetails = async (
   payload: FetchBillingDetailsPayload,
-): Promise<BillingDetails> => {
+): Promise<BillingDetails | null> => {
   try {
     if (!payload.token) {
       throw new Error("You are not authenticated. Please log in first.");
@@ -933,6 +936,7 @@ export const fetchBillingDetails = async (
         return {
           billingName: apiData.billingName || undefined, // removed fallback to firstName + lastName
           billingTitle: apiData.billingTitle || undefined, // removed fallback to title
+          id: apiData.id,
           title: apiData.title || "",
           firstName: apiData.firstName || "",
           lastName: apiData.lastName || "",
@@ -952,6 +956,8 @@ export const fetchBillingDetails = async (
               ? Number(apiData.address.geoLongitude)
               : undefined,
           address: {
+            id: apiData.address?.id,
+            saveAs: apiData.address?.saveAs || undefined,
             title: apiData.title || "Mr.",
             firstName: apiData.firstName || "",
             lastName: apiData.lastName || "",
@@ -976,6 +982,17 @@ export const fetchBillingDetails = async (
                 : undefined,
           },
         };
+      }
+
+      const message = `${resData.message || ""}`.toLowerCase();
+      if (
+        !resData.data &&
+        (message.includes("no billing") ||
+          message.includes("no data") ||
+          message.includes("not found") ||
+          message.includes("empty"))
+      ) {
+        return null;
       } else {
         throw new Error(resData.message || "Invalid response format");
       }
@@ -995,6 +1012,8 @@ export const fetchBillingDetails = async (
       throw new Error(
         "No response received from server. Please check your network connection.",
       );
+    } else if (error.response?.status === 404) {
+      return null;
     } else {
       throw new Error(
         error.message || "An error occurred while fetching billing details",
@@ -1027,6 +1046,7 @@ export const saveBillingDetails = async (
       geoLatitude: payload.data.geoLatitude || null, // ADD THIS at root level
       geoLongitude: payload.data.geoLongitude || null, // ADD THIS at root level
       address: {
+        saveAs: payload.data.address.saveAs || null,
         houseNo: payload.data.address.houseNo || null,
         buildingNo: payload.data.address.buildingNo || null,
         buildingName: payload.data.address.buildingName || null,
