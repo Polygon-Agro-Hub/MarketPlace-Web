@@ -151,6 +151,7 @@ const Page: React.FC = () => {
       discountAmount: Number(discountAmount) || 0,
       grandTotal: Number(finalGrandTotal) || 0,
       orderApp: "marketplace",
+      deliveryCharge: effectiveDeliveryCharge, // 👈 just add this line
     };
   };
 
@@ -334,10 +335,13 @@ const Page: React.FC = () => {
     const calculatedSummary = cartItems.calculatedSummary;
     const originalGrandTotal = calculatedSummary?.finalTotal || 0;
     const shouldShowDeliveryCharge = checkoutDetails.deliveryMethod === "home";
+    const shouldApplyDeliveryCharge = checkoutDetails.deliveryMethod === "home";
+
     const isFreeDeliveryCoupon =
       isCouponApplied &&
       (couponType === "Free Delivery" || couponType === "Free Delivary");
-    const effectiveDeliveryCharge = shouldShowDeliveryCharge
+
+    const effectiveDeliveryCharge = shouldApplyDeliveryCharge
       ? isFreeDeliveryCoupon
         ? 0
         : deliveryCharge
@@ -416,9 +420,8 @@ const Page: React.FC = () => {
                 <button
                   onClick={handleViewInvoice}
                   disabled={!orderId}
-                  className={`px-6 py-2 rounded-lg transition cursor-pointer font-medium ${
-                    !orderId ? "bg-gray-400 text-gray-600 cursor-not-allowed" : "bg-[#3E206D] text-white hover:bg-[#3E206D]"
-                  }`}
+                  className={`px-6 py-2 rounded-lg transition cursor-pointer font-medium ${!orderId ? "bg-gray-400 text-gray-600 cursor-not-allowed" : "bg-[#3E206D] text-white hover:bg-[#3E206D]"
+                    }`}
                 >
                   View Invoice
                 </button>
@@ -447,11 +450,10 @@ const Page: React.FC = () => {
               >
                 <div className="flex items-center">
                   <div
-                    className={`w-5 h-5 rounded-full ${
-                      paymentMethod === "card"
-                        ? "bg-[#3E206D] border-2 border-[#3E206D] ring-2 ring-purple-100"
-                        : "border border-gray-400"
-                    }`}
+                    className={`w-5 h-5 rounded-full ${paymentMethod === "card"
+                      ? "bg-[#3E206D] border-2 border-[#3E206D] ring-2 ring-purple-100"
+                      : "border border-gray-400"
+                      }`}
                   />
                   <span className="ml-3 text-base font-medium">Credit / Debit Card</span>
                 </div>
@@ -530,11 +532,10 @@ const Page: React.FC = () => {
               >
                 <div className="flex items-center">
                   <div
-                    className={`w-5 h-5 rounded-full ${
-                      paymentMethod === "cash"
-                        ? "bg-[#3E206D] border-2 border-[#3E206D] ring-2 ring-purple-100"
-                        : "border border-gray-400"
-                    }`}
+                    className={`w-5 h-5 rounded-full ${paymentMethod === "cash"
+                      ? "bg-[#3E206D] border-2 border-[#3E206D] ring-2 ring-purple-100"
+                      : "border border-gray-400"
+                      }`}
                   />
                   <span className="ml-3 text-base font-medium">Pay by Cash</span>
                 </div>
@@ -599,13 +600,12 @@ const Page: React.FC = () => {
                 <button
                   onClick={handleApplyCoupon}
                   disabled={!couponCode.trim() || isCouponApplied || couponValidationLoading}
-                  className={`px-5 py-2 rounded-lg text-sm font-medium transition cursor-pointer  ${
-                    isCouponApplied
-                      ? "bg-[#3E206D] text-white cursor-not-allowed"
-                      : couponValidationLoading
+                  className={`px-5 py-2 rounded-lg text-sm font-medium transition cursor-pointer  ${isCouponApplied
+                    ? "bg-[#3E206D] text-white cursor-not-allowed"
+                    : couponValidationLoading
                       ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                       : "bg-[#3E206D] text-white hover:bg-[#2f1854]"
-                  }`}
+                    }`}
                 >
                   {couponValidationLoading ? "Verifying..." : isCouponApplied ? "Applied" : "Apply"}
                 </button>
@@ -660,9 +660,8 @@ const Page: React.FC = () => {
             <button
               onClick={handleSubmitOrder}
               disabled={isSubmitting || orderSubmitted}
-              className={`w-full py-3.5 rounded-xl font-semibold text-white transition cursor-pointer ${
-                isSubmitting || orderSubmitted ? "bg-gray-400 cursor-not-allowed" : "bg-[#3E206D] hover:bg-[#2f1854]"
-              }`}
+              className={`w-full py-3.5 rounded-xl font-semibold text-white transition cursor-pointer ${isSubmitting || orderSubmitted ? "bg-gray-400 cursor-not-allowed" : "bg-[#3E206D] hover:bg-[#2f1854]"
+                }`}
             >
               {orderSubmitted ? "Order Submitted" : isSubmitting ? "Processing Order..." : "Confirm Order"}
             </button>

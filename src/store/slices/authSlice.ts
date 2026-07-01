@@ -7,6 +7,7 @@ interface UserData {
   lastName: string;
   buyerType: string;
   image: string | null;
+  creditBalance: number;
 }
 
 interface AuthState {
@@ -19,6 +20,7 @@ interface AuthState {
 interface CartInfo {
   price: number;
   count: number | null;
+  creditBalance?: number;
 }
 
 const initialStateCart: CartInfo = {

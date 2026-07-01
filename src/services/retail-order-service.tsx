@@ -53,27 +53,31 @@ export const submitPayment = async (payload: PaymentPayload) => {
   }
 };
 
-export const getOrderHistory = async (token: string | null, filter: string): Promise<any> => {
+export const getOrderHistory = async (
+  token: string | null,
+  filter: string,
+  page: number = 1,
+  limit: number = 10
+): Promise<any> => {
   try {
-    const response = await axios.get(`/retail-order/order-history?filter=${filter}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
-
+    const response = await axios.get(
+      `/retail-order/order-history?filter=${filter}&page=${page}&limit=${limit}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
     if (response.status >= 200 && response.status < 300) {
       return response.data;
-    } else {
-      throw new Error(
-        response.data?.message || "Failed to fetch order history",
-      );
     }
+    throw new Error(response.data?.message || "Failed to fetch order history");
   } catch (error: any) {
     throw new Error(
       error.response?.data?.message ||
-        error.response?.data?.error ||
-        "Failed to fetch order history",
+      error.response?.data?.error ||
+      "Failed to fetch order history"
     );
   }
 };

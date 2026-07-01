@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
-import { Plus, Minus, Trash, ShoppingCart, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Minus, Trash, ShoppingCart, X, ChevronLeft, ChevronRight,Trophy  } from "lucide-react";
 import TopNavigation from "@/components/top-navigation/TopNavigation";
 import {
   getUserCart,
@@ -1648,8 +1648,8 @@ const Page: React.FC = () => {
                 {dynamicSummary.totalDiscount > 0 && (
                   <div className="flex justify-between text-sm sm:text-base">
                     <p className="text-gray-600">Discount</p>
-                    <p className="text-gray-600">
-                      Rs. {formatPrice(dynamicSummary.totalDiscount)}
+                    <p className="text-[#BE2A45]">
+                      - Rs. {formatPrice(dynamicSummary.totalDiscount)}
                     </p>
                   </div>
                 )}
@@ -1674,6 +1674,21 @@ const Page: React.FC = () => {
                 {checkoutLoading ? "Processing..." : "Checkout Now"}
               </button>
             </div>
+              {!!cartData.summary?.savedAmount && cartData.summary.savedAmount > 0 && (
+              <div className="bg-[#EEFFE9] border border-[#D4F6CC] rounded-lg p-4 mt-4 md:mx-10 sm:mr-10">
+                 <p className="flex items-center gap-1.5 text-sm font-semibold text-[#12802E] mb-1">
+                  <Trophy size={16} />
+                  Congratulations!
+                </p>
+                <p className="text-sm text-gray-700">
+                  You have saved{" "}
+                  <span className="font-bold text-gray-900">
+                    Rs. {formatPrice(cartData.summary.savedAmount)}
+                  </span>{" "}
+                  with GoViMart than the market price.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>

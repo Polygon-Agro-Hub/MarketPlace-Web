@@ -679,3 +679,125 @@ export const searchProductsAndPackages = async (
     }
   }
 };
+
+export interface PreferredItem {
+  displayName: string;
+  image: string;
+}
+
+export interface AllItemWithStatus {
+  displayName: string;
+  image: string;
+  isIncluded: boolean;
+  isExcluded: boolean;
+}
+
+export async function getIncludedItems(
+  authToken: string,
+): Promise<{ status: boolean; items: PreferredItem[]; message?: string }> {
+  try {
+    const response = await axios.get("/product/marketplace/include-items", {
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+        "Content-Type": "application/json",
+      },
+    });
+    if (response.status >= 200 && response.status < 300) {
+      return response.data;
+    } else {
+      throw new Error(
+        response.data?.message || "Failed to fetch included items",
+      );
+    }
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(
+        error.response.data?.message ||
+          error.response.data?.error ||
+          `Failed with status ${error.response.status}`,
+      );
+    } else if (error.request) {
+      throw new Error("No response received from server");
+    } else {
+      throw new Error(
+        error.message || "An error occurred while fetching included items",
+      );
+    }
+  }
+}
+
+export async function addIncludedItems(
+  items: string[],
+  authToken: string,
+): Promise<{ status: boolean; message?: string }> {
+  try {
+    const response = await axios.post(
+      "/product/marketplace/add-include-items",
+      { items },
+      {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          "Content-Type": "application/json",
+        },
+      },
+    );
+    if (response.status >= 200 && response.status < 300) {
+      return response.data;
+    } else {
+      throw new Error(response.data?.message || "Failed to add included items");
+    }
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(
+        error.response.data?.message ||
+          error.response.data?.error ||
+          `Failed with status ${error.response.status}`,
+      );
+    } else if (error.request) {
+      throw new Error("No response received from server");
+    } else {
+      throw new Error(
+        error.message || "An error occurred while adding included items",
+      );
+    }
+  }
+}
+
+export async function deleteIncludedItems(
+  items: string[],
+  authToken: string,
+): Promise<{ status: boolean; message?: string }> {
+  try {
+    const response = await axios.post(
+      "/product/marketplace/delete-included",
+      { items },
+      {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          "Content-Type": "application/json",
+        },
+      },
+    );
+    if (response.status >= 200 && response.status < 300) {
+      return response.data;
+    } else {
+      throw new Error(
+        response.data?.message || "Failed to delete included items",
+      );
+    }
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(
+        error.response.data?.message ||
+          error.response.data?.error ||
+          `Failed with status ${error.response.status}`,
+      );
+    } else if (error.request) {
+      throw new Error("No response received from server");
+    } else {
+      throw new Error(
+        error.message || "An error occurred while deleting included items",
+      );
+    }
+  }
+}

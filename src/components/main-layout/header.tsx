@@ -16,7 +16,7 @@ import { useDispatch } from "react-redux";
 import { logout } from "../../store/slices/authSlice";
 import { clearCart } from "@/store/slices/cartSlice";
 import { useRouter, usePathname } from "next/navigation";
-import { LogOut, ChevronUp, ChevronDown } from "lucide-react";
+import { LogOut, ChevronUp, ChevronDown,WalletMinimal } from "lucide-react";
 import {
   setSearchTerm,
   clearSearch,
@@ -25,6 +25,7 @@ import {
 import { X } from "lucide-react";
 import Image from "next/image";
 import glogo from "../../../public/glogo.png";
+import { CreditBalancePill } from "@/components/creditupdate/CreditBalancePill";
 
 interface HeaderProps {
   onSearch?: (searchTerm: string) => void;
@@ -51,7 +52,10 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
   const cartState = useSelector((state: RootState) => state.auth.cart) || {
     count: 0,
     price: 0,
+    creditBalance: 0,
   };
+
+  console.log("Cart State in Header:", cartState); // Debugging line  
 
   const router = useRouter();
   const pathname = usePathname();
@@ -465,6 +469,10 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
               )}
             </nav>
           )}
+
+        {!isMobile && isAuthenticated() && (
+          <CreditBalancePill creditBalance={cartState.creditBalance ?? 0} />
+        )}
 
           {!isMobile && (
             <div className="flex-1 max-w-xl mx-4">
