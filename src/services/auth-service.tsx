@@ -156,6 +156,40 @@ export interface BillingDetails {
   geoLongitude?: number;
 }
 
+export interface AddressDetail {
+  id?: number;
+  saveAs?: string;
+  houseNo?: string;
+  buildingNo?: string;
+  buildingName?: string;
+  unitNo?: string;
+  floorNo?: string | number | null;
+  streetName?: string;
+  city?: string;
+}
+
+export interface UserAddressEntry {
+  id: number;
+  buildingType: string; // "House" | "Apartment"
+  billingTitle: string;
+  billingName: string;
+  phoneCode: string;
+  phoneNumber: string;
+  phoneCode2?: string;
+  phoneNumber2?: string;
+  geoLatitude?: number;
+  geoLongitude?: number;
+  address: AddressDetail;
+}
+
+export interface BillingUserData {
+  id: number;
+  title?: string;
+  firstName?: string;
+  lastName?: string;
+  addresses: UserAddressEntry[];
+}
+
 interface FetchComplaintsPayload {
   userId: number;
   token: string;
@@ -914,7 +948,7 @@ export const updatePassword = async (
 
 export const fetchBillingDetails = async (
   payload: FetchBillingDetailsPayload,
-): Promise<BillingDetails | null> => {
+): Promise<BillingUserData | null> => {
   try {
     if (!payload.token) {
       throw new Error("You are not authenticated. Please log in first.");
@@ -933,98 +967,81 @@ export const fetchBillingDetails = async (
       if (resData.status && resData.data) {
         const apiData = resData.data;
 
+        if (!apiData.id) return null;
+
+        const addresses: UserAddressEntry[] = Array.isArray(apiData.addresses)
+          ? apiData.addresses.map((entry: any) => ({
+              id: entry.id,
+              buildingType: entry.buildingType,
+              billingTitle: entry.billingTitle || "",
+              billingName: entry.billingName || "",
+              phoneCode: entry.phoneCode || "+94",
+              phoneNumber: entry.phoneNumber || "",
+              phoneCode2: entry.phoneCode2 || "+94",
+              phoneNumber2: entry.phoneNumber2 || "",
+              geoLatitude: entry.geoLatitude ? Number(entry.geoLatitude) : undefined,
+              geoLongitude: entry.geoLongitude ? Number(entry.geoLongitude) : undefined,
+              address: {
+                id: entry.address?.id,
+                saveAs: entry.address?.saveAs || "",
+                houseNo: entry.address?.houseNo || "",
+                buildingNo: entry.address?.buildingNo || "",
+                buildingName: entry.address?.buildingName || "",
+                unitNo: entry.address?.unitNo || "",
+                floorNo: entry.address?.floorNo ?? null,
+                streetName: entry.address?.streetName || "",
+                city: entry.address?.city || "",
+              },
+            }))
+          : [];
+
         return {
-          billingName: apiData.billingName || undefined, // removed fallback to firstName + lastName
-          billingTitle: apiData.billingTitle || undefined, // removed fallback to title
           id: apiData.id,
           title: apiData.title || "",
           firstName: apiData.firstName || "",
           lastName: apiData.lastName || "",
-          phoneCode: apiData.phoneCode || "+94",
-          phoneNumber: apiData.phoneNumber || "",
-          phoneCode2: apiData.phoneCode2 || "+94",
-          phoneNumber2: apiData.phoneNumber2 || "",
-          buildingType: apiData.buildingType?.toLowerCase() || "",
-          geoLatitude: apiData.geoLatitude
-            ? Number(apiData.geoLatitude)
-            : apiData.address?.geoLatitude
-              ? Number(apiData.address.geoLatitude)
-              : undefined,
-          geoLongitude: apiData.geoLongitude
-            ? Number(apiData.geoLongitude)
-            : apiData.address?.geoLongitude
-              ? Number(apiData.address.geoLongitude)
-              : undefined,
-          address: {
-            id: apiData.address?.id,
-            saveAs: apiData.address?.saveAs || undefined,
-            title: apiData.title || "Mr.",
-            firstName: apiData.firstName || "",
-            lastName: apiData.lastName || "",
-            phoneCode: apiData.phoneCode || "+94",
-            phoneNumber: apiData.phoneNumber || "",
-            houseNo: apiData.address?.houseNo || undefined,
-            buildingNo: apiData.address?.buildingNo || undefined,
-            buildingName: apiData.address?.buildingName || undefined,
-            unitNo: apiData.address?.unitNo || undefined,
-            floorNo: apiData.address?.floorNo || null,
-            streetName: apiData.address?.streetName || undefined,
-            city: apiData.address?.city || undefined,
-            geoLatitude: apiData.geoLatitude
-              ? Number(apiData.geoLatitude)
-              : apiData.address?.geoLatitude
-                ? Number(apiData.address.geoLatitude)
-                : undefined,
-            geoLongitude: apiData.geoLongitude
-              ? Number(apiData.geoLongitude)
-              : apiData.address?.geoLongitude
-                ? Number(apiData.address.geoLongitude)
-                : undefined,
-          },
+          addresses,
         };
       }
 
-      const message = `${resData.message || ""}`.toLowerCase();
-      if (
-        !resData.data &&
-        (message.includes("no billing") ||
-          message.includes("no data") ||
-          message.includes("not found") ||
-          message.includes("empty"))
-      ) {
-        return null;
-      } else {
-        throw new Error(resData.message || "Invalid response format");
-      }
+      return null;
     } else {
-      throw new Error(
-        response.data?.message || "Failed to fetch billing details",
-      );
+      throw new Error(response.data?.message || "Failed to fetch billing details");
     }
   } catch (error: any) {
     if (error.response) {
+      if (error.response.status === 404) return null;
       throw new Error(
         error.response.data?.message ||
           error.response.data?.error ||
           `Billing details fetch failed with status ${error.response.status}`,
       );
     } else if (error.request) {
-      throw new Error(
-        "No response received from server. Please check your network connection.",
-      );
-    } else if (error.response?.status === 404) {
-      return null;
+      throw new Error("No response received from server. Please check your network connection.");
     } else {
-      throw new Error(
-        error.message || "An error occurred while fetching billing details",
-      );
+      throw new Error(error.message || "An error occurred while fetching billing details");
     }
   }
 };
 
-export const saveBillingDetails = async (
-  payload: SaveBillingDetailsPayload,
-): Promise<void> => {
+export interface SaveAddressPayloadData {
+  addressId?: number | null; // null/undefined = new address, number = editing existing
+  billingTitle: string;
+  billingName: string;
+  phoneCode: string;
+  phoneNumber: string;
+  phoneCode2?: string;
+  phoneNumber2?: string;
+  buildingType: string;
+  geoLatitude?: number | null;
+  geoLongitude?: number | null;
+  address: AddressDetail;
+}
+
+export const saveBillingDetails = async (payload: {
+  token: string;
+  data: SaveAddressPayloadData;
+}): Promise<{ addressId: number; buildingType: string }> => {
   try {
     if (!payload.token) {
       throw new Error("You are not authenticated. Please log in first.");
@@ -1032,20 +1049,16 @@ export const saveBillingDetails = async (
 
     const apiPayload = {
       billingTitle: payload.data.billingTitle,
-      billingName:
-        payload.data.billingName ||
-        `${payload.data.firstName} ${payload.data.lastName}`.trim(),
-      title: payload.data.title,
-      firstName: payload.data.firstName,
-      lastName: payload.data.lastName || "",
+      billingName: payload.data.billingName,
       phoneCode: payload.data.phoneCode,
       phoneNumber: payload.data.phoneNumber,
-      phoneCode2: payload.data.phoneCode2,
-      phoneNumber2: payload.data.phoneNumber2,
+      phoneCode2: payload.data.phoneCode2 || "",
+      phoneNumber2: payload.data.phoneNumber2 || "",
       buildingType: payload.data.buildingType.toLowerCase(),
-      geoLatitude: payload.data.geoLatitude || null, // ADD THIS at root level
-      geoLongitude: payload.data.geoLongitude || null, // ADD THIS at root level
+      geoLatitude: payload.data.geoLatitude ?? null,
+      geoLongitude: payload.data.geoLongitude ?? null,
       address: {
+        id: payload.data.addressId || undefined,
         saveAs: payload.data.address.saveAs || null,
         houseNo: payload.data.address.houseNo || null,
         buildingNo: payload.data.address.buildingNo || null,
@@ -1054,8 +1067,6 @@ export const saveBillingDetails = async (
         floorNo: payload.data.address.floorNo || null,
         streetName: payload.data.address.streetName || null,
         city: payload.data.address.city || null,
-        geoLatitude: payload.data.address.geoLatitude || null, // Keep this too
-        geoLongitude: payload.data.address.geoLongitude || null, // Keep this too
       },
     };
 
@@ -1066,15 +1077,14 @@ export const saveBillingDetails = async (
       },
     });
 
-    if (
-      response.status < 200 ||
-      response.status >= 300 ||
-      !response.data.status
-    ) {
-      throw new Error(
-        response.data?.message || "Failed to save billing details",
-      );
+    if (response.status < 200 || response.status >= 300 || !response.data.status) {
+      throw new Error(response.data?.message || "Failed to save billing details");
     }
+
+    return {
+      addressId: response.data.addressId,
+      buildingType: response.data.buildingType,
+    };
   } catch (error: any) {
     if (error.response) {
       throw new Error(
@@ -1083,13 +1093,43 @@ export const saveBillingDetails = async (
           `Saving billing details failed with status ${error.response.status}`,
       );
     } else if (error.request) {
-      throw new Error(
-        "No response received from server. Please check your network connection.",
-      );
+      throw new Error("No response received from server. Please check your network connection.");
     } else {
+      throw new Error(error.message || "An error occurred while saving billing details");
+    }
+  }
+};
+
+// ── Delete ─────────────────────────────────────────────────────────────
+export const deleteBillingAddress = async (payload: {
+  token: string;
+  addressId: number;
+  buildingType: string;
+}): Promise<void> => {
+  try {
+    if (!payload.token) {
+      throw new Error("You are not authenticated. Please log in first.");
+    }
+
+    const response = await axios.delete(
+      `/auth/billing-details/${payload.addressId}/${payload.buildingType.toLowerCase()}`,
+      {
+        headers: { Authorization: `Bearer ${payload.token}` },
+      },
+    );
+
+    if (response.status < 200 || response.status >= 300 || !response.data.status) {
+      throw new Error(response.data?.message || "Failed to delete address");
+    }
+  } catch (error: any) {
+    if (error.response) {
       throw new Error(
-        error.message || "An error occurred while saving billing details",
+        error.response.data?.message || `Deleting address failed with status ${error.response.status}`,
       );
+    } else if (error.request) {
+      throw new Error("No response received from server. Please check your network connection.");
+    } else {
+      throw new Error(error.message || "An error occurred while deleting the address");
     }
   }
 };

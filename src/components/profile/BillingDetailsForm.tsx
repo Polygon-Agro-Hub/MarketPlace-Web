@@ -7,7 +7,6 @@ import {
   UseFormRegister,
   FieldErrors,
   UseFormSetValue,
-  UseFormGetValues,
 } from "react-hook-form";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
@@ -15,8 +14,9 @@ import { FaAngleDown } from "react-icons/fa";
 import {
   fetchBillingDetails,
   saveBillingDetails,
+  deleteBillingAddress,
   fetchCities,
-  BillingDetails,
+  UserAddressEntry,
 } from "@/services/auth-service";
 import SuccessPopup from "@/components/toast-messages/success-message";
 import ErrorPopup from "@/components/toast-messages/error-message";
@@ -32,14 +32,10 @@ import {
   Trash2,
 } from "lucide-react";
 
-// Define form data type
 type BillingFormData = {
   saveAs: string;
   billingTitle: string;
   billingName: string;
-  title: string;
-  firstName: string;
-  lastName: string;
   houseNo: string;
   buildingNo: string;
   buildingType: string;
@@ -59,7 +55,29 @@ type BillingFormData = {
   geoLongitude?: number | null;
 };
 
-// Custom Dropdown Component
+const EMPTY_FORM: BillingFormData = {
+  saveAs: "",
+  billingTitle: "",
+  billingName: "",
+  houseNo: "",
+  buildingNo: "",
+  buildingType: "",
+  apartmentName: "",
+  flatNumber: "",
+  apartmentFloor: "",
+  apartmentHouseNo: "",
+  houseStreet: "",
+  houseCity: "",
+  apartmentStreet: "",
+  apartmentCity: "",
+  phonecode1: "+94",
+  phone1: "",
+  phonecode2: "+94",
+  phone2: "",
+  geoLatitude: null,
+  geoLongitude: null,
+};
+
 interface CustomDropdownProps {
   register: UseFormRegister<BillingFormData>;
   setValue: UseFormSetValue<BillingFormData>;
@@ -182,38 +200,6 @@ const CustomDropdown = ({
   );
 };
 
-// Cancel Success Popup Component
-interface CancelSuccessPopupProps {
-  isVisible: boolean;
-  onClose: () => void;
-  title: string;
-  duration?: number;
-}
-
-const CancelSuccessPopup = ({
-  isVisible,
-  onClose,
-  title,
-  duration,
-}: CancelSuccessPopupProps) => {
-  useEffect(() => {
-    if (isVisible && duration) {
-      const timer = setTimeout(() => {
-        onClose();
-      }, duration);
-      return () => clearTimeout(timer);
-    }
-  }, [isVisible, duration, onClose]);
-
-  if (!isVisible) return null;
-
-  return (
-    <div className="fixed top-4 right-4 bg-green-500 text-white p-4 rounded-lg shadow-lg z-50">
-      <p>{title}</p>
-    </div>
-  );
-};
-
 const BillingDetailsForm = () => {
   const token = useSelector((state: RootState) => state.auth.token);
 
@@ -221,10 +207,8 @@ const BillingDetailsForm = () => {
   const [showCancelSuccessPopup, setShowCancelSuccessPopup] = useState(false);
   const [showErrorPopup, setShowErrorPopup] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [billingNameError, setBillingNameError] = useState("");
-  const [initialFormData, setInitialFormData] =
-    useState<BillingFormData | null>(null);
-  const [addressBook, setAddressBook] = useState<BillingDetails[]>([]);
+  const [initialFormData, setInitialFormData] = useState<BillingFormData | null>(null);
+  const [addressBook, setAddressBook] = useState<UserAddressEntry[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<number | null>(
     null,
   );
@@ -243,6 +227,9 @@ const BillingDetailsForm = () => {
   const [hasGeoLocation, setHasGeoLocation] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const addressBookMenuRef = useRef<HTMLDivElement>(null);
+  const [addressPendingDelete, setAddressPendingDelete] =
+    useState<UserAddressEntry | null>(null);
+  const selectedAddressIdRef = useRef<number | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -257,15 +244,16 @@ const BillingDetailsForm = () => {
         setOpenAddressMenuId(null);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const makeAddressId = () => Date.now();
+  useEffect(() => {
+    selectedAddressIdRef.current = selectedAddressId;
+  }, [selectedAddressId]);
 
-  const getAddressSummary = (details: BillingDetails) => {
-    const address = details.address;
+  const getAddressSummary = (entry: UserAddressEntry) => {
+    const address = entry.address;
     const parts = [
       address.houseNo,
       address.buildingNo,
@@ -274,149 +262,61 @@ const BillingDetailsForm = () => {
       address.streetName,
       address.city,
     ]
-      .filter((part) => Boolean(part))
-      .map((part) => String(part));
+      .filter(Boolean)
+      .map(String);
 
     return parts.length > 0 ? parts.join(", ") : "No address details available";
   };
 
-  const mapBillingDetailsToFormData = (
-    data: BillingDetails,
-    fetchedCities: string[],
-  ): BillingFormData => ({
-    saveAs: data.address?.saveAs || "",
-    billingTitle: data.billingTitle || "",
-    billingName: data.billingName || "",
-    title: data.title || "Mr.",
-    firstName: data.firstName || "",
-    lastName: data.lastName || "",
-    buildingType: data.buildingType ? data.buildingType.toLowerCase() : "",
-    houseNo:
-      data.buildingType?.toLowerCase() === "house"
-        ? data.address?.houseNo || ""
-        : "",
-    buildingNo:
-      data.buildingType?.toLowerCase() === "apartment"
-        ? data.address?.buildingNo || ""
-        : "",
-    apartmentName:
-      data.buildingType?.toLowerCase() === "apartment"
-        ? data.address?.buildingName || ""
-        : "",
-    flatNumber:
-      data.buildingType?.toLowerCase() === "apartment"
-        ? data.address?.unitNo || ""
-        : "",
-    apartmentFloor:
-      data.buildingType?.toLowerCase() === "apartment"
-        ? data.address?.floorNo || ""
-        : "",
-    apartmentHouseNo:
-      data.buildingType?.toLowerCase() === "apartment"
-        ? data.address?.houseNo || ""
-        : "",
-    houseStreet:
-      data.buildingType?.toLowerCase() === "house"
-        ? data.address?.streetName || ""
-        : "",
-    houseCity:
-      data.buildingType?.toLowerCase() === "house"
-        ? findMatchingCity(data.address?.city || "", fetchedCities)
-        : "",
-    apartmentStreet:
-      data.buildingType?.toLowerCase() === "apartment"
-        ? data.address?.streetName || ""
-        : "",
-    apartmentCity:
-      data.buildingType?.toLowerCase() === "apartment"
-        ? findMatchingCity(data.address?.city || "", fetchedCities)
-        : "",
-    phonecode1: data.phoneCode || "+94",
-    phone1: data.phoneNumber || "",
-    phonecode2: data.phoneCode2 || "+94",
-    phone2: data.phoneNumber2 || "",
-    geoLatitude: data.geoLatitude || data.address?.geoLatitude || null,
-    geoLongitude: data.geoLongitude || data.address?.geoLongitude || null,
-  });
-
-  const splitBillingName = (
-    fullName: string,
-  ): { firstName: string; lastName: string } => {
-    const trimmed = (fullName || "").trim().replace(/\s+/g, " ");
-    if (!trimmed) return { firstName: "", lastName: "" };
-
-    const parts = trimmed.split(" ");
-    const firstName = parts[0];
-    const lastName = parts.length > 1 ? parts.slice(1).join(" ") : "";
-
-    return { firstName, lastName };
+  // ── Helper: match city case-insensitively against fetched list ──────────
+  const findMatchingCity = (
+    cityValue: string,
+    citiesList: string[],
+  ): string => {
+    if (!cityValue) return "";
+    const match = citiesList.find(
+      (c) =>
+        typeof c === "string" && c.toLowerCase() === cityValue.toLowerCase(),
+    );
+    return match || cityValue;
   };
 
-  const mapFormDataToBillingDetails = (
-    data: BillingFormData,
-    existingId?: number | null,
-  ): BillingDetails => {
-    const { firstName, lastName } = splitBillingName(data.billingName);
-
+  const mapEntryToFormData = (
+    entry: UserAddressEntry,
+    fetchedCities: string[],
+  ): BillingFormData => {
+    const type = entry.buildingType?.toLowerCase();
     return {
-      id: existingId || undefined,
-      billingTitle: data.billingTitle,
-      billingName: data.billingName || "",
-      title: data.title || data.billingTitle,
-      firstName: data.firstName || firstName, // ← fallback added
-      lastName: data.lastName || lastName, // ← fallback added
-      phoneCode: data.phonecode1 || "+94",
-      phoneNumber: data.phone1 || "",
-      phoneCode2: data.phonecode2 || "+94",
-      phoneNumber2: data.phone2 || "",
-      buildingType: data.buildingType || "",
-      geoLatitude: data.geoLatitude || undefined,
-      geoLongitude: data.geoLongitude || undefined,
-      address: {
-        id: existingId || undefined,
-        saveAs: data.saveAs || undefined,
-        title: data.title || "Mr.",
-        firstName: data.firstName || firstName, // ← fallback added
-        lastName: data.lastName || lastName, // ← fallback added
-        phoneCode: data.phonecode1 || "+94",
-        phoneNumber: data.phone1 || "",
-        houseNo:
-          data.buildingType === "house"
-            ? data.houseNo || undefined
-            : data.buildingType === "apartment"
-              ? data.apartmentHouseNo || undefined
-              : undefined,
-        buildingNo:
-          data.buildingType === "apartment"
-            ? data.buildingNo || undefined
-            : undefined,
-        buildingName:
-          data.buildingType === "apartment"
-            ? data.apartmentName || undefined
-            : undefined,
-        unitNo:
-          data.buildingType === "apartment"
-            ? data.flatNumber || undefined
-            : undefined,
-        floorNo:
-          data.buildingType === "apartment"
-            ? data.apartmentFloor || undefined
-            : undefined,
-        streetName:
-          data.buildingType === "house"
-            ? data.houseStreet || undefined
-            : data.buildingType === "apartment"
-              ? data.apartmentStreet || undefined
-              : undefined,
-        city:
-          data.buildingType === "house"
-            ? data.houseCity || undefined
-            : data.buildingType === "apartment"
-              ? data.apartmentCity || undefined
-              : undefined,
-        geoLatitude: data.geoLatitude || undefined,
-        geoLongitude: data.geoLongitude || undefined,
-      },
+      saveAs: entry.address?.saveAs || "",
+      billingTitle: entry.billingTitle || "",
+      billingName: entry.billingName || "",
+      buildingType: type || "",
+      houseNo: type === "house" ? entry.address?.houseNo || "" : "",
+      buildingNo: type === "apartment" ? entry.address?.buildingNo || "" : "",
+      apartmentName:
+        type === "apartment" ? entry.address?.buildingName || "" : "",
+      flatNumber: type === "apartment" ? entry.address?.unitNo || "" : "",
+      apartmentFloor:
+        type === "apartment" ? String(entry.address?.floorNo ?? "") : "",
+      apartmentHouseNo:
+        type === "apartment" ? entry.address?.houseNo || "" : "",
+      houseStreet: type === "house" ? entry.address?.streetName || "" : "",
+      houseCity:
+        type === "house"
+          ? findMatchingCity(entry.address?.city || "", fetchedCities)
+          : "",
+      apartmentStreet:
+        type === "apartment" ? entry.address?.streetName || "" : "",
+      apartmentCity:
+        type === "apartment"
+          ? findMatchingCity(entry.address?.city || "", fetchedCities)
+          : "",
+      phonecode1: entry.phoneCode || "+94",
+      phone1: entry.phoneNumber || "",
+      phonecode2: entry.phoneCode2 || "+94",
+      phone2: entry.phoneNumber2 || "",
+      geoLatitude: entry.geoLatitude ?? null,
+      geoLongitude: entry.geoLongitude ?? null,
     };
   };
 
@@ -426,61 +326,34 @@ const BillingDetailsForm = () => {
     setInitialFormData(null);
     setHasFormChanged(false);
     setIsEditingAddress(true);
-    reset({
-      saveAs: "",
-      billingTitle: "",
-      billingName: "",
-      title: "Mr.",
-      firstName: "",
-      lastName: "",
-      houseNo: "",
-      buildingNo: "",
-      buildingType: "",
-      apartmentName: "",
-      flatNumber: "",
-      apartmentFloor: "",
-      apartmentHouseNo: "",
-      houseStreet: "",
-      houseCity: "",
-      apartmentStreet: "",
-      apartmentCity: "",
-      phonecode1: "+94",
-      phone1: "",
-      phonecode2: "+94",
-      phone2: "",
-      geoLatitude: null,
-      geoLongitude: null,
-    });
+    setHasGeoLocation(false);
+    reset(EMPTY_FORM);
   };
 
-  const startEditAddress = (address: BillingDetails) => {
-    const formData = mapBillingDetailsToFormData(address, cities);
-    const addressId = address.id || makeAddressId();
+  const startEditAddress = (entry: UserAddressEntry) => {
+    const formData = mapEntryToFormData(entry, cities);
 
-    setSelectedAddressId(addressId);
+    setSelectedAddressId(entry.id);
     setOpenAddressMenuId(null);
     setInitialFormData(formData);
     setHasFormChanged(false);
     setIsEditingAddress(true);
     reset(formData);
     setValue("buildingType", formData.buildingType);
-    setValue("geoLatitude", formData.geoLatitude ?? null, {
-      shouldValidate: false,
-    });
-    setValue("geoLongitude", formData.geoLongitude ?? null, {
-      shouldValidate: false,
-    });
+    setValue("geoLatitude", formData.geoLatitude, { shouldValidate: false });
+    setValue("geoLongitude", formData.geoLongitude, { shouldValidate: false });
+    setHasGeoLocation(Boolean(formData.geoLatitude && formData.geoLongitude));
   };
 
   const closeAddressForm = () => {
     setIsEditingAddress(false);
     setOpenAddressMenuId(null);
     if (selectedAddressId) {
-      const selectedAddress = addressBook.find(
-        (entry) => (entry.id || null) === selectedAddressId,
+      const selectedEntry = addressBook.find(
+        (entry) => entry.id === selectedAddressId,
       );
-      if (selectedAddress) {
-        const formData = mapBillingDetailsToFormData(selectedAddress, cities);
+      if (selectedEntry) {
+        const formData = mapEntryToFormData(selectedEntry, cities);
         setInitialFormData(formData);
         reset(formData);
       }
@@ -502,19 +375,6 @@ const BillingDetailsForm = () => {
     setIsGeoModalOpen(true);
   };
 
-  // ── Helper: match city case-insensitively against fetched list ──────────────
-  const findMatchingCity = (
-    cityValue: string,
-    citiesList: string[],
-  ): string => {
-    if (!cityValue) return "";
-    const match = citiesList.find(
-      (c) =>
-        typeof c === "string" && c.toLowerCase() === cityValue.toLowerCase(),
-    );
-    return match || cityValue;
-  };
-
   const compareFormData = (
     current: BillingFormData,
     initial: BillingFormData | null,
@@ -525,9 +385,6 @@ const BillingDetailsForm = () => {
       "saveAs",
       "billingTitle",
       "billingName",
-      "title",
-      "firstName",
-      "lastName",
       "houseNo",
       "buildingNo",
       "buildingType",
@@ -573,10 +430,7 @@ const BillingDetailsForm = () => {
     { value: "apartment", label: "Apartment" },
   ];
 
-  const cityOptions = cities.map((city) => ({
-    value: city,
-    label: city,
-  }));
+  const cityOptions = cities.map((city) => ({ value: city, label: city }));
 
   const countries = [
     { code: "LK", dialCode: "+94", name: "Sri Lanka" },
@@ -603,31 +457,7 @@ const BillingDetailsForm = () => {
     trigger,
     formState: { errors, isValid },
   } = useForm<BillingFormData>({
-    defaultValues: {
-      saveAs: "",
-      billingTitle: "",
-      billingName: "",
-      title: "Mr.",
-      firstName: "",
-      lastName: "",
-      houseNo: "",
-      buildingNo: "",
-      buildingType: "",
-      apartmentName: "",
-      flatNumber: "",
-      apartmentFloor: "",
-      apartmentHouseNo: "",
-      houseStreet: "",
-      houseCity: "",
-      apartmentStreet: "",
-      apartmentCity: "",
-      phonecode1: "+94",
-      phone1: "",
-      phonecode2: "+94",
-      phone2: "",
-      geoLatitude: null,
-      geoLongitude: null,
-    },
+    defaultValues: EMPTY_FORM,
     mode: "onChange",
   });
 
@@ -663,13 +493,12 @@ const BillingDetailsForm = () => {
     }
   }, [buildingType, setValue]);
 
-  // ── Combined load: cities first, then billing details ──────────────────────
+  // ── Load cities + address book ────────────────────────────────────────
   useEffect(() => {
     const loadAll = async () => {
       if (!token) return;
       setIsLoading(true);
       try {
-        // 1. Fetch cities first so we can match against them immediately
         const fetchedCitiesRaw = await fetchCities(token as string);
         const fetchedCities: string[] = Array.isArray(fetchedCitiesRaw)
           ? fetchedCitiesRaw
@@ -682,83 +511,22 @@ const BillingDetailsForm = () => {
 
         setCities(fetchedCities);
 
-        // 2. Fetch billing details using the freshly fetched cities list
         const data = await fetchBillingDetails({ token });
 
-        if (!data) {
+        if (!data || !data.addresses || data.addresses.length === 0) {
           setAddressBook([]);
           setSelectedAddressId(null);
           setInitialFormData(null);
           setHasFormChanged(false);
           setIsEditingAddress(false);
-          reset({
-            saveAs: "",
-            billingTitle: "",
-            billingName: "",
-            title: "Mr.",
-            firstName: "",
-            lastName: "",
-            houseNo: "",
-            buildingNo: "",
-            buildingType: "",
-            apartmentName: "",
-            flatNumber: "",
-            apartmentFloor: "",
-            apartmentHouseNo: "",
-            houseStreet: "",
-            houseCity: "",
-            apartmentStreet: "",
-            apartmentCity: "",
-            phonecode1: "+94",
-            phone1: "",
-            phonecode2: "+94",
-            phone2: "",
-            geoLatitude: null,
-            geoLongitude: null,
-          });
-          setHasGeoLocation(false);
           return;
         }
 
-        const normalizedDetails: BillingDetails = {
-          ...data,
-          id: data.id || makeAddressId(),
-          address: {
-            ...data.address,
-            id: data.address?.id || data.id || makeAddressId(),
-            saveAs: data.address?.saveAs || "",
-          },
-        };
-
-        const formData = mapBillingDetailsToFormData(
-          normalizedDetails,
-          fetchedCities,
-        );
-
-        setAddressBook([normalizedDetails]);
-        setSelectedAddressId(normalizedDetails.id || null);
-        setInitialFormData(formData);
-        reset(formData);
-        setValue("buildingType", formData.buildingType);
-
-        setTimeout(() => {
-          if (formData.geoLatitude && formData.geoLongitude) {
-            setValue("geoLatitude", formData.geoLatitude, {
-              shouldValidate: false,
-            });
-            setValue("geoLongitude", formData.geoLongitude, {
-              shouldValidate: false,
-            });
-            setHasGeoLocation(true);
-          } else {
-            setHasGeoLocation(false);
-          }
-        }, 100);
+        setAddressBook(data.addresses);
       } catch (error: any) {
         console.error("Error loading data:", error);
         setErrorMessage(error.message || "Failed to load billing details");
         setShowErrorPopup(true);
-        // Fallback cities in case fetchCities fails
         setCities([
           "Colombo",
           "Kandy",
@@ -775,14 +543,13 @@ const BillingDetailsForm = () => {
     if (token) {
       loadAll();
     }
-  }, [token, reset, setValue]);
+  }, [token]);
 
   useEffect(() => {
     const subscription = watch((value) => {
       if (initialFormData) {
         const currentFormData = value as BillingFormData;
-        const hasChanged = compareFormData(currentFormData, initialFormData);
-        setHasFormChanged(hasChanged);
+        setHasFormChanged(compareFormData(currentFormData, initialFormData));
       }
     });
     return () => subscription.unsubscribe();
@@ -790,7 +557,23 @@ const BillingDetailsForm = () => {
 
   useEffect(() => {
     register("buildingType", { required: "Building Type is required" });
-    register("saveAs", { required: "Save Address As is required" });
+    register("saveAs", {
+      required: "Save Address As is required",
+      validate: (value) => {
+        const trimmedValue = (value || "").trim().toLowerCase();
+        if (!trimmedValue) return true;
+
+        const isDuplicate = addressBook.some(
+          (entry) =>
+            entry.id !== selectedAddressIdRef.current &&
+            (entry.address.saveAs || "").trim().toLowerCase() === trimmedValue,
+        );
+
+        return isDuplicate
+          ? "This name is already used. Please choose another."
+          : true;
+      },
+    });
 
     register("houseNo", {
       validate: (value) =>
@@ -849,7 +632,7 @@ const BillingDetailsForm = () => {
     register("phonecode1", { required: "Phone code is required" });
     register("geoLatitude");
     register("geoLongitude");
-  }, [register, buildingType]);
+  }, [register, buildingType, addressBook]);
 
   const handleLocationSelect = (lat: number, lng: number) => {
     setValue("geoLatitude", lat, {
@@ -866,17 +649,14 @@ const BillingDetailsForm = () => {
 
     if (initialFormData) {
       const currentData = getValues();
-      const hasChanged = compareFormData(
-        currentData as BillingFormData,
-        initialFormData,
+      setHasFormChanged(
+        compareFormData(currentData as BillingFormData, initialFormData),
       );
-      setHasFormChanged(hasChanged);
     }
   };
 
   const onSubmit: SubmitHandler<BillingFormData> = async (data) => {
     setIsLoading(true);
-
     await trigger();
 
     if (!isValid) {
@@ -961,39 +741,94 @@ const BillingDetailsForm = () => {
       return;
     }
 
-    const billingDetails = mapFormDataToBillingDetails(data, selectedAddressId);
-    const addressId = billingDetails.id || makeAddressId();
-    const normalizedDetails: BillingDetails = {
-      ...billingDetails,
-      id: addressId,
-      address: {
-        ...billingDetails.address,
-        id: addressId,
-        saveAs: data.saveAs,
-      },
+    const addressPayload = {
+      saveAs: data.saveAs || undefined,
+      houseNo:
+        data.buildingType === "house"
+          ? data.houseNo || undefined
+          : data.buildingType === "apartment"
+            ? data.apartmentHouseNo || undefined
+            : undefined,
+      buildingNo:
+        data.buildingType === "apartment"
+          ? data.buildingNo || undefined
+          : undefined,
+      buildingName:
+        data.buildingType === "apartment"
+          ? data.apartmentName || undefined
+          : undefined,
+      unitNo:
+        data.buildingType === "apartment"
+          ? data.flatNumber || undefined
+          : undefined,
+      floorNo:
+        data.buildingType === "apartment"
+          ? data.apartmentFloor || undefined
+          : undefined,
+      streetName:
+        data.buildingType === "house"
+          ? data.houseStreet || undefined
+          : data.buildingType === "apartment"
+            ? data.apartmentStreet || undefined
+            : undefined,
+      city:
+        data.buildingType === "house"
+          ? data.houseCity || undefined
+          : data.buildingType === "apartment"
+            ? data.apartmentCity || undefined
+            : undefined,
     };
 
     try {
-      await saveBillingDetails({ token, data: normalizedDetails });
+      const result = await saveBillingDetails({
+        token,
+        data: {
+          addressId: selectedAddressId,
+          billingTitle: data.billingTitle,
+          billingName: data.billingName,
+          phoneCode: data.phonecode1,
+          phoneNumber: data.phone1,
+          phoneCode2: data.phonecode2,
+          phoneNumber2: data.phone2,
+          buildingType: data.buildingType,
+          geoLatitude: data.geoLatitude,
+          geoLongitude: data.geoLongitude,
+          address: addressPayload,
+        },
+      });
+
+      const savedEntry: UserAddressEntry = {
+        id: result.addressId,
+        buildingType: result.buildingType,
+        billingTitle: data.billingTitle,
+        billingName: data.billingName,
+        phoneCode: data.phonecode1,
+        phoneNumber: data.phone1,
+        phoneCode2: data.phonecode2,
+        phoneNumber2: data.phone2,
+        geoLatitude: data.geoLatitude ?? undefined,
+        geoLongitude: data.geoLongitude ?? undefined,
+        address: { ...addressPayload, id: result.addressId },
+      };
+
       setAddressBook((prev) => {
-        const index = prev.findIndex((entry) => entry.id === addressId);
+        const index = prev.findIndex((entry) => entry.id === result.addressId);
         if (index >= 0) {
           const next = [...prev];
-          next[index] = normalizedDetails;
+          next[index] = savedEntry;
           return next;
         }
-        return [...prev, normalizedDetails];
+        return [...prev, savedEntry];
       });
-      setSelectedAddressId(addressId);
+
+      setSelectedAddressId(result.addressId);
       setInitialFormData(data);
       setHasFormChanged(false);
       setIsEditingAddress(false);
       setOpenAddressMenuId(null);
-      reset(data);
+      window.scrollTo({ top: 0, behavior: "smooth" }); 
       setShowSuccessPopup(true);
-      setTimeout(() => {
-        setShowSuccessPopup(false);
-      }, 3000);
+      setTimeout(() => setShowSuccessPopup(false), 3000);
     } catch (error: any) {
       setErrorMessage(error.message || "Failed to save billing details");
       setShowErrorPopup(true);
@@ -1041,15 +876,12 @@ const BillingDetailsForm = () => {
       "ArrowUp",
       "ArrowDown",
     ];
-
     if (allowedKeys.includes(e.key)) return;
-
     if (
       (e.ctrlKey || e.metaKey) &&
       ["a", "c", "v", "x"].includes(e.key.toLowerCase())
     )
       return;
-
     if (!/^[0-9]$/.test(e.key)) {
       e.preventDefault();
     }
@@ -1067,58 +899,42 @@ const BillingDetailsForm = () => {
     closeAddressForm();
     setHasFormChanged(false);
     setShowCancelSuccessPopup(true);
-    setTimeout(() => {
-      setShowCancelSuccessPopup(false);
-    }, 2000);
+    setTimeout(() => setShowCancelSuccessPopup(false), 2000);
   };
 
-  const handleDeleteAddress = (addressId: number) => {
-    setAddressBook((prev) => {
-      const next = prev.filter((entry) => (entry.id || 0) !== addressId);
-
-      if (selectedAddressId === addressId) {
-        const nextSelected = next[0];
-        if (nextSelected) {
-          setSelectedAddressId(nextSelected.id || null);
-          const formData = mapBillingDetailsToFormData(nextSelected, cities);
-          setInitialFormData(formData);
-          reset(formData);
-        } else {
-          setSelectedAddressId(null);
-          setInitialFormData(null);
-          reset({
-            saveAs: "",
-            billingTitle: "",
-            billingName: "",
-            title: "Mr.",
-            firstName: "",
-            lastName: "",
-            houseNo: "",
-            buildingNo: "",
-            buildingType: "",
-            apartmentName: "",
-            flatNumber: "",
-            apartmentFloor: "",
-            apartmentHouseNo: "",
-            houseStreet: "",
-            houseCity: "",
-            apartmentStreet: "",
-            apartmentCity: "",
-            phonecode1: "+94",
-            phone1: "",
-            phonecode2: "+94",
-            phone2: "",
-            geoLatitude: null,
-            geoLongitude: null,
-          });
-          setIsEditingAddress(false);
-        }
-      }
-
-      return next;
-    });
-
+  // Called from the 3-dot menu "Delete" button — just opens the confirmation modal
+  const requestDeleteAddress = (entry: UserAddressEntry) => {
     setOpenAddressMenuId(null);
+    setAddressPendingDelete(entry);
+  };
+
+  // Called when user confirms in the modal
+  const confirmDeleteAddress = async () => {
+    if (!token || !addressPendingDelete) return;
+    const entry = addressPendingDelete;
+
+    setAddressPendingDelete(null);
+    setIsLoading(true);
+    try {
+      await deleteBillingAddress({
+        token,
+        addressId: entry.id,
+        buildingType: entry.buildingType,
+      });
+
+      setAddressBook((prev) => prev.filter((item) => item.id !== entry.id));
+
+      if (selectedAddressId === entry.id) {
+        setSelectedAddressId(null);
+        setInitialFormData(null);
+        setIsEditingAddress(false);
+      }
+    } catch (error: any) {
+      setErrorMessage(error.message || "Failed to delete address");
+      setShowErrorPopup(true);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -1180,14 +996,6 @@ const BillingDetailsForm = () => {
                 Add an address to create your address book and quickly reuse it
                 at checkout.
               </p>
-              <button
-                type="button"
-                onClick={startCreateAddress}
-                className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#3E206D] px-5 py-3 text-white text-[14px] font-medium hover:bg-[#341a5a] transition-colors"
-              >
-                <Plus size={18} />
-                Add New Address
-              </button>
             </div>
           ) : (
             <div
@@ -1195,22 +1003,21 @@ const BillingDetailsForm = () => {
               className="rounded-[18px] border border-[#DCCEF6] bg-[#FAF7FF] p-4 md:p-5"
             >
               <div className="grid gap-4 lg:grid-cols-2">
-                {addressBook.map((address) => {
-                  const addressId = address.id || makeAddressId();
-                  const isMenuOpen = openAddressMenuId === addressId;
+                {addressBook.map((entry) => {
+                  const isMenuOpen = openAddressMenuId === entry.id;
 
                   return (
                     <div
-                      key={addressId}
+                      key={entry.id}
                       className="relative rounded-[12px] border border-[#D7D7D7] bg-white px-5 py-4 shadow-[0_4px_10px_rgba(0,0,0,0.08)]"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <h3 className="text-[16px] font-medium text-[#111827]">
-                            {address.address.saveAs || "Address"}
+                            {entry.address.saveAs || "Address"}
                           </h3>
                           <p className="mt-2 text-[13px] leading-5 text-[#6B7280]">
-                            {getAddressSummary(address)}
+                            {getAddressSummary(entry)}
                           </p>
                         </div>
 
@@ -1218,12 +1025,10 @@ const BillingDetailsForm = () => {
                           <button
                             type="button"
                             onClick={() =>
-                              setOpenAddressMenuId(
-                                isMenuOpen ? null : addressId,
-                              )
+                              setOpenAddressMenuId(isMenuOpen ? null : entry.id)
                             }
                             className="rounded-full p-1 text-[#111827] hover:bg-[#F3F4F6] cursor-pointer"
-                            aria-label={`Open actions for ${address.address.saveAs || "address"}`}
+                            aria-label={`Open actions for ${entry.address.saveAs || "address"}`}
                           >
                             <MoreVertical size={18} />
                           </button>
@@ -1232,7 +1037,7 @@ const BillingDetailsForm = () => {
                             <div className="absolute right-0 top-10 z-20 w-32 overflow-hidden rounded-lg border border-[#E5E7EB] bg-white shadow-lg">
                               <button
                                 type="button"
-                                onClick={() => startEditAddress(address)}
+                                onClick={() => startEditAddress(entry)}
                                 className="flex cursor-pointer w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-[#111827] hover:bg-[#F9FAFB]"
                               >
                                 <PencilLine size={15} />
@@ -1240,7 +1045,7 @@ const BillingDetailsForm = () => {
                               </button>
                               <button
                                 type="button"
-                                onClick={() => handleDeleteAddress(addressId)}
+                                onClick={() => requestDeleteAddress(entry)}
                                 className="flex cursor-pointer w-full items-center gap-2 border-t border-[#E5E7EB] px-3 py-2 text-left text-[13px] text-[#DC2626] hover:bg-[#FEF2F2]"
                               >
                                 <Trash2 size={15} />
@@ -1292,13 +1097,12 @@ const BillingDetailsForm = () => {
                 d="M15 19l-7-7 7-7"
               />
             </svg>
-
             <span>Go Back</span>
           </button>
         </div>
 
         <h2 className="font-medium text-[14px] md:text-[18px] mb-4">
-          Add New Address
+          {selectedAddressId ? "Edit Address" : "Add New Address"}
         </h2>
 
         <div className="w-full md:w-1/2">
@@ -1307,14 +1111,14 @@ const BillingDetailsForm = () => {
               Save Address As
             </label>
           </div>
-
           <input
             {...register("saveAs")}
             type="text"
             placeholder="e.g. Home"
             className="border border-[#CECECE] rounded-lg p-2 w-[50%] h-[42px] text-[12px] md:text-[14px]"
+            onBlur={() => trigger("saveAs")}
           />
-          <p className="text-red-500 text-xs">{errors.saveAs?.message}</p>
+          <p className="text-red-500 text-xs mt-1">{errors.saveAs?.message}</p>
         </div>
 
         <div className="border-t border-[#BDBDBD] mt-6 mb-6" />
@@ -1356,10 +1160,7 @@ const BillingDetailsForm = () => {
                 onKeyDown={handleBillingNameKeyDown}
                 placeholder="Full Name"
               />
-              {billingNameError && (
-                <p className="text-red-500 text-xs">{billingNameError}</p>
-              )}
-              <p className="text-red-500 text-xs">
+              <p className="text-red-500 text-xs mt-1">
                 {errors.billingName?.message}
               </p>
             </div>
@@ -1766,6 +1567,32 @@ const BillingDetailsForm = () => {
           viewOnly={isViewingLocation}
         />
       </form>
+
+      {addressPendingDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-xl">
+            <p className="text-[16px] md:text-[18px] font-medium text-[#111827] mb-6">
+              Are you sure you want to delete?
+            </p>
+            <div className="flex justify-center gap-4">
+              <button
+                type="button"
+                onClick={() => setAddressPendingDelete(null)}
+                className="px-6 py-2.5 rounded-xl bg-[#F3F4F7] text-[#757E87] font-medium hover:bg-[#e1e2e5] cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteAddress}
+                className="px-6 py-2.5 rounded-xl bg-[#E11D48] text-white font-medium hover:bg-[#be123c] cursor-pointer"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
