@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
+import Image from "next/image";
 import { Info, Trash } from "lucide-react";
 import {
   getIncludedItems,
@@ -14,6 +15,8 @@ import Loader from "@/components/loader-spinner/Loader";
 import SuccessPopup from "@/components/toast-messages/success-message";
 import Lottie from "react-lottie";
 import addNewAnimation from "../../assets/animations/GoViMartAddNew.json";
+import HeartIcon from "../../../public/icons/heart-solid.png";
+import CancerIcon from "../../../public/icons/xmark-solid.png";
 
 interface Item {
   displayName: string;
@@ -195,21 +198,22 @@ const ViewMyList = ({ setSelectedMenu }: ViewMyListProps) => {
           >
             <div className="flex items-start gap-2">
               {isInclude ? (
-                <div className="w-7 h-7 rounded-full bg-[#4CAF50] flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="white">
-                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                  </svg>
+                <div className="w-7 h-7 bg-[#FFFFFF] border border-[#E6F2E5] rounded-full flex items-center justify-center flex-shrink-0">
+                  <Image
+                    src={HeartIcon}
+                    alt="Prefer to Include"
+                    width={16}
+                    height={16}
+                  />
                 </div>
               ) : (
-                <div className="w-7 h-7 rounded-full bg-[#FEE2E2] flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <svg
-                    width="13"
-                    height="13"
-                    viewBox="0 0 24 24"
-                    fill="#EF4444"
-                  >
-                    <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
-                  </svg>
+                <div className="w-7 h-7 bg-[#FFFFFF] border border-[#FDE4E5] rounded-full flex items-center justify-center flex-shrink-0">
+                  <Image
+                    src={CancerIcon}
+                    alt="Prefer to Exclude"
+                    width={16}
+                    height={16}
+                  />
                 </div>
               )}
               <div>
@@ -245,7 +249,7 @@ const ViewMyList = ({ setSelectedMenu }: ViewMyListProps) => {
             {hasItems ? (
               <>
                 {/* Table header row */}
-                <div className="flex items-center px-4 py-2 border-b border-[#E5E7EB]">
+                <div className="flex items-center px-4 py-2 border-b border-[#E5E7EB] pl-6">
                   <div className="w-7 flex-shrink-0">
                     <input
                       type="checkbox"
@@ -270,7 +274,7 @@ const ViewMyList = ({ setSelectedMenu }: ViewMyListProps) => {
                   {items.map((item) => (
                     <div
                       key={item.displayName}
-                      className="flex items-center px-4 py-2 border-b border-[#F3F4F6] last:border-0 hover:bg-gray-50 transition-colors"
+                      className="flex items-center px-4 py-2 border-b border-[#F3F4F6] last:border-0 hover:bg-gray-50 transition-colors pl-6"
                     >
                       <div className="w-7 flex-shrink-0">
                         <input
@@ -312,25 +316,31 @@ const ViewMyList = ({ setSelectedMenu }: ViewMyListProps) => {
             ) : (
               /* Empty state — Lottie + Add Now */
               <div className="flex-1 flex flex-col items-center justify-center py-10 px-4">
-                <Lottie
-                  options={{
-                    loop: true,
-                    autoplay: true,
-                    animationData: addNewAnimation,
-                    rendererSettings: { preserveAspectRatio: "xMidYMid slice" },
-                  }}
-                  height={100}
-                  width={100}
-                />
                 <button
-                  className="text-[#7C3AED] font-semibold text-[14px] mt-2 cursor-pointer hover:underline"
+                  className="flex flex-col items-center gap-1 group"
                   onClick={() => {
                     if (setSelectedMenu) {
                       setSelectedMenu("AddMoreItems");
                     }
                   }}
                 >
-                  Add Now
+                  <div className="relative cursor-pointer">
+                    <Lottie
+                      options={{
+                        loop: true,
+                        autoplay: true,
+                        animationData: addNewAnimation,
+                        rendererSettings: {
+                          preserveAspectRatio: "xMidYMid slice",
+                        },
+                      }}
+                      height={90}
+                      width={90}
+                    />
+                  </div>
+                  <span className="text-[14px] font-semibold onehover:underline text-[#8C46FB] cursor-pointer">
+                    Add Now
+                  </span>
                 </button>
               </div>
             )}
@@ -402,16 +412,15 @@ const ViewMyList = ({ setSelectedMenu }: ViewMyListProps) => {
             <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
               <Trash fill="red" className="text-red-600 w-7 h-7" />
             </div>
-            <h2 className="text-sm sm:text-lg font-semibold text-black">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
               {isBulkDelete
-                ? `Remove these items from your ${deleteType} list?`
-                : `Remove "${itemToDelete}" from your ${deleteType} list?`}
+                ? "Remove selected items?"
+                : `Remove "${itemToDelete}"?`}
             </h2>
-            <p className="text-gray-500 text-[11px] sm:text-sm mt-2">
-              This action will allow{" "}
-              {isBulkDelete ? "these items" : "this item"} to be{" "}
-              {deleteType === "include" ? "excluded" : "included"} in future
-              packages unless re-added.
+            <p className="text-gray-500 text-sm mb-6">
+              {isBulkDelete
+                ? "These items will be removed from your list."
+                : "This item will be removed from your list."}
             </p>
             <div className="mt-6 flex justify-center gap-4">
               <button

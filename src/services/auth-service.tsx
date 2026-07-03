@@ -118,6 +118,14 @@ interface ApiProfile {
   buyerType?: string | "";
 }
 
+export interface CityOption {
+  id: number;
+  city: string;
+  district?: string;
+  province?: string;
+  isAvailable: boolean; // 1/0 → boolean
+}
+
 export interface BillingAddress {
   id?: number;
   saveAs?: string;
@@ -549,131 +557,131 @@ export const sendOTPInSignup = async (
     email?: string;
   },
 ): Promise<OTPServiceResponse> => {
-
-  console.log('🚀 sendOTPInSignup called');
-  console.log('📞 phoneNumber:', phoneNumber);
-  console.log('🌍 countryCode:', countryCode);
-  console.log('⚙️ options:', options);
-  console.log('🔀 routing to:', countryCode !== '+94' ? 'EMAIL (backend)' : 'SMS (ShoutOut)');
+  console.log("🚀 sendOTPInSignup called");
+  console.log("📞 phoneNumber:", phoneNumber);
+  console.log("🌍 countryCode:", countryCode);
+  console.log("⚙️ options:", options);
+  console.log(
+    "🔀 routing to:",
+    countryCode !== "+94" ? "EMAIL (backend)" : "SMS (ShoutOut)",
+  );
 
   // ── Non-+94: send OTP via backend email ───────────────────────────────────
-  if (countryCode !== '+94') {
-    console.log('📧 Entering EMAIL OTP path');
+  if (countryCode !== "+94") {
+    console.log("📧 Entering EMAIL OTP path");
     const emailTarget = options?.email;
-    console.log('📧 emailTarget:', emailTarget);
+    console.log("📧 emailTarget:", emailTarget);
 
     if (!emailTarget) {
-      console.error('❌ No email provided for international number');
+      console.error("❌ No email provided for international number");
       throw new Error(
-        'Email address is required to send OTP for international numbers.',
+        "Email address is required to send OTP for international numbers.",
       );
     }
 
     try {
-      console.log('📤 Calling /auth/send-otp-email with:', {
+      console.log("📤 Calling /auth/send-otp-email with:", {
         email: emailTarget,
-        phoneNumber: phoneNumber.replace(/\s+/g, ''),
+        phoneNumber: phoneNumber.replace(/\s+/g, ""),
         phoneCode: countryCode,
       });
 
-      const response = await axios.post('/auth/send-otp-email', {
+      const response = await axios.post("/auth/send-otp-email", {
         email: emailTarget,
-        phoneNumber: phoneNumber.replace(/\s+/g, ''),
+        phoneNumber: phoneNumber.replace(/\s+/g, ""),
         phoneCode: countryCode,
       });
 
-      console.log('✅ /auth/send-otp-email response:', response.data);
+      console.log("✅ /auth/send-otp-email response:", response.data);
       const resData = response.data;
 
       if (resData.status && resData.referenceId) {
-        console.log('✅ Email OTP sent. referenceId:', resData.referenceId);
+        console.log("✅ Email OTP sent. referenceId:", resData.referenceId);
         emailOtpReferenceIds.add(resData.referenceId);
-        console.log('📝 emailOtpReferenceIds set:', [...emailOtpReferenceIds]);
+        console.log("📝 emailOtpReferenceIds set:", [...emailOtpReferenceIds]);
         return { referenceId: resData.referenceId };
       }
 
-      console.error('❌ send-otp-email returned bad response:', resData);
-      throw new Error(resData.message || 'Failed to send OTP email.');
+      console.error("❌ send-otp-email returned bad response:", resData);
+      throw new Error(resData.message || "Failed to send OTP email.");
     } catch (error: any) {
-      console.error('❌ Email OTP error:', error);
-      console.error('❌ Error response:', error.response?.data);
+      console.error("❌ Email OTP error:", error);
+      console.error("❌ Error response:", error.response?.data);
       if (error.response) {
         throw new Error(
           error.response.data?.message ||
             `Failed to send OTP email (${error.response.status})`,
         );
       }
-      throw new Error(error.message || 'Failed to send OTP email');
+      throw new Error(error.message || "Failed to send OTP email");
     }
   }
 
   // ── +94 only: ShoutOut SMS ─────────────────────────────────────────────────
-  console.log('📱 Entering SMS OTP path (ShoutOut)');
+  console.log("📱 Entering SMS OTP path (ShoutOut)");
   try {
-    const formattedPhone = phoneNumber.replace(/\s+/g, '');
+    const formattedPhone = phoneNumber.replace(/\s+/g, "");
     const fullPhoneNumber = `${countryCode}${formattedPhone}`;
-    console.log('📱 fullPhoneNumber for ShoutOut:', fullPhoneNumber);
+    console.log("📱 fullPhoneNumber for ShoutOut:", fullPhoneNumber);
 
     const {
       message = `Your OTP for verification is: {{code}}`,
-      source = 'PolygonAgro',
+      source = "PolygonAgro",
     } = options || {};
 
-    const apiUrl = 'https://api.getshoutout.com/otpservice/send';
+    const apiUrl = "https://api.getshoutout.com/otpservice/send";
     const headers = {
       Authorization: `Apikey ${environment.SHOUTOUT_API_KEY}`,
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     };
     const body = {
       source,
-      transport: 'sms',
+      transport: "sms",
       content: { sms: message },
       destination: fullPhoneNumber,
     };
 
-    console.log('📤 Calling ShoutOut with body:', body);
+    console.log("📤 Calling ShoutOut with body:", body);
     const response = await axios.post(apiUrl, body, { headers });
-    console.log('✅ ShoutOut response:', response.data);
+    console.log("✅ ShoutOut response:", response.data);
 
     if (response.data.referenceId) {
-      console.log('✅ SMS OTP sent. referenceId:', response.data.referenceId);
+      console.log("✅ SMS OTP sent. referenceId:", response.data.referenceId);
       return { referenceId: response.data.referenceId };
     }
-    throw new Error('Failed to send OTP: No reference ID received');
+    throw new Error("Failed to send OTP: No reference ID received");
   } catch (error: any) {
-    console.error('❌ ShoutOut SMS error:', error);
-    console.error('❌ ShoutOut error response:', error.response?.data);
+    console.error("❌ ShoutOut SMS error:", error);
+    console.error("❌ ShoutOut error response:", error.response?.data);
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
           `Failed to send OTP (${error.response.status})`,
       );
     }
-    throw new Error(error.message || 'Failed to send SMS OTP');
+    throw new Error(error.message || "Failed to send SMS OTP");
   }
 };
 
-
-
 export const verifyOTP = async (code: string, referenceId: string) => {
-  console.log('🔍 verifyOTP called');
-  console.log('🔑 code:', code);
-  console.log('🆔 referenceId:', referenceId);
-  console.log('📝 emailOtpReferenceIds set:', [...emailOtpReferenceIds]);
+  console.log("🔍 verifyOTP called");
+  console.log("🔑 code:", code);
+  console.log("🆔 referenceId:", referenceId);
+  console.log("📝 emailOtpReferenceIds set:", [...emailOtpReferenceIds]);
 
   // ── Email OTP path (in-memory Set) ────────────────────────────────────────
   if (emailOtpReferenceIds.has(referenceId)) {
-    console.log('🔀 routing to: EMAIL verify (from Set)');
+    console.log("🔀 routing to: EMAIL verify (from Set)");
     try {
-      const response = await axios.post('/auth/verify-otp-email', {
+      const response = await axios.post("/auth/verify-otp-email", {
         code,
         referenceId,
       });
-      console.log('✅ verify-otp-email response:', response.data);
+      console.log("✅ verify-otp-email response:", response.data);
       emailOtpReferenceIds.delete(referenceId);
       return response.data;
     } catch (error: any) {
-      console.error('❌ Email OTP verification error:', error);
+      console.error("❌ Email OTP verification error:", error);
       throw error;
     }
   }
@@ -681,52 +689,51 @@ export const verifyOTP = async (code: string, referenceId: string) => {
   // ── Set was lost (hot reload etc.) — try email verify first ───────────────
   // If backend finds the referenceId it returns 1000/1001/1002
   // If not found at all it returns 1001 with "Invalid OTP" — then we try ShoutOut
-  console.log('🔍 Set miss — trying email verify first as fallback...');
+  console.log("🔍 Set miss — trying email verify first as fallback...");
   try {
-    const emailResponse = await axios.post('/auth/verify-otp-email', {
+    const emailResponse = await axios.post("/auth/verify-otp-email", {
       code,
       referenceId,
     });
-    console.log('🔍 verify-otp-email fallback response:', emailResponse.data);
+    console.log("🔍 verify-otp-email fallback response:", emailResponse.data);
 
     // If backend recognised the referenceId (found it in DB), use its response
     // statusCode 1002 = expired, 1000 = success — both mean it was an email OTP
     // statusCode 1001 could mean wrong code OR not found — check message
     if (
-      emailResponse.data.statusCode === '1000' ||
-      emailResponse.data.statusCode === '1002' ||
-      emailResponse.data.message !== 'Invalid OTP.'
+      emailResponse.data.statusCode === "1000" ||
+      emailResponse.data.statusCode === "1002" ||
+      emailResponse.data.message !== "Invalid OTP."
     ) {
-      console.log('🔀 confirmed EMAIL OTP — returning backend response');
+      console.log("🔀 confirmed EMAIL OTP — returning backend response");
       return emailResponse.data;
     }
 
     // statusCode 1001 + message "Invalid OTP." = referenceId not in DB = SMS OTP
-    console.log('🔀 not an email OTP — falling through to ShoutOut');
+    console.log("🔀 not an email OTP — falling through to ShoutOut");
   } catch (error) {
-    console.warn('⚠️ email verify fallback failed, trying ShoutOut:', error);
+    console.warn("⚠️ email verify fallback failed, trying ShoutOut:", error);
   }
 
   // ── ShoutOut SMS path ─────────────────────────────────────────────────────
-  console.log('🔀 routing to: SMS verify (ShoutOut)');
+  console.log("🔀 routing to: SMS verify (ShoutOut)");
   try {
-    const url = 'https://api.getshoutout.com/otpservice/verify';
+    const url = "https://api.getshoutout.com/otpservice/verify";
     const headers = {
       Authorization: `Apikey ${environment.SHOUTOUT_API_KEY}`,
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     };
     const body = { code, referenceId };
-    console.log('📤 Calling ShoutOut verify with:', body);
+    console.log("📤 Calling ShoutOut verify with:", body);
 
     const response = await axios.post(url, body, { headers });
-    console.log('✅ ShoutOut verify response:', response.data);
+    console.log("✅ ShoutOut verify response:", response.data);
     return response.data;
   } catch (error) {
-    console.error('❌ ShoutOut verify error:', error);
+    console.error("❌ ShoutOut verify error:", error);
     throw error;
   }
 };
-
 
 export const resetPasswordByPhone = async (
   phoneNumber: string,
@@ -979,8 +986,12 @@ export const fetchBillingDetails = async (
               phoneNumber: entry.phoneNumber || "",
               phoneCode2: entry.phoneCode2 || "+94",
               phoneNumber2: entry.phoneNumber2 || "",
-              geoLatitude: entry.geoLatitude ? Number(entry.geoLatitude) : undefined,
-              geoLongitude: entry.geoLongitude ? Number(entry.geoLongitude) : undefined,
+              geoLatitude: entry.geoLatitude
+                ? Number(entry.geoLatitude)
+                : undefined,
+              geoLongitude: entry.geoLongitude
+                ? Number(entry.geoLongitude)
+                : undefined,
               address: {
                 id: entry.address?.id,
                 saveAs: entry.address?.saveAs || "",
@@ -1006,7 +1017,9 @@ export const fetchBillingDetails = async (
 
       return null;
     } else {
-      throw new Error(response.data?.message || "Failed to fetch billing details");
+      throw new Error(
+        response.data?.message || "Failed to fetch billing details",
+      );
     }
   } catch (error: any) {
     if (error.response) {
@@ -1017,9 +1030,13 @@ export const fetchBillingDetails = async (
           `Billing details fetch failed with status ${error.response.status}`,
       );
     } else if (error.request) {
-      throw new Error("No response received from server. Please check your network connection.");
+      throw new Error(
+        "No response received from server. Please check your network connection.",
+      );
     } else {
-      throw new Error(error.message || "An error occurred while fetching billing details");
+      throw new Error(
+        error.message || "An error occurred while fetching billing details",
+      );
     }
   }
 };
@@ -1077,8 +1094,14 @@ export const saveBillingDetails = async (payload: {
       },
     });
 
-    if (response.status < 200 || response.status >= 300 || !response.data.status) {
-      throw new Error(response.data?.message || "Failed to save billing details");
+    if (
+      response.status < 200 ||
+      response.status >= 300 ||
+      !response.data.status
+    ) {
+      throw new Error(
+        response.data?.message || "Failed to save billing details",
+      );
     }
 
     return {
@@ -1093,9 +1116,13 @@ export const saveBillingDetails = async (payload: {
           `Saving billing details failed with status ${error.response.status}`,
       );
     } else if (error.request) {
-      throw new Error("No response received from server. Please check your network connection.");
+      throw new Error(
+        "No response received from server. Please check your network connection.",
+      );
     } else {
-      throw new Error(error.message || "An error occurred while saving billing details");
+      throw new Error(
+        error.message || "An error occurred while saving billing details",
+      );
     }
   }
 };
@@ -1118,18 +1145,27 @@ export const deleteBillingAddress = async (payload: {
       },
     );
 
-    if (response.status < 200 || response.status >= 300 || !response.data.status) {
+    if (
+      response.status < 200 ||
+      response.status >= 300 ||
+      !response.data.status
+    ) {
       throw new Error(response.data?.message || "Failed to delete address");
     }
   } catch (error: any) {
     if (error.response) {
       throw new Error(
-        error.response.data?.message || `Deleting address failed with status ${error.response.status}`,
+        error.response.data?.message ||
+          `Deleting address failed with status ${error.response.status}`,
       );
     } else if (error.request) {
-      throw new Error("No response received from server. Please check your network connection.");
+      throw new Error(
+        "No response received from server. Please check your network connection.",
+      );
     } else {
-      throw new Error(error.message || "An error occurred while deleting the address");
+      throw new Error(
+        error.message || "An error occurred while deleting the address",
+      );
     }
   }
 };
@@ -1429,7 +1465,7 @@ export const getAllCities = async (): Promise<CityResult[]> => {
     const response = await axios.get("/auth/cities", {
       headers: { "Content-Type": "application/json" },
     });
- 
+
     if (response.status >= 200 && response.status < 300) {
       const resData = response.data;
       if (resData.status && Array.isArray(resData.data)) {
@@ -1443,7 +1479,7 @@ export const getAllCities = async (): Promise<CityResult[]> => {
       }
       return [];
     }
- 
+
     throw new Error(response.data?.message || "Failed to fetch cities");
   } catch (error: any) {
     if (error.response) {
@@ -1461,11 +1497,10 @@ export const getAllCities = async (): Promise<CityResult[]> => {
     }
   }
 };
- 
 
 export const searchCities = async (query: string): Promise<CityResult[]> => {
   if (!query || query.trim().length === 0) return [];
- 
+
   try {
     const response = await axios.get("/auth/search", {
       params: { q: query.trim() },
@@ -1473,7 +1508,7 @@ export const searchCities = async (query: string): Promise<CityResult[]> => {
         "Content-Type": "application/json",
       },
     });
- 
+
     if (response.status >= 200 && response.status < 300) {
       const resData = response.data;
       if (resData.status && Array.isArray(resData.data)) {
@@ -1487,7 +1522,7 @@ export const searchCities = async (query: string): Promise<CityResult[]> => {
       }
       return [];
     }
- 
+
     throw new Error(response.data?.message || "Failed to search cities");
   } catch (error: any) {
     if (error.response) {
@@ -1505,7 +1540,6 @@ export const searchCities = async (query: string): Promise<CityResult[]> => {
     }
   }
 };
- 
 
 export const checkCityAvailability = async (
   cityId: number,
@@ -1516,7 +1550,7 @@ export const checkCityAvailability = async (
         "Content-Type": "application/json",
       },
     });
- 
+
     if (response.status >= 200 && response.status < 300) {
       const resData = response.data;
       if (resData.status && resData.data) {
@@ -1530,7 +1564,7 @@ export const checkCityAvailability = async (
       }
       return null;
     }
- 
+
     throw new Error(
       response.data?.message || "Failed to check city availability",
     );
@@ -1552,36 +1586,25 @@ export const checkCityAvailability = async (
   }
 };
 
-export const fetchCities = async (token: string | null): Promise<string[]> => {
-  if (!token) {
-    throw new Error("Authentication required");
-  }
-
+export const fetchCities = async (token: string): Promise<CityOption[]> => {
   try {
     const response = await axios.get("/auth/get-cities", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${token}` },
     });
 
-    if (response.status >= 200 && response.status < 300) {
-      return response.data.data; // assuming response.data = { status: true, data: [...] }
+    const resData: ApiResponse<any[]> = response.data;
+    if (resData.status && Array.isArray(resData.data)) {
+      return resData.data.map((c: any) => ({
+        id: c.id,
+        city: c.city,
+        district: c.district,
+        province: c.province,
+        isAvailable: Number(c.isAvailable) === 1,
+      }));
     }
-
-    throw new Error(response.data?.message || "Failed to fetch cities");
-  } catch (error: any) {
-    if (error.response) {
-      throw new Error(
-        error.response.data?.message ||
-          error.response.data?.error ||
-          "Failed to fetch cities",
-      );
-    } else if (error.request) {
-      throw new Error("No response from server. Please try again.");
-    } else {
-      throw new Error(error.message || "Failed to fetch cities");
-    }
+    return [];
+  } catch (error) {
+    console.error("fetchCities error:", error);
+    return [];
   }
 };
- 

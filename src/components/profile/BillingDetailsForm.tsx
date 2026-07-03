@@ -17,6 +17,7 @@ import {
   deleteBillingAddress,
   fetchCities,
   UserAddressEntry,
+  CityOption,
 } from "@/services/auth-service";
 import SuccessPopup from "@/components/toast-messages/success-message";
 import ErrorPopup from "@/components/toast-messages/error-message";
@@ -30,6 +31,7 @@ import {
   PencilLine,
   Plus,
   Trash2,
+  Info,
 } from "lucide-react";
 
 type BillingFormData = {
@@ -167,13 +169,14 @@ const CustomDropdown = ({
             </div>
           )}
           <ul
+            key={searchTerm}
             className={`overflow-y-auto ${withSearch ? "max-h-[240px]" : ""}`}
             style={{ maxHeight: `${maxVisibleItems * 40}px` }}
           >
             {filteredOptions.length > 0 ? (
-              filteredOptions.map((option) => (
+              filteredOptions.map((option, index) => (
                 <li
-                  key={option.value}
+                  key={`${option.value}-${index}`}
                   className="p-2 text-[12px] md:text-[14px] cursor-pointer hover:bg-gray-100 flex items-center gap-2"
                   onClick={() => handleSelect(option.value)}
                 >
@@ -188,8 +191,9 @@ const CustomDropdown = ({
                 </li>
               ))
             ) : (
-              <li className="p-2 text-[12px] md:text-[14px] text-gray-500 text-center">
-                No options found
+              <li className="p-2 text-[12px] md:text-[14px] text-gray-500 text-center flex items-center justify-center gap-2">
+                <Info size={14} />
+                City not found.
               </li>
             )}
           </ul>
@@ -207,7 +211,8 @@ const BillingDetailsForm = () => {
   const [showCancelSuccessPopup, setShowCancelSuccessPopup] = useState(false);
   const [showErrorPopup, setShowErrorPopup] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [initialFormData, setInitialFormData] = useState<BillingFormData | null>(null);
+  const [initialFormData, setInitialFormData] =
+    useState<BillingFormData | null>(null);
   const [addressBook, setAddressBook] = useState<UserAddressEntry[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<number | null>(
     null,
@@ -217,7 +222,7 @@ const BillingDetailsForm = () => {
     null,
   );
   const [isLoading, setIsLoading] = useState(false);
-  const [cities, setCities] = useState<string[]>([]);
+  const [cities, setCities] = useState<CityOption[]>([]);
   const [hasFormChanged, setHasFormChanged] = useState(false);
   const [isGeoModalOpen, setIsGeoModalOpen] = useState(false);
   const [mapCenter, setMapCenter] = useState<[number, number]>([
@@ -271,19 +276,18 @@ const BillingDetailsForm = () => {
   // ── Helper: match city case-insensitively against fetched list ──────────
   const findMatchingCity = (
     cityValue: string,
-    citiesList: string[],
+    citiesList: CityOption[],
   ): string => {
     if (!cityValue) return "";
     const match = citiesList.find(
-      (c) =>
-        typeof c === "string" && c.toLowerCase() === cityValue.toLowerCase(),
+      (c) => c.city.toLowerCase() === cityValue.toLowerCase(),
     );
-    return match || cityValue;
+    return match ? match.city : cityValue;
   };
 
   const mapEntryToFormData = (
     entry: UserAddressEntry,
-    fetchedCities: string[],
+    fetchedCities: CityOption[],
   ): BillingFormData => {
     const type = entry.buildingType?.toLowerCase();
     return {
@@ -430,7 +434,15 @@ const BillingDetailsForm = () => {
     { value: "apartment", label: "Apartment" },
   ];
 
-  const cityOptions = cities.map((city) => ({ value: city, label: city }));
+  const cityOptions = cities.map((c) => ({ value: c.city, label: c.city }));
+
+  const isCityDeliverable = (cityName: string): boolean => {
+    if (!cityName) return true;
+    const match = cities.find(
+      (c) => c.city.toLowerCase() === cityName.toLowerCase(),
+    );
+    return match ? match.isAvailable : true;
+  };
 
   const countries = [
     { code: "LK", dialCode: "+94", name: "Sri Lanka" },
@@ -467,10 +479,15 @@ const BillingDetailsForm = () => {
   const apartmentCityValue = watch("apartmentCity");
   const phonecode1Value = watch("phonecode1");
   const phonecode2Value = watch("phonecode2");
+  const isCityValidForSave =
+    buildingType === "house"
+      ? isCityDeliverable(houseCityValue)
+      : buildingType === "apartment"
+        ? isCityDeliverable(apartmentCityValue)
+        : true;
+
   const canSave = isEditingAddress
-    ? selectedAddressId
-      ? hasFormChanged
-      : isValid
+    ? (selectedAddressId ? hasFormChanged : isValid) && isCityValidForSave
     : false;
 
   useEffect(() => {
@@ -499,16 +516,7 @@ const BillingDetailsForm = () => {
       if (!token) return;
       setIsLoading(true);
       try {
-        const fetchedCitiesRaw = await fetchCities(token as string);
-        const fetchedCities: string[] = Array.isArray(fetchedCitiesRaw)
-          ? fetchedCitiesRaw
-              .map(
-                (c: any) =>
-                  c?.city_name ?? c?.cityName ?? c?.name ?? c?.city ?? "",
-              )
-              .filter((c: string) => c.trim() !== "")
-          : [];
-
+        const fetchedCities = await fetchCities(token as string);
         setCities(fetchedCities);
 
         const data = await fetchBillingDetails({ token });
@@ -528,12 +536,12 @@ const BillingDetailsForm = () => {
         setErrorMessage(error.message || "Failed to load billing details");
         setShowErrorPopup(true);
         setCities([
-          "Colombo",
-          "Kandy",
-          "Galle",
-          "Jaffna",
-          "Negombo",
-          "Anuradhapura",
+          { id: 1, city: "Colombo", isAvailable: true },
+          { id: 2, city: "Kandy", isAvailable: true },
+          { id: 3, city: "Galle", isAvailable: true },
+          { id: 4, city: "Jaffna", isAvailable: true },
+          { id: 5, city: "Negombo", isAvailable: true },
+          { id: 6, city: "Anuradhapura", isAvailable: true },
         ]);
       } finally {
         setIsLoading(false);
@@ -699,6 +707,12 @@ const BillingDetailsForm = () => {
         setIsLoading(false);
         return;
       }
+      if (!isCityDeliverable(data.houseCity)) {
+        setErrorMessage(`Delivery is not available in ${data.houseCity} yet.`);
+        setShowErrorPopup(true);
+        setIsLoading(false);
+        return;
+      }
       if (!data.geoLatitude || !data.geoLongitude) {
         setErrorMessage(
           "Geo Location is required. Please attach your geo location.",
@@ -724,6 +738,16 @@ const BillingDetailsForm = () => {
         setIsLoading(false);
         return;
       }
+
+      if (!isCityDeliverable(data.apartmentCity)) {
+        setErrorMessage(
+          `Delivery is not available in ${data.apartmentCity} yet.`,
+        );
+        setShowErrorPopup(true);
+        setIsLoading(false);
+        return;
+      }
+
       if (!data.geoLatitude || !data.geoLongitude) {
         setErrorMessage(
           "Geo Location is required. Please attach your geo location.",
@@ -826,7 +850,7 @@ const BillingDetailsForm = () => {
       setHasFormChanged(false);
       setIsEditingAddress(false);
       setOpenAddressMenuId(null);
-      window.scrollTo({ top: 0, behavior: "smooth" }); 
+      window.scrollTo({ top: 0, behavior: "smooth" });
       setShowSuccessPopup(true);
       setTimeout(() => setShowSuccessPopup(false), 3000);
     } catch (error: any) {
@@ -967,14 +991,16 @@ const BillingDetailsForm = () => {
             <h2 className="font-medium text-[14px] md:text-[18px]">
               My Address Book
             </h2>
-            <button
-              type="button"
-              onClick={startCreateAddress}
-              className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-[#3E206D] px-4 py-3 text-white text-[13px] md:text-[16px] font-medium shadow-[0_6px_16px_rgba(62,32,109,0.24)] hover:bg-[#341a5a] transition-colors"
-            >
-              <Plus size={18} />
-              Add New Address
-            </button>
+            {addressBook.length < 16 && (
+              <button
+                type="button"
+                onClick={startCreateAddress}
+                className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-[#3E206D] px-4 py-3 text-white text-[13px] md:text-[16px] font-medium shadow-[0_6px_16px_rgba(62,32,109,0.24)] hover:bg-[#341a5a] transition-colors"
+              >
+                <Plus size={18} />
+                Add New Address
+              </button>
+            )}
           </div>
 
           {addressBook.length === 0 ? (
@@ -1254,6 +1280,22 @@ const BillingDetailsForm = () => {
                     withSearch={true}
                     maxVisibleItems={6}
                   />
+
+                  {houseCityValue && !isCityDeliverable(houseCityValue) && (
+                    <div className="mt-2 flex items-start gap-2.5 rounded-xl border border-[#FFDCB5] bg-[#FEF6ED] px-3 py-2">
+                      <div>
+                        <Info
+                          size={16}
+                          className="mt-1.5 flex-shrink-0 text-[#EC6821]"
+                        />
+                      </div>
+                      <p className="text-[12px] md:text-[12px] font-medium text-[#EC6821] leading-snug">
+                        Delivery not available in {houseCityValue} yet, but we’re working on it and
+                        <br />
+                        coming to your area soon!
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1396,14 +1438,27 @@ const BillingDetailsForm = () => {
                   <CustomDropdown
                     register={register}
                     setValue={setValue}
-                    name="apartmentCity"
-                    value={apartmentCityValue}
+                    name="houseCity"
+                    value={houseCityValue}
                     errors={errors}
                     options={cityOptions}
                     placeholder="Select City"
                     withSearch={true}
                     maxVisibleItems={6}
                   />
+
+                  {houseCityValue && !isCityDeliverable(houseCityValue) && (
+                    <div className="mt-2 flex items-start gap-2 rounded-lg border border-[#FFD9A8] bg-[#FFF4E5] px-3 py-2.5">
+                      <Info
+                        size={16}
+                        className="mt-0.5 flex-shrink-0 text-[#E8792C]"
+                      />
+                      <p className="text-[12px] md:text-[13px] text-[#E8792C] leading-snug">
+                        Delivery not available in {houseCityValue} yet, but
+                        we're working on it and coming to your area soon!
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 

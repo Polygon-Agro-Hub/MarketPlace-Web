@@ -3,6 +3,7 @@
 import { RootState } from "@/store";
 import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
+import Image from "next/image";
 import { Trash, Plus, Info } from "lucide-react";
 import {
   getExcludedItems,
@@ -16,6 +17,8 @@ import SuccessPopup from "@/components/toast-messages/success-message";
 import Loader from "@/components/loader-spinner/Loader";
 import Lottie from "react-lottie";
 import addNewAnimation from "@/assets/animations/GoViMartAddNew.json";
+import HeartIcon from "../../../../public/icons/heart-solid.png";
+import CancerIcon from "../../../../public/icons/xmark-solid.png";
 
 interface Item {
   displayName: string;
@@ -215,16 +218,22 @@ export default function ExcludedItems() {
         >
           <div className="flex items-start gap-2">
             {isInclude ? (
-              <div className="w-7 h-7 rounded-full bg-[#4CAF50] flex items-center justify-center flex-shrink-0 mt-0.5">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="white">
-                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                </svg>
+              <div className="w-8 h-8 rounded-full border border-[#E6F2E5] bg-[#FFFFFF] flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Image
+                  src={HeartIcon}
+                  alt="Prefer to Include"
+                  width={16}
+                  height={16}
+                />
               </div>
             ) : (
-              <div className="w-7 h-7 rounded-full bg-[#FEE2E2] flex items-center justify-center flex-shrink-0 mt-0.5">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="#EF4444">
-                  <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
-                </svg>
+              <div className="w-8 h-8 rounded-full border border-[#FDE4E5] bg-[#FFFFFF] flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Image
+                  src={CancerIcon}
+                  alt="Prefer to Exclude"
+                  width={16}
+                  height={16}
+                />
               </div>
             )}
             <div>
@@ -326,7 +335,7 @@ export default function ExcludedItems() {
                 onClick={() => router.push("/exclude/exclude")}
                 className="flex flex-col items-center gap-3 group"
               >
-                <div className="relative">
+                <div className="relative cursor-pointer">
                   <Lottie
                     options={{
                       loop: true,
@@ -340,9 +349,7 @@ export default function ExcludedItems() {
                     width={90}
                   />
                 </div>
-                <span
-                  className="text-[14px] font-semibold onehover:underline text-[#8C46FB] cursor-pointer"
-                >
+                <span className="text-[14px] font-semibold onehover:underline text-[#8C46FB] cursor-pointer">
                   Add Now
                 </span>
               </button>

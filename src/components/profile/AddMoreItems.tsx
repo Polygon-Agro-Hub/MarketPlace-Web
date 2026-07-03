@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
+import Image from "next/image";
 import { FiSearch, FiX } from "react-icons/fi";
 import Loader from "@/components/loader-spinner/Loader";
 import SuccessPopup from "@/components/toast-messages/success-message";
@@ -18,6 +19,9 @@ import {
   getMarketplaceSuggestionsProfile,
 } from "@/services/product-service";
 import { Info } from "lucide-react";
+import HeartIcon from "../../../public/icons/heart-solid.png";
+import CancerIcon from "../../../public/icons/xmark-solid.png";
+import BoxIcon from "../../../public/icons/box-solid.png";
 
 type IncludeState = "include" | "none";
 type ExcludeState = "exclude" | "none";
@@ -63,7 +67,11 @@ const Toggle = ({
   );
 };
 
-const UpdatePreferences = () => {
+interface UpdatePreferencesProps {
+  setSelectedMenu?: (menu: string) => void;
+}
+
+const UpdatePreferences = ({ setSelectedMenu }: UpdatePreferencesProps) => {
   const authToken = useSelector((state: RootState) => state.auth.token);
 
   const [items, setItems] = useState<ItemState[]>([]);
@@ -233,7 +241,12 @@ const UpdatePreferences = () => {
       );
       window.scrollTo({ top: 0, behavior: "smooth" });
       setShowSuccessPopup(true);
-      setTimeout(() => setShowSuccessPopup(false), 3000);
+      setTimeout(() => {
+        setShowSuccessPopup(false);
+        if (setSelectedMenu) {
+          setSelectedMenu("ViewMyList");
+        }
+      }, 3000);
     } catch (err: any) {
       setError(err.message || "Failed to save preferences");
       setTimeout(() => setError(null), 4000);
@@ -281,24 +294,24 @@ const UpdatePreferences = () => {
       <div className="flex flex-col items-center">
         <div className="w-full max-w-5xl">
           {/* Search */}
-          <div className="relative mb-5">
+          <div className="relative mb-5 mx-auto w-full max-w-xl">
             <input
               type="text"
               placeholder="Search for Products..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full p-2 pl-4 pr-10 rounded bg-[#EFE4FF] text-[#3E206D] placeholder-[#3E206D] italic text-center text-[12px] md:text-[16px] outline-none"
+              className="w-full p-2 pl-4 pr-10 rounded-full bg-[#EFE4FF] text-[#3E206D] placeholder-[#3E206D] italic text-center text-[12px] md:text-[16px] outline-none"
               aria-label="Search products"
             />
             {searchQuery ? (
               <FiX
-                className="absolute right-3 cursor-pointer top-1/2 -translate-y-1/2 text-[#3E206D]"
+                className="absolute right-4 cursor-pointer top-1/2 -translate-y-1/2 text-[#3E206D]"
                 onClick={() => setSearchQuery("")}
                 aria-label="Clear search"
               />
             ) : (
               <FiSearch
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#3E206D]"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#3E206D]"
                 aria-label="Search icon"
               />
             )}
@@ -308,10 +321,13 @@ const UpdatePreferences = () => {
           <div className="flex gap-2 sm:gap-3 mb-5 flex-wrap sm:flex-nowrap">
             {/* Prefer to Include */}
             <div className="flex items-center gap-2 sm:gap-3 border border-[#E6F2E5] rounded-lg px-3 py-2 sm:px-4 sm:py-3 bg-[#F6FCF5] flex-1 min-w-[100px]">
-              <div className="w-8 h-8 rounded-full bg-[#4CAF50] flex items-center justify-center flex-shrink-0">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
-                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                </svg>
+              <div className="w-8 h-8 bg-[#F6FCF5] flex items-center justify-center flex-shrink-0">
+                <Image
+                  src={HeartIcon}
+                  alt="Prefer to Include"
+                  width={16}
+                  height={16}
+                />
               </div>
               <div>
                 <p className="text-[12px] font-semibold text-[#34C759]">
@@ -324,12 +340,13 @@ const UpdatePreferences = () => {
             </div>
             {/* No Preference */}
             <div className="flex items-center gap-2 sm:gap-3 border border-[#EFF0F1] rounded-lg px-3 py-2 sm:px-4 sm:py-3 bg-[#FCFCFC] flex-1 min-w-[100px]">
-              <div className="w-8 h-8 rounded-full bg-[#E5E7EB] flex items-center justify-center flex-shrink-0">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="#9CA3AF">
-                  <rect x="3" y="6" width="18" height="2" rx="1" />
-                  <rect x="3" y="11" width="18" height="2" rx="1" />
-                  <rect x="3" y="16" width="18" height="2" rx="1" />
-                </svg>
+              <div className="w-8 h-8 bg-[#FCFCFC] flex items-center justify-center flex-shrink-0">
+                <Image
+                  src={BoxIcon}
+                  alt="No Preference"
+                  width={16}
+                  height={16}
+                />
               </div>
               <div>
                 <p className="text-[12px] font-semibold text-[#576574]">
@@ -342,10 +359,13 @@ const UpdatePreferences = () => {
             </div>
             {/* Prefer to Exclude */}
             <div className="flex items-center gap-2 sm:gap-3 border border-[#FDE4E5] rounded-lg px-3 py-2 sm:px-4 sm:py-3 bg-[#FEF7F7] flex-1 min-w-[100px]">
-              <div className="w-8 h-8 rounded-full bg-[#FEE2E2] flex items-center justify-center flex-shrink-0">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="#EF4444">
-                  <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
-                </svg>
+              <div className="w-8 h-8 bg-[#FEF7F7] flex items-center justify-center flex-shrink-0">
+                <Image
+                  src={CancerIcon}
+                  alt="Prefer to Exclude"
+                  width={16}
+                  height={16}
+                />
               </div>
               <div>
                 <p className="text-[12px] font-semibold text-[#DA080A]">
@@ -364,77 +384,83 @@ const UpdatePreferences = () => {
           )}
 
           {!loading && filteredItems.length > 0 && (
-            <table className="w-full border-collapse">
-              {/* Table Header */}
-              <thead>
-                <tr className="border-b border-[#BDBDBD]">
-                  <th className="text-[13px] font-semibold text-[#4CAF50] py-2 px-2 text-center w-[12%]">
-                    Include
-                  </th>
-                  <th className="text-[13px] font-semibold text-[#4B5563] py-2 px-25 text-left w-[44%]">
-                    Product
-                  </th>
-                  <th className="text-[13px] font-semibold text-[#4B5563] py-2 px-2 text-left w-[30%]"></th>
-                  <th className="text-[13px] font-semibold text-[#EF4444] py-2 px-2 text-center w-[14%]">
-                    Exclude
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredItems.map((item) => {
-                  const isIncluded = item.includeToggle === "include";
-                  const isExcluded = item.excludeToggle === "exclude";
+            <div className="custom-scrollbar max-h-[480px] overflow-y-auto pr-3">
+              <table className="w-full border-collapse">
+                {/* Table Header */}
+                <thead className="sticky top-0 bg-white z-10">
+                  <tr className="border-b border-[#BDBDBD]">
+                    <th className="text-[13px] font-semibold text-[#4CAF50] py-2 px-2 text-center w-[12%]">
+                      Include
+                    </th>
+                    <th className="text-[13px] font-semibold text-[#4B5563] py-2 px-25 text-left w-[44%]">
+                      Product
+                    </th>
+                    <th className="text-[13px] font-semibold text-[#4B5563] py-2 px-2 text-left w-[30%]"></th>
+                    <th className="text-[13px] font-semibold text-[#EF4444] py-2 px-2 text-center w-[14%]">
+                      Exclude
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredItems.map((item) => {
+                    const isIncluded = item.includeToggle === "include";
+                    const isExcluded = item.excludeToggle === "exclude";
 
-                  return (
-                    <tr
-                      key={item.displayName}
-                      className="border-t border-[#E5E7EB]"
-                    >
-                      {/* Include Toggle */}
-                      <td className="py-3 px-2 text-center">
-                        <Toggle
-                          on={isIncluded}
-                          color="green"
-                          disabled={isExcluded}
-                          onClick={() => handleIncludeToggle(item.displayName)}
-                          ariaLabel={`Toggle include ${item.displayName}`}
-                        />
-                      </td>
+                    return (
+                      <tr
+                        key={item.displayName}
+                        className="border-t border-[#E5E7EB]"
+                      >
+                        {/* Include Toggle */}
+                        <td className="py-3 px-2 text-center pl-10">
+                          <Toggle
+                            on={isIncluded}
+                            color="green"
+                            disabled={isExcluded}
+                            onClick={() =>
+                              handleIncludeToggle(item.displayName)
+                            }
+                            ariaLabel={`Toggle include ${item.displayName}`}
+                          />
+                        </td>
 
-                      {/* Product Name */}
-                      <td className="py-3 px-25">
-                        <span className="text-sm md:text-[15px] font-medium text-[#000000] whitespace-nowrap">
-                          {item.displayName}
-                        </span>
-                      </td>
+                        {/* Product Name */}
+                        <td className="py-3 px-25">
+                          <span className="text-sm md:text-[15px] font-medium text-[#000000] whitespace-nowrap">
+                            {item.displayName}
+                          </span>
+                        </td>
 
-                      {/* Product Image */}
-                      <td className="py-3 px-2">
-                        <img
-                          src={item.image}
-                          alt={item.displayName}
-                          className="w-12 h-12 md:w-16 md:h-16 object-contain"
-                          onError={(e) => {
-                            e.currentTarget.src = "/images/fallback.png";
-                          }}
-                        />
-                      </td>
+                        {/* Product Image */}
+                        <td className="py-3 px-2">
+                          <img
+                            src={item.image}
+                            alt={item.displayName}
+                            className="w-12 h-12 md:w-16 md:h-16 object-contain"
+                            onError={(e) => {
+                              e.currentTarget.src = "/images/fallback.png";
+                            }}
+                          />
+                        </td>
 
-                      {/* Exclude Toggle */}
-                      <td className="py-3 px-2 text-center">
-                        <Toggle
-                          on={isExcluded}
-                          color="red"
-                          disabled={isIncluded}
-                          onClick={() => handleExcludeToggle(item.displayName)}
-                          ariaLabel={`Toggle exclude ${item.displayName}`}
-                        />
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                        {/* Exclude Toggle */}
+                        <td className="py-3 px-2 text-center pl-12">
+                          <Toggle
+                            on={isExcluded}
+                            color="red"
+                            disabled={isIncluded}
+                            onClick={() =>
+                              handleExcludeToggle(item.displayName)
+                            }
+                            ariaLabel={`Toggle exclude ${item.displayName}`}
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
 
           {/* Empty state */}
@@ -499,7 +525,7 @@ const UpdatePreferences = () => {
               <button
                 onClick={handleSave}
                 disabled={!hasChanges || saving}
-                className={`w-2xl p-2.5 rounded-lg mt-6 font-semibold text-sm text-white transition-opacity
+                className={`w-xl p-3 px-2.5 rounded-lg mt-6 text-[16px] font-semibold text-sm text-white transition-opacity
                   ${
                     hasChanges && !saving
                       ? "bg-[#3E206D] cursor-pointer"

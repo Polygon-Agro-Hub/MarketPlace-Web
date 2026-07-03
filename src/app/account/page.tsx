@@ -36,7 +36,9 @@ export default function AccountPage() {
           {selectedMenu === "ViewMyList" && (
             <ViewMyList setSelectedMenu={setSelectedMenu} />
           )}
-          {selectedMenu === "AddMoreItems" && <AddMoreItems />}
+          {selectedMenu === "AddMoreItems" && (
+            <AddMoreItems setSelectedMenu={setSelectedMenu} />
+          )}
         </div>
       )}
     </div>
