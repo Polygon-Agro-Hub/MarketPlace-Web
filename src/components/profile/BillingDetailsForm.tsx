@@ -1453,7 +1453,7 @@ const BillingDetailsForm = () => {
                         size={16}
                         className="mt-0.5 flex-shrink-0 text-[#E8792C]"
                       />
-                      <p className="text-[12px] md:text-[13px] text-[#E8792C] leading-snug">
+                      <p className="text-[16px] text-medium md:text-[13px] text-[#E8792C]">
                         Delivery not available in {houseCityValue} yet, but
                         we're working on it and coming to your area soon!
                       </p>
