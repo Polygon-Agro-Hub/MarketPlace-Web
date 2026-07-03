@@ -144,7 +144,9 @@ const UpdatePreferences = ({ setSelectedMenu }: UpdatePreferencesProps) => {
           };
         });
 
-        setItems(mapped);
+        setItems(
+          mapped.sort((a, b) => a.displayName.localeCompare(b.displayName)),
+        );
       } catch (err: any) {
         setError(err.message || "Failed to fetch items");
       } finally {
