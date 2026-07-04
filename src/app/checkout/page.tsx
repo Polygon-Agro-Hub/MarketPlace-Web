@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useLayoutEffect, useRef } from "react";
 import TopNavigation from "@/components/top-navigation/TopNavigation";
 import CustomDropdown from "../../components/home/CustomDropdown";
 import Swal from "sweetalert2";
@@ -9,7 +9,7 @@ import { setFormData, resetFormData } from "../../store/slices/checkoutSlice";
 import { useRouter } from "next/navigation";
 import SuccessPopup from "@/components/toast-messages/success-message-with-button";
 import ErrorPopup from "@/components/toast-messages/error-message";
-import { getLastOrderAddress } from "@/services/retail-service";
+import { getRecentOrderAddress, getSavedAddresses, SavedAddress } from "@/services/retail-service";
 import { selectCartForOrder } from "../../store/slices/cartItemsSlice";
 import { getPickupCenters, PickupCenter } from "@/services/cart-service";
 import dynamic from "next/dynamic";
@@ -197,13 +197,39 @@ const Page: React.FC = () => {
   const [loadingCities, setLoadingCities] = useState(false);
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
   const [deliveryCharge, setDeliveryCharge] = useState<number>(0); // Default charge
-  const [hasPreviousAddress, setHasPreviousAddress] = useState(true);
   const [isGeoModalOpen, setIsGeoModalOpen] = useState(false);
   const [companycenterId, setCompanycenterId] = useState<number | null>(null);
   const [viewingSavedLocation, setViewingSavedLocation] = useState(false);
   const [isViewOnly, setIsViewOnly] = useState(false);
   const memoizedPickupCenters = useMemo(() => pickupCenters, [pickupCenters]);
   const authCart = useSelector((state: RootState) => state.auth.cart);
+  const [addressMode, setAddressMode] = useState<"recent" | "previous" | "new">("recent");
+  const [hasRecentAddress, setHasRecentAddress] = useState(false);
+  const [hasPreviousAddress, setHasPreviousAddress] = useState(false);
+  const [addressOptionsResolving, setAddressOptionsResolving] = useState(true);
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+  const [selectedAddressKey, setSelectedAddressKey] = useState<string | null>(null);
+  const [loadingSavedAddresses, setLoadingSavedAddresses] = useState(false);
+
+  const isReadOnly =
+    formData.deliveryMethod === "home" &&
+    (addressMode === "recent" || (addressMode === "previous" && !!selectedAddressKey));
+
+  const hideDeliveryInfoSection =
+    formData.deliveryMethod === "home" &&
+    addressMode === "previous" &&
+    !!selectedAddressKey;
+
+  const firstCardRef = useRef<HTMLButtonElement>(null);
+  const [twoRowHeight, setTwoRowHeight] = useState<number | null>(null);
+
+  useLayoutEffect(() => {
+    if (firstCardRef.current) {
+      const cardHeight = firstCardRef.current.offsetHeight;
+      const gap = 12; // matches gap-3 (0.75rem = 12px)
+      setTwoRowHeight(cardHeight * 2 + gap);
+    }
+  }, [savedAddresses, addressMode]);
 
   useEffect(() => {
     // Only run on client side
@@ -316,11 +342,108 @@ const Page: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // Set default to saved address if delivery method is home on initial load
     if (formData.deliveryMethod === "home" && searchParamsLoaded) {
-      handleAddressOptionChange("previous");
+      initializeAddressOptions();
     }
   }, [formData.deliveryMethod, searchParamsLoaded, cities]);
+
+  const initializeAddressOptions = async () => {
+    setAddressOptionsResolving(true);
+    setIsLoadingAddress(true);
+    setLoadingSavedAddresses(true);
+    setErrors(initioalError);
+
+    try {
+      // Fire both requests in parallel — each one's existence is independent info,
+      // not a fallback signal for the other.
+      const [recentResult, savedResult] = await Promise.allSettled([
+        getRecentOrderAddress(token),
+        getSavedAddresses(token),
+      ]);
+
+      // --- Saved addresses: always populate this, regardless of recent's outcome ---
+      let savedList: SavedAddress[] = [];
+      if (savedResult.status === "fulfilled" && savedResult.value?.status && savedResult.value?.hasAddress) {
+        savedList = savedResult.value.result;
+        setHasPreviousAddress(true);
+        setSavedAddresses(savedList);
+      } else {
+        setHasPreviousAddress(false);
+        setSavedAddresses([]);
+      }
+
+      // --- Recent address: decide default mode + prefill ---
+      const recentOk =
+        recentResult.status === "fulfilled" &&
+        recentResult.value?.status &&
+        recentResult.value?.hasAddress;
+
+      if (recentOk) {
+        setHasRecentAddress(true);
+        setAddressMode("recent");
+        prefillFromRecent(recentResult.value.result);
+      } else {
+        setHasRecentAddress(false);
+
+        if (savedList.length > 0) {
+          setAddressMode("previous");
+          selectSavedAddress(savedList[0]);
+        } else {
+          setAddressMode("new");
+          setSelectedCity(null);
+          setFormDataLocal((prev) => ({
+            ...initialFormState,
+            deliveryMethod: prev.deliveryMethod,
+          }));
+          setDeliveryCharge(0);
+        }
+      }
+    } catch (error: any) {
+      console.error("Failed to initialize address options:", error);
+      setHasRecentAddress(false);
+      setHasPreviousAddress(false);
+      setAddressMode("new");
+    } finally {
+      setIsLoadingAddress(false);
+      setLoadingSavedAddresses(false);
+      setAddressOptionsResolving(false);
+    }
+  };
+
+  // Extracted so both init and manual radio-click can reuse the same prefill logic
+  const prefillFromRecent = (data: any) => {
+    const cityData = cities.find(
+      (city) => city.city.toLowerCase() === (data.city || "").toLowerCase(),
+    );
+    if (cityData) {
+      setSelectedCity(cityData);
+      const charge = parseFloat(cityData.charge);
+      setDeliveryCharge(charge);
+      setCompanycenterId(cityData.companycenterId);
+    }
+
+    setFormDataLocal((prev) => ({
+      ...prev,
+      buildingType: data.buildingType || "Apartment",
+      title: data.title ? data.title.replace(/\./g, "") : "",
+      fullName: data.fullName || "",
+      phone1: data.phone1 || "",
+      phone2: data.phone2 || "",
+      phoneCode1: data.phonecode1 || "+94",
+      phoneCode2: data.phonecode2 || "+94",
+      scheduleType: "One Time",
+      houseNo: data.houseNo || "",
+      street: data.streetName || "",
+      cityName: data.city || "",
+      buildingNo: data.buildingNo || "",
+      buildingName: data.buildingName || "",
+      flatNumber: data.unitNo || "",
+      floorNumber: data.floorNo || "",
+      geoLatitude: data.latitude ? parseFloat(data.latitude) : null,
+      geoLongitude: data.longitude ? parseFloat(data.longitude) : null,
+    }));
+  };
+
 
   // 5. Create city dropdown options
   const cityOptions = cities.map((city) => ({
@@ -344,100 +467,90 @@ const Page: React.FC = () => {
     }));
   };
 
-  const handleAddressOptionChange = async (value: string) => {
-    if (value === "previous") {
-      setUsePreviousAddress(true);
-      setFetching(true);
-      setIsLoadingAddress(true); // Start loading
-      setErrors(initioalError)
+  const handleAddressOptionChange = async (value: "recent" | "previous" | "new") => {
+    if (value === "recent") {
+      setAddressMode("recent");
+      setIsLoadingAddress(true);
+      setErrors(initioalError);
 
       try {
-        const response = await getLastOrderAddress(token);
-
-        // Check if response has hasAddress field
-        if (response && response.hasAddress === false) {
-          // No previous address found - hide the saved address option
-          setHasPreviousAddress(false);
-          setUsePreviousAddress(false);
-          // Switch to new address mode
-          setFormDataLocal((prev) => ({
-            ...initialFormState,
-            deliveryMethod: prev.deliveryMethod,
-          }));
-          setSelectedCity(null);
-          setDeliveryCharge(0);
-        } else if (response && response.status) {
-          // Previous address found - show the saved address option
-          setHasPreviousAddress(true);
-          const data = response.result;
-
-          const cityData = cities.find(
-            (city) => city.city.toLowerCase() === data.city.toLowerCase(),
-          );
-          if (cityData) {
-            setSelectedCity(cityData);
-            // Set delivery charge for previous address city
-            const charge = parseFloat(cityData.charge);
-            setDeliveryCharge(charge);
-            setCompanycenterId(cityData.companycenterId);
-          }
-
-          // Update form data based on building type
-          setFormDataLocal((prev) => ({
-            ...prev,
-            buildingType: data.buildingType || "Apartment",
-            title: data.title ? data.title.replace(/\./g, '') : "",
-            fullName: data.fullName || "",
-            phone1: data.phone1 || "",
-            phone2: data.phone2 || "",
-            phoneCode1: data.phonecode1 || "+94",
-            phoneCode2: data.phonecode2 || "+94",
-            scheduleType: "One Time", // default
-            // Common address fields
-            houseNo: data.houseNo || "",
-            street: data.streetName || "",
-            cityName: data.city || "",
-            // Apartment-specific fields (will be empty for House type)
-            buildingNo: data.buildingNo || "",
-            buildingName: data.buildingName || "",
-            flatNumber: data.unitNo || "",
-            floorNumber: data.floorNo || "",
-            // Geo location coordinates
-            geoLatitude: data.latitude ? parseFloat(data.latitude) : null,
-            geoLongitude: data.longitude ? parseFloat(data.longitude) : null,
-          }));
+        const response = await getRecentOrderAddress(token);
+        if (response && response.status && response.hasAddress) {
+          prefillFromRecent(response.result);
         }
       } catch (error: any) {
-        console.error("Failed to fetch last order address:", error);
-        // On error, assume no previous address and hide the option
-        setHasPreviousAddress(false);
-        setUsePreviousAddress(false);
-        setFormDataLocal((prev) => ({
-          ...initialFormState,
-          deliveryMethod: prev.deliveryMethod,
-        }));
-        setSelectedCity(null);
-        setDeliveryCharge(0);
+        console.error("Failed to fetch recent order address:", error);
       } finally {
-        setFetching(false);
-        setIsLoadingAddress(false); // Stop loading
+        setIsLoadingAddress(false);
+      }
+    } else if (value === "previous") {
+      setAddressMode("previous");
+      // savedAddresses is already populated from init — just re-select the first one
+      // if none is currently selected, otherwise leave the user's choice intact
+      if (savedAddresses.length > 0 && !selectedAddressKey) {
+        selectSavedAddress(savedAddresses[0]);
       }
     } else {
-      setUsePreviousAddress(false);
-      setIsLoadingAddress(true); // Start loading for new address
+      setAddressMode("new");
+      setSelectedAddressKey(null);
       setSelectedCity(null);
-      // Reset only the form fields, keep the delivery method
       setFormDataLocal((prev) => ({
         ...initialFormState,
-        deliveryMethod: prev.deliveryMethod, // Preserve the current delivery method
+        deliveryMethod: prev.deliveryMethod,
       }));
-      // Reset delivery charge to default
       setDeliveryCharge(0);
-      // Simulate brief loading for UI consistency
-      setTimeout(() => {
-        setIsLoadingAddress(false); // Stop loading
-      }, 300);
     }
+  };
+
+  const selectSavedAddress = (addr: SavedAddress) => {
+    setSelectedAddressKey(addr.addressKey);
+
+    const cityData = cities.find(
+      (city) => city.city.toLowerCase() === (addr.city || "").toLowerCase(),
+    );
+    if (cityData) {
+      setSelectedCity(cityData);
+      const charge = parseFloat(cityData.charge);
+      setDeliveryCharge(charge);
+      setCompanycenterId(cityData.companycenterId);
+    }
+
+    setFormDataLocal((prev) => ({
+      ...prev,
+      buildingType: addr.buildingType || "Apartment",
+      title: addr.title ? addr.title.replace(/\./g, "") : "",
+      fullName: addr.fullName || "",
+      phone1: addr.phone1 || "",
+      phone2: addr.phone2 || "",
+      phoneCode1: addr.phonecode1 || "+94",
+      phoneCode2: addr.phonecode2 || "+94",
+      scheduleType: "One Time",
+      houseNo: addr.houseNo || "",
+      street: addr.streetName || "",
+      cityName: addr.city || "",
+      buildingNo: addr.buildingNo || "",
+      buildingName: addr.buildingName || "",
+      flatNumber: addr.unitNo || "",
+      floorNumber: addr.floorNo || "",
+      geoLatitude: addr.latitude ? parseFloat(addr.latitude as any) : null,
+      geoLongitude: addr.longitude ? parseFloat(addr.longitude as any) : null,
+    }));
+
+    setErrors((prev) => ({
+      ...prev,
+      title: "",
+      fullName: "",
+      phone1: "",
+      houseNo: "",
+      street: "",
+      cityName: "",
+      buildingName: "",
+      buildingNo: "",
+      flatNumber: "",
+      floorNumber: "",
+      geoLatitude: "",
+      geoLongitude: "",
+    }));
   };
 
   useEffect(() => {
@@ -504,7 +617,27 @@ const Page: React.FC = () => {
     return `${year}-${month}-${day}`;
   };
 
+  const readOnlyFields: (keyof FormData)[] = [
+    "title",
+    "fullName",
+    "phone1",
+    "phone2",
+    "phoneCode1",
+    "phoneCode2",
+    "buildingType",
+    "buildingNo",
+    "buildingName",
+    "flatNumber",
+    "floorNumber",
+    "houseNo",
+    "street",
+    "cityName",
+    "geoLatitude",
+    "geoLongitude",
+  ];
+
   const handleFieldChange = (field: keyof FormData, value: string | number) => {
+    if (isReadOnly && readOnlyFields.includes(field)) return;
     // Update the form state
     setFormDataLocal((prev) => ({ ...prev, [field]: value }));
 
@@ -542,9 +675,8 @@ const Page: React.FC = () => {
 
       if (value === "home") {
         setUsePreviousAddress(true);
-        setSelectedPickupCenter(null); // Clear pickup center selection
-        // Trigger fetch of previous address
-        handleAddressOptionChange("previous");
+        setSelectedPickupCenter(null);
+        handleAddressOptionChange("recent");
       } else if (value === "pickup") {
         setUsePreviousAddress(false);
         setSelectedCity(null); // Clear city selection
@@ -950,42 +1082,118 @@ const Page: React.FC = () => {
                   />
                 </div>
 
-                {formData.deliveryMethod === "home" && (
-                  <div className="flex flex-col md:flex-row ">
-                    <div className="flex md:gap-8 gap-2 flex-nowrap ">
-                      {/* Only show "Your Saved Address" option if hasPreviousAddress is true */}
+                {formData.deliveryMethod === "home" && addressOptionsResolving && (
+                  <div className="flex items-center gap-2 text-sm text-gray-500 py-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
+                    Checking saved addresses...
+                  </div>
+                )}
+
+                {formData.deliveryMethod === "home" && !addressOptionsResolving && (
+                  <div className="flex flex-col md:flex-row w-full md:w-auto md:items-center ">
+                    <div className="flex flex-wrap gap-x-4 sm:gap-x-6 md:gap-x-8 gap-y-2 md:items-center">
+                      {hasRecentAddress && (
+                        <label className="flex items-center whitespace-nowrap text-sm md:text-base cursor-pointer">
+                          <input
+                            type="radio"
+                            name="addressMode"
+                            value="recent"
+                            checked={addressMode === "recent"}
+                            onChange={() => handleAddressOptionChange("recent")}
+                            className="mr-2 accent-[#3E206D] cursor-pointer"
+                          />
+                          Recent Address
+                        </label>
+                      )}
+
                       {hasPreviousAddress && (
-                        <label className="flex items-center text-nowrap text-sm md:text-base cursor-pointer">
+                        <label className="flex items-center whitespace-nowrap text-sm md:text-base cursor-pointer">
                           <input
                             type="radio"
                             name="addressMode"
                             value="previous"
-                            checked={usePreviousAddress}
-                            onChange={() =>
-                              handleAddressOptionChange("previous")
-                            }
+                            checked={addressMode === "previous"}
+                            onChange={() => handleAddressOptionChange("previous")}
                             className="mr-2 accent-[#3E206D] cursor-pointer"
                           />
-                          Your Saved Address
+                          Saved Address
                         </label>
                       )}
 
-                      <label className="flex items-center text-nowrap text-sm md:text-base cursor-pointer">
+                      <label className="flex items-center whitespace-nowrap text-sm md:text-base cursor-pointer">
                         <input
                           type="radio"
                           name="addressMode"
                           value="new"
-                          checked={!usePreviousAddress}
+                          checked={addressMode === "new"}
                           onChange={() => handleAddressOptionChange("new")}
-                          className="mr-2 accent-[#3E206D] cursor-pointer "
+                          className="mr-2 accent-[#3E206D] cursor-pointer"
                         />
-                        Enter New Address
+                        New Address
                       </label>
                     </div>
                   </div>
                 )}
+
+                {formData.deliveryMethod === "home" && !addressOptionsResolving && addressMode === "previous" && (
+                  <div className="mb-6 w-full">
+                    <h3 className="font-bold text-base mb-3 mt-2 text-[#252525]">Saved Addresses</h3>
+
+                    {loadingSavedAddresses ? (
+                      <div className="flex justify-center items-center py-8 bg-[#FAF5FD] rounded-xl">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#DBD0F4]"></div>
+                      </div>
+                    ) : (
+                      <div className="bg-[#FAF5FD] border border-[#DBD0F4] rounded-xl p-3 w-full overflow-hidden">
+                        <div
+                          className="grid grid-cols-1 md:grid-cols-2 gap-3 overflow-y-auto pr-1 w-full"
+                          style={
+                            savedAddresses.length > 2 && twoRowHeight
+                              ? { maxHeight: `${twoRowHeight}px` }
+                              : undefined
+                          }
+                        >
+                          {savedAddresses.map((addr, index) => {
+                            const isSelected = selectedAddressKey === addr.addressKey;
+                            const summary =
+                              addr.buildingType === "Apartment"
+                                ? `${addr.buildingNo || ""}, ${addr.buildingName || ""}${addr.floorNo ? `, ${addr.floorNo}${!isNaN(Number(addr.floorNo)) ? " Floor" : ""}` : ""
+                                }${addr.unitNo ? `, House ${addr.unitNo}` : ""}, ${addr.streetName || ""}, ${addr.city || ""}`
+                                : `No:${addr.houseNo || ""}, ${addr.streetName || ""}, ${addr.city || ""}`;
+
+                            return (
+                              <button
+                                type="button"
+                                key={addr.addressKey}
+                                ref={index === 0 ? firstCardRef : undefined}
+                                onClick={() => selectSavedAddress(addr)}
+                                style={{
+                                  backgroundColor: "#FFFFFF",
+                                  border: isSelected ? "2px solid #3E206D" : "1px solid #DBDADD",
+                                  boxShadow: "2px 2px 4px 0px rgba(0, 0, 0, 0.10)",
+                                }}
+                                className="min-w-0 w-full text-left p-4 rounded-lg transition-colors box-border"
+                              >
+                                <div className="flex items-center gap-2 mb-1.5 min-w-0">
+                                  <span
+                                    className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${isSelected ? "border-[#3E206D]" : "border-gray-300"
+                                      }`}
+                                  >
+                                    {isSelected && <span className="w-2 h-2 rounded-full bg-[#3E206D]" />}
+                                  </span>
+                                  <p className="font-semibold text-[#252525] truncate">{addr.saveAs || addr.buildingType}</p>
+                                </div>
+                                <p className="text-sm text-gray-500 leading-snug pl-6 break-words">{summary}</p>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
               </div>
-              <div className="border-t border-gray-300 my-6"></div>
 
               {formData.deliveryMethod === "pickup" && (
                 <div className="w-full mb-6">
@@ -1045,54 +1253,58 @@ const Page: React.FC = () => {
                 </div>
               )}
 
-              <h2 className="text-xl font-bold mb-6 mt-8 text-[#252525]">
-                {formData.deliveryMethod === "pickup"
-                  ? "Pickup Person Information"
-                  : "Delivery Information"}
-              </h2>
+              {!hideDeliveryInfoSection && (
+                <>
 
-              <div className="flex flex-row md:gap-4 gap-2 mb-6">
-                {/* Title dropdown */}
-                <div className="w-1/4 md:w-1/9 cursor-pointer">
-                  <label
-                    htmlFor="title"
-                    className="block font-semibold mb-1 text-[#2E2E2E]"
-                  >
-                    Title *
-                  </label>
-                  <div className="w-full">
-                    <div
-                      className={`rounded-lg ${errors.title ? "border-2 border-red-500" : ""}`}
-                    >
-                      <CustomDropdown
-                        options={[
-                          { value: "Mr", label: "Mr" },
-                          { value: "Ms", label: "Ms" },
-                          { value: "Mrs", label: "Mrs" },
-                          { value: "Rev", label: "Rev" },
-                        ]}
-                        selectedValue={formData.title}
-                        onSelect={(value) => handleFieldChange("title", value)}
-                        placeholder="Title"
-                      />
+                  <h2 className="text-xl font-bold mb-6 mt-8 text-[#252525]">
+                    {formData.deliveryMethod === "pickup"
+                      ? "Pickup Person Information"
+                      : "Delivery Information"}
+                  </h2>
+
+                  <div className="flex flex-row md:gap-4 gap-2 mb-6">
+                    {/* Title dropdown */}
+                    <div className="w-1/4 md:w-1/9 cursor-pointer">
+                      <label
+                        htmlFor="title"
+                        className="block font-semibold mb-1 text-[#2E2E2E]"
+                      >
+                        Title *
+                      </label>
+                      <div className="w-full">
+                        <div
+                          className={`rounded-lg ${errors.title ? "border-2 border-red-500" : ""}`}
+                        >
+                          <CustomDropdown
+                            options={[
+                              { value: "Mr", label: "Mr" },
+                              { value: "Ms", label: "Ms" },
+                              { value: "Mrs", label: "Mrs" },
+                              { value: "Rev", label: "Rev" },
+                            ]}
+                            selectedValue={formData.title}
+                            onSelect={(value) => handleFieldChange("title", value)}
+                            placeholder="Title"
+                            disabled={isReadOnly}
+                          />
+                        </div>
+                        {errors.title && (
+                          <p className="text-red-600 text-sm mt-1">
+                            {errors.title}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                    {errors.title && (
-                      <p className="text-red-600 text-sm mt-1">
-                        {errors.title}
-                      </p>
-                    )}
-                  </div>
-                </div>
 
-                {/* Full name input */}
-                <div className="w-3/4 md:w-8/9">
-                  <label
-                    htmlFor="fullName"
-                    className="block font-semibold mb-1 text-[#2E2E2E]"
-                  >
-                    Full name *
-                  </label>
-                  {/* <input
+                    {/* Full name input */}
+                    <div className="w-3/4 md:w-8/9">
+                      <label
+                        htmlFor="fullName"
+                        className="block font-semibold mb-1 text-[#2E2E2E]"
+                      >
+                        Full name *
+                      </label>
+                      {/* <input
                     type="text"
                     className="w-full border-2 border-[#F2F4F7] bg-[#F9FAFB] h-[39px] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-3 text-base capitalize"
                     placeholder="Enter your full name"
@@ -1104,459 +1316,469 @@ const Page: React.FC = () => {
                       handleFieldChange("fullName", capitalizedValue);
                     }}
                   /> */}
-                  <input
-                    type="text"
-                    className="w-full border-2 border-[#F2F4F7] bg-[#F9FAFB] h-[39px] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-3 text-base capitalize"
-                    placeholder="Enter your full name"
-                    value={formData.fullName}
-                    onChange={(e) => {
-                      // Remove leading spaces, numbers, and special characters
-                      const value = e.target.value
-                        .replace(/^\s+/, '')           // Remove leading spaces
-                        .replace(/[0-9]/g, '')         // Remove all numbers
-                        .replace(/[^a-zA-Z\s]/g, '');  // Remove special characters, keep only letters and spaces
-
-                      const capitalizedValue = capitalizeFirstLetter(value);
-                      handleFieldChange("fullName", capitalizedValue);
-                    }}
-                    onKeyDown={(e) => {
-                      // Prevent space at beginning, numbers, and special characters
-                      const isNumber = /[0-9]/.test(e.key);
-                      const isSpecialChar = /[^a-zA-Z\s]/.test(e.key) && e.key.length === 1;
-                      if ((e.key === ' ' && e.currentTarget.selectionStart === 0) || isNumber || isSpecialChar) {
-                        e.preventDefault();
-                      }
-                    }}
-                    onPaste={(e) => {
-                      // Handle paste events
-                      e.preventDefault();
-                      const pastedText = e.clipboardData.getData('text');
-                      const cleanedText = pastedText
-                        .replace(/^\s+/, '')           // Remove leading spaces
-                        .replace(/[0-9]/g, '')         // Remove all numbers
-                        .replace(/[^a-zA-Z\s]/g, '')   // Remove special characters
-                        .replace(/\s+/g, ' ');         // Replace multiple spaces with single space
-
-                      const capitalizedValue = capitalizeFirstLetter(cleanedText);
-                      handleFieldChange("fullName", capitalizedValue);
-                    }}
-                  />
-                  {errors.fullName && (
-                    <p className="text-red-600 text-sm mt-1">
-                      {errors.fullName}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex md:flex-row flex-col md:gap-4 gap-4 mb-6">
-                <div className="md:w-1/2 w-full">
-                  <label className="block font-semibold mb-1 text-[#2E2E2E]">
-                    Phone Number 1 *
-                  </label>
-                  <div className="flex gap-2">
-                    <div className="w-28">
-                      <PhoneCustomDropdown
-                        options={countryOptions}
-                        selectedValue={formData.phoneCode1}
-                        onSelect={(value: any) =>
-                          handleFieldChange("phoneCode1", value)
-                        }
-                        placeholder="+94"
-                      />
-                    </div>
-                    <div className="w-full">
                       <input
                         type="text"
-                        inputMode="numeric"
-                        className="w-full h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2"
-                        value={formData.phone1}
+                        className="w-full border-2 border-[#F2F4F7] bg-[#F9FAFB] h-[39px] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-3 text-base capitalize"
+                        placeholder="Enter your full name"
+                        value={formData.fullName}
                         onChange={(e) => {
-                          const value = e.target.value.replace(/\D/g, ''); // allow only digits
-                          handleFieldChange("phone1", value);
+                          // Remove leading spaces, numbers, and special characters
+                          const value = e.target.value
+                            .replace(/^\s+/, '')           // Remove leading spaces
+                            .replace(/[0-9]/g, '')         // Remove all numbers
+                            .replace(/[^a-zA-Z\s]/g, '');  // Remove special characters, keep only letters and spaces
+
+                          const capitalizedValue = capitalizeFirstLetter(value);
+                          handleFieldChange("fullName", capitalizedValue);
                         }}
-                        placeholder="7XXXXXXXX"
-                        maxLength={9}
-                      />
-                      {errors.phone1 && (
-                        <p className="text-red-600 text-sm mt-1">
-                          {errors.phone1}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="md:w-1/2 w-full">
-                  <label className="block font-semibold mb-1 text-[#2E2E2E]">
-                    Phone Number 2
-                  </label>
-                  <div className="flex gap-2">
-                    <div className="w-28">
-                      <PhoneCustomDropdown
-                        options={countryOptions}
-                        selectedValue={formData.phoneCode2}
-                        onSelect={(value: any) =>
-                          handleFieldChange("phoneCode2", value)
-                        }
-                        placeholder="+94"
-                      />
-                    </div>
-                    <div className="w-full">
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        className={`w-full h-[39px] border-2 ${duplicatePhoneError ? "border-red-500" : "border-[#F2F4F7]"} bg-[#F9FAFB] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2`}
-                        value={formData.phone2}
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/\D/g, ''); // allow only digits
-                          handleFieldChange("phone2", value);
-                        }}
-                        placeholder="7XXXXXXXX"
-                        maxLength={9}
-                      />
-                      {errors.phone2 && (
-                        <p className="text-red-600 text-sm mt-1">
-                          {errors.phone2}
-                        </p>
-                      )}
-                      {duplicatePhoneError && !errors.phone2 && (
-                        <p className="text-red-600 text-sm mt-1">
-                          {duplicatePhoneError}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {formData.deliveryMethod === "home" && (
-                <>
-                  {/* Loading indicator for address fetching */}
-                  {isLoadingAddress && (
-                    <div className="flex justify-center items-center py-12">
-                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
-                      <span className="ml-3 text-gray-600 text-lg">Loading address...</span>
-                    </div>
-                  )}
-
-                  {!isLoadingAddress && (
-                    <div className="flex flex-wrap -mx-2">
-                      {/* Building Type */}
-                      <div className="w-full md:w-1/2 px-2 mb-4">
-                        <label className="block text-[#2E2E2E] font-semibold mb-1">
-                          Building type *
-                        </label>
-                        <CustomDropdown
-                          options={[
-                            { value: "Apartment", label: "Apartment" },
-                            { value: "House", label: "House" },
-                          ]}
-                          selectedValue={formData.buildingType}
-                          onSelect={(value) =>
-                            handleFieldChange("buildingType", value)
+                        onKeyDown={(e) => {
+                          // Prevent space at beginning, numbers, and special characters
+                          const isNumber = /[0-9]/.test(e.key);
+                          const isSpecialChar = /[^a-zA-Z\s]/.test(e.key) && e.key.length === 1;
+                          if ((e.key === ' ' && e.currentTarget.selectionStart === 0) || isNumber || isSpecialChar) {
+                            e.preventDefault();
                           }
-                          placeholder="Building type"
-                        />
-                        {errors.buildingType && (
-                          <p className="text-red-600 text-sm mt-1">
-                            {errors.buildingType}
-                          </p>
-                        )}
-                      </div>
+                        }}
+                        onPaste={(e) => {
+                          // Handle paste events
+                          e.preventDefault();
+                          const pastedText = e.clipboardData.getData('text');
+                          const cleanedText = pastedText
+                            .replace(/^\s+/, '')           // Remove leading spaces
+                            .replace(/[0-9]/g, '')         // Remove all numbers
+                            .replace(/[^a-zA-Z\s]/g, '')   // Remove special characters
+                            .replace(/\s+/g, ' ');         // Replace multiple spaces with single space
 
-                      {/* Apartment or Building No */}
-                      {formData.buildingType === "Apartment" && (
-                        <div className="w-full md:w-1/2 px-2 mb-4">
-                          <label className="block font-semibold text-[#2E2E2E] mb-1">
-                            Apartment or Building No *
-                          </label>
-                          <input
-                            value={formData.buildingNo}
-                            onChange={(e) => {
-                              const value = e.target.value.replace(/^\s+/, ''); // Remove leading spaces
-                              handleFieldChange("buildingNo", value);
-                            }}
-                            onKeyDown={(e) => {
-                              // Prevent space at beginning
-                              if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
-                                e.preventDefault();
-                              }
-                            }}
-                            type="text"
-                            placeholder="Enter House / Building No"
-                            className="w-full px-4 py-2 h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] rounded-lg  placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                          const capitalizedValue = capitalizeFirstLetter(cleanedText);
+                          handleFieldChange("fullName", capitalizedValue);
+                        }}
+                        readOnly={isReadOnly}
+
+                      />
+                      {errors.fullName && (
+                        <p className="text-red-600 text-sm mt-1">
+                          {errors.fullName}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex md:flex-row flex-col md:gap-4 gap-4 mb-6">
+                    <div className="md:w-1/2 w-full">
+                      <label className="block font-semibold mb-1 text-[#2E2E2E]">
+                        Phone Number 1 *
+                      </label>
+                      <div className="flex gap-2">
+                        <div className="w-28">
+                          <PhoneCustomDropdown
+                            options={countryOptions}
+                            selectedValue={formData.phoneCode1}
+                            onSelect={(value: any) => handleFieldChange("phoneCode1", value)}
+                            placeholder="+94"
+                            disabled={isReadOnly}
                           />
-                          {errors.buildingNo && (
-                            <p className="text-red-600 text-sm mt-1">
-                              {errors.buildingNo}
-                            </p>
+                        </div>
+                        <div className="w-full">
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            className="w-full h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2"
+                            value={formData.phone1}
+                            onChange={(e) => {
+                              const value = e.target.value.replace(/\D/g, '');
+                              handleFieldChange("phone1", value);
+                            }}
+                            placeholder="7XXXXXXXX"
+                            maxLength={9}
+                            readOnly={isReadOnly}
+                          />
+                          {errors.phone1 && (
+                            <p className="text-red-600 text-sm mt-1">{errors.phone1}</p>
                           )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="md:w-1/2 w-full">
+                      <label className="block font-semibold mb-1 text-[#2E2E2E]">
+                        Phone Number 2
+                      </label>
+                      <div className="flex gap-2">
+                        <div className="w-28">
+                          <PhoneCustomDropdown
+                            options={countryOptions}
+                            selectedValue={formData.phoneCode2}
+                            onSelect={(value: any) => handleFieldChange("phoneCode2", value)}
+                            placeholder="+94"
+                            disabled={isReadOnly}
+                          />
+                        </div>
+                        <div className="w-full">
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            className={`w-full h-[39px] border-2 ${duplicatePhoneError ? "border-red-500" : "border-[#F2F4F7]"} bg-[#F9FAFB] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2`}
+                            value={formData.phone2}
+                            onChange={(e) => {
+                              const value = e.target.value.replace(/\D/g, '');
+                              handleFieldChange("phone2", value);
+                            }}
+                            placeholder="7XXXXXXXX"
+                            maxLength={9}
+                            readOnly={isReadOnly}
+                          />
+                          {errors.phone2 && (
+                            <p className="text-red-600 text-sm mt-1">{errors.phone2}</p>
+                          )}
+                          {duplicatePhoneError && !errors.phone2 && (
+                            <p className="text-red-600 text-sm mt-1">{duplicatePhoneError}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {formData.deliveryMethod === "home" && (
+                    <>
+                      {/* Loading indicator for address fetching */}
+                      {isLoadingAddress && (
+                        <div className="flex justify-center items-center py-12">
+                          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+                          <span className="ml-3 text-gray-600 text-lg">Loading address...</span>
                         </div>
                       )}
 
-                      {/* Apartment or Building Name */}
-                      {formData.buildingType === "Apartment" && (
-                        <div className="w-full md:w-1/2 px-2 mb-4">
-                          <label className="block font-semibold text-[#2E2E2E] mb-1">
-                            Apartment or Building Name *
-                          </label>
-                          <input
-                            value={formData.buildingName}
-                            onChange={(e) => {
-                              const value = e.target.value.replace(/^\s+/, ''); // Remove leading spaces
-                              handleFieldChange("buildingName", value);
-                            }}
-                            onKeyDown={(e) => {
-                              // Prevent space at beginning
-                              if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
-                                e.preventDefault();
+                      {!isLoadingAddress && (
+                        <div className="flex flex-wrap -mx-2">
+                          {/* Building Type */}
+                          <div className="w-full md:w-1/2 px-2 mb-4">
+                            <label className="block text-[#2E2E2E] font-semibold mb-1">
+                              Building type *
+                            </label>
+                            <CustomDropdown
+                              options={[
+                                { value: "Apartment", label: "Apartment" },
+                                { value: "House", label: "House" },
+                              ]}
+                              selectedValue={formData.buildingType}
+                              onSelect={(value) =>
+                                handleFieldChange("buildingType", value)
                               }
-                            }}
-                            type="text"
-                            placeholder="Enter building name"
-                            className="w-full px-4 py-2 border-2 h-[39px] border-[#F2F4F7] bg-[#F9FAFB] rounded-lg  placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
-                          />
-                          {errors.buildingName && (
-                            <p className="text-red-600 text-sm mt-1">
-                              {errors.buildingName}
-                            </p>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Flat / Unit Number */}
-                      {formData.buildingType === "Apartment" && (
-                        <div className="w-full md:w-1/2 px-2 mb-4">
-                          <label className="block font-semibold text-[#2E2E2E] mb-1">
-                            Flat / Unit Number *
-                          </label>
-                          <input
-                            value={formData.flatNumber}
-                            onChange={(e) => {
-                              const value = e.target.value.replace(/^\s+/, ''); // Remove leading spaces
-                              handleFieldChange("flatNumber", value);
-                            }}
-                            onKeyDown={(e) => {
-                              // Prevent space at beginning
-                              if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
-                                e.preventDefault();
-                              }
-                            }}
-                            type="text"
-                            placeholder="Enter flat number"
-                            className="w-full px-4 py-2 border-2 h-[39px] border-[#F2F4F7] bg-[#F9FAFB] rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
-                          />
-                          {errors.flatNumber && (
-                            <p className="text-red-600 text-sm mt-1">
-                              {errors.flatNumber}
-                            </p>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Floor Number */}
-                      {formData.buildingType === "Apartment" && (
-                        <div className="w-full md:w-1/2 px-2 mb-4">
-                          <label className="block font-semibold text-[#2E2E2E] mb-1">
-                            Floor Number *
-                          </label>
-                          <input
-                            value={formData.floorNumber}
-                            onChange={(e) => {
-                              const value = e.target.value.replace(/^\s+/, ''); // Remove leading spaces
-                              handleFieldChange("floorNumber", value);
-                            }}
-                            onKeyDown={(e) => {
-                              // Prevent space at beginning
-                              if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
-                                e.preventDefault();
-                              }
-                            }}
-                            type="text"
-                            placeholder="Enter floor number"
-                            className="w-full px-4 py-2 border-2 h-[39px] border-[#F2F4F7] bg-[#F9FAFB] rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
-                          />
-                          {errors.floorNumber && (
-                            <p className="text-red-600 text-sm mt-1">
-                              {errors.floorNumber}
-                            </p>
-                          )}
-                        </div>
-                      )}
-
-                      {/* House Number */}
-                      <div className="w-full md:w-1/2 px-2 mb-4">
-                        <label className="block font-semibold text-[#2E2E2E] mb-1">
-                          House Number *
-                        </label>
-                        <input
-                          value={formData.houseNo}
-                          onChange={(e) => {
-                            const value = e.target.value.replace(/^\s+/, ''); // Remove leading spaces
-                            handleFieldChange("houseNo", value);
-                          }}
-                          onKeyDown={(e) => {
-                            // Prevent space at beginning
-                            if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
-                              e.preventDefault();
-                            }
-                          }}
-                          type="text"
-                          placeholder="Enter house number"
-                          className="w-full px-4 py-2 border-2 h-[39px] border-[#F2F4F7] bg-[#F9FAFB] rounded-lg  placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
-                        />
-                        {errors.houseNo && (
-                          <p className="text-red-600 text-sm mt-1">
-                            {errors.houseNo}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Street Name */}
-                      <div className="w-full md:w-1/2 px-2 mb-4">
-                        <label className="block font-semibold text-[#2E2E2E] mb-1">
-                          Street Name *
-                        </label>
-                        <input
-                          value={formData.street}
-                          onChange={(e) => {
-                            const value = e.target.value.replace(/^\s+/, ''); // Remove leading spaces
-                            const capitalizedValue = capitalizeFirstLetter(value);
-                            handleFieldChange("street", capitalizedValue);
-                          }}
-                          onKeyDown={(e) => {
-                            // Prevent space at beginning
-                            if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
-                              e.preventDefault();
-                            }
-                          }}
-                          type="text"
-                          placeholder="Enter Street Name"
-                          className="w-full px-4 py-2 border-2 h-[39px] border-[#F2F4F7] bg-[#F9FAFB] rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600 capitalize"
-                        />
-                        {errors.street && (
-                          <p className="text-red-600 text-sm mt-1">
-                            {errors.street}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* City */}
-                      <div className="w-full md:w-1/2 px-2 mb-4">
-                        <label className="block font-semibold text-[#2E2E2E] mb-1">
-                          Nearest City *
-                        </label>
-                        {loadingCities ? (
-                          <div className="w-full h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] rounded-lg flex items-center justify-center">
-                            <span className="text-sm text-gray-500">
-                              Loading cities...
-                            </span>
-                          </div>
-                        ) : (
-                          <CustomDropdown
-                            options={cityOptions}
-                            selectedValue={selectedCity?.id?.toString() || ""}
-                            onSelect={(value) => {
-                              const selectedCityData = cities.find(
-                                (city) => city.id.toString() === value,
-                              );
-                              if (selectedCityData) {
-                                handleCitySelect(value, selectedCityData.city);
-                              }
-                            }}
-                            placeholder="Select nearest city"
-                            searchable={true}
-                            searchPlaceholder="Type to search cities..."
-                          />
-                        )}
-                        {errors.cityName && (
-                          <p className="text-red-600 text-sm mt-1">
-                            {errors.cityName}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="w-full md:w-1/2 px-2 mb-4">
-                        <label className="block font-semibold text-[#2E2E2E] mb-1">
-                          Geo Location *
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setViewingSavedLocation(false);
-                            setIsGeoModalOpen(true);
-                          }}
-                          className="w-full h-[39px] border-2 border-[#F2F4F7] bg-[#E6D9F5] rounded-lg flex items-center justify-center gap-2 text-[#3E206D] font-medium hover:bg-[#d9c9ed] transition-colors cursor-pointer"
-                        >
-                          <LocateFixed size={20} />
-                          {formData.geoLatitude && formData.geoLongitude
-                            ? "Reattach My Geo Location"
-                            : "Attach My Geo Location"}
-                        </button>
-
-                        {(errors.geoLatitude || errors.geoLongitude) && (
-                          <p className="text-red-600 text-sm mt-1">
-                            {errors.geoLatitude || errors.geoLongitude}
-                          </p>
-                        )}
-
-                        {/* Show current attached location */}
-                        {formData.geoLatitude && formData.geoLongitude && (
-                          <div className="mt-2 space-y-1">
-                            <p className="text-xs text-green-600">
-                              Location attached
-                              {/* : {formData.geoLatitude.toFixed(6)},{" "} */}
-                              {/* {formData.geoLongitude.toFixed(6)} */}
-                            </p>
-
-                            {/* View Here link - only show if this is from saved address */}
-                            {formData.geoLatitude && formData.geoLongitude && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setViewingSavedLocation(true);
-                                  setIsGeoModalOpen(true);
-                                  setIsViewOnly(true);
-                                }}
-                                className="flex items-center gap-1 text-red-600 hover:text-red-700 transition-colors text-sm font-medium group cursor-pointer"
-                              >
-                                <LocateFixed
-                                  size={16}
-                                  className="group-hover:scale-110 transition-transform"
-                                />
-                                <span className="underline">View here</span>
-                              </button>
+                              placeholder="Building type"
+                              disabled={isReadOnly}
+                            />
+                            {errors.buildingType && (
+                              <p className="text-red-600 text-sm mt-1">
+                                {errors.buildingType}
+                              </p>
                             )}
                           </div>
-                        )}
-                      </div>
-                      {/* Geo Location Modal */}
-                      <GeoLocationModal
-                        isOpen={isGeoModalOpen}
-                        onClose={() => {
-                          setIsGeoModalOpen(false);
-                          setViewingSavedLocation(false);
-                          setIsViewOnly(false);
-                        }}
-                        onLocationSelect={handleLocationSelect}
-                        initialCenter={
-                          viewingSavedLocation &&
-                            formData.geoLatitude &&
-                            formData.geoLongitude
-                            ? [formData.geoLatitude, formData.geoLongitude]
-                            : mapCenter
-                        }
-                        savedLocation={
-                          viewingSavedLocation &&
-                            formData.geoLatitude &&
-                            formData.geoLongitude
-                            ? [formData.geoLatitude, formData.geoLongitude]
-                            : null
-                        }
-                        viewOnly={isViewOnly}
-                      />
-                    </div>
+
+                          {/* Apartment or Building No */}
+                          {formData.buildingType === "Apartment" && (
+                            <div className="w-full md:w-1/2 px-2 mb-4">
+                              <label className="block font-semibold text-[#2E2E2E] mb-1">
+                                Apartment or Building No *
+                              </label>
+                              <input
+                                value={formData.buildingNo}
+                                onChange={(e) => {
+                                  const value = e.target.value.replace(/^\s+/, ''); // Remove leading spaces
+                                  handleFieldChange("buildingNo", value);
+                                }}
+                                onKeyDown={(e) => {
+                                  // Prevent space at beginning
+                                  if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
+                                    e.preventDefault();
+                                  }
+                                }}
+                                type="text"
+                                placeholder="Enter House / Building No"
+                                disabled={isReadOnly}
+                                className="w-full px-4 py-2 h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] rounded-lg  placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                              />
+                              {errors.buildingNo && (
+                                <p className="text-red-600 text-sm mt-1">
+                                  {errors.buildingNo}
+                                </p>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Apartment or Building Name */}
+                          {formData.buildingType === "Apartment" && (
+                            <div className="w-full md:w-1/2 px-2 mb-4">
+                              <label className="block font-semibold text-[#2E2E2E] mb-1">
+                                Apartment or Building Name *
+                              </label>
+                              <input
+                                value={formData.buildingName}
+                                onChange={(e) => {
+                                  const value = e.target.value.replace(/^\s+/, '');
+                                  handleFieldChange("buildingName", value);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
+                                    e.preventDefault();
+                                  }
+                                }}
+                                type="text"
+                                placeholder="Enter building name"
+                                className="w-full px-4 py-2 border-2 h-[39px] border-[#F2F4F7] bg-[#F9FAFB] rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                                readOnly={isReadOnly}
+                              />
+                              {errors.buildingName && (
+                                <p className="text-red-600 text-sm mt-1">
+                                  {errors.buildingName}
+                                </p>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Flat / Unit Number */}
+                          {formData.buildingType === "Apartment" && (
+                            <div className="w-full md:w-1/2 px-2 mb-4">
+                              <label className="block font-semibold text-[#2E2E2E] mb-1">
+                                Flat / Unit Number *
+                              </label>
+                              <input
+                                value={formData.flatNumber}
+                                onChange={(e) => {
+                                  const value = e.target.value.replace(/^\s+/, ''); // Remove leading spaces
+                                  handleFieldChange("flatNumber", value);
+                                }}
+                                onKeyDown={(e) => {
+                                  // Prevent space at beginning
+                                  if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
+                                    e.preventDefault();
+                                  }
+                                }}
+                                type="text"
+                                placeholder="Enter flat number"
+                                readOnly={isReadOnly}
+                                className="w-full px-4 py-2 border-2 h-[39px] border-[#F2F4F7] bg-[#F9FAFB] rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                              />
+                              {errors.flatNumber && (
+                                <p className="text-red-600 text-sm mt-1">
+                                  {errors.flatNumber}
+                                </p>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Floor Number */}
+                          {formData.buildingType === "Apartment" && (
+                            <div className="w-full md:w-1/2 px-2 mb-4">
+                              <label className="block font-semibold text-[#2E2E2E] mb-1">
+                                Floor Number *
+                              </label>
+                              <input
+                                value={formData.floorNumber}
+                                onChange={(e) => {
+                                  const value = e.target.value.replace(/^\s+/, ''); // Remove leading spaces
+                                  handleFieldChange("floorNumber", value);
+                                }}
+                                onKeyDown={(e) => {
+                                  // Prevent space at beginning
+                                  if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
+                                    e.preventDefault();
+                                  }
+                                }}
+                                type="text"
+                                placeholder="Enter floor number"
+                                readOnly={isReadOnly}
+                                className="w-full px-4 py-2 border-2 h-[39px] border-[#F2F4F7] bg-[#F9FAFB] rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                              />
+                              {errors.floorNumber && (
+                                <p className="text-red-600 text-sm mt-1">
+                                  {errors.floorNumber}
+                                </p>
+                              )}
+                            </div>
+                          )}
+
+                          {/* House Number */}
+                          <div className="w-full md:w-1/2 px-2 mb-4">
+                            <label className="block font-semibold text-[#2E2E2E] mb-1">
+                              House Number *
+                            </label>
+                            <input
+                              value={formData.houseNo}
+                              onChange={(e) => {
+                                const value = e.target.value.replace(/^\s+/, ''); // Remove leading spaces
+                                handleFieldChange("houseNo", value);
+                              }}
+                              onKeyDown={(e) => {
+                                // Prevent space at beginning
+                                if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
+                                  e.preventDefault();
+                                }
+                              }}
+                              type="text"
+                              placeholder="Enter house number"
+                              readOnly={isReadOnly}
+                              className="w-full px-4 py-2 border-2 h-[39px] border-[#F2F4F7] bg-[#F9FAFB] rounded-lg  placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                            />
+                            {errors.houseNo && (
+                              <p className="text-red-600 text-sm mt-1">
+                                {errors.houseNo}
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Street Name */}
+                          <div className="w-full md:w-1/2 px-2 mb-4">
+                            <label className="block font-semibold text-[#2E2E2E] mb-1">
+                              Street Name *
+                            </label>
+                            <input
+                              value={formData.street}
+                              onChange={(e) => {
+                                const value = e.target.value.replace(/^\s+/, ''); // Remove leading spaces
+                                const capitalizedValue = capitalizeFirstLetter(value);
+                                handleFieldChange("street", capitalizedValue);
+                              }}
+                              onKeyDown={(e) => {
+                                // Prevent space at beginning
+                                if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
+                                  e.preventDefault();
+                                }
+                              }}
+                              type="text"
+                              placeholder="Enter Street Name"
+                              readOnly={isReadOnly}
+                              className="w-full px-4 py-2 border-2 h-[39px] border-[#F2F4F7] bg-[#F9FAFB] rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600 capitalize"
+                            />
+                            {errors.street && (
+                              <p className="text-red-600 text-sm mt-1">
+                                {errors.street}
+                              </p>
+                            )}
+                          </div>
+
+                          {/* City */}
+                          <div className="w-full md:w-1/2 px-2 mb-4">
+                            <label className="block font-semibold text-[#2E2E2E] mb-1">
+                              Nearest City *
+                            </label>
+                            {loadingCities ? (
+                              <div className="w-full h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] rounded-lg flex items-center justify-center">
+                                <span className="text-sm text-gray-500">
+                                  Loading cities...
+                                </span>
+                              </div>
+                            ) : (
+                              <CustomDropdown
+                                options={cityOptions}
+                                selectedValue={selectedCity?.id?.toString() || ""}
+                                onSelect={(value) => {
+                                  const selectedCityData = cities.find(
+                                    (city) => city.id.toString() === value,
+                                  );
+                                  if (selectedCityData) {
+                                    handleCitySelect(value, selectedCityData.city);
+                                  }
+                                }}
+                                placeholder="Select nearest city"
+                                searchable={true}
+                                searchPlaceholder="Type to search cities..."
+                                disabled={isReadOnly}
+                              />
+                            )}
+                            {errors.cityName && (
+                              <p className="text-red-600 text-sm mt-1">
+                                {errors.cityName}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="w-full md:w-1/2 px-2 mb-4">
+                            <label className="block font-semibold text-[#2E2E2E] mb-1">
+                              Geo Location *
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (isReadOnly) return;
+                                setViewingSavedLocation(false);
+                                setIsGeoModalOpen(true);
+                              }}
+                              disabled={isReadOnly}
+                              className={`w-full h-[39px] border-2 border-[#F2F4F7] rounded-lg flex items-center justify-center gap-2 font-medium transition-colors ${isReadOnly
+                                ? "bg-[#E6D9F5] text-[#3E206D] opacity-70 cursor-not-allowed"
+                                : "bg-[#E6D9F5] text-[#3E206D] hover:bg-[#d9c9ed] cursor-pointer"
+                                }`}
+                            >
+                              <LocateFixed size={20} />
+                              {formData.geoLatitude && formData.geoLongitude
+                                ? "Reattach My Geo Location"
+                                : "Attach My Geo Location"}
+                            </button>
+
+                            {(errors.geoLatitude || errors.geoLongitude) && (
+                              <p className="text-red-600 text-sm mt-1">
+                                {errors.geoLatitude || errors.geoLongitude}
+                              </p>
+                            )}
+
+                            {/* Show current attached location */}
+                            {formData.geoLatitude && formData.geoLongitude && (
+                              <div className="mt-2 space-y-1">
+                                <p className="text-xs text-green-600">
+                                  Location attached
+                                  {/* : {formData.geoLatitude.toFixed(6)},{" "} */}
+                                  {/* {formData.geoLongitude.toFixed(6)} */}
+                                </p>
+
+                                {/* View Here link - only show if this is from saved address */}
+                                {formData.geoLatitude && formData.geoLongitude && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setViewingSavedLocation(true);
+                                      setIsGeoModalOpen(true);
+                                      setIsViewOnly(true);
+                                    }}
+                                    className="flex items-center gap-1 text-red-600 hover:text-red-700 transition-colors text-sm font-medium group cursor-pointer"
+                                  >
+                                    <LocateFixed
+                                      size={16}
+                                      className="group-hover:scale-110 transition-transform"
+                                    />
+                                    <span className="underline">View here</span>
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          {/* Geo Location Modal */}
+                          <GeoLocationModal
+                            isOpen={isGeoModalOpen}
+                            onClose={() => {
+                              setIsGeoModalOpen(false);
+                              setViewingSavedLocation(false);
+                              setIsViewOnly(false);
+                            }}
+                            onLocationSelect={handleLocationSelect}
+                            initialCenter={
+                              viewingSavedLocation &&
+                                formData.geoLatitude &&
+                                formData.geoLongitude
+                                ? [formData.geoLatitude, formData.geoLongitude]
+                                : mapCenter
+                            }
+                            savedLocation={
+                              viewingSavedLocation &&
+                                formData.geoLatitude &&
+                                formData.geoLongitude
+                                ? [formData.geoLatitude, formData.geoLongitude]
+                                : null
+                            }
+                            viewOnly={isViewOnly}
+                          />
+                        </div>
+                      )}
+                    </>
                   )}
                 </>
               )}
@@ -1802,8 +2024,8 @@ const Page: React.FC = () => {
 
                 <div className="flex justify-between text-sm mb-2">
                   <p className="text-gray-600">Discount</p>
-                  <p className="text-gray-600">
-                    Rs. {formatPrice(cartData?.discountAmount || 0)}
+                  <p className="text-[#BE2A45]">
+                    - Rs. {formatPrice(cartData?.discountAmount || 0)}
                   </p>
                 </div>
 
@@ -1833,8 +2055,8 @@ const Page: React.FC = () => {
                     type="submit"
                     disabled={!isFormValidState || isLoading}
                     className={`w-full font-semibold rounded-xl py-3.5 transition cursor-pointer ${!isFormValidState || isLoading
-                        ? "bg-[#EBEEF2] text-[#B1BAC3] cursor-not-allowed"
-                        : "bg-[#3E206D] text-white hover:bg-[#2f1854] cursor-pointer"
+                      ? "bg-[#EBEEF2] text-[#B1BAC3] cursor-not-allowed"
+                      : "bg-[#3E206D] text-white hover:bg-[#2f1854] cursor-pointer"
                       }`}
                   >
                     {isLoading ? "Processing..." : "Continue to Payment"}
