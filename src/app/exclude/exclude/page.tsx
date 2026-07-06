@@ -233,12 +233,12 @@ export default function ExcludeItems() {
 
   // ── Render ────────────────────────────────────────────────────────
   return (
-    <div className="w-full flex flex-col justify-center items-center min-h-screen p-6 bg-white">
+    <div className="w-full flex flex-col justify-center items-center min-h-screen p-4 md:p-6 bg-white">
       {/* Heading */}
       <h2 className="text-[20px] md:text-[28px] font-bold mb-2 text-center text-[#001535]">
         Customize Your Package
       </h2>
-      <p className="text-[13px] md:text-[16px] text-[#4C5160] mb-5 text-center px-4">
+      <p className="text-[13px] md:text-[16px] text-[#4C5160] mb-5 text-center px-2 md:px-4">
         Choose items you'd prefer to include or exclude from your package.
         <br />
         An item cannot be both preferred and excluded.
@@ -270,7 +270,7 @@ export default function ExcludeItems() {
         </div>
 
         {/* Top legend cards */}
-        <div className="flex gap-2 mb-5">
+        <div className="flex flex-col sm:flex-row gap-2 mb-5">
           {/* Prefer to Include */}
           <div className="flex items-center gap-2 border border-[#E6F2E5] rounded-lg px-3 py-2 bg-[#F6FCF5] flex-1">
             <div className="w-7 h-7 bg-[#F6FCF5] flex items-center justify-center flex-shrink-0">
@@ -352,18 +352,18 @@ export default function ExcludeItems() {
 
         {/* Table */}
         {!loading && !error && filteredItems.length > 0 && (
-          <div className="custom-scrollbar max-h-[420px] overflow-y-auto pr-3">
-            <table className="w-full border-collapse">
+          <div className="custom-scrollbar max-h-[420px] overflow-y-auto pr-1 md:pr-3">
+            <table className="w-full border-collapse table-fixed">
               <thead className="sticky top-0 bg-white z-10">
                 <tr className="border-b border-[#BDBDBD]">
-                  <th className="text-[12px] font-semibold text-[#4CAF50] py-2 text-center w-[15%]">
+                  <th className="text-[11px] md:text-[12px] font-semibold text-[#4CAF50] py-2 text-center w-[20%] md:w-[15%]">
                     Include
                   </th>
-                  <th className="text-[12px] font-semibold text-[#4B5563] py-2 text-left w-[35%] pl-2">
+                  <th className="text-[11px] md:text-[12px] font-semibold text-[#4B5563] py-2 text-left w-[35%] md:w-[35%] pl-1 md:pl-2">
                     Product
                   </th>
-                  <th className="w-[30%]" />
-                  <th className="text-[12px] font-semibold text-[#EF4444] py-2 text-center w-[20%]">
+                  <th className="w-[20%] md:w-[30%]" />
+                  <th className="text-[11px] md:text-[12px] font-semibold text-[#EF4444] py-2 text-center w-[20%] md:w-[20%]">
                     Exclude
                   </th>
                 </tr>
@@ -378,18 +378,22 @@ export default function ExcludeItems() {
                       className="border-t border-[#E5E7EB]"
                     >
                       {/* Include toggle */}
-                      <td className="py-3 text-center pl-6">
-                        <Toggle
-                          on={isIncluded}
-                          color="green"
-                          disabled={isExcluded}
-                          onClick={() => handleIncludeToggle(item.displayName)}
-                          ariaLabel={`Toggle include ${item.displayName}`}
-                        />
+                      <td className="py-3 text-center px-1">
+                        <div className="flex justify-center">
+                          <Toggle
+                            on={isIncluded}
+                            color="green"
+                            disabled={isExcluded}
+                            onClick={() =>
+                              handleIncludeToggle(item.displayName)
+                            }
+                            ariaLabel={`Toggle include ${item.displayName}`}
+                          />
+                        </div>
                       </td>
                       {/* Product name */}
-                      <td className="py-3 pl-2">
-                        <span className="text-[14px] md:text-[15px] font-medium text-black">
+                      <td className="py-3 pl-1 md:pl-2">
+                        <span className="text-[12px] md:text-[15px] font-medium text-black break-words">
                           {item.displayName}
                         </span>
                       </td>
@@ -398,21 +402,25 @@ export default function ExcludeItems() {
                         <img
                           src={item.image}
                           alt={item.displayName}
-                          className="w-12 h-12 object-contain"
+                          className="w-9 h-9 md:w-12 md:h-12 object-contain"
                           onError={(e) => {
                             e.currentTarget.src = "/images/fallback.png";
                           }}
                         />
                       </td>
                       {/* Exclude toggle */}
-                      <td className="py-3 text-center pl-12">
-                        <Toggle
-                          on={isExcluded}
-                          color="red"
-                          disabled={isIncluded}
-                          onClick={() => handleExcludeToggle(item.displayName)}
-                          ariaLabel={`Toggle exclude ${item.displayName}`}
-                        />
+                      <td className="py-3 text-center px-1">
+                        <div className="flex justify-center">
+                          <Toggle
+                            on={isExcluded}
+                            color="red"
+                            disabled={isIncluded}
+                            onClick={() =>
+                              handleExcludeToggle(item.displayName)
+                            }
+                            ariaLabel={`Toggle exclude ${item.displayName}`}
+                          />
+                        </div>
                       </td>
                     </tr>
                   );
@@ -424,7 +432,7 @@ export default function ExcludeItems() {
 
         {/* Bottom legend */}
         {!loading && filteredItems.length > 0 && (
-          <div className="mt-6 flex gap-0 border border-[#E1E0E5] rounded-lg overflow-hidden">
+          <div className="mt-6 flex flex-col sm:flex-row gap-0 border border-[#E1E0E5] rounded-lg overflow-hidden">
             <div className="p-4 flex-1">
               <div className="flex flex-col gap-2.5">
                 <div className="flex items-center gap-2">
@@ -447,10 +455,11 @@ export default function ExcludeItems() {
                 </div>
               </div>
             </div>
-            <div className="border-l border-[#E1E0E5]" />
+            <div className="hidden sm:block border-l border-[#E1E0E5]" />
+            <div className="sm:hidden border-t border-[#E1E0E5]" />
             <div className="p-4 flex-1 flex items-center gap-2">
               <Info className="w-5 h-5 text-[#000000] flex-shrink-0" />
-              <p className="text-[11px] text-[#8A899E] leading-relaxed whitespace-nowrap">
+              <p className="text-[11px] text-[#8A899E] leading-relaxed">
                 Items marked as "Include" will be prioritized when possible.
                 <br />
                 Items marked as "Exclude" will be left out of your package.
@@ -464,7 +473,7 @@ export default function ExcludeItems() {
           <button
             onClick={handleContinue}
             disabled={saving}
-            className={`w-xl bg-[#3E206D] text-white p-2 rounded-lg mt-6 font-semibold text-base md:text-lg transition-opacity
+            className={`w-full max-w-xl bg-[#3E206D] text-white p-2 rounded-lg mt-6 font-semibold text-base md:text-lg transition-opacity
             ${saving ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}`}
             aria-label="Continue"
           >

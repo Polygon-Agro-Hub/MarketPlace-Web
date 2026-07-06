@@ -443,7 +443,7 @@ export default function ExcludedItems() {
       {/* Info box */}
       <div className="flex items-center gap-3 bg-[#F5F8FD] border border-[#E1E8F8] rounded-xl px-5 py-4 max-w-[450px] mx-auto mb-6">
         <Info className="w-5 h-5 text-[#41519E] flex-shrink-0" />
-        <p className="text-[12px] font-medium sm:text-[13px] text-[#41519E] leading-relaxed">
+        <p className="text-[10px] font-medium sm:text-[13px] text-[#41519E] leading-relaxed">
           Items marked as "Include" will be prioritized when possible.
           <br />
           Items marked as "Exclude" will be left out of your package.

@@ -196,6 +196,8 @@ export interface BillingUserData {
   firstName?: string;
   lastName?: string;
   addresses: UserAddressEntry[];
+  isDelivered?: boolean;
+  nearesCity?: string;
 }
 
 interface FetchComplaintsPayload {
@@ -1012,6 +1014,8 @@ export const fetchBillingDetails = async (
           firstName: apiData.firstName || "",
           lastName: apiData.lastName || "",
           addresses,
+          isDelivered: Boolean(apiData.isDelivered),
+          nearesCity: apiData.nearesCity || "",
         };
       }
 

@@ -90,6 +90,7 @@ interface CustomDropdownProps {
   placeholder: string;
   withSearch?: boolean;
   maxVisibleItems?: number;
+  disabled?: boolean;
 }
 
 const CustomDropdown = ({
@@ -102,6 +103,7 @@ const CustomDropdown = ({
   placeholder,
   withSearch = false,
   maxVisibleItems = 6,
+  disabled = false,
 }: CustomDropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -139,8 +141,12 @@ const CustomDropdown = ({
     <div className="relative cursor-pointer" ref={dropdownRef}>
       <input type="hidden" {...register(name)} />
       <div
-        className="appearance-none border border-[#CECECE] cursor-pointer rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px] pr-8 flex items-center justify-between"
-        onClick={() => setIsOpen(!isOpen)}
+        className={`appearance-none border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px] pr-8 flex items-center justify-between ${
+          disabled
+            ? "bg-[#F3F4F6] cursor-not-allowed opacity-70"
+            : "cursor-pointer"
+        }`}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
       >
         <span className="flex items-center gap-2">
           {selectedOption?.countryCode && (
@@ -154,7 +160,7 @@ const CustomDropdown = ({
         </span>
         <FaAngleDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none" />
       </div>
-      {isOpen && (
+      {isOpen && !disabled && (
         <div className="absolute z-10 w-full bg-white border border-[#CECECE] rounded-lg mt-1 shadow-lg">
           {withSearch && (
             <div className="p-2 border-b border-[#CECECE]">
@@ -235,6 +241,9 @@ const BillingDetailsForm = () => {
   const [addressPendingDelete, setAddressPendingDelete] =
     useState<UserAddressEntry | null>(null);
   const selectedAddressIdRef = useRef<number | null>(null);
+  const [hasDeliveredOrder, setHasDeliveredOrder] = useState(false);
+  const [signupCity, setSignupCity] = useState("");
+  const [showGoBackConfirm, setShowGoBackConfirm] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -527,10 +536,14 @@ const BillingDetailsForm = () => {
           setInitialFormData(null);
           setHasFormChanged(false);
           setIsEditingAddress(false);
+          setHasDeliveredOrder(Boolean(data?.isDelivered));
+          setSignupCity(data?.nearesCity || "");
           return;
         }
 
         setAddressBook(data.addresses);
+        setHasDeliveredOrder(Boolean(data.isDelivered));
+        setSignupCity(data.nearesCity || "");
       } catch (error: any) {
         console.error("Error loading data:", error);
         setErrorMessage(error.message || "Failed to load billing details");
@@ -552,6 +565,16 @@ const BillingDetailsForm = () => {
       loadAll();
     }
   }, [token]);
+
+  useEffect(() => {
+    if (!hasDeliveredOrder && signupCity) {
+      if (buildingType === "house") {
+        setValue("houseCity", signupCity, { shouldValidate: true });
+      } else if (buildingType === "apartment") {
+        setValue("apartmentCity", signupCity, { shouldValidate: true });
+      }
+    }
+  }, [hasDeliveredOrder, signupCity, buildingType, setValue]);
 
   useEffect(() => {
     const subscription = watch((value) => {
@@ -919,6 +942,15 @@ const BillingDetailsForm = () => {
     setValue(fieldName, numericValue, { shouldValidate: true });
   };
 
+  const confirmGoBack = () => {
+    setShowGoBackConfirm(false);
+    handleCancel();
+  };
+
+  const cancelGoBack = () => {
+    setShowGoBackConfirm(false);
+  };
+
   const handleCancel = () => {
     closeAddressForm();
     setHasFormChanged(false);
@@ -1105,7 +1137,7 @@ const BillingDetailsForm = () => {
         <div className="mb-3">
           <button
             type="button"
-            onClick={handleCancel}
+            onClick={() => setShowGoBackConfirm(true)}
             className="inline-flex items-center gap-1 text-[#000000] text-sm font-medium underline underline-offset-2 cursor-pointer"
             aria-label="Go back"
           >
@@ -1279,6 +1311,7 @@ const BillingDetailsForm = () => {
                     placeholder="Select City"
                     withSearch={true}
                     maxVisibleItems={6}
+                    disabled={!hasDeliveredOrder}
                   />
 
                   {houseCityValue && !isCityDeliverable(houseCityValue) && (
@@ -1290,7 +1323,8 @@ const BillingDetailsForm = () => {
                         />
                       </div>
                       <p className="text-[12px] md:text-[12px] font-medium text-[#EC6821] leading-snug">
-                        Delivery not available in {houseCityValue} yet, but we’re working on it and
+                        Delivery not available in {houseCityValue} yet, but
+                        we’re working on it and
                         <br />
                         coming to your area soon!
                       </p>
@@ -1445,6 +1479,7 @@ const BillingDetailsForm = () => {
                     placeholder="Select City"
                     withSearch={true}
                     maxVisibleItems={6}
+                    disabled={!hasDeliveredOrder}
                   />
 
                   {houseCityValue && !isCityDeliverable(houseCityValue) && (
@@ -1643,6 +1678,34 @@ const BillingDetailsForm = () => {
                 className="px-6 py-2.5 rounded-xl bg-[#E11D48] text-white font-medium hover:bg-[#be123c] cursor-pointer"
               >
                 Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showGoBackConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-xl">
+            <p className="text-[16px] md:text-[18px] font-medium text-[#111827] mb-6">
+              Are you sure you want to Go Back?
+              <br />
+              All unsaved changes will be lost.
+            </p>
+            <div className="flex justify-center gap-4">
+              <button
+                type="button"
+                onClick={cancelGoBack}
+                className="px-6 py-2.5 rounded-xl bg-[#F3F4F7] text-[#757E87] font-medium hover:bg-[#e1e2e5] cursor-pointer"
+              >
+                No
+              </button>
+              <button
+                type="button"
+                onClick={confirmGoBack}
+                className="px-6 py-2.5 rounded-xl bg-[#3E206D] text-white font-medium hover:bg-[#341a5a] cursor-pointer"
+              >
+                Yes
               </button>
             </div>
           </div>
