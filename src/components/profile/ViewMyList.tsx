@@ -192,7 +192,7 @@ const ViewMyList = ({ setSelectedMenu }: ViewMyListProps) => {
         <div className="border border-[#CFCFCF] rounded-2xl bg-white overflow-hidden h-full flex flex-col">
           {/* Card header */}
           <div
-            className={`flex items-start justify-between px-4 py-3 ${
+            className={`flex flex-col sm:flex-row sm:items-start sm:justify-between px-4 py-3 ${
               isInclude ? "bg-[#F0FDF4]" : "bg-[#FFF5F5]"
             }`}
           >
@@ -216,7 +216,7 @@ const ViewMyList = ({ setSelectedMenu }: ViewMyListProps) => {
                   />
                 </div>
               )}
-              <div>
+              <div className="min-w-0">
                 <p
                   className={`text-[13px] font-semibold leading-tight ${isInclude ? "text-[#4CAF50]" : "text-[#EF4444]"}`}
                 >
@@ -229,14 +229,28 @@ const ViewMyList = ({ setSelectedMenu }: ViewMyListProps) => {
                     ? "We'll prioritize adding these to your package."
                     : "We'll leave these out."}
                 </p>
+
+                {/* Delete Selected — mobile: right under subtitle */}
+                {hasItems && selectedItems.length > 0 && (
+                  <button
+                    onClick={onDeleteSelected}
+                    className="sm:hidden flex items-center gap-1 text-[#EF4444] underline text-[11px] font-semibold cursor-pointer mt-1.5"
+                  >
+                    <Trash
+                      fill="red"
+                      className="w-3 h-3 cursor-pointer flex-shrink-0"
+                    />
+                    Delete Selected Products
+                  </button>
+                )}
               </div>
             </div>
 
-            {/* Delete Selected — only shows when items are checked */}
+            {/* Delete Selected — desktop: top-right, original position */}
             {hasItems && selectedItems.length > 0 && (
               <button
                 onClick={onDeleteSelected}
-                className="flex items-center gap-1 text-[#EF4444] underline text-[11px] font-semibold flex-shrink-0 ml-2 mt-0.5 cursor-pointer"
+                className="hidden sm:flex items-center gap-1 text-[#EF4444] underline text-[11px] font-semibold flex-shrink-0 ml-2 mt-0.5 cursor-pointer"
               >
                 <Trash fill="red" className="w-3 h-3 cursor-pointer" />
                 Delete Selected Products
@@ -249,7 +263,7 @@ const ViewMyList = ({ setSelectedMenu }: ViewMyListProps) => {
             {hasItems ? (
               <>
                 {/* Table header row */}
-                <div className="flex items-center px-4 py-2 border-b border-[#E5E7EB] pl-6">
+                <div className="flex items-center px-3 sm:px-4 py-2 border-b border-[#E5E7EB]">
                   <div className="w-7 flex-shrink-0">
                     <input
                       type="checkbox"
@@ -258,7 +272,7 @@ const ViewMyList = ({ setSelectedMenu }: ViewMyListProps) => {
                       className="accent-[#4C5160] cursor-pointer w-[14px] h-[14px]"
                     />
                   </div>
-                  <span className="text-[11px] text-[#8492A3] font-medium w-24 flex-shrink-0">
+                  <span className="text-[11px] text-[#8492A3] font-medium w-16 sm:w-24 flex-shrink-0">
                     Item ({String(items.length).padStart(2, "0")})
                   </span>
                   <span className="text-[11px] text-[#8492A3] font-medium flex-1">
@@ -274,7 +288,7 @@ const ViewMyList = ({ setSelectedMenu }: ViewMyListProps) => {
                   {items.map((item) => (
                     <div
                       key={item.displayName}
-                      className="flex items-center px-4 py-2 border-b border-[#F3F4F6] last:border-0 hover:bg-gray-50 transition-colors pl-6"
+                      className="flex items-center px-3 sm:px-4 py-2 border-b border-[#F3F4F6] last:border-0 hover:bg-gray-50 transition-colors"
                     >
                       <div className="w-7 flex-shrink-0">
                         <input
@@ -284,20 +298,20 @@ const ViewMyList = ({ setSelectedMenu }: ViewMyListProps) => {
                           className="cursor-pointer accent-[#4C5160] w-[14px] h-[14px]"
                         />
                       </div>
-                      <div className="w-24 flex-shrink-0">
+                      <div className="w-16 sm:w-24 flex-shrink-0">
                         <img
                           src={item.image}
                           alt={item.displayName}
-                          className="w-10 h-10 object-contain"
+                          className="w-8 h-8 sm:w-10 sm:h-10 object-contain"
                           onError={(e) => {
                             e.currentTarget.src = "/images/fallback.png";
                           }}
                         />
                       </div>
-                      <span className="flex-1 text-[13px] font-medium text-black">
+                      <span className="flex-1 text-[12px] sm:text-[13px] font-medium text-black break-words pr-1 min-w-0">
                         {item.displayName}
                       </span>
-                      <div className="w-12 flex justify-end pr-1">
+                      <div className="w-12 flex justify-end pr-1 flex-shrink-0">
                         <button
                           onClick={() => onDelete(item.displayName)}
                           aria-label={`Delete ${item.displayName}`}
@@ -398,7 +412,7 @@ const ViewMyList = ({ setSelectedMenu }: ViewMyListProps) => {
       {/* Info box */}
       <div className="flex items-center gap-3 bg-[#F5F8FD] border border-[#E1E8F8] rounded-xl px-5 py-4 max-w-[450px] mx-auto">
         <Info className="w-5 h-5 text-[#41519E] flex-shrink-0" />
-        <p className="text-[12px] font-medium sm:text-[13px] text-[#41519E] leading-relaxed">
+        <p className="text-[8px] whitespace-nowrap font-medium sm:text-[13px] text-[#41519E] leading-relaxed">
           Items marked as "Include" will be prioritized when possible.
           <br />
           Items marked as "Exclude" will be left out of your package.

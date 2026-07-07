@@ -16,7 +16,7 @@ import { useDispatch } from "react-redux";
 import { logout } from "../../store/slices/authSlice";
 import { clearCart } from "@/store/slices/cartSlice";
 import { useRouter, usePathname } from "next/navigation";
-import { LogOut, ChevronUp, ChevronDown,WalletMinimal } from "lucide-react";
+import { LogOut, ChevronUp, ChevronDown, WalletMinimal } from "lucide-react";
 import {
   setSearchTerm,
   clearSearch,
@@ -26,6 +26,7 @@ import { X } from "lucide-react";
 import Image from "next/image";
 import glogo from "../../../public/glogo.png";
 import { CreditBalancePill } from "@/components/creditupdate/CreditBalancePill";
+import walletIcon from "../../../public/icons/wallet-solid 1.png";
 
 interface HeaderProps {
   onSearch?: (searchTerm: string) => void;
@@ -45,17 +46,20 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
   const lastScrollY = useRef(0);
   const [isTokenValid, setIsTokenValid] = useState(true);
 
-
   const user = useSelector((state: RootState) => state.auth.user);
-  const token = useSelector((state: RootState) => state.auth.token) as string | null;
-  const tokenExpiration = useSelector((state: RootState) => state.auth.tokenExpiration);
+  const token = useSelector((state: RootState) => state.auth.token) as
+    | string
+    | null;
+  const tokenExpiration = useSelector(
+    (state: RootState) => state.auth.tokenExpiration,
+  );
   const cartState = useSelector((state: RootState) => state.auth.cart) || {
     count: 0,
     price: 0,
     creditBalance: 0,
   };
 
-  console.log("Cart State in Header:", cartState); // Debugging line  
+  console.log("Cart State in Header:", cartState); // Debugging line
 
   const router = useRouter();
   const pathname = usePathname();
@@ -71,18 +75,20 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
   const profileImage = useSelector(
     (state: RootState) => state.auth.user?.image || null,
   );
+  const [showMobileWallet, setShowMobileWallet] = useState(false);
+  const walletRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const publicRoutes = [
-      '/signin',
-      '/signup',
-      '/otp',
-      '/forget-password',
-      '/reset-password',
-      '/error/404',
-      '/error/451',
-      '/unsubscribe',
-      '/',
+      "/signin",
+      "/signup",
+      "/otp",
+      "/forget-password",
+      "/reset-password",
+      "/error/404",
+      "/error/451",
+      "/unsubscribe",
+      "/",
     ];
 
     const checkExpiry = () => {
@@ -96,10 +102,10 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
         dispatch(logout());
         dispatch(clearCart());
         const isPublicRoute = publicRoutes.some(
-          route => pathname === route || pathname.startsWith(`${route}/`)
+          (route) => pathname === route || pathname.startsWith(`${route}/`),
         );
         if (!isPublicRoute) {
-          router.replace('/signin');
+          router.replace("/signin");
         }
       } else {
         setIsTokenValid(true);
@@ -135,6 +141,12 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
         !categoryRef.current.contains(event.target as Node)
       ) {
         setIsDesktopCategoryOpen(false);
+      }
+      if (
+        walletRef.current &&
+        !walletRef.current.contains(event.target as Node)
+      ) {
+        setShowMobileWallet(false);
       }
     };
 
@@ -250,7 +262,8 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
     return user?.buyerType === "Wholesale" ? "/wholesale/home" : "/";
   };
   const homeUrl = getHomeUrl();
-  const isOnHomePage = pathname === homeUrl ||
+  const isOnHomePage =
+    pathname === homeUrl ||
     (pathname === "/" && homeUrl === "/") ||
     (pathname === "/wholesale/home" && homeUrl === "/wholesale/home");
 
@@ -402,8 +415,9 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
 
   return (
     <div
-      className={`fixed top-0 left-0 w-full z-50 transition-transform duration-500 ease-in-out ${showHeader ? "translate-y-0" : "-translate-y-full"
-        }`}
+      className={`fixed top-0 left-0 w-full z-50 transition-transform duration-500 ease-in-out ${
+        showHeader ? "translate-y-0" : "-translate-y-full"
+      }`}
     >
       {!isMobile && (
         <div className="bg-[#2C2C2C] text-gray-300 py-2 px-4 sm:px-7">
@@ -429,7 +443,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
           </div>
           {!isMobile && (
             <nav className="hidden md:flex space-x-6">
-              <Link
+              {/* <Link
                 href={getHomeUrl()}
                 className={`hover:text-[#383d39] text-[#000000] ${isHydrated && pathname === getHomeUrl()
                   ? "underline underline-offset-4"
@@ -437,7 +451,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
                   }`}
               >
                 Home
-              </Link>
+              </Link> */}
               {!isAuthenticated() && (
                 <div className="relative cursor-pointer" ref={categoryRef}>
                   <button
@@ -470,34 +484,208 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
             </nav>
           )}
 
-        {!isMobile && isAuthenticated() && (
-          <CreditBalancePill creditBalance={cartState.creditBalance ?? 0} />
-        )}
+          {isMobile && isAuthenticated() && (
+            <div
+              className="relative"
+              ref={walletRef}
+              style={{ position: "relative" }}
+            >
+              <button
+                onClick={() => setShowMobileWallet((prev) => !prev)}
+                className="flex items-center justify-center bg-[#E4FFEB] w-11 h-11 rounded-full flex-shrink-0 cursor-pointer"
+                aria-label="Wallet balance"
+              >
+                <Image
+                  src={walletIcon}
+                  alt="Wallet"
+                  width={20}
+                  height={20}
+                  className="object-contain"
+                />
+              </button>
+
+              {showMobileWallet && (
+                <div
+                  style={{
+                    position: "fixed",
+                    top: "85px",
+                    right: "16px",
+                    zIndex: 60,
+                  }}
+                >
+                  {/* Caret arrow */}
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "flex-end",
+                      paddingRight: "24px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "12px",
+                        height: "12px",
+                        background: "#FFFFFF",
+                        transform: "rotate(45deg)",
+                        marginBottom: "-6px",
+                      }}
+                    />
+                  </div>
+
+                  {/* Popup card */}
+                  <div
+                    style={{
+                      background: "#FFFFFF",
+                      borderRadius: "16px",
+                      boxShadow:
+                        "0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)",
+                      padding: "16px",
+                      width: "288px",
+                      maxWidth: "calc(100vw - 32px)",
+                      boxSizing: "border-box",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "12px",
+                        marginBottom: "16px",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: "40px",
+                          height: "40px",
+                          borderRadius: "9999px",
+                          border: "2px solid #007E20",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                          background: "#E4FFEB",
+                        }}
+                      >
+                        <Image
+                          src={walletIcon}
+                          alt="Wallet"
+                          width={18}
+                          height={18}
+                          className="object-contain"
+                        />
+                      </div>
+
+                      <div>
+                        <p
+                          style={{
+                            fontSize: "16px",
+                            fontWeight: 600,
+                            color: "#000000",
+                            margin: 0,
+                          }}
+                        >
+                          Credit Balance
+                        </p>
+                        <p
+                          style={{
+                            fontSize: "18px",
+                            fontWeight: 700,
+                            color: "#007E20",
+                            margin: 0,
+                          }}
+                        >
+                          Rs.{" "}
+                          {isHydrated
+                            ? formatPrice(cartState.creditBalance ?? 0)
+                            : "0.00"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        background: "#E4FFEB",
+                        borderRadius: "9999px",
+                        padding: "10px 12px",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: "20px",
+                          height: "20px",
+                          borderRadius: "9999px",
+                          background: "#007E20",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <svg
+                          viewBox="0 0 24 24"
+                          style={{
+                            width: "12px",
+                            height: "12px",
+                            color: "#FFFFFF",
+                          }}
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth={3}
+                        >
+                          <path
+                            d="M5 13l4 4L19 7"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </div>
+
+                      <span
+                        style={{
+                          fontSize: "14px",
+                          color: "#007E20",
+                          fontWeight: 500,
+                        }}
+                      >
+                        Available to use for next order
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          {!isMobile && isAuthenticated() && (
+            <CreditBalancePill creditBalance={cartState.creditBalance ?? 0} />
+          )}
 
           {!isMobile && (
             <div className="flex-1 max-w-xl mx-4">
               <form onSubmit={handleSearchSubmit}>
-                <div className="relative border border-[#575757] rounded-[10px] ">
+                <div className="relative">
                   <input
                     type="text"
-                    placeholder="Search for Product"
+                    placeholder="Search for Products.."
                     value={localSearchInput}
                     onChange={handleSearchChange}
                     onKeyPress={handleSearchKeyPress}
-                    className="italic w-full py-2 px-4 rounded-[10px] text-gray-800 focus:outline-none bg-white"
+                    className="italic w-full py-2.5 pl-5 pr-10 rounded-full text-[#3E206D] placeholder-[#3E206D] text-center focus:outline-none bg-[#EFE4FF]"
                   />
                   {isSearchActive && searchTerm ? (
                     <button
                       type="button"
                       onClick={handleResetSearch}
-                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-[#3E206D] hover:opacity-70 transition-opacity"
                     >
                       <X size={16} className="cursor-pointer" />
                     </button>
                   ) : (
                     <button
                       type="submit"
-                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      className="absolute right-5 top-1/2 -translate-y-1/2 text-[#3E206D] hover:opacity-70"
                     >
                       <FontAwesomeIcon
                         icon={faMagnifyingGlass}

@@ -1019,7 +1019,7 @@ const BillingDetailsForm = () => {
           </p>
           <div className="border-t border-[#BDBDBD] mb-5 mt-1" />
 
-          <div className="flex items-center justify-between gap-4 mb-5">
+          <div className="flex flex-col items-start gap-4 mb-5 md:flex-row md:items-center md:justify-between">
             <h2 className="font-medium text-[14px] md:text-[18px]">
               My Address Book
             </h2>
@@ -1027,7 +1027,7 @@ const BillingDetailsForm = () => {
               <button
                 type="button"
                 onClick={startCreateAddress}
-                className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-[#3E206D] px-4 py-3 text-white text-[13px] md:text-[16px] font-medium shadow-[0_6px_16px_rgba(62,32,109,0.24)] hover:bg-[#341a5a] transition-colors"
+                className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#3E206D] px-4 py-2.5 text-white text-[13px] md:text-[16px] font-medium shadow-[0_6px_16px_rgba(62,32,109,0.24)] hover:bg-[#341a5a] transition-colors w-auto"
               >
                 <Plus size={18} />
                 Add New Address

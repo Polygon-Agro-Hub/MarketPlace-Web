@@ -214,7 +214,7 @@ export default function ExcludedItems() {
       >
         {/* Panel header */}
         <div
-          className={`flex items-start justify-between px-4 py-3 ${isInclude ? "bg-[#F0FBF0]" : "bg-[#FFF0F0]"}`}
+          className={`flex flex-col sm:flex-row sm:items-start sm:justify-between px-4 py-3 ${isInclude ? "bg-[#F0FBF0]" : "bg-[#FFF0F0]"}`}
         >
           <div className="flex items-start gap-2">
             {isInclude ? (
@@ -249,13 +249,23 @@ export default function ExcludedItems() {
                   ? "We'll prioritize adding these to your package."
                   : "We'll leave these out."}
               </p>
+              {/* Delete selected — mobile only, appears right under subtitle */}
+              {hasItems && selectedItems.length > 0 && (
+                <button
+                  onClick={onDeleteSelected}
+                  className="sm:hidden flex items-center gap-1 text-[#EF4444] underline text-[11px] font-semibold cursor-pointer mt-1.5"
+                >
+                  <Trash fill="red" className="w-3 h-3" />
+                  Delete Selected Products
+                </button>
+              )}
             </div>
           </div>
-          {/* Delete selected — only when items checked */}
+          {/* Delete selected — desktop only, stays top-right */}
           {hasItems && selectedItems.length > 0 && (
             <button
               onClick={onDeleteSelected}
-              className="flex items-center gap-1 text-[#EF4444] underline text-[11px] font-semibold flex-shrink-0 ml-2 mt-0.5 cursor-pointer"
+              className="hidden sm:flex items-center gap-1 text-[#EF4444] underline text-[11px] font-semibold flex-shrink-0 ml-2 mt-0.5 cursor-pointer"
             >
               <Trash fill="red" className="w-3 h-3" />
               Delete Selected Products
@@ -443,7 +453,7 @@ export default function ExcludedItems() {
       {/* Info box */}
       <div className="flex items-center gap-3 bg-[#F5F8FD] border border-[#E1E8F8] rounded-xl px-5 py-4 max-w-[450px] mx-auto mb-6">
         <Info className="w-5 h-5 text-[#41519E] flex-shrink-0" />
-        <p className="text-[10px] font-medium sm:text-[13px] text-[#41519E] leading-relaxed">
+        <p className="text-[10px] font-medium sm:text-[13px] text-[#41519E] leading-relaxed whitespace-nowrap">
           Items marked as "Include" will be prioritized when possible.
           <br />
           Items marked as "Exclude" will be left out of your package.

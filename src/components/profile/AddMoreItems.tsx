@@ -287,10 +287,10 @@ const UpdatePreferences = ({ setSelectedMenu }: UpdatePreferencesProps) => {
       <div className="border-t border-[#BDBDBD] mb-5 mt-2" />
 
       {/* Sub heading */}
-      <p className="text-xs sm:text-sm text-center text-[#4C5160] mb-4">
+      <p className="text-xs sm:text-sm text-center text-[#4C5160] mb-4 px-2">
         Choose items you'd prefer to include or exclude from your package.
-        <br />
-        An item cannot be both preferred and excluded.
+        <br className="hidden sm:block" /> An item cannot be both preferred and
+        excluded.
       </p>
 
       <div className="flex flex-col items-center">
@@ -320,9 +320,9 @@ const UpdatePreferences = ({ setSelectedMenu }: UpdatePreferencesProps) => {
           </div>
 
           {/* Top legend cards */}
-          <div className="flex gap-2 sm:gap-3 mb-5 flex-wrap sm:flex-nowrap">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mb-5">
             {/* Prefer to Include */}
-            <div className="flex items-center gap-2 sm:gap-3 border border-[#E6F2E5] rounded-lg px-3 py-2 sm:px-4 sm:py-3 bg-[#F6FCF5] flex-1 min-w-[100px]">
+            <div className="flex items-center gap-2 sm:gap-3 border border-[#E6F2E5] rounded-lg px-3 py-2 sm:px-4 sm:py-3 bg-[#F6FCF5] flex-1">
               <div className="w-8 h-8 bg-[#F6FCF5] flex items-center justify-center flex-shrink-0">
                 <Image
                   src={HeartIcon}
@@ -341,7 +341,7 @@ const UpdatePreferences = ({ setSelectedMenu }: UpdatePreferencesProps) => {
               </div>
             </div>
             {/* No Preference */}
-            <div className="flex items-center gap-2 sm:gap-3 border border-[#EFF0F1] rounded-lg px-3 py-2 sm:px-4 sm:py-3 bg-[#FCFCFC] flex-1 min-w-[100px]">
+            <div className="flex items-center gap-2 sm:gap-3 border border-[#EFF0F1] rounded-lg px-3 py-2 sm:px-4 sm:py-3 bg-[#FCFCFC] flex-1">
               <div className="w-8 h-8 bg-[#FCFCFC] flex items-center justify-center flex-shrink-0">
                 <Image
                   src={BoxIcon}
@@ -360,7 +360,7 @@ const UpdatePreferences = ({ setSelectedMenu }: UpdatePreferencesProps) => {
               </div>
             </div>
             {/* Prefer to Exclude */}
-            <div className="flex items-center gap-2 sm:gap-3 border border-[#FDE4E5] rounded-lg px-3 py-2 sm:px-4 sm:py-3 bg-[#FEF7F7] flex-1 min-w-[100px]">
+            <div className="flex items-center gap-2 sm:gap-3 border border-[#FDE4E5] rounded-lg px-3 py-2 sm:px-4 sm:py-3 bg-[#FEF7F7] flex-1">
               <div className="w-8 h-8 bg-[#FEF7F7] flex items-center justify-center flex-shrink-0">
                 <Image
                   src={CancerIcon}
@@ -386,19 +386,19 @@ const UpdatePreferences = ({ setSelectedMenu }: UpdatePreferencesProps) => {
           )}
 
           {!loading && filteredItems.length > 0 && (
-            <div className="custom-scrollbar max-h-[480px] overflow-y-auto pr-3">
-              <table className="w-full border-collapse">
+            <div className="custom-scrollbar max-h-[480px] overflow-y-auto pr-1 sm:pr-3">
+              <table className="w-full border-collapse table-fixed">
                 {/* Table Header */}
                 <thead className="sticky top-0 bg-white z-10">
                   <tr className="border-b border-[#BDBDBD]">
-                    <th className="text-[13px] font-semibold text-[#4CAF50] py-2 px-2 text-center w-[12%]">
+                    <th className="text-[11px] sm:text-[13px] font-semibold text-[#4CAF50] py-2 px-1 sm:px-2 text-center w-[18%] sm:w-[12%]">
                       Include
                     </th>
-                    <th className="text-[13px] font-semibold text-[#4B5563] py-2 px-25 text-left w-[44%]">
+                    <th className="text-[11px] sm:text-[13px] font-semibold text-[#4B5563] py-2 pl-1 sm:pl-2 text-left w-[42%] sm:w-[44%]">
                       Product
                     </th>
-                    <th className="text-[13px] font-semibold text-[#4B5563] py-2 px-2 text-left w-[30%]"></th>
-                    <th className="text-[13px] font-semibold text-[#EF4444] py-2 px-2 text-center w-[14%]">
+                    <th className="w-[20%] sm:w-[30%]" />
+                    <th className="text-[11px] sm:text-[13px] font-semibold text-[#EF4444] py-2 px-1 sm:px-2 text-center w-[20%] sm:w-[14%]">
                       Exclude
                     </th>
                   </tr>
@@ -414,31 +414,33 @@ const UpdatePreferences = ({ setSelectedMenu }: UpdatePreferencesProps) => {
                         className="border-t border-[#E5E7EB]"
                       >
                         {/* Include Toggle */}
-                        <td className="py-3 px-2 text-center pl-10">
-                          <Toggle
-                            on={isIncluded}
-                            color="green"
-                            disabled={isExcluded}
-                            onClick={() =>
-                              handleIncludeToggle(item.displayName)
-                            }
-                            ariaLabel={`Toggle include ${item.displayName}`}
-                          />
+                        <td className="py-3 px-1 sm:px-2 text-center">
+                          <div className="flex justify-center">
+                            <Toggle
+                              on={isIncluded}
+                              color="green"
+                              disabled={isExcluded}
+                              onClick={() =>
+                                handleIncludeToggle(item.displayName)
+                              }
+                              ariaLabel={`Toggle include ${item.displayName}`}
+                            />
+                          </div>
                         </td>
 
                         {/* Product Name */}
-                        <td className="py-3 px-25">
-                          <span className="text-sm md:text-[15px] font-medium text-[#000000] whitespace-nowrap">
+                        <td className="py-3 pl-1 sm:pl-2">
+                          <span className="text-[12px] sm:text-sm md:text-[15px] font-medium text-[#000000] break-words">
                             {item.displayName}
                           </span>
                         </td>
 
                         {/* Product Image */}
-                        <td className="py-3 px-2">
+                        <td className="py-3 px-1 sm:px-2">
                           <img
                             src={item.image}
                             alt={item.displayName}
-                            className="w-12 h-12 md:w-16 md:h-16 object-contain"
+                            className="w-9 h-9 sm:w-12 sm:h-12 md:w-16 md:h-16 object-contain"
                             onError={(e) => {
                               e.currentTarget.src = "/images/fallback.png";
                             }}
@@ -446,16 +448,18 @@ const UpdatePreferences = ({ setSelectedMenu }: UpdatePreferencesProps) => {
                         </td>
 
                         {/* Exclude Toggle */}
-                        <td className="py-3 px-2 text-center pl-12">
-                          <Toggle
-                            on={isExcluded}
-                            color="red"
-                            disabled={isIncluded}
-                            onClick={() =>
-                              handleExcludeToggle(item.displayName)
-                            }
-                            ariaLabel={`Toggle exclude ${item.displayName}`}
-                          />
+                        <td className="py-3 px-1 sm:px-2 text-center">
+                          <div className="flex justify-center">
+                            <Toggle
+                              on={isExcluded}
+                              color="red"
+                              disabled={isIncluded}
+                              onClick={() =>
+                                handleExcludeToggle(item.displayName)
+                              }
+                              ariaLabel={`Toggle exclude ${item.displayName}`}
+                            />
+                          </div>
                         </td>
                       </tr>
                     );
@@ -486,8 +490,8 @@ const UpdatePreferences = ({ setSelectedMenu }: UpdatePreferencesProps) => {
 
           {/* Bottom legend */}
           {!loading && filteredItems.length > 0 && (
-            <div className="mt-6 flex gap-3 flex-wrap border border-[#E1E0E5] rounded-lg overflow-hidden">
-              <div className="p-4 flex-1 min-w-[150px]">
+            <div className="hidden sm:flex mt-6 sm:flex-row gap-0 border border-[#E1E0E5] rounded-lg overflow-hidden">
+              <div className="p-4 flex-1">
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center gap-3">
                     <Toggle on={true} color="green" legendOnly />
@@ -510,7 +514,7 @@ const UpdatePreferences = ({ setSelectedMenu }: UpdatePreferencesProps) => {
                 </div>
               </div>
               <div className="border-l border-[#E1E0E5]" />
-              <div className="p-4 flex-1 min-w-[150px] flex items-center gap-2">
+              <div className="p-4 flex-1 flex items-center gap-2">
                 <Info className="w-5 h-5 text-[#000000] flex-shrink-0" />
                 <p className="text-[12px] text-[#8A899E] leading-relaxed">
                   Items marked as "Include" will be prioritized when possible.
@@ -527,7 +531,7 @@ const UpdatePreferences = ({ setSelectedMenu }: UpdatePreferencesProps) => {
               <button
                 onClick={handleSave}
                 disabled={!hasChanges || saving}
-                className={`w-xl p-3 px-2.5 rounded-lg mt-6 text-[16px] font-semibold text-sm text-white transition-opacity
+                className={`w-full max-w-xl p-3 px-2.5 rounded-lg mt-6 text-[16px] font-semibold text-sm text-white transition-opacity
                   ${
                     hasChanges && !saving
                       ? "bg-[#3E206D] cursor-pointer"
