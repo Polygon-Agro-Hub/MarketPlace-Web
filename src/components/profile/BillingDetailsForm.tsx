@@ -1472,8 +1472,8 @@ const BillingDetailsForm = () => {
                   <CustomDropdown
                     register={register}
                     setValue={setValue}
-                    name="houseCity"
-                    value={houseCityValue}
+                    name="apartmentCity"
+                    value={apartmentCityValue}
                     errors={errors}
                     options={cityOptions}
                     placeholder="Select City"
@@ -1482,18 +1482,19 @@ const BillingDetailsForm = () => {
                     disabled={!hasDeliveredOrder}
                   />
 
-                  {houseCityValue && !isCityDeliverable(houseCityValue) && (
-                    <div className="mt-2 flex items-start gap-2 rounded-lg border border-[#FFD9A8] bg-[#FFF4E5] px-3 py-2.5">
-                      <Info
-                        size={16}
-                        className="mt-0.5 flex-shrink-0 text-[#E8792C]"
-                      />
-                      <p className="text-[16px] text-medium md:text-[13px] text-[#E8792C]">
-                        Delivery not available in {houseCityValue} yet, but
-                        we're working on it and coming to your area soon!
-                      </p>
-                    </div>
-                  )}
+                  {apartmentCityValue &&
+                    !isCityDeliverable(apartmentCityValue) && (
+                      <div className="mt-2 flex items-start gap-2 rounded-lg border border-[#FFD9A8] bg-[#FFF4E5] px-3 py-2.5">
+                        <Info
+                          size={16}
+                          className="mt-0.5 flex-shrink-0 text-[#E8792C]"
+                        />
+                        <p className="text-[16px] text-medium md:text-[13px] text-[#E8792C]">
+                          Delivery not available in {apartmentCityValue} yet,
+                          but we're working on it and coming to your area soon!
+                        </p>
+                      </div>
+                    )}
                 </div>
               </div>
 

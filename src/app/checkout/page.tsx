@@ -1198,14 +1198,14 @@ const Page: React.FC = () => {
               {formData.deliveryMethod === "pickup" && (
                 <div className="w-full mb-6">
                   <h2 className="text-xl font-bold mb-6 mt-8 text-[#252525]">
-                    Find your nearest center
+                    Find your nearest centre
                   </h2>
 
                   {/* Center Selection Dropdown - ABOVE the map */}
                   {/* Center Selection Dropdown - ABOVE the map */}
                   <div className="mb-4 relative z-50">
                     <label className="block font-semibold mb-2 text-[#2E2E2E]">
-                      Select Pickup Center
+                      Select Pickup Centre
                     </label>
                     {loadingCenters ? (
                       <div className="w-full h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] rounded-lg flex items-center justify-center">
@@ -2137,7 +2137,7 @@ const PhoneCustomDropdown: React.FC<any> = ({
                 onSelect(option.value);
                 setIsOpen(false);
               }}
-              className={`w-full text-left px-3 py-3 hover:bg-gray-100 flex items-center gap-2 transition-colors ${selectedValue === option.value
+              className={`w-full text-left px-3 py-3 hover:bg-gray-100 flex items-center gap-2 transition-colors cursor-pointer ${selectedValue === option.value
                 ? "bg-purple-50 text-purple-700 border-l-4 border-purple-700"
                 : "text-gray-900"
                 }`}
