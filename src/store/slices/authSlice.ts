@@ -46,10 +46,19 @@ const authSlice = createSlice({
       state.tokenExpiration = action.payload.tokenExpiration || null;
     },
     updateCartInfo: (state, action: PayloadAction<CartInfo>) => {
+      console.log('updateCartInfo payload:', action.payload);
+      console.log('creditBalance before:', state.cart.creditBalance);
       state.cart = {
-        price: action.payload.price || 0,
-        count: action.payload.count === null ? 0 : action.payload.count
+        ...state.cart,
+        price: action.payload.price ?? state.cart.price ?? 0,
+        count: action.payload.count === null || action.payload.count === undefined
+          ? state.cart.count
+          : action.payload.count,
+        creditBalance: action.payload.creditBalance !== undefined
+          ? action.payload.creditBalance
+          : state.cart.creditBalance,
       };
+      console.log('creditBalance after:', state.cart.creditBalance);
     },
     logout: (state) => {
       state.token = null;
