@@ -61,7 +61,7 @@ const authSlice = createSlice({
         price: action.payload.price ?? state.cart.price ?? 0,
         count: action.payload.count === null || action.payload.count === undefined
           ? state.cart.count
-          : action.payload.count,,
+          : action.payload.count,
         creditBalance: action.payload.creditBalance !== undefined
           ? action.payload.creditBalance
           : state.cart.creditBalance,
