@@ -272,6 +272,7 @@ const Page: React.FC = () => {
     dispatch(updateCartInfo({
       price: parseFloat(finalTotal.toFixed(2)),
       count: authCart.count,
+      creditBalance: authCart.creditBalance,
     }));
   }, [deliveryCharge, formData.deliveryMethod]);
 

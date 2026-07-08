@@ -686,6 +686,12 @@ const BillingDetailsForm = () => {
     }
   };
 
+  const normalizeTitle = (title: string): string => {
+    if (!title) return '';
+    return title.endsWith('.') ? title : `${title}.`;
+  };
+
+
   const onSubmit: SubmitHandler<BillingFormData> = async (data) => {
     setIsLoading(true);
     await trigger();

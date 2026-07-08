@@ -384,6 +384,7 @@ const Page: React.FC = () => {
 
       try {
         const cartInfo = await getCartInfo(token);
+        console.log("Fetched cart info after product removal:", cartInfo);
         dispatch(updateCartInfo(cartInfo));
       } catch (cartError) {
         console.error("Error fetching cart info:", cartError);
