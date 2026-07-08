@@ -5,7 +5,7 @@ import { useForm, SubmitHandler, UseFormRegister, FieldErrors, UseFormSetValue, 
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
 import { FaAngleDown } from 'react-icons/fa';
-import { fetchBillingDetails, saveBillingDetails, fetchCities, BillingDetails, BillingAddress } from '@/services/auth-service';
+import { fetchBillingDetails, saveBillingDetails, fetchCityOptions, BillingDetails, BillingAddress } from '@/services/auth-service';
 import SuccessPopup from '@/components/toast-messages/success-message';
 import ErrorPopup from '@/components/toast-messages/error-message';
 import Loader from '@/components/loader-spinner/Loader';
@@ -343,14 +343,14 @@ const BillingDetailsForm = () => {
       setIsLoading(true);
       try {
         // 1. Fetch cities first so we can match against them immediately
-        const fetchedCities = await fetchCities(token as string);
+        const fetchedCities = await fetchCityOptions(token as string);
         setCities(fetchedCities);
 
         // 2. Fetch billing details using the freshly fetched cities list
         const data = await fetchBillingDetails({ token });
 
         const formData: BillingFormData = {
-          billingTitle: data.billingTitle || '',
+          billingTitle: normalizeTitle(data.billingTitle || ''),
           billingName: data.billingName || '',
           title: data.title || 'Mr.',
           firstName: data.firstName || '',
@@ -471,6 +471,12 @@ const BillingDetailsForm = () => {
       setHasFormChanged(hasChanged || true);
     }
   };
+
+  const normalizeTitle = (title: string): string => {
+    if (!title) return '';
+    return title.endsWith('.') ? title : `${title}.`;
+  };
+
 
   const onSubmit: SubmitHandler<BillingFormData> = async (data) => {
     setIsLoading(true);

@@ -155,14 +155,14 @@ const Page: React.FC = () => {
     return {
       cartId: cartItems.cartId || 0,
       checkoutDetails: finalCheckoutDetails,
-      paymentMethod, // 👈 always send it, never null — avoids the type error
+      paymentMethod, // always send it, never null — avoids the type error
       discountAmount: Number(discountAmount) || 0,
       grandTotal: Number(finalGrandTotal) || 0,
       orderApp: "marketplace",
       deliveryCharge: effectiveDeliveryCharge,
-      // // isCreditApplied: useCredit,
-      // // creditApplied: Number(creditAppliedAmount) || 0,
-      // remainingAmount: Number(remainingAmount) || 0,
+      isCreditApplied: useCredit,
+      creditPaid: Number(creditAppliedAmount) || 0,
+      moneyPaid: Number(remainingAmount) || 0,
     };
   };
 
