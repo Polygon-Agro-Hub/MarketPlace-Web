@@ -1612,3 +1612,64 @@ export const fetchCities = async (token: string): Promise<CityOption[]> => {
     return [];
   }
 };
+
+export interface UpdateCreditBalancePayload {
+  id: number;
+  creditBalance: number;
+}
+
+export interface UpdateCreditBalanceResult {
+  userId: number;
+  creditBalance: number;
+  affectedRows: number;
+}
+
+export const updateCreditBalance = async (
+  token: string,
+  payload: UpdateCreditBalancePayload,
+): Promise<UpdateCreditBalanceResult> => {
+  try {
+    const response = await axios.put(
+      "/auth/update-credit-balance",
+      payload,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+
+    if (response.status >= 200 && response.status < 300) {
+      const resData: ApiResponse<UpdateCreditBalanceResult> = response.data;
+
+      if (resData.status && resData.data) {
+        return resData.data;
+      }
+
+      throw new Error(
+        resData.message || "Failed to update credit balance",
+      );
+    }
+
+    throw new Error(
+      response.data?.message || "Failed to update credit balance",
+    );
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(
+        error.response.data?.message ||
+          error.response.data?.error ||
+          `Updating credit balance failed with status ${error.response.status}`,
+      );
+    } else if (error.request) {
+      throw new Error(
+        "No response received from server. Please check your network connection.",
+      );
+    } else {
+      throw new Error(
+        error.message || "An error occurred while updating credit balance",
+      );
+    }
+  }
+};

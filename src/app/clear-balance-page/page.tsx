@@ -7,7 +7,16 @@ import { useEffect } from "react";
 import Image from "next/image";
 import walletIllustration from "../../../public/wallet-illustration.png";
 import payNowIllustration from "../../../public/pay-now-illustration.png";
-import { ShoppingCart , ReceiptText , Medal } from 'lucide-react';
+import { ShoppingCart, ReceiptText, Medal } from "lucide-react";
+import visaLogo from "../../../public/icons/Visa-Logo.png";
+import mastercardLogo from "../../../public/icons/Master-Card.png";
+import masterCardText from "../../../public/icons/MasterCardText.png";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faCartShopping,
+  faReceipt,
+  faMedal,
+} from "@fortawesome/free-solid-svg-icons";
 
 export default function ClearBalancePage() {
   const router = useRouter();
@@ -24,12 +33,11 @@ export default function ClearBalancePage() {
   }, [creditBalance, router]);
 
   const handlePayNow = () => {
-    router.push("/clear-balance/payment");
+    router.push("/clear-balance-page/payment");
   };
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-
       {/* Breadcrumb */}
       <div className="px-4 sm:px-8 pt-6 pb-2">
         <nav className="flex items-center gap-2 text-sm text-gray-400">
@@ -48,7 +56,6 @@ export default function ClearBalancePage() {
 
       {/* Main content */}
       <div className="flex-1 flex flex-col items-center px-4 pt-8 pb-16">
-
         {/* Wallet image — bigger */}
         <div className="mb-6">
           <Image
@@ -93,15 +100,18 @@ export default function ClearBalancePage() {
           </h2>
 
           {/* Desktop: horizontal row | Mobile: vertical stack */}
+          {/* Desktop: horizontal row | Mobile: vertical stack */}
           <div className="hidden sm:flex items-stretch">
-
             {/* Item 1 */}
             <div className="flex-1 flex flex-row items-center px-4 gap-3">
               <div
                 className="w-11 h-11 rounded-full flex items-center border border-[#E08888] justify-center flex-shrink-0"
                 style={{ backgroundColor: "#FFFFFF" }}
               >
-               <ShoppingCart style={{ color: "#FF0000" }}/>
+                <FontAwesomeIcon
+                  icon={faCartShopping}
+                  style={{ color: "#FF0000", fontSize: 18 }}
+                />
               </div>
               <div className="text-left">
                 <p className="text-sm font-semibold text-gray-700 mb-1">
@@ -130,7 +140,10 @@ export default function ClearBalancePage() {
                 className="w-11 h-11 rounded-full flex items-center border border-[#E08888] justify-center flex-shrink-0"
                 style={{ backgroundColor: "#FFFFFF" }}
               >
-               <ReceiptText style={{ color: "#FF0000" }}/>
+                <FontAwesomeIcon
+                  icon={faReceipt}
+                  style={{ color: "#FF0000", fontSize: 18 }}
+                />
               </div>
               <div className="text-left">
                 <p className="text-sm font-semibold text-gray-700 mb-1">
@@ -159,7 +172,10 @@ export default function ClearBalancePage() {
                 className="w-11 h-11 rounded-full flex items-center border border-[#E08888] justify-center flex-shrink-0"
                 style={{ backgroundColor: "#FFFFFF" }}
               >
-               <Medal style={{ color: "#FF0000" }}/>
+                <FontAwesomeIcon
+                  icon={faMedal}
+                  style={{ color: "#FF0000", fontSize: 18 }}
+                />
               </div>
               <div className="text-left">
                 <p className="text-sm font-semibold text-gray-700 mb-1">
@@ -170,19 +186,20 @@ export default function ClearBalancePage() {
                 </p>
               </div>
             </div>
-
           </div>
 
           {/* Mobile: vertical stack with horizontal dividers */}
           <div className="flex sm:hidden flex-col gap-0">
-
             {/* Item 1 */}
             <div className="flex flex-row items-center gap-3 py-3">
               <div
                 className="w-11 h-11 rounded-full border border-[#E08888] flex items-center justify-center flex-shrink-0"
                 style={{ backgroundColor: "#FFFFFF" }}
               >
-                <ShoppingCart style={{ color: "#FF0000" }}/>
+                <FontAwesomeIcon
+                  icon={faCartShopping}
+                  style={{ color: "#FF0000", fontSize: 18 }}
+                />
               </div>
               <div>
                 <p className="text-sm font-semibold text-gray-700 mb-0.5">
@@ -203,7 +220,10 @@ export default function ClearBalancePage() {
                 className="w-11 h-11 rounded-full flex items-center border border-[#E08888] justify-center flex-shrink-0"
                 style={{ backgroundColor: "#FFFFFF" }}
               >
-               <ReceiptText style={{ color: "#FF0000" }}/>
+                <FontAwesomeIcon
+                  icon={faReceipt}
+                  style={{ color: "#FF0000", fontSize: 18 }}
+                />
               </div>
               <div>
                 <p className="text-sm font-semibold text-gray-700 mb-0.5">
@@ -224,7 +244,10 @@ export default function ClearBalancePage() {
                 className="w-11 h-11 rounded-full border border-[#E08888] flex items-center justify-center flex-shrink-0"
                 style={{ backgroundColor: "#FFFFFF" }}
               >
-              <Medal style={{ color: "#FF0000" }}/>
+                <FontAwesomeIcon
+                  icon={faMedal}
+                  style={{ color: "#FF0000", fontSize: 18 }}
+                />
               </div>
               <div>
                 <p className="text-sm font-semibold text-gray-700 mb-0.5">
@@ -235,16 +258,14 @@ export default function ClearBalancePage() {
                 </p>
               </div>
             </div>
-
           </div>
         </div>
 
         {/* Pay now card */}
         <div
           className="w-full max-w-5xl rounded-2xl px-4 sm:px-8 py-6 flex flex-col sm:flex-row items-center gap-4 sm:gap-6"
-          style={{ border: "1px solid #e5e7eb", backgroundColor: "#ffffff" }}
+          style={{ border: "1px solid #E1B6FF", backgroundColor: "#F9F7FD" }}
         >
-
           {/* Pay now illustration image */}
           <div className="flex-shrink-0">
             <Image
@@ -258,11 +279,13 @@ export default function ClearBalancePage() {
 
           {/* Text */}
           <div className="flex-1 text-center sm:text-left">
-            <p className="text-black font-semibold text-base mb-1">
+            <p className="text-black font-semibold text-base mb-2">
               Pay now to start your next order
             </p>
-            <p className="text-[#323232] text-sm">
-              Clear your negative credit balance securely using your card.
+            <p className="font-medium text-[#323232] text-xs">
+              Clear your negative credit balance securely
+              <br />
+              using your card.
             </p>
           </div>
 
@@ -270,13 +293,15 @@ export default function ClearBalancePage() {
           <div className="flex-shrink-0 flex flex-col items-center gap-3 w-full sm:w-auto">
             <button
               onClick={handlePayNow}
-              className="font-semibold text-sm px-8 py-3 rounded-sm transition-colors whitespace-nowrap cursor-pointer text-white w-full sm:w-auto"
-              style={{ backgroundColor: "#312e81" }}
+              className="font-medium text-sm px-20 py-2 rounded-lg transition-colors whitespace-nowrap cursor-pointer text-[#FFFFFF] w-full sm:w-auto"
+              style={{ backgroundColor: "#3E206D" }}
               onMouseEnter={(e) =>
-                ((e.target as HTMLButtonElement).style.backgroundColor = "#1e1b4b")
+                ((e.target as HTMLButtonElement).style.backgroundColor =
+                  "#1e1b5b")
               }
               onMouseLeave={(e) =>
-                ((e.target as HTMLButtonElement).style.backgroundColor = "#312e81")
+                ((e.target as HTMLButtonElement).style.backgroundColor =
+                  "#3E206D")
               }
             >
               Pay Now with Card
@@ -285,45 +310,54 @@ export default function ClearBalancePage() {
             <div className="flex items-center gap-2">
               <div
                 style={{
-                  background: "#1a1f71",
-                  borderRadius: 4,
-                  padding: "3px 7px",
+                  background: "#424241",
+                  borderRadius: 6,
+                  padding: "10px 13px",
                 }}
               >
                 <span
                   style={{
-                    color: "white",
-                    fontSize: 10,
-                    fontWeight: 800,
-                    fontStyle: "italic",
-                    letterSpacing: 0.5,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
+                    width: "100%",
+                    height: "100%",
                   }}
                 >
-                  VISA
+                  <Image
+                    src={visaLogo}
+                    alt="Visa logo"
+                    width={26}
+                    height={26}
+                  />
                 </span>
               </div>
-              <div style={{ display: "flex", alignItems: "center" }}>
-                <div
-                  style={{
-                    width: 18,
-                    height: 18,
-                    borderRadius: "50%",
-                    background: "#eb001b",
-                  }}
+              <div
+                style={{
+                  background: "#424241",
+                  borderRadius: 6,
+                  padding: "4px 6px",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 2,
+                }}
+              >
+                <Image
+                  src={mastercardLogo}
+                  alt="Mastercard logo"
+                  width={20}
+                  height={20}
                 />
-                <div
-                  style={{
-                    width: 18,
-                    height: 18,
-                    borderRadius: "50%",
-                    background: "#f79e1b",
-                    marginLeft: -7,
-                  }}
+                <Image
+                  src={masterCardText}
+                  alt="Mastercard text"
+                  width={43}
+                  height={43}
                 />
               </div>
             </div>
           </div>
-
         </div>
       </div>
     </div>

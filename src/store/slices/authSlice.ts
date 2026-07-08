@@ -1,4 +1,4 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 interface UserData {
   id: number;
@@ -24,22 +24,30 @@ interface CartInfo {
 }
 
 const initialStateCart: CartInfo = {
-  price: 0.00,
-  count: 0
-}
+  price: 0.0,
+  count: 0,
+};
 
 const initialState: AuthState = {
   token: null,
   tokenExpiration: null,
   user: null,
-  cart: initialStateCart
+  cart: initialStateCart,
 };
 
 const authSlice = createSlice({
-  name: 'auth',
+  name: "auth",
   initialState,
   reducers: {
-    setCredentials: (state, action: PayloadAction<{ token: string; user: UserData, cart: CartInfo, tokenExpiration?: number }>) => {
+    setCredentials: (
+      state,
+      action: PayloadAction<{
+        token: string;
+        user: UserData;
+        cart: CartInfo;
+        tokenExpiration?: number;
+      }>,
+    ) => {
       state.token = action.payload.token;
       state.user = action.payload.user;
       state.cart = action.payload.cart || initialStateCart;
@@ -48,8 +56,13 @@ const authSlice = createSlice({
     updateCartInfo: (state, action: PayloadAction<CartInfo>) => {
       state.cart = {
         price: action.payload.price || 0,
-        count: action.payload.count === null ? 0 : action.payload.count
+        count: action.payload.count === null ? 0 : action.payload.count,
       };
+    },
+    updateCreditBalance: (state, action: PayloadAction<number>) => {
+      if (state.cart) {
+        state.cart.creditBalance = action.payload;
+      }
     },
     logout: (state) => {
       state.token = null;
@@ -65,6 +78,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { setCredentials, updateCartInfo, logout, updateUser } = authSlice.actions;
-
+export const { setCredentials, updateCartInfo, logout, updateUser, updateCreditBalance } = authSlice.actions;
 export default authSlice.reducer;

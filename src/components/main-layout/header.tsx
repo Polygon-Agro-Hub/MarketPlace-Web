@@ -9,6 +9,7 @@ import {
   faClockRotateLeft,
   faTimes,
 } from "@fortawesome/free-solid-svg-icons";
+import { faWallet } from "@fortawesome/free-solid-svg-icons";
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
@@ -58,8 +59,6 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
     price: 0,
     creditBalance: 0,
   };
-
-  console.log("Cart State in Header:", cartState); // Debugging line
 
   const router = useRouter();
   const pathname = usePathname();
@@ -239,6 +238,26 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
     const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     return `${formattedInteger}.${decimalPart}`;
   };
+
+  const creditBalance = isHydrated ? (cartState.creditBalance ?? 0) : 0;
+  const isZeroBalance = creditBalance === 0;
+  const isNegativeBalance = creditBalance < 0;
+
+  const balanceColor = isZeroBalance
+    ? "#73747D"
+    : isNegativeBalance
+      ? "#E94C12"
+      : "#007E20";
+
+  const walletBgColor = isZeroBalance
+    ? "#EAEAEC"
+    : isNegativeBalance
+      ? "#FCE7E0"
+      : "#E4FFEB";
+
+  const formattedBalance = isNegativeBalance
+    ? `- Rs. ${formatPrice(Math.abs(creditBalance))}`
+    : `Rs. ${formatPrice(creditBalance)}`;
 
   const toggleDesktopCategory = (e: { preventDefault: () => void }) => {
     e.preventDefault();
@@ -483,7 +502,6 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
               )}
             </nav>
           )}
-
           {isMobile && isAuthenticated() && (
             <div
               className="relative"
@@ -491,20 +509,25 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
               style={{ position: "relative" }}
             >
               <button
-                onClick={() => setShowMobileWallet((prev) => !prev)}
-                className="flex items-center justify-center bg-[#E4FFEB] w-11 h-11 rounded-full flex-shrink-0 cursor-pointer"
+                onClick={() => {
+                  if (isZeroBalance) return; 
+                  if (isNegativeBalance) {
+                    router.push("/clear-balance-page"); 
+                    return;
+                  }
+                  setShowMobileWallet((prev) => !prev); 
+                }}
+                className="flex items-center justify-center w-11 h-11 rounded-full flex-shrink-0 cursor-pointer"
+                style={{ backgroundColor: walletBgColor }}
                 aria-label="Wallet balance"
               >
-                <Image
-                  src={walletIcon}
-                  alt="Wallet"
-                  width={20}
-                  height={20}
-                  className="object-contain"
+                <FontAwesomeIcon
+                  icon={faWallet}
+                  style={{ color: balanceColor, fontSize: "18px" }}
                 />
               </button>
 
-              {showMobileWallet && (
+              {showMobileWallet && !isZeroBalance && !isNegativeBalance && (
                 <div
                   style={{
                     position: "fixed",
@@ -518,7 +541,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
                     style={{
                       display: "flex",
                       justifyContent: "flex-end",
-                      paddingRight: "24px",
+                      paddingRight: "190px",
                     }}
                   >
                     <div
@@ -537,8 +560,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
                     style={{
                       background: "#FFFFFF",
                       borderRadius: "16px",
-                      boxShadow:
-                        "0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)",
+                      boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)",
                       padding: "16px",
                       width: "288px",
                       maxWidth: "calc(100vw - 32px)",
@@ -558,20 +580,17 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
                           width: "40px",
                           height: "40px",
                           borderRadius: "9999px",
-                          border: "2px solid #007E20",
+                          border: `2px solid ${balanceColor}`,
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
                           flexShrink: 0,
-                          background: "#E4FFEB",
+                          background: 'white',
                         }}
                       >
-                        <Image
-                          src={walletIcon}
-                          alt="Wallet"
-                          width={18}
-                          height={18}
-                          className="object-contain"
+                        <FontAwesomeIcon
+                          icon={faWallet}
+                          style={{ color: balanceColor, fontSize: "16px" }}
                         />
                       </div>
 
@@ -580,7 +599,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
                           style={{
                             fontSize: "16px",
                             fontWeight: 600,
-                            color: "#000000",
+                            color: "#4C4C4C",
                             margin: 0,
                           }}
                         >
@@ -590,14 +609,11 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
                           style={{
                             fontSize: "18px",
                             fontWeight: 700,
-                            color: "#007E20",
+                            color: balanceColor,
                             margin: 0,
                           }}
                         >
-                          Rs.{" "}
-                          {isHydrated
-                            ? formatPrice(cartState.creditBalance ?? 0)
-                            : "0.00"}
+                          {formattedBalance}
                         </p>
                       </div>
                     </div>
@@ -607,7 +623,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
                         display: "flex",
                         alignItems: "center",
                         gap: "8px",
-                        background: "#E4FFEB",
+                        background: walletBgColor,
                         borderRadius: "9999px",
                         padding: "10px 12px",
                       }}
@@ -617,7 +633,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
                           width: "20px",
                           height: "20px",
                           borderRadius: "9999px",
-                          background: "#007E20",
+                          background: balanceColor,
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
@@ -646,7 +662,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
                       <span
                         style={{
                           fontSize: "14px",
-                          color: "#007E20",
+                          color: balanceColor,
                           fontWeight: 500,
                         }}
                       >
@@ -658,10 +674,10 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
               )}
             </div>
           )}
+          ;
           {!isMobile && isAuthenticated() && (
             <CreditBalancePill creditBalance={cartState.creditBalance ?? 0} />
           )}
-
           {!isMobile && (
             <div className="flex-1 max-w-xl mx-4">
               <form onSubmit={handleSearchSubmit}>
@@ -697,7 +713,6 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
               </form>
             </div>
           )}
-
           <div onClick={handleCartClick} className="cursor-pointer">
             <div className="flex items-center justify-center bg-[#000000] px-4.5 md:px-8 py-2 rounded-full h-12">
               <div className="relative">
@@ -711,7 +726,6 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
               </div>
             </div>
           </div>
-
           {!isMobile && isAuthenticated() && (
             <Link href="/history/order">
               <FontAwesomeIcon
@@ -720,7 +734,6 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
               />
             </Link>
           )}
-
           {isAuthenticated() && (
             <Link
               className="border-2 border-black w-9 h-9 md:w-12 md:h-12 flex justify-center items-center rounded-full overflow-hidden flex-shrink-0"
@@ -740,7 +753,6 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
               )}
             </Link>
           )}
-
           {isMobile && (
             <button onClick={toggleMenu} className="md:hidden">
               <FontAwesomeIcon
