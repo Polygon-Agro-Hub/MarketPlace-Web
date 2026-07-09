@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
-import { Plus, Minus, Trash, ShoppingCart, X, ChevronLeft, ChevronRight,Trophy  } from "lucide-react";
+import { Plus, Minus, Trash, ShoppingCart, X, ChevronLeft, ChevronRight, Trophy } from "lucide-react";
 import TopNavigation from "@/components/top-navigation/TopNavigation";
 import {
   getUserCart,
@@ -226,6 +226,27 @@ const Page: React.FC = () => {
 
     if (token) fetchCartData();
   }, [token, dispatch]);
+
+  const calculateSavedAmount = (): number => {
+    let totalSaved = 0;
+
+    if (cartData.additionalItems) {
+      cartData.additionalItems.forEach((itemGroup) => {
+        itemGroup.Items.forEach((item) => {
+          const comPrice = ((item as any).comPrice as number) || 0;
+          const discountedPrice = item.discountedPrice ?? item.normalPrice;
+          const selectedUnit = unitSelection[item.id] || item.unit;
+
+          const qtyInKg = selectedUnit === "g" ? item.quantity / 1000 : item.quantity;
+
+          const diff = (comPrice - discountedPrice) * qtyInKg;
+          totalSaved += diff > 0 ? diff : 0;
+        });
+      });
+    }
+
+    return parseFloat(totalSaved.toFixed(2));
+  };
 
   const formatPrice = (price: number): string => {
     const fixedPrice = parseFloat(price.toFixed(2));
@@ -761,6 +782,7 @@ const Page: React.FC = () => {
 
     const grandTotal = packageTotal + productTotal;
     const finalTotal = grandTotal - totalDiscount;
+    const savedAmount = calculateSavedAmount();
 
     return {
       totalItems,
@@ -769,6 +791,7 @@ const Page: React.FC = () => {
       totalDiscount,
       grandTotal,
       finalTotal,
+      savedAmount,
     };
   };
 
@@ -1650,7 +1673,7 @@ const Page: React.FC = () => {
                   <div className="flex justify-between text-sm sm:text-base">
                     <p className="text-gray-600">Discount</p>
                     <p className="text-[#BE2A45]">
-                      - Rs. {formatPrice(dynamicSummary.totalDiscount)}
+                     - Rs. {formatPrice(Math.round(dynamicSummary.totalDiscount * 100) / 100)}
                     </p>
                   </div>
                 )}
@@ -1675,16 +1698,16 @@ const Page: React.FC = () => {
                 {checkoutLoading ? "Processing..." : "Checkout Now"}
               </button>
             </div>
-              {!!cartData.summary?.savedAmount && cartData.summary.savedAmount > 0 && (
+            {dynamicSummary.savedAmount > 0 && (
               <div className="bg-[#EEFFE9] border border-[#D4F6CC] rounded-lg p-4 mt-4 md:mx-10 sm:mr-10">
-                 <p className="flex items-center gap-1.5 text-sm font-semibold text-[#12802E] mb-1">
+                <p className="flex items-center gap-1.5 text-sm font-semibold text-[#12802E] mb-1">
                   <Trophy size={16} />
                   Congratulations!
                 </p>
                 <p className="text-sm text-gray-700">
                   You have saved{" "}
                   <span className="font-bold text-gray-900">
-                    Rs. {formatPrice(cartData.summary.savedAmount)}
+                    Rs. {formatPrice(dynamicSummary.savedAmount)}
                   </span>{" "}
                   with GoViMart than the market price.
                 </p>
