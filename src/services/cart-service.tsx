@@ -99,8 +99,8 @@ export const getUserCart = async (token: string | null): Promise<CartData> => {
       }
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          "Failed to fetch cart data",
+        error.response.data?.error ||
+        "Failed to fetch cart data",
       );
     } else if (error.request) {
       throw new Error("No response from server. Please try again.");
@@ -193,8 +193,8 @@ export const bulkRemoveCartProducts = async (
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          `Server error: ${error.response.status}`,
+        error.response.data?.error ||
+        `Server error: ${error.response.status}`,
       );
     } else if (error.request) {
       throw new Error("No response from server. Please check your connection.");
@@ -236,8 +236,8 @@ export const updateCartPackageQuantity = async (
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          "Failed to update package quantity",
+        error.response.data?.error ||
+        "Failed to update package quantity",
       );
     } else if (error.request) {
       throw new Error("No response from server. Please try again.");
@@ -273,8 +273,8 @@ export const removeCartProduct = async (
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          "Failed to remove product from cart",
+        error.response.data?.error ||
+        "Failed to remove product from cart",
       );
     } else if (error.request) {
       throw new Error("No response from server. Please try again.");
@@ -310,8 +310,8 @@ export const removeCartPackage = async (
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          "Failed to remove package from cart",
+        error.response.data?.error ||
+        "Failed to remove package from cart",
       );
     } else if (error.request) {
       throw new Error("No response from server. Please try again.");
@@ -355,6 +355,9 @@ export interface OrderPayload {
   grandTotal: number;
   orderApp: string;
   deliveryCharge?: number;
+  isCreditApplied?: boolean;
+  creditPaid: number;
+  moneyPaid: number;
 }
 
 export const submitOrderToBackend = async (

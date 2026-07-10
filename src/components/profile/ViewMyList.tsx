@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
+import Image from "next/image";
 import { Info, Trash } from "lucide-react";
 import {
   getIncludedItems,
@@ -14,6 +15,8 @@ import Loader from "@/components/loader-spinner/Loader";
 import SuccessPopup from "@/components/toast-messages/success-message";
 import Lottie from "react-lottie";
 import addNewAnimation from "../../assets/animations/GoViMartAddNew.json";
+import HeartIcon from "../../../public/icons/heart-solid.png";
+import CancerIcon from "../../../public/icons/xmark-solid.png";
 
 interface Item {
   displayName: string;
@@ -189,30 +192,31 @@ const ViewMyList = ({ setSelectedMenu }: ViewMyListProps) => {
         <div className="border border-[#CFCFCF] rounded-2xl bg-white overflow-hidden h-full flex flex-col">
           {/* Card header */}
           <div
-            className={`flex items-start justify-between px-4 py-3 ${
+            className={`flex flex-col sm:flex-row sm:items-start sm:justify-between px-4 py-3 ${
               isInclude ? "bg-[#F0FDF4]" : "bg-[#FFF5F5]"
             }`}
           >
             <div className="flex items-start gap-2">
               {isInclude ? (
-                <div className="w-7 h-7 rounded-full bg-[#4CAF50] flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="white">
-                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                  </svg>
+                <div className="w-7 h-7 bg-[#FFFFFF] border border-[#E6F2E5] rounded-full flex items-center justify-center flex-shrink-0">
+                  <Image
+                    src={HeartIcon}
+                    alt="Prefer to Include"
+                    width={16}
+                    height={16}
+                  />
                 </div>
               ) : (
-                <div className="w-7 h-7 rounded-full bg-[#FEE2E2] flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <svg
-                    width="13"
-                    height="13"
-                    viewBox="0 0 24 24"
-                    fill="#EF4444"
-                  >
-                    <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
-                  </svg>
+                <div className="w-7 h-7 bg-[#FFFFFF] border border-[#FDE4E5] rounded-full flex items-center justify-center flex-shrink-0">
+                  <Image
+                    src={CancerIcon}
+                    alt="Prefer to Exclude"
+                    width={16}
+                    height={16}
+                  />
                 </div>
               )}
-              <div>
+              <div className="min-w-0">
                 <p
                   className={`text-[13px] font-semibold leading-tight ${isInclude ? "text-[#4CAF50]" : "text-[#EF4444]"}`}
                 >
@@ -225,14 +229,28 @@ const ViewMyList = ({ setSelectedMenu }: ViewMyListProps) => {
                     ? "We'll prioritize adding these to your package."
                     : "We'll leave these out."}
                 </p>
+
+                {/* Delete Selected — mobile: right under subtitle */}
+                {hasItems && selectedItems.length > 0 && (
+                  <button
+                    onClick={onDeleteSelected}
+                    className="sm:hidden flex items-center gap-1 text-[#EF4444] underline text-[11px] font-semibold cursor-pointer mt-1.5"
+                  >
+                    <Trash
+                      fill="red"
+                      className="w-3 h-3 cursor-pointer flex-shrink-0"
+                    />
+                    Delete Selected Products
+                  </button>
+                )}
               </div>
             </div>
 
-            {/* Delete Selected — only shows when items are checked */}
+            {/* Delete Selected — desktop: top-right, original position */}
             {hasItems && selectedItems.length > 0 && (
               <button
                 onClick={onDeleteSelected}
-                className="flex items-center gap-1 text-[#EF4444] underline text-[11px] font-semibold flex-shrink-0 ml-2 mt-0.5 cursor-pointer"
+                className="hidden sm:flex items-center gap-1 text-[#EF4444] underline text-[11px] font-semibold flex-shrink-0 ml-2 mt-0.5 cursor-pointer"
               >
                 <Trash fill="red" className="w-3 h-3 cursor-pointer" />
                 Delete Selected Products
@@ -245,7 +263,7 @@ const ViewMyList = ({ setSelectedMenu }: ViewMyListProps) => {
             {hasItems ? (
               <>
                 {/* Table header row */}
-                <div className="flex items-center px-4 py-2 border-b border-[#E5E7EB]">
+                <div className="flex items-center px-3 sm:px-4 py-2 border-b border-[#E5E7EB]">
                   <div className="w-7 flex-shrink-0">
                     <input
                       type="checkbox"
@@ -254,7 +272,7 @@ const ViewMyList = ({ setSelectedMenu }: ViewMyListProps) => {
                       className="accent-[#4C5160] cursor-pointer w-[14px] h-[14px]"
                     />
                   </div>
-                  <span className="text-[11px] text-[#8492A3] font-medium w-24 flex-shrink-0">
+                  <span className="text-[11px] text-[#8492A3] font-medium w-16 sm:w-24 flex-shrink-0">
                     Item ({String(items.length).padStart(2, "0")})
                   </span>
                   <span className="text-[11px] text-[#8492A3] font-medium flex-1">
@@ -270,7 +288,7 @@ const ViewMyList = ({ setSelectedMenu }: ViewMyListProps) => {
                   {items.map((item) => (
                     <div
                       key={item.displayName}
-                      className="flex items-center px-4 py-2 border-b border-[#F3F4F6] last:border-0 hover:bg-gray-50 transition-colors"
+                      className="flex items-center px-3 sm:px-4 py-2 border-b border-[#F3F4F6] last:border-0 hover:bg-gray-50 transition-colors"
                     >
                       <div className="w-7 flex-shrink-0">
                         <input
@@ -280,20 +298,20 @@ const ViewMyList = ({ setSelectedMenu }: ViewMyListProps) => {
                           className="cursor-pointer accent-[#4C5160] w-[14px] h-[14px]"
                         />
                       </div>
-                      <div className="w-24 flex-shrink-0">
+                      <div className="w-16 sm:w-24 flex-shrink-0">
                         <img
                           src={item.image}
                           alt={item.displayName}
-                          className="w-10 h-10 object-contain"
+                          className="w-8 h-8 sm:w-10 sm:h-10 object-contain"
                           onError={(e) => {
                             e.currentTarget.src = "/images/fallback.png";
                           }}
                         />
                       </div>
-                      <span className="flex-1 text-[13px] font-medium text-black">
+                      <span className="flex-1 text-[12px] sm:text-[13px] font-medium text-black break-words pr-1 min-w-0">
                         {item.displayName}
                       </span>
-                      <div className="w-12 flex justify-end pr-1">
+                      <div className="w-12 flex justify-end pr-1 flex-shrink-0">
                         <button
                           onClick={() => onDelete(item.displayName)}
                           aria-label={`Delete ${item.displayName}`}
@@ -312,25 +330,31 @@ const ViewMyList = ({ setSelectedMenu }: ViewMyListProps) => {
             ) : (
               /* Empty state — Lottie + Add Now */
               <div className="flex-1 flex flex-col items-center justify-center py-10 px-4">
-                <Lottie
-                  options={{
-                    loop: true,
-                    autoplay: true,
-                    animationData: addNewAnimation,
-                    rendererSettings: { preserveAspectRatio: "xMidYMid slice" },
-                  }}
-                  height={100}
-                  width={100}
-                />
                 <button
-                  className="text-[#7C3AED] font-semibold text-[14px] mt-2 cursor-pointer hover:underline"
+                  className="flex flex-col items-center gap-1 group"
                   onClick={() => {
                     if (setSelectedMenu) {
                       setSelectedMenu("AddMoreItems");
                     }
                   }}
                 >
-                  Add Now
+                  <div className="relative cursor-pointer">
+                    <Lottie
+                      options={{
+                        loop: true,
+                        autoplay: true,
+                        animationData: addNewAnimation,
+                        rendererSettings: {
+                          preserveAspectRatio: "xMidYMid slice",
+                        },
+                      }}
+                      height={90}
+                      width={90}
+                    />
+                  </div>
+                  <span className="text-[14px] font-semibold onehover:underline text-[#8C46FB] cursor-pointer">
+                    Add Now
+                  </span>
                 </button>
               </div>
             )}
@@ -388,7 +412,7 @@ const ViewMyList = ({ setSelectedMenu }: ViewMyListProps) => {
       {/* Info box */}
       <div className="flex items-center gap-3 bg-[#F5F8FD] border border-[#E1E8F8] rounded-xl px-5 py-4 max-w-[450px] mx-auto">
         <Info className="w-5 h-5 text-[#41519E] flex-shrink-0" />
-        <p className="text-[12px] font-medium sm:text-[13px] text-[#41519E] leading-relaxed">
+        <p className="text-[8px] whitespace-nowrap font-medium sm:text-[13px] text-[#41519E] leading-relaxed">
           Items marked as "Include" will be prioritized when possible.
           <br />
           Items marked as "Exclude" will be left out of your package.
@@ -402,16 +426,15 @@ const ViewMyList = ({ setSelectedMenu }: ViewMyListProps) => {
             <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
               <Trash fill="red" className="text-red-600 w-7 h-7" />
             </div>
-            <h2 className="text-sm sm:text-lg font-semibold text-black">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
               {isBulkDelete
-                ? `Remove these items from your ${deleteType} list?`
-                : `Remove "${itemToDelete}" from your ${deleteType} list?`}
+                ? "Remove selected items?"
+                : `Remove "${itemToDelete}"?`}
             </h2>
-            <p className="text-gray-500 text-[11px] sm:text-sm mt-2">
-              This action will allow{" "}
-              {isBulkDelete ? "these items" : "this item"} to be{" "}
-              {deleteType === "include" ? "excluded" : "included"} in future
-              packages unless re-added.
+            <p className="text-gray-500 text-sm mb-6">
+              {isBulkDelete
+                ? "These items will be removed from your list."
+                : "This item will be removed from your list."}
             </p>
             <div className="mt-6 flex justify-center gap-4">
               <button

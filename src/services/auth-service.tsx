@@ -118,7 +118,17 @@ interface ApiProfile {
   buyerType?: string | "";
 }
 
+export interface CityOption {
+  id: number;
+  city: string;
+  district?: string;
+  province?: string;
+  isAvailable: boolean; // 1/0 → boolean
+}
+
 export interface BillingAddress {
+  id?: number;
+  saveAs?: string;
   houseNo?: string;
   buildingNo?: string;
   buildingName?: string;
@@ -138,6 +148,7 @@ export interface BillingAddress {
 }
 
 export interface BillingDetails {
+  id?: number;
   billingName: string | undefined;
   billingTitle: string; // Required
   title: string;
@@ -151,6 +162,42 @@ export interface BillingDetails {
   phoneNumber2?: string | null;
   geoLatitude?: number; // Add this
   geoLongitude?: number;
+}
+
+export interface AddressDetail {
+  id?: number;
+  saveAs?: string;
+  houseNo?: string;
+  buildingNo?: string;
+  buildingName?: string;
+  unitNo?: string;
+  floorNo?: string | number | null;
+  streetName?: string;
+  city?: string;
+}
+
+export interface UserAddressEntry {
+  id: number;
+  buildingType: string; // "House" | "Apartment"
+  billingTitle: string;
+  billingName: string;
+  phoneCode: string;
+  phoneNumber: string;
+  phoneCode2?: string;
+  phoneNumber2?: string;
+  geoLatitude?: number;
+  geoLongitude?: number;
+  address: AddressDetail;
+}
+
+export interface BillingUserData {
+  id: number;
+  title?: string;
+  firstName?: string;
+  lastName?: string;
+  addresses: UserAddressEntry[];
+  isDelivered?: boolean;
+  nearesCity?: string;
 }
 
 interface FetchComplaintsPayload {
@@ -512,131 +559,131 @@ export const sendOTPInSignup = async (
     email?: string;
   },
 ): Promise<OTPServiceResponse> => {
-
-  console.log('🚀 sendOTPInSignup called');
-  console.log('📞 phoneNumber:', phoneNumber);
-  console.log('🌍 countryCode:', countryCode);
-  console.log('⚙️ options:', options);
-  console.log('🔀 routing to:', countryCode !== '+94' ? 'EMAIL (backend)' : 'SMS (ShoutOut)');
+  console.log("🚀 sendOTPInSignup called");
+  console.log("📞 phoneNumber:", phoneNumber);
+  console.log("🌍 countryCode:", countryCode);
+  console.log("⚙️ options:", options);
+  console.log(
+    "🔀 routing to:",
+    countryCode !== "+94" ? "EMAIL (backend)" : "SMS (ShoutOut)",
+  );
 
   // ── Non-+94: send OTP via backend email ───────────────────────────────────
-  if (countryCode !== '+94') {
-    console.log('📧 Entering EMAIL OTP path');
+  if (countryCode !== "+94") {
+    console.log("📧 Entering EMAIL OTP path");
     const emailTarget = options?.email;
-    console.log('📧 emailTarget:', emailTarget);
+    console.log("📧 emailTarget:", emailTarget);
 
     if (!emailTarget) {
-      console.error('❌ No email provided for international number');
+      console.error("❌ No email provided for international number");
       throw new Error(
-        'Email address is required to send OTP for international numbers.',
+        "Email address is required to send OTP for international numbers.",
       );
     }
 
     try {
-      console.log('📤 Calling /auth/send-otp-email with:', {
+      console.log("📤 Calling /auth/send-otp-email with:", {
         email: emailTarget,
-        phoneNumber: phoneNumber.replace(/\s+/g, ''),
+        phoneNumber: phoneNumber.replace(/\s+/g, ""),
         phoneCode: countryCode,
       });
 
-      const response = await axios.post('/auth/send-otp-email', {
+      const response = await axios.post("/auth/send-otp-email", {
         email: emailTarget,
-        phoneNumber: phoneNumber.replace(/\s+/g, ''),
+        phoneNumber: phoneNumber.replace(/\s+/g, ""),
         phoneCode: countryCode,
       });
 
-      console.log('✅ /auth/send-otp-email response:', response.data);
+      console.log("✅ /auth/send-otp-email response:", response.data);
       const resData = response.data;
 
       if (resData.status && resData.referenceId) {
-        console.log('✅ Email OTP sent. referenceId:', resData.referenceId);
+        console.log("✅ Email OTP sent. referenceId:", resData.referenceId);
         emailOtpReferenceIds.add(resData.referenceId);
-        console.log('📝 emailOtpReferenceIds set:', [...emailOtpReferenceIds]);
+        console.log("📝 emailOtpReferenceIds set:", [...emailOtpReferenceIds]);
         return { referenceId: resData.referenceId };
       }
 
-      console.error('❌ send-otp-email returned bad response:', resData);
-      throw new Error(resData.message || 'Failed to send OTP email.');
+      console.error("❌ send-otp-email returned bad response:", resData);
+      throw new Error(resData.message || "Failed to send OTP email.");
     } catch (error: any) {
-      console.error('❌ Email OTP error:', error);
-      console.error('❌ Error response:', error.response?.data);
+      console.error("❌ Email OTP error:", error);
+      console.error("❌ Error response:", error.response?.data);
       if (error.response) {
         throw new Error(
           error.response.data?.message ||
             `Failed to send OTP email (${error.response.status})`,
         );
       }
-      throw new Error(error.message || 'Failed to send OTP email');
+      throw new Error(error.message || "Failed to send OTP email");
     }
   }
 
   // ── +94 only: ShoutOut SMS ─────────────────────────────────────────────────
-  console.log('📱 Entering SMS OTP path (ShoutOut)');
+  console.log("📱 Entering SMS OTP path (ShoutOut)");
   try {
-    const formattedPhone = phoneNumber.replace(/\s+/g, '');
+    const formattedPhone = phoneNumber.replace(/\s+/g, "");
     const fullPhoneNumber = `${countryCode}${formattedPhone}`;
-    console.log('📱 fullPhoneNumber for ShoutOut:', fullPhoneNumber);
+    console.log("📱 fullPhoneNumber for ShoutOut:", fullPhoneNumber);
 
     const {
       message = `Your OTP for verification is: {{code}}`,
-      source = 'PolygonAgro',
+      source = "PolygonAgro",
     } = options || {};
 
-    const apiUrl = 'https://api.getshoutout.com/otpservice/send';
+    const apiUrl = "https://api.getshoutout.com/otpservice/send";
     const headers = {
       Authorization: `Apikey ${environment.SHOUTOUT_API_KEY}`,
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     };
     const body = {
       source,
-      transport: 'sms',
+      transport: "sms",
       content: { sms: message },
       destination: fullPhoneNumber,
     };
 
-    console.log('📤 Calling ShoutOut with body:', body);
+    console.log("📤 Calling ShoutOut with body:", body);
     const response = await axios.post(apiUrl, body, { headers });
-    console.log('✅ ShoutOut response:', response.data);
+    console.log("✅ ShoutOut response:", response.data);
 
     if (response.data.referenceId) {
-      console.log('✅ SMS OTP sent. referenceId:', response.data.referenceId);
+      console.log("✅ SMS OTP sent. referenceId:", response.data.referenceId);
       return { referenceId: response.data.referenceId };
     }
-    throw new Error('Failed to send OTP: No reference ID received');
+    throw new Error("Failed to send OTP: No reference ID received");
   } catch (error: any) {
-    console.error('❌ ShoutOut SMS error:', error);
-    console.error('❌ ShoutOut error response:', error.response?.data);
+    console.error("❌ ShoutOut SMS error:", error);
+    console.error("❌ ShoutOut error response:", error.response?.data);
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
           `Failed to send OTP (${error.response.status})`,
       );
     }
-    throw new Error(error.message || 'Failed to send SMS OTP');
+    throw new Error(error.message || "Failed to send SMS OTP");
   }
 };
 
-
-
 export const verifyOTP = async (code: string, referenceId: string) => {
-  console.log('🔍 verifyOTP called');
-  console.log('🔑 code:', code);
-  console.log('🆔 referenceId:', referenceId);
-  console.log('📝 emailOtpReferenceIds set:', [...emailOtpReferenceIds]);
+  console.log("🔍 verifyOTP called");
+  console.log("🔑 code:", code);
+  console.log("🆔 referenceId:", referenceId);
+  console.log("📝 emailOtpReferenceIds set:", [...emailOtpReferenceIds]);
 
   // ── Email OTP path (in-memory Set) ────────────────────────────────────────
   if (emailOtpReferenceIds.has(referenceId)) {
-    console.log('🔀 routing to: EMAIL verify (from Set)');
+    console.log("🔀 routing to: EMAIL verify (from Set)");
     try {
-      const response = await axios.post('/auth/verify-otp-email', {
+      const response = await axios.post("/auth/verify-otp-email", {
         code,
         referenceId,
       });
-      console.log('✅ verify-otp-email response:', response.data);
+      console.log("✅ verify-otp-email response:", response.data);
       emailOtpReferenceIds.delete(referenceId);
       return response.data;
     } catch (error: any) {
-      console.error('❌ Email OTP verification error:', error);
+      console.error("❌ Email OTP verification error:", error);
       throw error;
     }
   }
@@ -644,52 +691,51 @@ export const verifyOTP = async (code: string, referenceId: string) => {
   // ── Set was lost (hot reload etc.) — try email verify first ───────────────
   // If backend finds the referenceId it returns 1000/1001/1002
   // If not found at all it returns 1001 with "Invalid OTP" — then we try ShoutOut
-  console.log('🔍 Set miss — trying email verify first as fallback...');
+  console.log("🔍 Set miss — trying email verify first as fallback...");
   try {
-    const emailResponse = await axios.post('/auth/verify-otp-email', {
+    const emailResponse = await axios.post("/auth/verify-otp-email", {
       code,
       referenceId,
     });
-    console.log('🔍 verify-otp-email fallback response:', emailResponse.data);
+    console.log("🔍 verify-otp-email fallback response:", emailResponse.data);
 
     // If backend recognised the referenceId (found it in DB), use its response
     // statusCode 1002 = expired, 1000 = success — both mean it was an email OTP
     // statusCode 1001 could mean wrong code OR not found — check message
     if (
-      emailResponse.data.statusCode === '1000' ||
-      emailResponse.data.statusCode === '1002' ||
-      emailResponse.data.message !== 'Invalid OTP.'
+      emailResponse.data.statusCode === "1000" ||
+      emailResponse.data.statusCode === "1002" ||
+      emailResponse.data.message !== "Invalid OTP."
     ) {
-      console.log('🔀 confirmed EMAIL OTP — returning backend response');
+      console.log("🔀 confirmed EMAIL OTP — returning backend response");
       return emailResponse.data;
     }
 
     // statusCode 1001 + message "Invalid OTP." = referenceId not in DB = SMS OTP
-    console.log('🔀 not an email OTP — falling through to ShoutOut');
+    console.log("🔀 not an email OTP — falling through to ShoutOut");
   } catch (error) {
-    console.warn('⚠️ email verify fallback failed, trying ShoutOut:', error);
+    console.warn("⚠️ email verify fallback failed, trying ShoutOut:", error);
   }
 
   // ── ShoutOut SMS path ─────────────────────────────────────────────────────
-  console.log('🔀 routing to: SMS verify (ShoutOut)');
+  console.log("🔀 routing to: SMS verify (ShoutOut)");
   try {
-    const url = 'https://api.getshoutout.com/otpservice/verify';
+    const url = "https://api.getshoutout.com/otpservice/verify";
     const headers = {
       Authorization: `Apikey ${environment.SHOUTOUT_API_KEY}`,
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     };
     const body = { code, referenceId };
-    console.log('📤 Calling ShoutOut verify with:', body);
+    console.log("📤 Calling ShoutOut verify with:", body);
 
     const response = await axios.post(url, body, { headers });
-    console.log('✅ ShoutOut verify response:', response.data);
+    console.log("✅ ShoutOut verify response:", response.data);
     return response.data;
   } catch (error) {
-    console.error('❌ ShoutOut verify error:', error);
+    console.error("❌ ShoutOut verify error:", error);
     throw error;
   }
 };
-
 
 export const resetPasswordByPhone = async (
   phoneNumber: string,
@@ -911,7 +957,7 @@ export const updatePassword = async (
 
 export const fetchBillingDetails = async (
   payload: FetchBillingDetailsPayload,
-): Promise<BillingDetails> => {
+): Promise<BillingUserData | null> => {
   try {
     if (!payload.token) {
       throw new Error("You are not authenticated. Please log in first.");
@@ -930,55 +976,50 @@ export const fetchBillingDetails = async (
       if (resData.status && resData.data) {
         const apiData = resData.data;
 
+        if (!apiData.id) return null;
+
+        const addresses: UserAddressEntry[] = Array.isArray(apiData.addresses)
+          ? apiData.addresses.map((entry: any) => ({
+              id: entry.id,
+              buildingType: entry.buildingType,
+              billingTitle: entry.billingTitle || "",
+              billingName: entry.billingName || "",
+              phoneCode: entry.phoneCode || "+94",
+              phoneNumber: entry.phoneNumber || "",
+              phoneCode2: entry.phoneCode2 || "+94",
+              phoneNumber2: entry.phoneNumber2 || "",
+              geoLatitude: entry.geoLatitude
+                ? Number(entry.geoLatitude)
+                : undefined,
+              geoLongitude: entry.geoLongitude
+                ? Number(entry.geoLongitude)
+                : undefined,
+              address: {
+                id: entry.address?.id,
+                saveAs: entry.address?.saveAs || "",
+                houseNo: entry.address?.houseNo || "",
+                buildingNo: entry.address?.buildingNo || "",
+                buildingName: entry.address?.buildingName || "",
+                unitNo: entry.address?.unitNo || "",
+                floorNo: entry.address?.floorNo ?? null,
+                streetName: entry.address?.streetName || "",
+                city: entry.address?.city || "",
+              },
+            }))
+          : [];
+
         return {
-          billingName: apiData.billingName || undefined, // removed fallback to firstName + lastName
-          billingTitle: apiData.billingTitle || undefined, // removed fallback to title
+          id: apiData.id,
           title: apiData.title || "",
           firstName: apiData.firstName || "",
           lastName: apiData.lastName || "",
-          phoneCode: apiData.phoneCode || "+94",
-          phoneNumber: apiData.phoneNumber || "",
-          phoneCode2: apiData.phoneCode2 || "+94",
-          phoneNumber2: apiData.phoneNumber2 || "",
-          buildingType: apiData.buildingType?.toLowerCase() || "",
-          geoLatitude: apiData.geoLatitude
-            ? Number(apiData.geoLatitude)
-            : apiData.address?.geoLatitude
-              ? Number(apiData.address.geoLatitude)
-              : undefined,
-          geoLongitude: apiData.geoLongitude
-            ? Number(apiData.geoLongitude)
-            : apiData.address?.geoLongitude
-              ? Number(apiData.address.geoLongitude)
-              : undefined,
-          address: {
-            title: apiData.title || "Mr.",
-            firstName: apiData.firstName || "",
-            lastName: apiData.lastName || "",
-            phoneCode: apiData.phoneCode || "+94",
-            phoneNumber: apiData.phoneNumber || "",
-            houseNo: apiData.address?.houseNo || undefined,
-            buildingNo: apiData.address?.buildingNo || undefined,
-            buildingName: apiData.address?.buildingName || undefined,
-            unitNo: apiData.address?.unitNo || undefined,
-            floorNo: apiData.address?.floorNo || null,
-            streetName: apiData.address?.streetName || undefined,
-            city: apiData.address?.city || undefined,
-            geoLatitude: apiData.geoLatitude
-              ? Number(apiData.geoLatitude)
-              : apiData.address?.geoLatitude
-                ? Number(apiData.address.geoLatitude)
-                : undefined,
-            geoLongitude: apiData.geoLongitude
-              ? Number(apiData.geoLongitude)
-              : apiData.address?.geoLongitude
-                ? Number(apiData.address.geoLongitude)
-                : undefined,
-          },
+          addresses,
+          isDelivered: Boolean(apiData.isDelivered),
+          nearesCity: apiData.nearesCity || "",
         };
-      } else {
-        throw new Error(resData.message || "Invalid response format");
       }
+
+      return null;
     } else {
       throw new Error(
         response.data?.message || "Failed to fetch billing details",
@@ -986,6 +1027,7 @@ export const fetchBillingDetails = async (
     }
   } catch (error: any) {
     if (error.response) {
+      if (error.response.status === 404) return null;
       throw new Error(
         error.response.data?.message ||
           error.response.data?.error ||
@@ -1003,9 +1045,24 @@ export const fetchBillingDetails = async (
   }
 };
 
-export const saveBillingDetails = async (
-  payload: SaveBillingDetailsPayload,
-): Promise<void> => {
+export interface SaveAddressPayloadData {
+  addressId?: number | null; // null/undefined = new address, number = editing existing
+  billingTitle: string;
+  billingName: string;
+  phoneCode: string;
+  phoneNumber: string;
+  phoneCode2?: string;
+  phoneNumber2?: string;
+  buildingType: string;
+  geoLatitude?: number | null;
+  geoLongitude?: number | null;
+  address: AddressDetail;
+}
+
+export const saveBillingDetails = async (payload: {
+  token: string;
+  data: SaveAddressPayloadData;
+}): Promise<{ addressId: number; buildingType: string }> => {
   try {
     if (!payload.token) {
       throw new Error("You are not authenticated. Please log in first.");
@@ -1013,20 +1070,17 @@ export const saveBillingDetails = async (
 
     const apiPayload = {
       billingTitle: payload.data.billingTitle,
-      billingName:
-        payload.data.billingName ||
-        `${payload.data.firstName} ${payload.data.lastName}`.trim(),
-      title: payload.data.title,
-      firstName: payload.data.firstName,
-      lastName: payload.data.lastName || "",
+      billingName: payload.data.billingName,
       phoneCode: payload.data.phoneCode,
       phoneNumber: payload.data.phoneNumber,
-      phoneCode2: payload.data.phoneCode2,
-      phoneNumber2: payload.data.phoneNumber2,
+      phoneCode2: payload.data.phoneCode2 || "",
+      phoneNumber2: payload.data.phoneNumber2 || "",
       buildingType: payload.data.buildingType.toLowerCase(),
-      geoLatitude: payload.data.geoLatitude || null, // ADD THIS at root level
-      geoLongitude: payload.data.geoLongitude || null, // ADD THIS at root level
+      geoLatitude: payload.data.geoLatitude ?? null,
+      geoLongitude: payload.data.geoLongitude ?? null,
       address: {
+        id: payload.data.addressId || undefined,
+        saveAs: payload.data.address.saveAs || null,
         houseNo: payload.data.address.houseNo || null,
         buildingNo: payload.data.address.buildingNo || null,
         buildingName: payload.data.address.buildingName || null,
@@ -1034,8 +1088,6 @@ export const saveBillingDetails = async (
         floorNo: payload.data.address.floorNo || null,
         streetName: payload.data.address.streetName || null,
         city: payload.data.address.city || null,
-        geoLatitude: payload.data.address.geoLatitude || null, // Keep this too
-        geoLongitude: payload.data.address.geoLongitude || null, // Keep this too
       },
     };
 
@@ -1055,6 +1107,11 @@ export const saveBillingDetails = async (
         response.data?.message || "Failed to save billing details",
       );
     }
+
+    return {
+      addressId: response.data.addressId,
+      buildingType: response.data.buildingType,
+    };
   } catch (error: any) {
     if (error.response) {
       throw new Error(
@@ -1069,6 +1126,49 @@ export const saveBillingDetails = async (
     } else {
       throw new Error(
         error.message || "An error occurred while saving billing details",
+      );
+    }
+  }
+};
+
+// ── Delete ─────────────────────────────────────────────────────────────
+export const deleteBillingAddress = async (payload: {
+  token: string;
+  addressId: number;
+  buildingType: string;
+}): Promise<void> => {
+  try {
+    if (!payload.token) {
+      throw new Error("You are not authenticated. Please log in first.");
+    }
+
+    const response = await axios.delete(
+      `/auth/billing-details/${payload.addressId}/${payload.buildingType.toLowerCase()}`,
+      {
+        headers: { Authorization: `Bearer ${payload.token}` },
+      },
+    );
+
+    if (
+      response.status < 200 ||
+      response.status >= 300 ||
+      !response.data.status
+    ) {
+      throw new Error(response.data?.message || "Failed to delete address");
+    }
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(
+        error.response.data?.message ||
+          `Deleting address failed with status ${error.response.status}`,
+      );
+    } else if (error.request) {
+      throw new Error(
+        "No response received from server. Please check your network connection.",
+      );
+    } else {
+      throw new Error(
+        error.message || "An error occurred while deleting the address",
       );
     }
   }
@@ -1369,7 +1469,7 @@ export const getAllCities = async (): Promise<CityResult[]> => {
     const response = await axios.get("/auth/cities", {
       headers: { "Content-Type": "application/json" },
     });
- 
+
     if (response.status >= 200 && response.status < 300) {
       const resData = response.data;
       if (resData.status && Array.isArray(resData.data)) {
@@ -1383,7 +1483,7 @@ export const getAllCities = async (): Promise<CityResult[]> => {
       }
       return [];
     }
- 
+
     throw new Error(response.data?.message || "Failed to fetch cities");
   } catch (error: any) {
     if (error.response) {
@@ -1401,11 +1501,10 @@ export const getAllCities = async (): Promise<CityResult[]> => {
     }
   }
 };
- 
 
 export const searchCities = async (query: string): Promise<CityResult[]> => {
   if (!query || query.trim().length === 0) return [];
- 
+
   try {
     const response = await axios.get("/auth/search", {
       params: { q: query.trim() },
@@ -1413,7 +1512,7 @@ export const searchCities = async (query: string): Promise<CityResult[]> => {
         "Content-Type": "application/json",
       },
     });
- 
+
     if (response.status >= 200 && response.status < 300) {
       const resData = response.data;
       if (resData.status && Array.isArray(resData.data)) {
@@ -1427,7 +1526,7 @@ export const searchCities = async (query: string): Promise<CityResult[]> => {
       }
       return [];
     }
- 
+
     throw new Error(response.data?.message || "Failed to search cities");
   } catch (error: any) {
     if (error.response) {
@@ -1445,7 +1544,6 @@ export const searchCities = async (query: string): Promise<CityResult[]> => {
     }
   }
 };
- 
 
 export const checkCityAvailability = async (
   cityId: number,
@@ -1456,7 +1554,7 @@ export const checkCityAvailability = async (
         "Content-Type": "application/json",
       },
     });
- 
+
     if (response.status >= 200 && response.status < 300) {
       const resData = response.data;
       if (resData.status && resData.data) {
@@ -1470,7 +1568,7 @@ export const checkCityAvailability = async (
       }
       return null;
     }
- 
+
     throw new Error(
       response.data?.message || "Failed to check city availability",
     );
@@ -1492,36 +1590,86 @@ export const checkCityAvailability = async (
   }
 };
 
-export const fetchCities = async (token: string | null): Promise<string[]> => {
-  if (!token) {
-    throw new Error("Authentication required");
-  }
-
+export const fetchCities = async (token: string): Promise<CityOption[]> => {
   try {
     const response = await axios.get("/auth/get-cities", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${token}` },
     });
 
+    const resData: ApiResponse<any[]> = response.data;
+    if (resData.status && Array.isArray(resData.data)) {
+      return resData.data.map((c: any) => ({
+        id: c.id,
+        city: c.city,
+        district: c.district,
+        province: c.province,
+        isAvailable: Number(c.isAvailable) === 1,
+      }));
+    }
+    return [];
+  } catch (error) {
+    console.error("fetchCities error:", error);
+    return [];
+  }
+};
+
+export interface UpdateCreditBalancePayload {
+  id: number;
+  creditBalance: number;
+}
+
+export interface UpdateCreditBalanceResult {
+  userId: number;
+  creditBalance: number;
+  affectedRows: number;
+}
+
+export const updateCreditBalance = async (
+  token: string,
+  payload: UpdateCreditBalancePayload,
+): Promise<UpdateCreditBalanceResult> => {
+  try {
+    const response = await axios.put(
+      "/auth/update-credit-balance",
+      payload,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+
     if (response.status >= 200 && response.status < 300) {
-      return response.data.data; // assuming response.data = { status: true, data: [...] }
+      const resData: ApiResponse<UpdateCreditBalanceResult> = response.data;
+
+      if (resData.status && resData.data) {
+        return resData.data;
+      }
+
+      throw new Error(
+        resData.message || "Failed to update credit balance",
+      );
     }
 
-    throw new Error(response.data?.message || "Failed to fetch cities");
+    throw new Error(
+      response.data?.message || "Failed to update credit balance",
+    );
   } catch (error: any) {
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
           error.response.data?.error ||
-          "Failed to fetch cities",
+          `Updating credit balance failed with status ${error.response.status}`,
       );
     } else if (error.request) {
-      throw new Error("No response from server. Please try again.");
+      throw new Error(
+        "No response received from server. Please check your network connection.",
+      );
     } else {
-      throw new Error(error.message || "Failed to fetch cities");
+      throw new Error(
+        error.message || "An error occurred while updating credit balance",
+      );
     }
   }
 };
- 
