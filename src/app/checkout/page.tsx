@@ -17,8 +17,12 @@ import Image from "next/image";
 import summary from "../../../public/summary.png";
 import { getCities, City } from "@/services/cart-service";
 import GeoLocationModal from "@/components/delivery-map/GeoLocationModal";
-import { LocateFixed } from "lucide-react";
 import { updateCartInfo } from "@/store/slices/authSlice";
+import packageBasketImg from "../../../public/pp1.png";
+import reviewCalendarImg from "../../../public/pp2.png";
+import packageVeggiesImg from "../../../public/pp3.png";
+import cardPaymentImg from "../../../public/pp4.png";
+import { LocateFixed, AlertTriangle, X } from "lucide-react";
 
 const OpenStreetMap = dynamic(
   () => import("@/components/open-map/OpenStreetMap"),
@@ -210,6 +214,12 @@ const Page: React.FC = () => {
   const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
   const [selectedAddressKey, setSelectedAddressKey] = useState<string | null>(null);
   const [loadingSavedAddresses, setLoadingSavedAddresses] = useState(false);
+
+  const [showPackagePopup, setShowPackagePopup] = useState(false);
+  const [packageHandlingOption, setPackageHandlingOption] = useState<"review" | "finalize">("review");
+  const cartPackages = useSelector((state: RootState) => state.cartItems.packages);
+  console.log("cartPackages in checkout page:", cartPackages);
+  const hasPackages = cartPackages.length > 0;
 
   const isReadOnly =
     formData.deliveryMethod === "home" &&
@@ -941,12 +951,20 @@ const Page: React.FC = () => {
       return;
     }
 
+    if (hasPackages) {
+      setShowPackagePopup(true);
+      return;
+    }
+
+    await proceedToPayment();
+  };
+
+  const proceedToPayment = async () => {
     try {
       setIsLoading(true);
 
       let dataToSubmit: FormData = {
         ...initialFormState,
-        // Always include shared fields
         deliveryMethod: formData.deliveryMethod,
         title: formData.title,
         fullName: formData.fullName,
@@ -957,10 +975,9 @@ const Page: React.FC = () => {
         deliveryDate: formData.deliveryDate,
         timeSlot: formData.timeSlot,
         scheduleType: formData.scheduleType,
-        // Include geo location coordinates
         geoLatitude: formData.geoLatitude,
         geoLongitude: formData.geoLongitude,
-        companycenterId: companycenterId, // Include companycenterId for later use
+        companycenterId: companycenterId,
       };
 
       if (formData.deliveryMethod === "home") {
@@ -975,7 +992,6 @@ const Page: React.FC = () => {
             houseNo: formData.houseNo,
             street: formData.street,
             cityName: formData.cityName,
-            // Geo location already included above
           };
         } else if (formData.buildingType === "House") {
           dataToSubmit = {
@@ -984,7 +1000,6 @@ const Page: React.FC = () => {
             houseNo: formData.houseNo,
             street: formData.street,
             cityName: formData.cityName,
-            // Geo location already included above
           };
         }
       } else if (formData.deliveryMethod === "pickup") {
@@ -995,7 +1010,10 @@ const Page: React.FC = () => {
       }
 
       dispatch(resetFormData());
-      dispatch(setFormData(dataToSubmit));
+      dispatch(setFormData({
+        ...dataToSubmit,
+        isFinalizeImdt: hasPackages && packageHandlingOption === "finalize" ? 1 : 0,
+      } as any));
       localStorage.setItem("deliveryCharge", deliveryCharge.toString());
 
       await new Promise((resolve) => setTimeout(resolve, 2500));
@@ -1011,6 +1029,11 @@ const Page: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handlePackagePopupContinue = async () => {
+    setShowPackagePopup(false);
+    await proceedToPayment();
   };
 
   const formatPrice = (price: number): string => {
@@ -1061,6 +1084,147 @@ const Page: React.FC = () => {
       />
       <form onSubmit={handleSubmit}>
         <div className="px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5 ">
+          {showPackagePopup && (
+            <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-3 sm:p-4">
+              <div className="bg-white rounded-2xl w-full max-w-2xl sm:max-w-3xl max-h-[90vh] overflow-y-auto p-4 sm:p-6 relative">
+                {/* Close button */}
+                <button
+                  type="button"
+                  onClick={() => setShowPackagePopup(false)}
+                  className="absolute top-3 right-3 sm:top-4 sm:right-4 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors cursor-pointer"
+                  aria-label="Close"
+                >
+                  <X size={16} className="text-gray-600 sm:hidden" />
+                  <X size={18} className="text-gray-600 hidden sm:block" />
+                </button>
+
+                {/* Header */}
+                <div className="flex items-start gap-2.5 sm:gap-4 mb-3 sm:mb-5 pr-8">
+                  <div className="flex-shrink-0 w-11 h-11 sm:w-16 sm:h-16 relative">
+                    <Image src={packageBasketImg} alt="Package items" fill className="object-contain" />
+                  </div>
+                  <h2 className="text-[15px] sm:text-xl font-bold text-[#252525] leading-snug pt-1 sm:pt-2">
+                    How would you like us to handle your order&apos;s package items?
+                  </h2>
+                </div>
+
+                {/* Option 1: Review and confirm */}
+                <button
+                  type="button"
+                  onClick={() => setPackageHandlingOption("review")}
+                  style={{
+                    background: packageHandlingOption === "review"
+                      ? "linear-gradient(180deg, #F7F2FF 0%, #F6F0FF 100%)"
+                      : "#FFFFFF",
+                    border: `1px solid ${packageHandlingOption === "review" ? "#B186EF" : "#E5E7EE"}`,
+                    boxShadow: "0px 4px 10px 5px #F8F2FF",
+                  }}
+                  className="w-full text-left rounded-xl p-3 sm:p-4 mb-3 sm:mb-4 transition-colors cursor-pointer"
+                >
+                  <div className="flex items-start gap-2 sm:gap-3">
+                    <span
+                      className={`mt-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${packageHandlingOption === "review" ? "border-[#3E206D]" : "border-gray-300"
+                        }`}
+                    >
+                      {packageHandlingOption === "review" && (
+                        <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-[#3E206D]" />
+                      )}
+                    </span>
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 relative flex-shrink-0">
+                      <Image src={reviewCalendarImg} alt="Review and confirm" fill className="object-contain" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p
+                        className="font-bold text-[15px] sm:text-[18px] mb-1"
+                        style={{ color: packageHandlingOption === "review" ? "#47108E" : "#2A272E" }}
+                      >
+                        Review and confirm before delivery
+                      </p>
+                      <p className="text-[12.5px] sm:text-[14px] text-gray-600 leading-snug">
+                        Two days before your delivery or pickup, you&apos;ll receive an in-app notification
+                        with the exact produce and quantities. Confirm your order between 8:00 AM and 6:00 PM
+                        to finalize it for dispatch or pickup.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Orange warning box */}
+                  <div className="relative mt-3">
+                    <div className="flex items-start gap-2 sm:gap-3 bg-[#FFF9F5] border border-orange-200 rounded-lg p-2.5 sm:p-3 pr-12 sm:pr-20">
+                      <AlertTriangle size={16} className="text-[#EE7719] flex-shrink-0 mt-0.5 sm:hidden" />
+                      <AlertTriangle size={18} className="text-[#EE7719] flex-shrink-0 mt-0.5 hidden sm:block" />
+                      <p className="text-[12px] sm:text-[14px] text-[#EE7719] leading-snug flex-1">
+                        This facility is available on a first-come, first-served basis and is limited to a
+                        certain number of customers. If we do not receive your confirmation on time and all
+                        slots for your preferred delivery date are filled, we will be unable to process your
+                        order. You may check again later for any available slots.
+                      </p>
+                    </div>
+                    {/* Veggie image — now visible on mobile too, scaled down */}
+                    <div className="block absolute -top-3 -right-2 w-10 h-10 sm:-top-4 sm:-right-3 sm:w-20 sm:h-20">
+                      <Image src={packageVeggiesImg} alt="" fill className="object-contain drop-shadow-md" />
+                    </div>
+                  </div>
+                </button>
+
+                {/* Option 2: Finalize immediately */}
+                <button
+                  type="button"
+                  onClick={() => setPackageHandlingOption("finalize")}
+                  style={{
+                    background: packageHandlingOption === "finalize"
+                      ? "linear-gradient(180deg, #F7F2FF 0%, #F6F0FF 100%)"
+                      : "#FFFFFF",
+                    border: `1px solid ${packageHandlingOption === "finalize" ? "#B186EF" : "#E5E7EE"}`,
+                    boxShadow: "0px 4px 10px 5px #F8F2FF",
+                  }}
+                  className="w-full text-left rounded-xl p-3 sm:p-4 mb-4 sm:mb-5 transition-colors cursor-pointer"
+                >
+                  <div className="flex items-start gap-2 sm:gap-3">
+                    <span
+                      className={`mt-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${packageHandlingOption === "finalize" ? "border-[#3E206D]" : "border-gray-300"
+                        }`}
+                    >
+                      {packageHandlingOption === "finalize" && (
+                        <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-[#3E206D]" />
+                      )}
+                    </span>
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 relative flex-shrink-0">
+                      <Image src={cardPaymentImg} alt="Finalize immediately" fill className="object-contain" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1">
+                        <p
+                          className="font-bold text-[15px] sm:text-[18px]"
+                          style={{ color: packageHandlingOption === "finalize" ? "#47108E" : "#2A272E" }}
+                        >
+                          Finalize Immediately
+                        </p>
+                        <span className="text-[10px] sm:text-[11px] font-medium text-blue-700 bg-blue-100 px-1.5 sm:px-2 py-0.5 rounded-full whitespace-nowrap">
+                          Card Payment Required
+                        </span>
+                      </div>
+                      <p className="text-[12.5px] sm:text-[14px] text-gray-600 leading-snug">
+                        Want to secure your delivery slot now? Confirm your order right away and we&apos;ll
+                        prepare it using the standard package items assigned for your delivery date. Please
+                        note that once confirmed, this order cannot be changed or canceled.
+                      </p>
+                    </div>
+                  </div>
+                </button>
+
+                {/* Continue button */}
+                <button
+                  type="button"
+                  onClick={handlePackagePopupContinue}
+                  disabled={isLoading}
+                  className="w-full font-semibold text-[14px] sm:text-base rounded-xl py-3 sm:py-3.5 bg-[#3E206D] text-white hover:bg-[#2f1854] transition cursor-pointer disabled:opacity-70"
+                >
+                  {isLoading ? "Processing..." : "Continue to Payment"}
+                </button>
+              </div>
+            </div>
+          )}
           <TopNavigation NavArray={NavArray} />
 
           <div className="flex flex-col lg:flex-row lg:items-start gap-4 sm:gap-6 items-start mt-6 ">

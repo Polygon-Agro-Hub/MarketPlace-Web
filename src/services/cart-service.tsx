@@ -358,6 +358,7 @@ export interface OrderPayload {
   isCreditApplied?: boolean;
   creditPaid: number;
   moneyPaid: number;
+  isFinalizeImdt?: number;
 }
 
 export const submitOrderToBackend = async (
