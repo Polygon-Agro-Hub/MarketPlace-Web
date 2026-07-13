@@ -1973,8 +1973,9 @@ const Page: React.FC = () => {
                   </label>
                   <CustomDropdown
                     options={[
-                      { value: "Within 8AM - 2PM", label: "Within 8AM - 2PM" },
-                      { value: "Within 2PM - 8PM", label: "Within 2PM - 8PM" },
+                      { value: "08:00 AM - 12:00 PM", label: "08:00 AM - 12:00 PM" },
+                      { value: "12:00 PM - 04:00 PM", label: "12:00 PM - 04:00 PM" },
+                      { value: "04:00 PM - 09:00 PM", label: "04:00 PM - 09:00 PM" },
                     ]}
                     selectedValue={formData.timeSlot}
                     onSelect={(value) => handleFieldChange("timeSlot", value)}

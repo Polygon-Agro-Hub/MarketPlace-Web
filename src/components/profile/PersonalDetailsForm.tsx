@@ -286,10 +286,12 @@ const PersonalDetailsForm = () => {
     watch,
     setValue,
     getValues,
-    trigger,           // ← add this
+    trigger,
     formState: { errors },
   } = useForm<FormData>({
     resolver: yupResolver(schema, { context: { buyerType } }) as any,
+    mode: 'onChange',
+    reValidateMode: 'onChange',
     defaultValues: {
       title: '',
       countryCode: '',
@@ -333,7 +335,6 @@ const PersonalDetailsForm = () => {
 
   useEffect(() => {
     if (!currentPassword?.trim() && !newPassword?.trim() && !confirmPassword?.trim()) {
-      // All password fields are empty — clear their errors
       trigger(['currentPassword', 'newPassword', 'confirmPassword']);
     }
   }, [currentPassword, newPassword, confirmPassword, trigger]);
@@ -945,10 +946,12 @@ const PersonalDetailsForm = () => {
                 const trimmedValue = handlePasswordInput(e.target.value);
                 e.target.value = trimmedValue;
                 setValue('currentPassword', trimmedValue, { shouldValidate: true });
+                trigger(['currentPassword', 'newPassword', 'confirmPassword']); // ← add this
               }}
               onBlur={(e) => {
                 const trimmedValue = e.target.value.trim();
                 setValue('currentPassword', trimmedValue, { shouldValidate: true });
+                trigger(['currentPassword', 'newPassword', 'confirmPassword']); // ← add this
               }}
               className="w-full focus:outline-none text-xs sm:text-sm"
               placeholder="Enter current password"
@@ -972,10 +975,12 @@ const PersonalDetailsForm = () => {
                   const trimmedValue = handlePasswordInput(e.target.value);
                   e.target.value = trimmedValue;
                   setValue('newPassword', trimmedValue, { shouldValidate: true });
+                  trigger(['currentPassword', 'newPassword', 'confirmPassword']); // ← add this
                 }}
                 onBlur={(e) => {
                   const trimmedValue = e.target.value.trim();
                   setValue('newPassword', trimmedValue, { shouldValidate: true });
+                  trigger(['currentPassword', 'newPassword', 'confirmPassword']); // ← add this
                 }}
                 className="w-full focus:outline-none text-xs sm:text-sm"
                 placeholder="Enter new password"
@@ -1009,10 +1014,12 @@ const PersonalDetailsForm = () => {
                   const trimmedValue = handlePasswordInput(e.target.value);
                   e.target.value = trimmedValue;
                   setValue('confirmPassword', trimmedValue, { shouldValidate: true });
+                  trigger(['currentPassword', 'newPassword', 'confirmPassword']); // ← add this
                 }}
                 onBlur={(e) => {
                   const trimmedValue = e.target.value.trim();
                   setValue('confirmPassword', trimmedValue, { shouldValidate: true });
+                  trigger(['currentPassword', 'newPassword', 'confirmPassword']); // ← add this
                 }}
                 className="w-full focus:outline-none text-xs sm:text-sm"
                 placeholder="Confirm new password"
