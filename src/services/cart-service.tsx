@@ -65,6 +65,7 @@ interface CartData {
     isCoupon: number;
     couponValue: string;
     createdAt: string;
+    creditBalance ?: number;
   }; // Remove | null since it's always present
   packages: CartPackage[];
   additionalItems: {
@@ -585,6 +586,8 @@ export interface PickupCenter {
   latitude: number;
   city: string;
   district: string;
+  province?: string;
+  country?: string;
   label: string;
   value: string;
 }

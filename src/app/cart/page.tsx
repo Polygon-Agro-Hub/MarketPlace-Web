@@ -215,6 +215,16 @@ const Page: React.FC = () => {
           }),
         );
 
+        // NEW: push the fresh creditBalance into auth.cart so it's available
+        // wherever authCart.creditBalance is read (checkout, payment pages)
+        dispatch(
+          updateCartInfo({
+            price: authCart.price,
+            count: authCart.count,
+            creditBalance: response.cart?.creditBalance ?? 0,
+          }),
+        );
+
         setUnitSelection(initialUnitSelection);
         setError(null);
       } catch (err: any) {
@@ -1673,7 +1683,7 @@ const Page: React.FC = () => {
                   <div className="flex justify-between text-sm sm:text-base">
                     <p className="text-gray-600">Discount</p>
                     <p className="text-[#BE2A45]">
-                     - Rs. {formatPrice(Math.round(dynamicSummary.totalDiscount * 100) / 100)}
+                      - Rs. {formatPrice(Math.round(dynamicSummary.totalDiscount * 100) / 100)}
                     </p>
                   </div>
                 )}
