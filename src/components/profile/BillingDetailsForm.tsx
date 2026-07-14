@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   useForm,
   SubmitHandler,
@@ -16,8 +16,11 @@ import {
   saveBillingDetails,
   deleteBillingAddress,
   fetchCities,
+  searchCities,
+  getAllCities,
   UserAddressEntry,
   CityOption,
+  CityResult,
 } from "@/services/auth-service";
 import SuccessPopup from "@/components/toast-messages/success-message";
 import ErrorPopup from "@/components/toast-messages/error-message";
@@ -32,6 +35,9 @@ import {
   Plus,
   Trash2,
   Info,
+  Loader2,
+  ChevronDown,
+  XCircle,
 } from "lucide-react";
 
 type BillingFormData = {
@@ -158,7 +164,9 @@ const CustomDropdown = ({
           )}
           <span>{(value && selectedOption?.label) || placeholder}</span>
         </span>
-        <FaAngleDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none" />
+        {!disabled && (
+          <FaAngleDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none" />
+        )}
       </div>
       {isOpen && !disabled && (
         <div className="absolute z-10 w-full bg-white border border-[#CECECE] rounded-lg mt-1 shadow-lg">
@@ -210,6 +218,246 @@ const CustomDropdown = ({
   );
 };
 
+interface CityDropdownProps {
+  value: string;
+  onSelect: (city: CityResult) => void;
+  onClear: () => void;
+  placeholder?: string;
+  disabled?: boolean;
+}
+
+const CityDropdown = ({
+  value,
+  onSelect,
+  onClear,
+  placeholder = "Search your city",
+  disabled = false,
+}: CityDropdownProps) => {
+  const [searchTerm, setSearchTerm] = useState(value || "");
+  const [results, setResults] = useState<CityResult[]>([]);
+  const [allCities, setAllCities] = useState<CityResult[]>([]);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isLoadingAll, setIsLoadingAll] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+
+  const inputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchSeqRef = useRef(0);
+  const skipSyncRef = useRef(false);
+
+  useEffect(() => {
+    if (skipSyncRef.current) {
+      skipSyncRef.current = false;
+      return;
+    }
+    setSearchTerm(value || "");
+  }, [value]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleArrowClick = useCallback(async () => {
+    if (disabled) return;
+    if (isDropdownOpen) {
+      setIsDropdownOpen(false);
+      return;
+    }
+    if (allCities.length > 0) {
+      setResults(allCities);
+      setIsDropdownOpen(true);
+      inputRef.current?.focus();
+      return;
+    }
+    setIsLoadingAll(true);
+    setIsDropdownOpen(true);
+    inputRef.current?.focus();
+    try {
+      const fetched = await getAllCities();
+      setAllCities(fetched);
+      setResults(fetched);
+    } catch {
+      setResults([]);
+    } finally {
+      setIsLoadingAll(false);
+    }
+  }, [isDropdownOpen, allCities, disabled]);
+
+  const handleSearch = useCallback(
+    (val: string) => {
+      setSearchTerm(val);
+      setHasSearched(false);
+      skipSyncRef.current = true;
+      onClear();
+
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+
+      const seq = ++searchSeqRef.current;
+
+      if (!val.trim()) {
+        setResults(allCities);
+        setIsDropdownOpen(allCities.length > 0);
+        setIsSearching(false);
+        return;
+      }
+
+      setIsSearching(true);
+      setIsDropdownOpen(true);
+
+      debounceRef.current = setTimeout(async () => {
+        try {
+          const fetched = await searchCities(val);
+          if (seq !== searchSeqRef.current) return;
+          setResults(fetched);
+          setHasSearched(true);
+        } catch {
+          if (seq !== searchSeqRef.current) return;
+          setResults([]);
+          setHasSearched(true);
+        } finally {
+          if (seq === searchSeqRef.current) setIsSearching(false);
+        }
+      }, 350);
+    },
+    [allCities, onClear],
+  );
+
+  const handleSelectCity = (city: CityResult) => {
+    setSearchTerm(city.city);
+    setIsDropdownOpen(false);
+    setResults([]);
+    setHasSearched(false);
+    skipSyncRef.current = true;
+    onSelect(city);
+  };
+
+  const handleClear = () => {
+    setSearchTerm("");
+    setResults(allCities);
+    setHasSearched(false);
+    setIsDropdownOpen(allCities.length > 0);
+    inputRef.current?.focus();
+    skipSyncRef.current = true;
+    onClear();
+  };
+
+  const showSpinner = isSearching || isLoadingAll;
+  const displayList = results;
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <div
+        className={`flex items-center gap-2 border rounded-lg h-[42px] px-2 ${
+          disabled
+            ? "bg-[#F3F4F6] border-[#CECECE] cursor-not-allowed opacity-70"
+            : "border-[#CECECE]"
+        }`}
+      >
+        <input
+          ref={inputRef}
+          type="text"
+          value={searchTerm}
+          disabled={disabled}
+          onChange={(e) => handleSearch(e.target.value)}
+          onFocus={() => {
+            if (disabled) return;
+            if (
+              !isDropdownOpen &&
+              (results.length > 0 || allCities.length > 0)
+            ) {
+              setResults(searchTerm.trim() ? results : allCities);
+              setIsDropdownOpen(true);
+            }
+          }}
+          placeholder={placeholder}
+          className="flex-1 text-[12px] md:text-[14px] text-gray-700 placeholder-gray-400 bg-transparent border-none outline-none disabled:cursor-not-allowed"
+        />
+
+        {!disabled && (
+          <button
+            type="button"
+            onClick={() => (searchTerm ? handleClear() : handleArrowClick())}
+            className="flex-shrink-0 text-gray-400 hover:text-[#3E206D] transition-colors cursor-pointer"
+            aria-label={searchTerm ? "Clear" : "Show all cities"}
+          >
+            {showSpinner ? (
+              <Loader2 size={16} className="animate-spin text-[#3E206D]" />
+            ) : searchTerm ? (
+              <XCircle size={16} />
+            ) : (
+              <ChevronDown
+                size={16}
+                className={`transition-transform duration-200 ${
+                  isDropdownOpen ? "rotate-180" : ""
+                }`}
+              />
+            )}
+          </button>
+        )}
+      </div>
+
+      {isDropdownOpen && !disabled && (
+        <div className="absolute z-10 w-full bg-white border border-[#CECECE] rounded-lg mt-1 shadow-lg">
+          {showSpinner ? (
+            <div className="py-3 px-3 flex items-center gap-2 text-sm text-gray-500">
+              <Loader2 size={14} className="animate-spin" />
+              {isLoadingAll ? "Loading cities..." : "Searching..."}
+            </div>
+          ) : hasSearched && displayList.length === 0 ? (
+            <div className="py-3 px-3 text-sm text-gray-400 flex items-center gap-2">
+              <Info size={14} />
+              City Not Found
+            </div>
+          ) : displayList.length === 0 ? null : (
+            <ul className="max-h-52 overflow-y-auto custom-scrollbar">
+              {displayList.map((city) => (
+                <li key={city.id}>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectCity(city)}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center justify-between group transition-colors cursor-pointer"
+                  >
+                    <div>
+                      <span className="font-medium text-gray-800">
+                        {city.city}
+                      </span>
+                      {city.district && (
+                        <span className="text-xs text-gray-400 ml-1">
+                          — {city.district}
+                        </span>
+                      )}
+                    </div>
+                    {city.isAvailable ? (
+                      <span className="text-xs text-[#2E7D32] font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                        Available
+                      </span>
+                    ) : (
+                      <span className="text-xs text-orange-400 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                        Coming soon
+                      </span>
+                    )}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const BillingDetailsForm = () => {
   const token = useSelector((state: RootState) => state.auth.token);
 
@@ -244,6 +492,10 @@ const BillingDetailsForm = () => {
   const [hasDeliveredOrder, setHasDeliveredOrder] = useState(false);
   const [signupCity, setSignupCity] = useState("");
   const [showGoBackConfirm, setShowGoBackConfirm] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [showDeleteSuccessPopup, setShowDeleteSuccessPopup] = useState(false);
+  const [houseCityAvailable, setHouseCityAvailable] = useState(true);
+  const [apartmentCityAvailable, setApartmentCityAvailable] = useState(true);
 
   useEffect(() => {
     setIsMounted(true);
@@ -266,16 +518,39 @@ const BillingDetailsForm = () => {
     selectedAddressIdRef.current = selectedAddressId;
   }, [selectedAddressId]);
 
+  const getOrdinalSuffix = (num: number): string => {
+    const j = num % 10;
+    const k = num % 100;
+    if (j === 1 && k !== 11) return "st";
+    if (j === 2 && k !== 12) return "nd";
+    if (j === 3 && k !== 13) return "rd";
+    return "th";
+  };
+
   const getAddressSummary = (entry: UserAddressEntry) => {
     const address = entry.address;
-    const parts = [
-      address.houseNo,
-      address.buildingNo,
-      address.buildingName,
-      address.unitNo,
-      address.streetName,
-      address.city,
-    ]
+    const type = entry.buildingType?.toLowerCase();
+
+    if (type === "apartment") {
+      const parts = [
+        address.buildingNo,
+        address.buildingName,
+        address.unitNo,
+        address.floorNo,
+        address.houseNo,
+        address.streetName,
+        address.city,
+      ]
+        .filter(Boolean)
+        .map(String);
+
+      return parts.length > 0
+        ? parts.join(", ")
+        : "No address details available";
+    }
+
+    // House type (default)
+    const parts = [address.houseNo, address.streetName, address.city]
       .filter(Boolean)
       .map(String);
 
@@ -340,6 +615,8 @@ const BillingDetailsForm = () => {
     setHasFormChanged(false);
     setIsEditingAddress(true);
     setHasGeoLocation(false);
+    setHouseCityAvailable(true);
+    setApartmentCityAvailable(true);
     reset(EMPTY_FORM);
   };
 
@@ -351,6 +628,8 @@ const BillingDetailsForm = () => {
     setInitialFormData(formData);
     setHasFormChanged(false);
     setIsEditingAddress(true);
+    setHouseCityAvailable(true);
+    setApartmentCityAvailable(true);
     reset(formData);
     setValue("buildingType", formData.buildingType);
     setValue("geoLatitude", formData.geoLatitude, { shouldValidate: false });
@@ -490,9 +769,9 @@ const BillingDetailsForm = () => {
   const phonecode2Value = watch("phonecode2");
   const isCityValidForSave =
     buildingType === "house"
-      ? isCityDeliverable(houseCityValue)
+      ? houseCityAvailable
       : buildingType === "apartment"
-        ? isCityDeliverable(apartmentCityValue)
+        ? apartmentCityAvailable
         : true;
 
   const canSave = isEditingAddress
@@ -687,10 +966,9 @@ const BillingDetailsForm = () => {
   };
 
   const normalizeTitle = (title: string): string => {
-    if (!title) return '';
-    return title.endsWith('.') ? title : `${title}.`;
+    if (!title) return "";
+    return title.endsWith(".") ? title : `${title}.`;
   };
-
 
   const onSubmit: SubmitHandler<BillingFormData> = async (data) => {
     setIsLoading(true);
@@ -736,7 +1014,7 @@ const BillingDetailsForm = () => {
         setIsLoading(false);
         return;
       }
-      if (!isCityDeliverable(data.houseCity)) {
+      if (!houseCityAvailable) {
         setErrorMessage(`Delivery is not available in ${data.houseCity} yet.`);
         setShowErrorPopup(true);
         setIsLoading(false);
@@ -768,7 +1046,7 @@ const BillingDetailsForm = () => {
         return;
       }
 
-      if (!isCityDeliverable(data.apartmentCity)) {
+      if (!apartmentCityAvailable) {
         setErrorMessage(
           `Delivery is not available in ${data.apartmentCity} yet.`,
         );
@@ -951,10 +1229,21 @@ const BillingDetailsForm = () => {
   const confirmGoBack = () => {
     setShowGoBackConfirm(false);
     handleCancel();
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const cancelGoBack = () => {
     setShowGoBackConfirm(false);
+  };
+
+  const confirmCancelChanges = () => {
+    setShowCancelConfirm(false);
+    handleCancel();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const dismissCancelConfirm = () => {
+    setShowCancelConfirm(false);
   };
 
   const handleCancel = () => {
@@ -991,6 +1280,9 @@ const BillingDetailsForm = () => {
         setInitialFormData(null);
         setIsEditingAddress(false);
       }
+
+      setShowDeleteSuccessPopup(true);
+      setTimeout(() => setShowDeleteSuccessPopup(false), 3000);
     } catch (error: any) {
       setErrorMessage(error.message || "Failed to delete address");
       setShowErrorPopup(true);
@@ -1008,6 +1300,14 @@ const BillingDetailsForm = () => {
         title="Billing details saved successfully!"
         duration={3000}
       />
+
+      <SuccessPopup
+        isVisible={showDeleteSuccessPopup}
+        onClose={() => setShowDeleteSuccessPopup(false)}
+        title="Address deleted successfully!"
+        duration={3000}
+      />
+
       <ErrorPopup
         isVisible={showErrorPopup}
         onClose={() => setShowErrorPopup(false)}
@@ -1067,61 +1367,71 @@ const BillingDetailsForm = () => {
               className="rounded-[18px] border border-[#DCCEF6] bg-[#FAF7FF] p-4 md:p-5"
             >
               <div className="grid gap-4 lg:grid-cols-2">
-                {addressBook.map((entry) => {
-                  const isMenuOpen = openAddressMenuId === entry.id;
+                {[...addressBook]
+                  .sort((a, b) =>
+                    (a.address.saveAs || "").localeCompare(
+                      b.address.saveAs || "",
+                      undefined,
+                      { sensitivity: "base" },
+                    ),
+                  )
+                  .map((entry) => {
+                    const isMenuOpen = openAddressMenuId === entry.id;
 
-                  return (
-                    <div
-                      key={entry.id}
-                      className="relative rounded-[12px] border border-[#D7D7D7] bg-white px-5 py-4 shadow-[0_4px_10px_rgba(0,0,0,0.08)]"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <h3 className="text-[16px] font-medium text-[#111827]">
-                            {entry.address.saveAs || "Address"}
-                          </h3>
-                          <p className="mt-2 text-[13px] leading-5 text-[#6B7280]">
-                            {getAddressSummary(entry)}
-                          </p>
-                        </div>
+                    return (
+                      <div
+                        key={entry.id}
+                        className="relative rounded-[12px] border border-[#D7D7D7] bg-white px-5 py-4 shadow-[0_4px_10px_rgba(0,0,0,0.08)]"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <h3 className="text-[16px] font-medium text-[#111827]">
+                              {entry.address.saveAs || "Address"}
+                            </h3>
+                            <p className="mt-2 text-[13px] leading-5 text-[#6B7280]">
+                              {getAddressSummary(entry)}
+                            </p>
+                          </div>
 
-                        <div className="relative flex-shrink-0">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setOpenAddressMenuId(isMenuOpen ? null : entry.id)
-                            }
-                            className="rounded-full p-1 text-[#111827] hover:bg-[#F3F4F6] cursor-pointer"
-                            aria-label={`Open actions for ${entry.address.saveAs || "address"}`}
-                          >
-                            <MoreVertical size={18} />
-                          </button>
+                          <div className="relative flex-shrink-0">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setOpenAddressMenuId(
+                                  isMenuOpen ? null : entry.id,
+                                )
+                              }
+                              className="rounded-full p-1 text-[#111827] hover:bg-[#F3F4F6] cursor-pointer"
+                              aria-label={`Open actions for ${entry.address.saveAs || "address"}`}
+                            >
+                              <MoreVertical size={18} />
+                            </button>
 
-                          {isMenuOpen && (
-                            <div className="absolute right-0 top-10 z-20 w-32 overflow-hidden rounded-lg border border-[#E5E7EB] bg-white shadow-lg">
-                              <button
-                                type="button"
-                                onClick={() => startEditAddress(entry)}
-                                className="flex cursor-pointer w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-[#111827] hover:bg-[#F9FAFB]"
-                              >
-                                <PencilLine size={15} />
-                                Edit
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => requestDeleteAddress(entry)}
-                                className="flex cursor-pointer w-full items-center gap-2 border-t border-[#E5E7EB] px-3 py-2 text-left text-[13px] text-[#DC2626] hover:bg-[#FEF2F2]"
-                              >
-                                <Trash2 size={15} />
-                                Delete
-                              </button>
-                            </div>
-                          )}
+                            {isMenuOpen && (
+                              <div className="absolute right-0 top-6 z-20 w-32 overflow-hidden rounded-lg border border-[#E5E7EB] bg-white shadow-lg">
+                                <button
+                                  type="button"
+                                  onClick={() => startEditAddress(entry)}
+                                  className="flex cursor-pointer w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-[#111827] hover:bg-[#F9FAFB]"
+                                >
+                                  <PencilLine size={15} />
+                                  Edit
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => requestDeleteAddress(entry)}
+                                  className="flex cursor-pointer w-full items-center gap-2 border-t border-[#E5E7EB] px-3 py-2 text-left text-[13px] text-[#DC2626] hover:bg-[#FEF2F2]"
+                                >
+                                  <Trash2 size={15} />
+                                  Delete
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
               </div>
             </div>
           )}
@@ -1181,6 +1491,16 @@ const BillingDetailsForm = () => {
             placeholder="e.g. Home"
             className="border border-[#CECECE] rounded-lg p-2 w-[50%] h-[42px] text-[12px] md:text-[14px]"
             onBlur={() => trigger("saveAs")}
+            onKeyDown={handleInputKeyDown}
+            onChange={(e) => {
+              const val = e.target.value;
+              const capitalized =
+                val.length > 0
+                  ? val.charAt(0).toUpperCase() + val.slice(1)
+                  : val;
+              e.target.value = capitalized;
+              register("saveAs").onChange(e);
+            }}
           />
           <p className="text-red-500 text-xs mt-1">{errors.saveAs?.message}</p>
         </div>
@@ -1307,20 +1627,26 @@ const BillingDetailsForm = () => {
                   <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
                     Nearest City
                   </label>
-                  <CustomDropdown
-                    register={register}
-                    setValue={setValue}
-                    name="houseCity"
+                  <CityDropdown
                     value={houseCityValue}
-                    errors={errors}
-                    options={cityOptions}
-                    placeholder="Select City"
-                    withSearch={true}
-                    maxVisibleItems={6}
+                    onSelect={(city) => {
+                      setValue("houseCity", city.city, {
+                        shouldValidate: true,
+                      });
+                      setHouseCityAvailable(city.isAvailable);
+                    }}
+                    onClear={() => {
+                      setValue("houseCity", "", { shouldValidate: true });
+                      setHouseCityAvailable(true);
+                    }}
+                    placeholder="Search your city"
                     disabled={!hasDeliveredOrder}
                   />
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.houseCity?.message}
+                  </p>
 
-                  {houseCityValue && !isCityDeliverable(houseCityValue) && (
+                  {houseCityValue && !houseCityAvailable && (
                     <div className="mt-2 flex items-start gap-2.5 rounded-xl border border-[#FFDCB5] bg-[#FEF6ED] px-3 py-2">
                       <div>
                         <Info
@@ -1330,7 +1656,7 @@ const BillingDetailsForm = () => {
                       </div>
                       <p className="text-[12px] md:text-[12px] font-medium text-[#EC6821] leading-snug">
                         Delivery not available in {houseCityValue} yet, but
-                        we’re working on it and
+                        we're working on it and
                         <br />
                         coming to your area soon!
                       </p>
@@ -1475,32 +1801,37 @@ const BillingDetailsForm = () => {
                   <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
                     Nearest City
                   </label>
-                  <CustomDropdown
-                    register={register}
-                    setValue={setValue}
-                    name="apartmentCity"
+                  <CityDropdown
                     value={apartmentCityValue}
-                    errors={errors}
-                    options={cityOptions}
-                    placeholder="Select City"
-                    withSearch={true}
-                    maxVisibleItems={6}
+                    onSelect={(city) => {
+                      setValue("apartmentCity", city.city, {
+                        shouldValidate: true,
+                      });
+                      setApartmentCityAvailable(city.isAvailable);
+                    }}
+                    onClear={() => {
+                      setValue("apartmentCity", "", { shouldValidate: true });
+                      setApartmentCityAvailable(true);
+                    }}
+                    placeholder="Search your city"
                     disabled={!hasDeliveredOrder}
                   />
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.apartmentCity?.message}
+                  </p>
 
-                  {apartmentCityValue &&
-                    !isCityDeliverable(apartmentCityValue) && (
-                      <div className="mt-2 flex items-start gap-2 rounded-lg border border-[#FFD9A8] bg-[#FFF4E5] px-3 py-2.5">
-                        <Info
-                          size={16}
-                          className="mt-0.5 flex-shrink-0 text-[#E8792C]"
-                        />
-                        <p className="text-[16px] text-medium md:text-[13px] text-[#E8792C]">
-                          Delivery not available in {apartmentCityValue} yet,
-                          but we're working on it and coming to your area soon!
-                        </p>
-                      </div>
-                    )}
+                  {apartmentCityValue && !apartmentCityAvailable && (
+                    <div className="mt-2 flex items-start gap-2 rounded-lg border border-[#FFD9A8] bg-[#FFF4E5] px-3 py-2.5">
+                      <Info
+                        size={16}
+                        className="mt-0.5 flex-shrink-0 text-[#E8792C]"
+                      />
+                      <p className="text-[16px] text-medium md:text-[13px] text-[#E8792C]">
+                        Delivery not available in {apartmentCityValue} yet, but
+                        we're working on it and coming to your area soon!
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1629,7 +1960,7 @@ const BillingDetailsForm = () => {
                 ? "opacity-50 cursor-not-allowed text-[#9ca3af] bg-[#f9fafb]"
                 : "text-[#757E87] bg-[#F3F4F7] hover:bg-[#e1e2e5]"
             }`}
-            onClick={handleCancel}
+            onClick={() => setShowCancelConfirm(true)}
             disabled={isLoading || !canSave}
           >
             Cancel
@@ -1710,6 +2041,34 @@ const BillingDetailsForm = () => {
               <button
                 type="button"
                 onClick={confirmGoBack}
+                className="px-6 py-2.5 rounded-xl bg-[#3E206D] text-white font-medium hover:bg-[#341a5a] cursor-pointer"
+              >
+                Yes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCancelConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-xl">
+            <p className="text-[16px] md:text-[18px] font-medium text-[#111827] mb-6">
+              You have unsaved changes.
+              <br />
+              Are you sure you want to discard them?
+            </p>
+            <div className="flex justify-center gap-4">
+              <button
+                type="button"
+                onClick={dismissCancelConfirm}
+                className="px-6 py-2.5 rounded-xl bg-[#F3F4F7] text-[#757E87] font-medium hover:bg-[#e1e2e5] cursor-pointer"
+              >
+                No
+              </button>
+              <button
+                type="button"
+                onClick={confirmCancelChanges}
                 className="px-6 py-2.5 rounded-xl bg-[#3E206D] text-white font-medium hover:bg-[#341a5a] cursor-pointer"
               >
                 Yes

@@ -268,6 +268,23 @@ const UpdatePreferences = ({ setSelectedMenu }: UpdatePreferencesProps) => {
   // Render
   return (
     <div className="relative z-10 px-4 sm:px-6 md:px-8 min-h-screen bg-white py-6">
+      <style jsx global>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background-color: #d1d5db;
+          border-radius: 9999px;
+          cursor: pointer;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background-color: #9ca3af;
+          cursor: pointer;
+        }
+      `}</style>
       <SuccessPopup
         isVisible={showSuccessPopup}
         onClose={() => setShowSuccessPopup(false)}

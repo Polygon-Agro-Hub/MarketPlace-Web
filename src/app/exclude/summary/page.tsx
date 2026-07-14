@@ -299,7 +299,10 @@ export default function ExcludedItems() {
               </div>
 
               {/* Scrollable rows */}
-              <div className="overflow-y-auto" style={{ maxHeight: "300px" }}>
+              <div
+                className="custom-scrollbar overflow-y-auto"
+                style={{ maxHeight: "300px" }}
+              >
                 {items.map((item) => (
                   <div
                     key={item.displayName}
@@ -359,7 +362,7 @@ export default function ExcludedItems() {
                     width={90}
                   />
                 </div>
-                <span className="text-[14px] font-semibold onehover:underline text-[#8C46FB] cursor-pointer">
+                <span className="text-[14px] font-semibold hover:underline text-[#8C46FB] cursor-pointer">
                   Add Now
                 </span>
               </button>
@@ -370,9 +373,26 @@ export default function ExcludedItems() {
     );
   };
 
-  // ── Render ────────────────────────────────────────────────────────
+  // Render
   return (
     <div className="w-full min-h-screen p-6 bg-white">
+      <style jsx global>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background-color: #d1d5db;
+          border-radius: 9999px;
+          cursor: pointer;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background-color: #9ca3af;
+          cursor: pointer;
+        }
+      `}</style>
       <Loader isVisible={continueLoading || loading} />
       <SuccessPopup
         isVisible={showSuccessPopup}
@@ -451,7 +471,7 @@ export default function ExcludedItems() {
       </div>
 
       {/* Info box */}
-      <div className="flex items-center gap-3 bg-[#F5F8FD] border border-[#E1E8F8] rounded-xl px-5 py-4 max-w-[450px] mx-auto mb-6">
+      <div className="flex pl-8 items-center gap-3 bg-[#F5F8FD] border border-[#E1E8F8] rounded-xl px-5 py-4 max-w-[450px] mx-auto mb-6">
         <Info className="w-5 h-5 text-[#41519E] flex-shrink-0" />
         <p className="text-[10px] font-medium sm:text-[13px] text-[#41519E] leading-relaxed whitespace-nowrap">
           Items marked as "Include" will be prioritized when possible.
