@@ -1,29 +1,29 @@
-// formSlice.ts or checkoutSlice.ts
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 interface FormState {
-    centerId: number | null;
-    deliveryMethod: string;
-    title: string;
-    fullName: string;
-    phone1: string;
-    phone2: string;
-    buildingType: string;
-    deliveryDate: string;
-    timeSlot: string;
-    phoneCode1: string;
-    phoneCode2: string;
-    buildingNo: string;
-    buildingName: string;
-    flatNumber: string;
-    floorNumber: string;
-    houseNo: string;
-    street: string;
-    cityName: string;
-    scheduleType: string;
-    geoLatitude: number | null;
-    geoLongitude: number | null;
-    companycenterId?: any; // Add this to store companycenterId for later use
+  centerId: number | null;
+  deliveryMethod: string;
+  title: string;
+  fullName: string;
+  phone1: string;
+  phone2: string;
+  buildingType: string;
+  deliveryDate: string;
+  timeSlot: string;
+  phoneCode1: string;
+  phoneCode2: string;
+  buildingNo: string;
+  buildingName: string;
+  flatNumber: string;
+  floorNumber: string;
+  houseNo: string;
+  street: string;
+  cityName: string;
+  scheduleType: string;
+  geoLatitude: number | null;
+  geoLongitude: number | null;
+  companycenterId?: any;
+  isFinalizeImdt: number; // 1 if "Finalize Immediately" was chosen, else 0
 }
 
 const initialState: FormState = {
@@ -49,6 +49,7 @@ const initialState: FormState = {
   geoLatitude: null,
   geoLongitude: null,
   companycenterId: null,
+  isFinalizeImdt: 0,
 };
 
 const checkoutSlice = createSlice({

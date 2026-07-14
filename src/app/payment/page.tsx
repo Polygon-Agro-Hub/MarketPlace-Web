@@ -62,6 +62,7 @@ const Page: React.FC = () => {
   const [isError, setIsError] = useState(false);
   const [modalMessage, setModalMessage] = useState("");
   const [orderSubmitted, setOrderSubmitted] = useState(false);
+  const isFinalizeImdt = checkoutDetails?.isFinalizeImdt === 1;
 
 
   const getHomeUrl = () => {
@@ -163,6 +164,7 @@ const Page: React.FC = () => {
       isCreditApplied: useCredit,
       creditPaid: Number(creditAppliedAmount) || 0,
       moneyPaid: Number(remainingAmount) || 0,
+      isFinalizeImdt: checkoutDetails.isFinalizeImdt === 1 ? 1 : 0,
     };
   };
 
@@ -386,7 +388,7 @@ const Page: React.FC = () => {
   const creditApplied = useCredit ? Math.min(creditBalance, displayValues.grandTotal) : 0;
   const remainingAfterCredit = displayValues.grandTotal - creditApplied;
   const isFullyCoveredByCredit = useCredit && remainingAfterCredit === 0;
-  const showCashOption = displayValues.grandTotal <= 2000;
+  const showCashOption = displayValues.grandTotal <= 2000 && !isFinalizeImdt;
 
   useEffect(() => {
     if (!showCashOption && paymentMethod === "cash") {
@@ -687,7 +689,11 @@ const Page: React.FC = () => {
                           <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" />
                           <path d="M12 8v.01M12 11v5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                         </svg>
-                        <span>Pay By Cash is available only for orders equal to or less than Rs. 2,000.00.</span>
+                        <span>
+                          {isFinalizeImdt
+                            ? "Pay by cash is not available for immediate package finalization."
+                            : "Pay By Cash is available only for orders equal to or less than Rs. 2,000.00."}
+                        </span>
                       </div>
                     </div>
                   )}
