@@ -187,10 +187,7 @@ const Page: React.FC = () => {
   const [showErrorPopup, setShowErrorPopup] = useState(false);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [searchParamsLoaded, setSearchParamsLoaded] = useState(false);
-  const [selectedPickupCenter, setSelectedPickupCenter] = useState<{
-    id: number;
-    name: string;
-  } | null>(null);
+  const [selectedPickupCenter, setSelectedPickupCenter] = useState<PickupCenter | null>(null);
   const [pickupCenters, setPickupCenters] = useState<PickupCenter[]>([]);
   const [loadingCenters, setLoadingCenters] = useState(false);
   const [mapCenter, setMapCenter] = useState<[number, number]>([
@@ -593,13 +590,9 @@ const Page: React.FC = () => {
 
     if (selectedCenter) {
       const centerIdAsNumber = parseInt(centerId, 10);
-      setSelectedPickupCenter({ id: centerIdAsNumber, name: centerName });
+      setSelectedPickupCenter(selectedCenter);
       setFormDataLocal((prev) => ({ ...prev, centerId: centerIdAsNumber }));
-
-      // Clear centerId error when center is selected
       setErrors((prev) => ({ ...prev, centerId: "" }));
-
-      // Update map center and zoom to selected pickup center
       setMapCenter([selectedCenter.latitude, selectedCenter.longitude]);
       setMapZoom(15);
     }
@@ -1404,6 +1397,37 @@ const Page: React.FC = () => {
                     )}
                   </div>
 
+                  {selectedPickupCenter && (
+                    <div
+                      className="mb-6 rounded-[10px] py-6 px-4 text-center bg-white box-border"
+                      style={{
+                        border: "1px dashed #3E206D",
+                        boxShadow: "0px 2px 5px 0px rgba(0, 0, 0, 0.10)",
+                      }}
+                    >
+                      <h3 className="font-bold text-lg  mb-2">
+                        {selectedPickupCenter.name}
+                      </h3>
+                      <p className="text-gray-400 font-semibold text-sm mb-1">Address :</p>
+                      <p className="text-base">
+                        {[
+                          { label: "City", value: selectedPickupCenter.city },
+                          { label: "District", value: selectedPickupCenter.district },
+                          { label: "Province", value: selectedPickupCenter.province },
+                        ]
+                          .filter((item) => item.value)
+                          .map((item, index, arr) => (
+                            <React.Fragment key={item.label}>
+                              <span className="text-[#8492A3]">{item.label} : </span>
+                              <span className="text-[#272727]">{item.value}</span>
+                              {index < arr.length - 1 && (
+                                <span className="text-[#414347]">, </span>
+                              )}
+                            </React.Fragment>
+                          ))}
+                      </p>
+                    </div>
+                  )}
                   {/* Map Component - BELOW the dropdown */}
                   <div className="mb-6 relative z-10">
                     <OpenStreetMap
