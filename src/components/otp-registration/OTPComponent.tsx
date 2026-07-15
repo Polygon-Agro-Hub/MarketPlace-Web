@@ -7,6 +7,9 @@ import glogo from "../../../public/glogo.png";
 import SuccessPopup from "@/components/toast-messages/success-message";
 import { useRouter } from "next/navigation";
 import { RotateCw } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCircleInfo } from "@fortawesome/free-solid-svg-icons";
+import { faEnvelope } from "@fortawesome/free-solid-svg-icons";
 
 interface OTPComponentProps {
   phoneNumber: string;
@@ -49,6 +52,7 @@ export default function OTPComponent({
   const [isOtpExpired, setIsOtpExpired] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isResending, setIsResending] = useState(false);
+  const [showResendSuccessPopup, setShowResendSuccessPopup] = useState(false);
 
   const isEmail = mode === "email";
   const displayContact = contactValue ?? phoneNumber;
@@ -130,13 +134,11 @@ export default function OTPComponent({
         onResendOTP(res.referenceId);
         setTimer(initialTimer); setDisabledResend(true); setIsOtpExpired(false);
         setOtp(["", "", "", "", ""]);
-        setIsResendSuccess(true); setIsError(false);
-        setModalMessage(`New ${isEmail ? "email" : "OTP"} has been sent.`);
-        setIsModalOpen(true);
+        setShowResendSuccessPopup(true);
         inputsRef.current[0]?.focus();
       } else { throw new Error(`Failed to resend ${isEmail ? "email" : "OTP"}`); }
     } catch (error: any) {
-      setIsResendSuccess(false); setIsError(true);
+      setIsError(true);
       setModalMessage(error.message || `Failed to resend ${isEmail ? "email" : "OTP"}`);
       setIsModalOpen(true);
     } finally { setIsResending(false); }
@@ -225,17 +227,14 @@ export default function OTPComponent({
 
         {/* Expired banner */}
         {isOtpExpired && (
-          <div className="flex items-start gap-2.5 bg-orange-50 border border-orange-200 rounded-xl px-3.5 py-3 mb-5">
-            <div className="w-[18px] h-[18px] sm:w-5 sm:h-5 rounded-full bg-orange-500 flex items-center justify-center flex-shrink-0 mt-0.5">
-              <svg className="w-2 h-2 sm:w-2.5 sm:h-2.5" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round">
-                <line x1="12" y1="8" x2="12" y2="13" />
-                <circle cx="12" cy="17" r="1.2" fill="white" stroke="none" />
-              </svg>
+          <div className="flex items-center gap-3 bg-[#FFF4E8] border border-[#FFF4E8] rounded-xl px-3.5 py-3 mb-5">
+            <div className="w-8 h-8 rounded-full bg-[#FFE0B8] flex items-center justify-center flex-shrink-0">
+              <FontAwesomeIcon icon={faCircleInfo} className="w-4 h-4 text-[#EC6821]" />
             </div>
             <div className="flex flex-col gap-0.5">
-              <span className="text-[12px] sm:text-[13px] font-bold text-amber-900">Code Expired!</span>
-              <span className="text-[11px] sm:text-[12px] text-amber-700 leading-snug">
-                Your verification code has expired.<br />Please request a new code to continue.
+              <span className="text-[13px] text-[#EC6821] font-semibold">Code Expired!</span>
+              <span className="text-[12px] font-regular text-[#4C5160] leading-snug">
+                Your verification code has expired.Please request a new code to continue.
               </span>
             </div>
           </div>
@@ -243,13 +242,13 @@ export default function OTPComponent({
 
         {/* Email hint banner */}
         {isEmail && !isOtpExpired && (
-          <div className="flex items-start gap-2.5 bg-indigo-50 rounded-xl px-3.5 py-3 mb-5">
-            <svg className="w-4 h-4 text-indigo-700 flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="2" y="4" width="20" height="16" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
-            </svg>
+          <div className="flex items-center gap-3 bg-[#F6F3FF] rounded-xl px-3.5 py-3 mb-5">
+            <div className="w-8 h-8 rounded-full bg-[#DFD7FB] flex items-center justify-center flex-shrink-0">
+              <FontAwesomeIcon icon={faEnvelope} className="w-4 h-4 text-[#3E206D]" />
+            </div>
             <div className="flex flex-col gap-0.5">
-              <span className="text-[12px] sm:text-[13px] font-bold text-indigo-700">Can't find the email?</span>
-              <span className="text-[11px] sm:text-[12px] text-indigo-600 leading-snug">
+              <span className="text-[12px] sm:text-[13px] font-bold text-[#4C5160]">Can't find the email?</span>
+              <span className="text-[12px] sm:text-[12px] text-[#4C5160] leading-snug">
                 Please check your spam, junk or promotions folder.
               </span>
             </div>
@@ -267,24 +266,24 @@ export default function OTPComponent({
 
         {/* Resend */}
         <div className="flex items-center justify-center gap-2 mb-6">
-          <RotateCw style={{ width: 15, height: 15, color: "#3E206D", flexShrink: 0 }} />
+          <RotateCw style={{ width: 15, height: 15, color: "#4715C7", flexShrink: 0, fontWeight: "bold" }} />
           <button
             onClick={handleResendOTP}
             disabled={disabledResend || isResending}
-            className={`text-[13px] bg-transparent border-none p-0 font-medium leading-none ${disabledResend || isResending
+            className={`text-[13px] bg-transparent border-none p-0 font-bold leading-none ${disabledResend || isResending
                 ? "text-gray-500 cursor-not-allowed"
-                : "text-[#3E206D] font-bold underline cursor-pointer"
+                : "text-[#4715C7] font-bold underline cursor-pointer"
               }`}
           >
             {isResending ? (
               "Sending..."
             ) : disabledResend ? (
               <>
-                {isEmail ? "Resend Email" : "Resend OTP"} in{" "}
-                <span className="text-[#3E206D] font-extrabold">{timerText}</span>
+                {isEmail ? "Resend Email" : "Resend SMS"} in{" "}
+                <span className="text-[#4715C7] font-semibold">{timerText}</span>
               </>
             ) : (
-              isEmail ? "Resend Email" : "Resend OTP"
+              isEmail ? "Resend Email" : "Resend SMS"
             )}
           </button>
         </div>
@@ -348,6 +347,14 @@ export default function OTPComponent({
         onClose={() => { setShowSuccessPopup(false); router.push("/signin"); }}
         title="OTP Verified Successfully!"
         description="Your account has been created."
+        duration={3000}
+      />
+
+      <SuccessPopup
+        isVisible={showResendSuccessPopup}
+        onClose={() => setShowResendSuccessPopup(false)}
+        title={isEmail ? "Email Resent!" : "OTP Resent!"}
+        description={`A new ${isEmail ? "email" : "OTP"} has been sent to your ${isEmail ? "email address" : "phone number"}.`}
         duration={3000}
       />
     </div>
