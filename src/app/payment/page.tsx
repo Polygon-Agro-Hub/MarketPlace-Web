@@ -15,6 +15,7 @@ import {
   OrderPayload,
   formatValidationErrors,
   validateCoupon,
+  getCashPaymentLimit,
 } from "@/services/cart-service";
 import summary from "../../../public/summary.png";
 import { updateCartInfo } from "@/store/slices/authSlice";
@@ -66,6 +67,25 @@ const Page: React.FC = () => {
   const [orderSubmitted, setOrderSubmitted] = useState(false);
   const isFinalizeImdt = checkoutDetails?.isFinalizeImdt === 1;
   const [showUnavailableModal, setShowUnavailableModal] = useState(false);
+  const [cashPaymentLimit, setCashPaymentLimit] = useState<number>(2000); // sensible default while loading
+
+  useEffect(() => {
+    if (!token) return;
+
+    const fetchCashLimit = async () => {
+      try {
+        const res = await getCashPaymentLimit(token);
+        if (res.status) {
+          setCashPaymentLimit(res.data.cashPaymentLimit);
+        }
+      } catch (error) {
+        console.error("Error fetching cash payment limit:", error);
+        // fall back silently — cashPaymentLimit stays at default 2000
+      }
+    };
+
+    fetchCashLimit();
+  }, [token]);
 
 
   const getHomeUrl = () => {
@@ -397,7 +417,7 @@ const Page: React.FC = () => {
   const creditApplied = useCredit ? Math.min(creditBalance, displayValues.grandTotal) : 0;
   const remainingAfterCredit = displayValues.grandTotal - creditApplied;
   const isFullyCoveredByCredit = useCredit && remainingAfterCredit === 0;
-  const showCashOption = displayValues.grandTotal <= 2000 && !isFinalizeImdt;
+  const showCashOption = displayValues.grandTotal <= cashPaymentLimit && !isFinalizeImdt;
 
   useEffect(() => {
     if (!showCashOption && paymentMethod === "cash") {
@@ -750,7 +770,7 @@ const Page: React.FC = () => {
                         <span>
                           {isFinalizeImdt
                             ? "Pay by cash is not available for immediate package finalization."
-                            : "Pay By Cash is available only for orders equal to or less than Rs. 2,000.00."}
+                            : `Pay By Cash is available only for orders equal to or less than Rs. ${formatPrice(cashPaymentLimit)}.`}
                         </span>
                       </div>
                     </div>

@@ -45,6 +45,7 @@ interface CartPackage {
   image: string;
   description: string;
   items: PackageItem[];
+  status?: string; 
   isValid?: number;
 }
 
@@ -683,5 +684,39 @@ export const getCities = async (): Promise<CityResponse> => {
     return response.data;
   } catch (error: any) {
     throw new Error(error.response?.data?.message || "Failed to fetch cities");
+  }
+};
+
+export interface CashPaymentLimitResponse {
+  status: boolean;
+  message: string;
+  data: {
+    totalCompletedOrdersAmount: number;
+    cashPaymentLimit: number;
+  };
+}
+
+export const getCashPaymentLimit = async (
+  token: string | null,
+): Promise<CashPaymentLimitResponse> => {
+  if (!token) {
+    throw new Error("Authentication required");
+  }
+
+  try {
+    const response = await axios.get<CashPaymentLimitResponse>(
+      "/cart/cash-payment-limit",
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+    return response.data;
+  } catch (error: any) {
+    console.error("Error fetching cash payment limit:", error);
+    throw new Error(
+      error.response?.data?.message || "Failed to fetch cash payment limit",
+    );
   }
 };

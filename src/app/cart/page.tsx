@@ -48,6 +48,7 @@ interface CartPackage {
   image: string;
   description: string;
   items: PackageItem[];
+  status?: string;
   isValid?: number;
 }
 
@@ -182,7 +183,7 @@ const Page: React.FC = () => {
   const isCartEmpty = (): boolean => {
     if (!cartData.cart) return true;
     const hasValidPackages =
-      cartData.packages && cartData.packages.some((pkg) => pkg.isValid !== 0);
+      cartData.packages && cartData.packages.some((pkg) => pkg.status !== "Disabled");
     const hasAdditionalItems =
       cartData.additionalItems &&
       cartData.additionalItems.length > 0 &&
@@ -693,6 +694,51 @@ const Page: React.FC = () => {
       setBulkDeleteLoading(false);
     }
   };
+
+  const handleRemoveInvalidPackage = async (packageId: number) => {
+    const itemKey = `package-${packageId}`;
+
+    if (removingItems.has(itemKey)) return;
+
+    try {
+      setRemovingItems((prev) => new Set(prev).add(itemKey));
+
+      await removeCartPackage(packageId, token);
+
+      dispatch(removePackage(packageId));
+
+      const updatedCartData = await getUserCart(token);
+
+      dispatch(
+        setCartData({
+          cart: updatedCartData.cart,
+          packages: updatedCartData.packages,
+          additionalItems: updatedCartData.additionalItems,
+          summary: updatedCartData.summary,
+        }),
+      );
+
+      try {
+        const cartInfo = await getCartInfo(token);
+        dispatch(updateCartInfo(cartInfo));
+      } catch (cartError) {
+        console.error("Error fetching cart info:", cartError);
+      }
+
+      setSuccessPopupKey((prev) => prev + 1);
+      setShowSuccessPopup(true);
+    } catch (error: any) {
+      console.error("Error removing invalid package:", error);
+      alert("Failed to remove package. Please try again.");
+    } finally {
+      setRemovingItems((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(itemKey);
+        return newSet;
+      });
+    }
+  };
+
   const handleCheckout = async () => {
     if (
       isCartEmpty() ||
@@ -810,7 +856,7 @@ const Page: React.FC = () => {
     let packageTotal = 0;
 
     (packages || []).forEach((pkg) => {
-      if (pkg.isValid === 0) return; // never count invalid packages
+      if (pkg.status === "Disabled") return; // never count disabled packages
       packageTotal += pkg.price * pkg.quantity;
       totalItems += pkg.quantity;
     });
@@ -841,14 +887,28 @@ const Page: React.FC = () => {
 
   const dynamicSummary = getUpdatedCartSummary();
 
-  const InvalidPackageCard: React.FC<{ pkg: CartPackage }> = ({ pkg }) => (
-    <div className="w-full rounded-xl border border-red-300 overflow-hidden bg-[#FDEEF0]">
+  const InvalidPackageCard: React.FC<{
+    pkg: CartPackage;
+    onRemove: (packageId: number) => void;
+    isRemoving: boolean;
+  }> = ({ pkg, onRemove, isRemoving }) => (
+    <div className={`w-full rounded-xl border border-red-300 overflow-hidden bg-[#FDEEF0] ${isRemoving ? "opacity-50" : ""}`}>
       <div className="flex justify-between items-center px-4 sm:px-6 py-3 border-b border-[#FF0000] bg-[#FDEEF0]">
-        <h3 className="text-sm sm:text-base font-medium text-red-600">
-          Your Selected Package :{" "}
-          <span className="font-semibold">{pkg.packageName}</span>{" "}
-          ({pkg.totalItems} Items)
-        </h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm sm:text-base font-medium text-red-600">
+            Your Selected Package :{" "}
+            <span className="font-semibold">{pkg.packageName}</span>{" "}
+            ({pkg.totalItems} Items)
+          </h3>
+          <button
+            onClick={() => onRemove(pkg.id)}
+            disabled={isRemoving}
+            className="text-red-500 hover:scale-105 transition-transform disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed flex-shrink-0"
+            title={isRemoving ? "Removing..." : "Remove package"}
+          >
+            <Trash size={18} fill="red" strokeWidth={2} />
+          </button>
+        </div>
         <span className="text-sm sm:text-base font-bold text-red-600 whitespace-nowrap">
           Rs. {pkg.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
         </span>
@@ -879,7 +939,6 @@ const Page: React.FC = () => {
       </div>
     </div>
   );
-
   // Mobile Product Card Component
   const MobileProductCard: React.FC<{
     item: CartItem;
@@ -1565,8 +1624,15 @@ const Page: React.FC = () => {
 
                   <div className="space-y-3">
                     {cartData.packages.map((pkg, index) => {
-                      if (pkg.isValid === 0) {
-                        return <InvalidPackageCard key={index} pkg={pkg} />;
+                      if (pkg.status === "Disabled") {
+                        return (
+                          <InvalidPackageCard
+                            key={index}
+                            pkg={pkg}
+                            onRemove={handleRemoveInvalidPackage}
+                            isRemoving={removingItems.has(`package-${pkg.id}`)}
+                          />
+                        );
                       }
 
                       const isRemoving = removingItems.has(`package-${pkg.id}`);
@@ -1627,8 +1693,15 @@ const Page: React.FC = () => {
 
               {/* Desktop View - unchanged */}
               {!isMobile && cartData.packages.map((pkg, index) => {
-                if (pkg.isValid === 0) {
-                  return <InvalidPackageCard key={index} pkg={pkg} />;
+                if (pkg.status === "Disabled") {
+                  return (
+                    <InvalidPackageCard
+                      key={index}
+                      pkg={pkg}
+                      onRemove={handleRemoveInvalidPackage}
+                      isRemoving={removingItems.has(`package-${pkg.id}`)}
+                    />
+                  );
                 }
                 const isRemoving = removingItems.has(`package-${pkg.id}`);
                 return (

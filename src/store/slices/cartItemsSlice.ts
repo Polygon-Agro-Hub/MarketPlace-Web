@@ -36,6 +36,7 @@ interface CartPackage {
   image: string;
   description: string;
   items: PackageItem[];
+  status?: string;
   isValid?: number;
 }
 
@@ -113,14 +114,14 @@ const calculateSummary = (
   additionalItems: AdditionalItems[],
   couponDiscount: number = 0
 ) => {
-  // Exclude invalid packages from every total — they're displayed but never counted
-  const validPackages = packages.filter(pkg => pkg.isValid !== 0);
+  // Exclude disabled packages from every total — they're displayed but never counted.
+  // Matches the "status" field the API actually sends (not "isValid").
+  const validPackages = packages.filter(pkg => pkg.status !== "Disabled");
 
   const packageTotal = parseFloat(
     validPackages.reduce((sum, pkg) => sum + (pkg.price * pkg.quantity), 0).toFixed(3)
   );
 
-  // Calculate product total and discount
   let productTotal = 0;
   let productDiscount = 0;
   let totalProducts = 0;
@@ -143,7 +144,6 @@ const calculateSummary = (
   const totalDiscount = parseFloat((productDiscount + couponDiscount).toFixed(3));
   const finalTotal = parseFloat((grandTotal - totalDiscount).toFixed(3));
 
-  // Count by quantity, not package rows — matches how the cart page counts "items"
   const totalPackageItems = validPackages.reduce((sum, pkg) => sum + pkg.quantity, 0);
   const totalItems = totalPackageItems + totalProducts;
 
