@@ -11,12 +11,13 @@ interface CartItem {
   price: number;
   normalPrice: number;
   discountedPrice: number | null;
-  startValue: number; // Added from API response
-  changeby: number; // Added from API response
+  startValue: number;
+  changeby: number;
   image: string;
   varietyNameEnglish: string;
   category: string;
   createdAt: string;
+  isEnable?: number;
 }
 
 interface Cart {
@@ -44,6 +45,7 @@ interface CartPackage {
   image: string;
   description: string;
   items: PackageItem[];
+  isValid?: number;
 }
 
 interface CartSummary {
@@ -385,6 +387,15 @@ export const submitOrderToBackend = async (
         "Order service error:",
         error.response?.data || error.message,
       );
+
+      // Preserve the machine-readable code so the caller can branch on it
+      const responseData = error.response?.data;
+      if (responseData?.code === "ITEMS_UNAVAILABLE") {
+        const codedError: any = new Error(responseData.error || "Some Items No Longer Available!");
+        codedError.code = "ITEMS_UNAVAILABLE";
+        throw codedError;
+      }
+
       const errorMessage =
         error.response?.data?.error ||
         error.response?.data?.message ||

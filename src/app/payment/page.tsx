@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import TopNavigation from "@/components/top-navigation/TopNavigation";
 import Visa from "../../../public/images/Visa.png";
 import MasterCard from "../../../public/images/Mastercard.png";
+import unavailableWarningIcon from "../../../public/unavailable-warning.png";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/store";
 import {
@@ -64,6 +65,7 @@ const Page: React.FC = () => {
   const [modalMessage, setModalMessage] = useState("");
   const [orderSubmitted, setOrderSubmitted] = useState(false);
   const isFinalizeImdt = checkoutDetails?.isFinalizeImdt === 1;
+  const [showUnavailableModal, setShowUnavailableModal] = useState(false);
 
 
   const getHomeUrl = () => {
@@ -318,6 +320,12 @@ const Page: React.FC = () => {
       }
     } catch (error: any) {
       console.error("Error submitting order:", error);
+
+      if (error.code === "ITEMS_UNAVAILABLE") {
+        setShowUnavailableModal(true);
+        return; // don't fall through to the generic error modal
+      }
+
       const errorMsg = error.message || "Order submission failed. Please try again.";
       setIsError(true);
       setModalMessage(errorMsg);
@@ -446,6 +454,7 @@ const Page: React.FC = () => {
                 </div>
               </div>
             )}
+
             <h2 className="text-xl font-bold mb-2 text-gray-900">
               {isError ? "Error" : "Thank you for ordering!"}
             </h2>
@@ -469,6 +478,37 @@ const Page: React.FC = () => {
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {showUnavailableModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white p-8 rounded-2xl text-center w-[90%] max-w-md shadow-xl">
+            <div className="flex justify-center mb-4">
+              <Image
+                src={unavailableWarningIcon}
+                alt="Warning"
+                width={64}
+                height={64}
+                className="object-contain"
+              />
+            </div>
+            <h2 className="text-xl font-bold mb-2 text-gray-900">
+              Some Items No Longer Available!
+            </h2>
+            <p className="text-gray-500 mb-6">
+              Sorry, a package / a product in your cart is no longer available to order. Please go to your cart and update it before continuing.
+            </p>
+            <button
+              onClick={() => {
+                setShowUnavailableModal(false);
+                router.push("/cart");
+              }}
+              className="w-full px-6 py-3 bg-[#3E206D] text-white rounded-xl font-semibold hover:bg-[#2f1854] transition cursor-pointer"
+            >
+              Go Back to Cart
+            </button>
           </div>
         </div>
       )}
