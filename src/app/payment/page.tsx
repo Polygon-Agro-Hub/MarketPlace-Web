@@ -157,6 +157,7 @@ const Page: React.FC = () => {
       geoLatitude: checkoutDetails.geoLatitude || null,
       geoLongitude: checkoutDetails.geoLongitude || null,
       companycenterId: checkoutDetails.companycenterId || null,
+      saveAs: checkoutDetails.deliveryMethod === "home" ? (checkoutDetails.saveAs || "") : "",
     };
 
     if (checkoutDetails.deliveryMethod === "home") {

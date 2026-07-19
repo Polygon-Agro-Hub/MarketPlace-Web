@@ -45,7 +45,7 @@ interface CartPackage {
   image: string;
   description: string;
   items: PackageItem[];
-  status?: string; 
+  status?: string;
   isValid?: number;
 }
 
@@ -68,7 +68,7 @@ interface CartData {
     isCoupon: number;
     couponValue: string;
     createdAt: string;
-    creditBalance ?: number;
+    creditBalance?: number;
   }; // Remove | null since it's always present
   packages: CartPackage[];
   additionalItems: {
@@ -353,6 +353,7 @@ export interface OrderPayload {
     couponType?: string;
     geoLatitude?: number | null;
     geoLongitude?: number | null;
+    saveAs?: string; // Add this
   };
   paymentMethod: "card" | "cash";
   discountAmount: number;
