@@ -9,6 +9,13 @@ interface CreditBalancePillProps {
   creditBalance: number;
 }
 
+const formatPrice = (price: number): string => {
+  const fixedPrice = Math.abs(price).toFixed(2);
+  const [integerPart, decimalPart] = fixedPrice.split(".");
+  const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return `${formattedInteger}.${decimalPart}`;
+};
+
 export const CreditBalancePill = ({
   creditBalance,
 }: CreditBalancePillProps) => {
@@ -81,7 +88,7 @@ export const CreditBalancePill = ({
             Credit Balance
           </span>
           <span className="text-sm font-bold" style={{ color: accentColor }}>
-            {isNegative ? "- " : ""}Rs. {Math.abs(creditBalance).toFixed(2)}
+            {isNegative ? "- " : ""}Rs. {formatPrice(creditBalance)}
           </span>
         </div>
       </div>
@@ -127,7 +134,7 @@ export const CreditBalancePill = ({
                 Credit Balance
               </p>
               <p className="text-sm font-bold" style={{ color: "#007E20" }}>
-                Rs. {creditBalance.toFixed(2)}
+                Rs. {formatPrice(creditBalance)}
               </p>
             </div>
           </div>

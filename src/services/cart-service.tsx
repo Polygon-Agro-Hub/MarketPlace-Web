@@ -11,12 +11,13 @@ interface CartItem {
   price: number;
   normalPrice: number;
   discountedPrice: number | null;
-  startValue: number; // Added from API response
-  changeby: number; // Added from API response
+  startValue: number;
+  changeby: number;
   image: string;
   varietyNameEnglish: string;
   category: string;
   createdAt: string;
+  isEnable?: number;
 }
 
 interface Cart {
@@ -44,6 +45,8 @@ interface CartPackage {
   image: string;
   description: string;
   items: PackageItem[];
+  status?: string;
+  isValid?: number;
 }
 
 interface CartSummary {
@@ -65,6 +68,7 @@ interface CartData {
     isCoupon: number;
     couponValue: string;
     createdAt: string;
+    creditBalance?: number;
   }; // Remove | null since it's always present
   packages: CartPackage[];
   additionalItems: {
@@ -349,6 +353,7 @@ export interface OrderPayload {
     couponType?: string;
     geoLatitude?: number | null;
     geoLongitude?: number | null;
+    saveAs?: string; // Add this
   };
   paymentMethod: "card" | "cash";
   discountAmount: number;
@@ -384,6 +389,15 @@ export const submitOrderToBackend = async (
         "Order service error:",
         error.response?.data || error.message,
       );
+
+      // Preserve the machine-readable code so the caller can branch on it
+      const responseData = error.response?.data;
+      if (responseData?.code === "ITEMS_UNAVAILABLE") {
+        const codedError: any = new Error(responseData.error || "Some Items No Longer Available!");
+        codedError.code = "ITEMS_UNAVAILABLE";
+        throw codedError;
+      }
+
       const errorMessage =
         error.response?.data?.error ||
         error.response?.data?.message ||
@@ -585,6 +599,8 @@ export interface PickupCenter {
   latitude: number;
   city: string;
   district: string;
+  province?: string;
+  country?: string;
   label: string;
   value: string;
 }
@@ -669,5 +685,39 @@ export const getCities = async (): Promise<CityResponse> => {
     return response.data;
   } catch (error: any) {
     throw new Error(error.response?.data?.message || "Failed to fetch cities");
+  }
+};
+
+export interface CashPaymentLimitResponse {
+  status: boolean;
+  message: string;
+  data: {
+    totalCompletedOrdersAmount: number;
+    cashPaymentLimit: number;
+  };
+}
+
+export const getCashPaymentLimit = async (
+  token: string | null,
+): Promise<CashPaymentLimitResponse> => {
+  if (!token) {
+    throw new Error("Authentication required");
+  }
+
+  try {
+    const response = await axios.get<CashPaymentLimitResponse>(
+      "/cart/cash-payment-limit",
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+    return response.data;
+  } catch (error: any) {
+    console.error("Error fetching cash payment limit:", error);
+    throw new Error(
+      error.response?.data?.message || "Failed to fetch cash payment limit",
+    );
   }
 };

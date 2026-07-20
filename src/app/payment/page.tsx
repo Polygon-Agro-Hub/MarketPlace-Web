@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import TopNavigation from "@/components/top-navigation/TopNavigation";
 import Visa from "../../../public/images/Visa.png";
 import MasterCard from "../../../public/images/Mastercard.png";
+import unavailableWarningIcon from "../../../public/unavailable-warning.png";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/store";
 import {
@@ -14,6 +15,7 @@ import {
   OrderPayload,
   formatValidationErrors,
   validateCoupon,
+  getCashPaymentLimit,
 } from "@/services/cart-service";
 import summary from "../../../public/summary.png";
 import { updateCartInfo } from "@/store/slices/authSlice";
@@ -21,6 +23,7 @@ import { getCartInfo } from "@/services/auth-service";
 import { WalletMinimal, ReceiptText } from "lucide-react";
 import creditWalletImage from "../../../public/credit-wallet.png";
 import cardPaymentIcon from "../../../public/pay-now-illustration.png";
+import cashPaymentIcon from "../../../public/cashicon.png";
 
 const Page: React.FC = () => {
   const router = useRouter();
@@ -63,6 +66,26 @@ const Page: React.FC = () => {
   const [modalMessage, setModalMessage] = useState("");
   const [orderSubmitted, setOrderSubmitted] = useState(false);
   const isFinalizeImdt = checkoutDetails?.isFinalizeImdt === 1;
+  const [showUnavailableModal, setShowUnavailableModal] = useState(false);
+  const [cashPaymentLimit, setCashPaymentLimit] = useState<number>(2000); // sensible default while loading
+
+  useEffect(() => {
+    if (!token) return;
+
+    const fetchCashLimit = async () => {
+      try {
+        const res = await getCashPaymentLimit(token);
+        if (res.status) {
+          setCashPaymentLimit(res.data.cashPaymentLimit);
+        }
+      } catch (error) {
+        console.error("Error fetching cash payment limit:", error);
+        // fall back silently — cashPaymentLimit stays at default 2000
+      }
+    };
+
+    fetchCashLimit();
+  }, [token]);
 
 
   const getHomeUrl = () => {
@@ -134,6 +157,7 @@ const Page: React.FC = () => {
       geoLatitude: checkoutDetails.geoLatitude || null,
       geoLongitude: checkoutDetails.geoLongitude || null,
       companycenterId: checkoutDetails.companycenterId || null,
+      saveAs: checkoutDetails.deliveryMethod === "home" ? (checkoutDetails.saveAs || "") : "",
     };
 
     if (checkoutDetails.deliveryMethod === "home") {
@@ -317,6 +341,12 @@ const Page: React.FC = () => {
       }
     } catch (error: any) {
       console.error("Error submitting order:", error);
+
+      if (error.code === "ITEMS_UNAVAILABLE") {
+        setShowUnavailableModal(true);
+        return; // don't fall through to the generic error modal
+      }
+
       const errorMsg = error.message || "Order submission failed. Please try again.";
       setIsError(true);
       setModalMessage(errorMsg);
@@ -388,7 +418,7 @@ const Page: React.FC = () => {
   const creditApplied = useCredit ? Math.min(creditBalance, displayValues.grandTotal) : 0;
   const remainingAfterCredit = displayValues.grandTotal - creditApplied;
   const isFullyCoveredByCredit = useCredit && remainingAfterCredit === 0;
-  const showCashOption = displayValues.grandTotal <= 2000 && !isFinalizeImdt;
+  const showCashOption = displayValues.grandTotal <= cashPaymentLimit && !isFinalizeImdt;
 
   useEffect(() => {
     if (!showCashOption && paymentMethod === "cash") {
@@ -445,6 +475,7 @@ const Page: React.FC = () => {
                 </div>
               </div>
             )}
+
             <h2 className="text-xl font-bold mb-2 text-gray-900">
               {isError ? "Error" : "Thank you for ordering!"}
             </h2>
@@ -468,6 +499,37 @@ const Page: React.FC = () => {
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {showUnavailableModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white p-8 rounded-2xl text-center w-[90%] max-w-md shadow-xl">
+            <div className="flex justify-center mb-4">
+              <Image
+                src={unavailableWarningIcon}
+                alt="Warning"
+                width={64}
+                height={64}
+                className="object-contain"
+              />
+            </div>
+            <h2 className="text-xl font-bold mb-2 text-gray-900">
+              Some Items No Longer Available!
+            </h2>
+            <p className="text-gray-500 mb-6">
+              Sorry, a package / a product in your cart is no longer available to order. Please go to your cart and update it before continuing.
+            </p>
+            <button
+              onClick={() => {
+                setShowUnavailableModal(false);
+                router.push("/cart");
+              }}
+              className="w-full px-6 py-3 bg-[#3E206D] text-white rounded-xl font-semibold hover:bg-[#2f1854] transition cursor-pointer"
+            >
+              Go Back to Cart
+            </button>
           </div>
         </div>
       )}
@@ -509,7 +571,7 @@ const Page: React.FC = () => {
                           }`}
                       />
                     </button>
-                    <span className="text-sm font-medium text-[#1B7331]">Use My Credit Balance</span>
+                    <span className="text-sm font-semibold text-[#1B7331]">Use My Credit Balance</span>
                   </div>
                 </div>
 
@@ -521,7 +583,7 @@ const Page: React.FC = () => {
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center flex-shrink-0">
-                      <WalletMinimal className="w-4 h-4" style={{ color: "#27AA48" }} />
+                      <WalletMinimal className="w-6 h-6" style={{ color: "#27AA48" }} />
                     </div>
                     <div>
                       <p className="text-xs text-gray-500">Credit Applied</p>
@@ -532,7 +594,7 @@ const Page: React.FC = () => {
                   </div>
                   <div className="flex items-center gap-3 border-l border-gray-200 pl-4">
                     <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center flex-shrink-0">
-                      <ReceiptText className="w-4 h-4" style={{ color: "#354052" }} />
+                      <ReceiptText className="w-6 h-6 text-[#354052]" />
                     </div>
                     <div>
                       <p className="text-xs text-gray-500">Remaining to Pay</p>
@@ -554,21 +616,38 @@ const Page: React.FC = () => {
                 {isFullyCoveredByCredit && (
                   <>
                     <div className="border-t border-gray-200 my-4" />
-                    <div className="flex items-center gap-3 bg-[#F6FCF5] border border-[#AEC9AB] rounded-[10px] p-4">
+                    <div className="flex items-center gap-3 bg-[#F5FBF5] border border-[#6DD087] rounded-[10px] p-4">
                       <div className="w-7 h-7 rounded-full bg-[#1C8732] flex items-center justify-center flex-shrink-0">
                         <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none">
                           <path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-[#1B7331]">Your Credit Balance is enough to pay for this order.</p>
-                        <p className="text-xs text-[#5A6B5D]">No additional payment is required.</p>
+                        <p className="text-sm font-semibold text-[#252525]">Your Credit Balance is enough to pay for this order.</p>
+                        <p className="text-xs text-[#5A6B5D]">
+                          {creditBalance - creditApplied > 0 ? (
+                            <>
+                              You will save{" "}
+                              <span className="font-semibold text-[#1C8732]">
+                                Rs. {formatPrice(creditBalance - creditApplied)}
+                              </span>{" "}
+                              in your credit balance.
+                            </>
+                          ) : (
+                            "No additional payment is required."
+                          )}
+                        </p>
                       </div>
                     </div>
                   </>
                 )}
               </div>
             )}
+
+            {creditBalance > 0 && !isFullyCoveredByCredit && (
+              <div className="border-t border-[#CBCFD5] my-5 sm:my-6" />
+            )}
+
             {!isFullyCoveredByCredit && (
               <>
                 <h1 className="text-medium sm:text-lg font-semibold mb-4 sm:mb-6">
@@ -660,7 +739,7 @@ const Page: React.FC = () => {
                 {/* Pay by Cash */}
                 <div className="border border-gray-200 rounded-xl overflow-hidden">
                   <div
-                    className={`p-4 flex justify-between items-center transition ${showCashOption ? "cursor-pointer bg-white hover:bg-gray-50" : "bg-gray-50 cursor-not-allowed"
+                    className={`p-4 flex items-center transition ${showCashOption ? "cursor-pointer bg-white hover:bg-gray-50" : "bg-gray-50 cursor-not-allowed"
                       }`}
                     onClick={() => showCashOption && setPaymentMethod("cash")}
                   >
@@ -674,12 +753,12 @@ const Page: React.FC = () => {
                       <span className={`ml-3 text-base font-medium ${!showCashOption ? "text-gray-400" : ""}`}>
                         Pay by Cash
                       </span>
+                      {!showCashOption && (
+                        <span className="ml-3 text-xs font-medium text-red-500 bg-red-50 px-2 py-1 rounded-md">
+                          Not Available
+                        </span>
+                      )}
                     </div>
-                    {!showCashOption && (
-                      <span className="text-xs font-medium text-red-500 bg-red-50 px-2 py-1 rounded-md">
-                        Not Available
-                      </span>
-                    )}
                   </div>
 
                   {!showCashOption && (
@@ -692,7 +771,7 @@ const Page: React.FC = () => {
                         <span>
                           {isFinalizeImdt
                             ? "Pay by cash is not available for immediate package finalization."
-                            : "Pay By Cash is available only for orders equal to or less than Rs. 2,000.00."}
+                            : `Pay By Cash is available only for orders equal to or less than Rs. ${formatPrice(cashPaymentLimit)}.`}
                         </span>
                       </div>
                     </div>
@@ -784,7 +863,7 @@ const Page: React.FC = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Discount</span>
-                <span className="font-medium text-gray-700">Rs. {formatPrice(displayValues.discountAmount)}</span>
+                <span className="font-medium text-[#BE2A45]">Rs. {formatPrice(displayValues.discountAmount)}</span>
               </div>
               {isCouponApplied && (
                 <div className="flex justify-between">
@@ -811,43 +890,69 @@ const Page: React.FC = () => {
             <div className="border-t border-gray-200 my-4" />
 
             {/* Grand Total */}
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex justify-between items-center mb-3">
               <span className="font-semibold text-lg">Grand Total</span>
               <span className="font-bold text-xl text-[#3E206D]">Rs. {formatPrice(displayValues.grandTotal)}</span>
             </div>
 
             {/* Confirm Order Button */}
-            {useCredit && (
-              <div className="flex justify-between items-center text-sm mb-3">
-                <span className="text-[#1C8732]">Credit Applied</span>
-                <span className="font-medium text-green-600">- Rs. {formatPrice(creditApplied)}</span>
-              </div>
-            )}
+            <div className="flex justify-between items-center text-sm mb-3">
+              <span className={useCredit ? "text-[#1C8732]" : "text-gray-500"}>Credit Applied</span>
+              <span className={`font-medium ${useCredit ? "text-green-600" : "text-gray-500"}`}>
+                {useCredit ? `- Rs. ${formatPrice(creditApplied)}` : "Rs. 0.00"}
+              </span>
+            </div>
 
-            {useCredit && (
-              <div className="flex justify-between items-center border  border-[#E8E5F7] bg-[#F5F3FD] rounded-lg px-3 py-2 mb-3">
-                <span className="text-sm text-[#3E206D]">Remaining Amount</span>
-                <span className="font-semibold text-[#3E206D]">Rs. {formatPrice(remainingAfterCredit)}</span>
-              </div>
-            )}
+            {/* Remaining Amount - always visible */}
+            <div className="flex justify-between items-center border border-[#E8E5F7] bg-[#F5F3FD] rounded-lg px-3 py-2 mb-3">
+              <span className="text-sm text-[#3E206D]">Remaining Amount</span>
+              <span className="font-semibold text-[#3E206D]">Rs. {formatPrice(remainingAfterCredit)}</span>
+            </div>
 
-            {useCredit && remainingAfterCredit > 0 && (
-              <div className="border border-[#E8E5F7] bg-[#F5F3FD] rounded-lg p-3 mb-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-[#3E206D]">Card Payment</span>
-                  <span className="font-bold text-[#3E206D]">Rs. {formatPrice(remainingAfterCredit)}</span>
-                </div>
-                <div className="flex items-center gap-1.5 mt-1">
-                  <Image
-                    src={cardPaymentIcon}
-                    alt="Card payment"
-                    width={16}
-                    height={16}
-                    className="object-contain flex-shrink-0"
-                  />
-                  <p className="text-xs text-[#47484C]">You can pay this remaining amount with your card.</p>
-                </div>
-              </div>
+            {/* Card Payment box - only when there's a remaining balance to pay */}
+            {remainingAfterCredit > 0 && (
+              <>
+                {paymentMethod === "cash" && showCashOption ? (
+                  <div className="border border-[#E8E5F7] bg-[#F5F3FD] rounded-lg p-3 mb-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-[#3E206D]">
+                        You pay on {checkoutDetails.deliveryMethod === "pickup" ? "Pickup" : "Delivery"}
+                      </span>
+                      <span className="font-bold text-[#3E206D]">Rs. {formatPrice(remainingAfterCredit)}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <Image
+                        src={cashPaymentIcon}
+                        alt="Cash payment"
+                        width={20}
+                        height={20}
+                        className="object-contain flex-shrink-0"
+                      />
+                      <p className="text-xs text-[#47484C]">
+                        Pay the remaining amount in cash when your order is{" "}
+                        {checkoutDetails.deliveryMethod === "pickup" ? "picked up." : "delivered."}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="border border-[#E8E5F7] bg-[#F5F3FD] rounded-lg p-3 mb-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-[#3E206D]">Card Payment</span>
+                      <span className="font-bold text-[#3E206D]">Rs. {formatPrice(remainingAfterCredit)}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <Image
+                        src={cardPaymentIcon}
+                        alt="Card payment"
+                        width={20}
+                        height={20}
+                        className="object-contain flex-shrink-0"
+                      />
+                      <p className="text-xs text-[#47484C]">You can pay this remaining amount with your card.</p>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
             {!useCredit && <div className="mb-6" />}
 
@@ -862,8 +967,19 @@ const Page: React.FC = () => {
             </button>
 
             {creditBalance > 0 && (
-              <p className="flex items-center justify-center gap-1 text-xs text-gray-400 mt-3">
-                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none">
+              <p
+                className="flex items-center justify-center gap-1 mt-3"
+                style={{
+                  fontFamily: "Inter, sans-serif",
+                  fontWeight: 400,
+                  fontStyle: "normal",
+                  fontSize: "14px",
+                  lineHeight: "100%",
+                  letterSpacing: "0%",
+                  color: "#676767",
+                }}
+              >
+                <svg className="w-3 h-3 flex-shrink-0" viewBox="0 0 24 24" fill="none">
                   <rect x="4" y="10" width="16" height="10" rx="2" stroke="currentColor" strokeWidth="1.5" />
                   <path d="M8 10V7a4 4 0 018 0v3" stroke="currentColor" strokeWidth="1.5" />
                 </svg>

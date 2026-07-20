@@ -12,7 +12,10 @@ import {
 } from "lucide-react";
 import { searchCities, getAllCities, CityResult } from "@/services/auth-service";
 import glogo from "../../../public/glogo.png";
-import LoginImg from "../../../public/citypng.png";
+import Banner from "../../../public/images/SignupPageBanner.png";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faLocationDot, faPhone, faCircleCheck, faCircleInfo } from "@fortawesome/free-solid-svg-icons";
+import ErrorPopup from "@/components/toast-messages/error-message";
 
 type CityStatus = "idle" | "not-found" | "available" | "unavailable";
 
@@ -34,6 +37,7 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
     const inputRef = useRef<HTMLInputElement>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const [showCityRequiredError, setShowCityRequiredError] = useState(false);
 
     // Close dropdown on outside click
     useEffect(() => {
@@ -135,7 +139,12 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
     };
 
     const handleConfirm = () => {
-        if (selectedCity?.isAvailable) {
+        if (!selectedCity) {
+            setShowCityRequiredError(true);
+            return;
+        }
+
+        if (selectedCity.isAvailable) {
             onCityConfirmed(selectedCity);
         }
     };
@@ -158,7 +167,6 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
                             <Image src={glogo} alt="GoViMart Logo" width={150} height={60} className="object-contain" priority />
                         </div>
 
-                        {/* Heading */}
                         {/* Heading */}
                         <div className="mb-8">
                             <h1
@@ -191,7 +199,7 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
 
                             {/* Label */}
                             <div className="flex items-center gap-2 mb-3">
-                                <MapPin size={16} className="text-[#3E206D]" />
+                               <FontAwesomeIcon icon={faLocationDot} style={{ fontSize: 16 }} className="text-[#4A4A4A]"/>
                                 <span className="text-sm font-semibold text-[#3E206D]">Select Your City</span>
                             </div>
 
@@ -216,7 +224,7 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
                                 <button
                                     type="button"
                                     onClick={() => (searchTerm ? handleClear() : handleArrowClick())}
-                                    className="flex-shrink-0 text-gray-400 hover:text-[#3E206D] transition-colors"
+                                    className="flex-shrink-0 text-gray-400 hover:text-[#3E206D] transition-colors cursor-pointer"
                                     aria-label={searchTerm ? "Clear" : "Show all cities"}
                                 >
                                     {showSpinner ? (
@@ -241,7 +249,9 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
                                             {isLoadingAll ? "Loading cities..." : "Searching..."}
                                         </div>
                                     ) : hasSearched && displayList.length === 0 ? (
-                                        <div className="py-3 text-sm text-gray-400">City Not Found</div>
+                                        <div className="py-3 px-4 text-sm font-inter font-[300] text-[#4C5160] bg-[#F2F2F6] rounded-lg">
+                                            City Not Found
+                                        </div>
                                     ) : displayList.length === 0 ? null : (
                                         <ul className="max-h-52 overflow-y-auto">
                                             {displayList.map((city) => (
@@ -249,7 +259,7 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
                                                     <button
                                                         type="button"
                                                         onClick={() => handleSelectCity(city)}
-                                                        className="w-full text-left px-1 py-2 text-sm hover:bg-gray-50 rounded flex items-center justify-between group transition-colors"
+                                                        className="w-full cursor-pointer text-left px-1 py-2 text-sm hover:bg-gray-50 rounded flex items-center justify-between group transition-colors"
                                                     >
                                                         <div>
                                                             <span className="font-medium text-gray-800">{city.city}</span>
@@ -258,12 +268,12 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
                                                             )}
                                                         </div>
                                                         {city.isAvailable ? (
-                                                            <span className="text-xs text-[#2E7D32] font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <span className="text-xs text-[#229777] font-medium opacity-0 group-hover:opacity-100 transition-opacity">
                                                                 Available
                                                             </span>
                                                         ) : (
                                                             <span className="text-xs text-orange-400 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                Coming soon
+                                                                Coming Soon
                                                             </span>
                                                         )}
                                                     </button>
@@ -277,7 +287,7 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
                             {/* ── Status banners ── */}
                             {status === "available" && selectedCity && (
                                 <div className="mt-3 flex items-center gap-2 bg-[#EEFAF3] border border-[#D2ECE1] rounded-lg px-3 py-2">
-                                    <CheckCircle size={16} className="text-[#229777] flex-shrink-0" />
+                                    <FontAwesomeIcon icon={faCircleCheck} className="w-4 h-4 text-[#229777] flex-shrink-0" />
                                     <p className="text-sm text-[#229777] font-medium">
                                         Great news! We deliver to {selectedCity.city}!
                                     </p>
@@ -286,7 +296,7 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
 
                             {status === "unavailable" && selectedCity && (
                                 <div className="mt-3 flex items-start gap-2 bg-[#FEF6ED] border border-[#FFDCB5] rounded-lg px-3 py-2">
-                                    <AlertCircle size={16} className="text-[#E65100] flex-shrink-0 mt-0.5" />
+                                    <FontAwesomeIcon icon={faCircleInfo} className="w-4 h-4 text-[#EC6821] flex-shrink-0 mt-2.5" />
                                     <p className="text-sm text-[#EC6821]">
                                         Delivery not available in {selectedCity.city} yet, but we're working on it
                                         and coming to your area soon!
@@ -298,16 +308,16 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
                         {/* Hotline */}
                         <div className="flex justify-center mb-6">
                             <div className="flex items-center gap-2 bg-[#F2F2F6] rounded-full px-4 py-1.5">
-                                <Phone size={13} className="text-[#4C5160]" />
-                                <span className="text-xs text-[#4C5160]">Hotline : +94 770111999</span>
+                                <FontAwesomeIcon icon={faPhone} className="w-[13px] h-[13px] text-[#4C5160]" />
+                                <span className="text-xs font-medium font-[500] text-[#4C5160]">Hotline : +94 770111999</span>
                             </div>
                         </div>
 
                         {/* Info cards */}
                         <div className="space-y-3 mb-8">
                             <div className="bg-[#F6F2FB] rounded-xl p-4">
-                                <div className="flex items-start gap-2 mb-1">
-                                    <div className="w-5 h-5 rounded-full bg-[#3E206D] flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <div className="w-5 h-5 rounded-full bg-[#3E206D] flex items-center justify-center flex-shrink-0">
                                         <span className="text-white text-xs font-bold">?</span>
                                     </div>
                                     <p className="text-sm font-semibold text-[#55228D]">Can't find your city?</p>
@@ -320,8 +330,8 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
                             </div>
 
                             <div className="bg-[#EAF8EE] rounded-xl p-4">
-                                <div className="flex items-start gap-2 mb-1">
-                                    <div className="w-5 h-5 rounded-full bg-[#0B6A45] flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <div className="w-5 h-5 rounded-full bg-[#0B6A45] flex items-center justify-center flex-shrink-0">
                                         <span className="text-white text-xs font-bold">i</span>
                                     </div>
                                     <p className="text-sm font-semibold text-[#0B6A45]">Important Notice</p>
@@ -343,11 +353,7 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
                         <button
                             type="button"
                             onClick={handleConfirm}
-                            disabled={!canConfirm}
-                            className={`w-full py-3 rounded-xl text-base font-semibold transition-all duration-200 ${canConfirm
-                                ? "bg-[#3E206D] text-white hover:bg-[#2d1750] cursor-pointer shadow-md"
-                                : "bg-gray-200 text-gray-400 cursor-not-allowed"
-                                }`}
+                            className="w-full py-3 rounded-xl text-base font-semibold transition-all duration-200 bg-[#3E206D] text-white hover:bg-[#2d1750] cursor-pointer shadow-md"
                         >
                             Confirm & Continue
                         </button>
@@ -363,12 +369,19 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
                     {/* ── Right decorative panel ── */}
                     <div className="hidden lg:block lg:w-1/2 bg-[#EEE9F5] relative overflow-hidden">
                         <div className="absolute inset-0 flex items-center justify-center">
-                            <Image src={LoginImg} alt="GoViMart Fresh Delivery" fill className="object-cover" priority />
+                            <Image src={Banner} alt="GoViMart Fresh Delivery" fill className="object-cover" priority />
                         </div>
                     </div>
 
                 </div>
             </div>
+
+                <ErrorPopup
+                    isVisible={showCityRequiredError}
+                    onClose={() => setShowCityRequiredError(false)}
+                    title="City is required!"
+                    description="Please select your city to continue shopping."
+                />
         </div>
     );
 }

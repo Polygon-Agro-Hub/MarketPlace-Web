@@ -30,6 +30,7 @@ import Image from "next/image";
 import { updateCartInfo } from "@/store/slices/authSlice";
 import { getCartInfo } from "@/services/auth-service";
 import SuccessPopup from "@/components/toast-messages/success-message";
+import invalidPackageIcon from "../../../public/invalid-package.png";
 
 interface PackageItem {
   name: string;
@@ -47,6 +48,8 @@ interface CartPackage {
   image: string;
   description: string;
   items: PackageItem[];
+  status?: string;
+  isValid?: number;
 }
 
 interface CartItem {
@@ -66,6 +69,7 @@ interface CartItem {
   category: string;
   createdAt: string;
   maxQuantity?: number;
+  isEnable?: number;
 }
 
 interface AdditionalItems {
@@ -178,14 +182,15 @@ const Page: React.FC = () => {
 
   const isCartEmpty = (): boolean => {
     if (!cartData.cart) return true;
-    const hasPackages = cartData.packages && cartData.packages.length > 0;
+    const hasValidPackages =
+      cartData.packages && cartData.packages.some((pkg) => pkg.status !== "Disabled");
     const hasAdditionalItems =
       cartData.additionalItems &&
       cartData.additionalItems.length > 0 &&
       cartData.additionalItems.some(
         (group) => group.Items && group.Items.length > 0,
       );
-    return !hasPackages && !hasAdditionalItems;
+    return !hasValidPackages && !hasAdditionalItems;
   };
 
   useEffect(() => {
@@ -194,29 +199,56 @@ const Page: React.FC = () => {
         setLoading(true);
         const response = await getUserCart(token);
 
-        const initialUnitSelection: Record<number, "kg" | "g"> = {};
-
-        if (response.additionalItems) {
-          response.additionalItems.forEach((itemGroup: AdditionalItems) => {
-            itemGroup.Items.forEach((item: CartItem) => {
-              const normalizedUnit =
-                item.unit.toLowerCase() === "kg" ? "kg" : "g";
-              initialUnitSelection[item.id] = normalizedUnit;
+        // Silently drop disabled products — track their IDs for backend cleanup
+        const disabledProductIds: number[] = [];
+        const filteredAdditionalItems = (response.additionalItems || [])
+          .map((itemGroup: AdditionalItems) => {
+            const enabledItems = itemGroup.Items.filter((item: CartItem) => {
+              if (item.isEnable === 0) {
+                disabledProductIds.push(item.id);
+                return false;
+              }
+              return true;
             });
+            return { ...itemGroup, Items: enabledItems };
+          })
+          .filter((itemGroup) => itemGroup.Items.length > 0);
+
+        const initialUnitSelection: Record<number, "kg" | "g"> = {};
+        filteredAdditionalItems.forEach((itemGroup: AdditionalItems) => {
+          itemGroup.Items.forEach((item: CartItem) => {
+            const normalizedUnit = item.unit.toLowerCase() === "kg" ? "kg" : "g";
+            initialUnitSelection[item.id] = normalizedUnit;
           });
-        }
+        });
 
         dispatch(
           setCartData({
             cart: response.cart,
-            packages: response.packages,
-            additionalItems: response.additionalItems,
+            packages: response.packages, // keep invalid packages — they're shown, not removed
+            additionalItems: filteredAdditionalItems,
             summary: response.summary,
+          }),
+        );
+
+        dispatch(
+          updateCartInfo({
+            price: authCart.price,
+            count: authCart.count,
+            creditBalance: response.cart?.creditBalance ?? 0,
           }),
         );
 
         setUnitSelection(initialUnitSelection);
         setError(null);
+
+        // Fire-and-forget: sync backend cart with what the user actually sees.
+        // No alert/notice — this is a background cleanup, not a user action.
+        if (disabledProductIds.length > 0) {
+          bulkRemoveCartProducts(disabledProductIds, token).catch((err) =>
+            console.error("Silent cleanup of disabled products failed:", err),
+          );
+        }
       } catch (err: any) {
         setError(err.message);
       } finally {
@@ -662,6 +694,51 @@ const Page: React.FC = () => {
       setBulkDeleteLoading(false);
     }
   };
+
+  const handleRemoveInvalidPackage = async (packageId: number) => {
+    const itemKey = `package-${packageId}`;
+
+    if (removingItems.has(itemKey)) return;
+
+    try {
+      setRemovingItems((prev) => new Set(prev).add(itemKey));
+
+      await removeCartPackage(packageId, token);
+
+      dispatch(removePackage(packageId));
+
+      const updatedCartData = await getUserCart(token);
+
+      dispatch(
+        setCartData({
+          cart: updatedCartData.cart,
+          packages: updatedCartData.packages,
+          additionalItems: updatedCartData.additionalItems,
+          summary: updatedCartData.summary,
+        }),
+      );
+
+      try {
+        const cartInfo = await getCartInfo(token);
+        dispatch(updateCartInfo(cartInfo));
+      } catch (cartError) {
+        console.error("Error fetching cart info:", cartError);
+      }
+
+      setSuccessPopupKey((prev) => prev + 1);
+      setShowSuccessPopup(true);
+    } catch (error: any) {
+      console.error("Error removing invalid package:", error);
+      alert("Failed to remove package. Please try again.");
+    } finally {
+      setRemovingItems((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(itemKey);
+        return newSet;
+      });
+    }
+  };
+
   const handleCheckout = async () => {
     if (
       isCartEmpty() ||
@@ -706,9 +783,32 @@ const Page: React.FC = () => {
         }),
       );
 
+      // Compute the authoritative totals from the fresh data (respects isValid filtering),
+      // rather than trusting getCartInfo() alone — it may not apply the same package/product
+      // validity rules the cart page does.
+      const freshSummary = computeSummaryFrom(
+        updatedCartData.packages,
+        updatedCartData.additionalItems,
+        freshUnitSelection,
+      );
+
+      dispatch(
+        updateCartInfo({
+          price: parseFloat(freshSummary.finalTotal.toFixed(2)),
+          count: freshSummary.totalItems,
+          creditBalance: updatedCartData.cart?.creditBalance ?? authCart.creditBalance,
+        }),
+      );
+
       try {
         const cartInfo = await getCartInfo(token);
-        dispatch(updateCartInfo(cartInfo));
+        // Only take creditBalance (or other fields) from this endpoint if you trust it more
+        // than the computed values for those specific fields. Price/count already set above.
+        dispatch(updateCartInfo({
+          price: parseFloat(freshSummary.finalTotal.toFixed(2)),
+          count: freshSummary.totalItems,
+          creditBalance: cartInfo?.creditBalance ?? updatedCartData.cart?.creditBalance,
+        }));
       } catch (cartError) {
         console.error("Error fetching cart info:", cartError);
       }
@@ -745,58 +845,100 @@ const Page: React.FC = () => {
     }, 0);
   };
 
-  const getUpdatedCartSummary = () => {
+  const computeSummaryFrom = (
+    packages: CartPackage[],
+    additionalItems: AdditionalItems[],
+    unitSel: Record<number, "kg" | "g">,
+  ) => {
     let totalItems = 0;
     let productTotal = 0;
     let totalDiscount = 0;
     let packageTotal = 0;
 
-    if (cartData.packages) {
-      cartData.packages.forEach((pkg) => {
-        packageTotal += pkg.price * pkg.quantity;
-        totalItems += pkg.quantity;
-      });
-    }
+    (packages || []).forEach((pkg) => {
+      if (pkg.status === "Disabled") return; // never count disabled packages
+      packageTotal += pkg.price * pkg.quantity;
+      totalItems += pkg.quantity;
+    });
 
-    if (cartData.additionalItems) {
-      cartData.additionalItems.forEach((itemGroup) => {
-        itemGroup.Items.forEach((item) => {
-          const selectedUnit = unitSelection[item.id] || item.unit;
-          const itemPrice = calculatePrice(
-            item.normalPrice,
-            selectedUnit,
-            item.quantity,
-          );
-          const itemDiscount = calculateDiscount(
-            item.discount,
-            selectedUnit,
-            item.quantity,
-          );
+    (additionalItems || []).forEach((itemGroup) => {
+      itemGroup.Items.forEach((item) => {
+        const selectedUnit = unitSel[item.id] || item.unit;
+        const itemPrice = calculatePrice(item.normalPrice, selectedUnit, item.quantity);
+        const itemDiscount = calculateDiscount(item.discount, selectedUnit, item.quantity);
 
-          productTotal += itemPrice;
-          totalDiscount += itemDiscount;
-          totalItems += 1;
-        });
+        productTotal += itemPrice;
+        totalDiscount += itemDiscount;
+        totalItems += 1;
       });
-    }
+    });
 
     const grandTotal = packageTotal + productTotal;
     const finalTotal = grandTotal - totalDiscount;
-    const savedAmount = calculateSavedAmount();
 
-    return {
-      totalItems,
-      packageTotal,
-      productTotal,
-      totalDiscount,
-      grandTotal,
-      finalTotal,
-      savedAmount,
-    };
+    return { totalItems, packageTotal, productTotal, totalDiscount, grandTotal, finalTotal };
+  };
+
+  const getUpdatedCartSummary = () => {
+    const base = computeSummaryFrom(cartData.packages, cartData.additionalItems, unitSelection);
+    const savedAmount = calculateSavedAmount();
+    return { ...base, savedAmount };
   };
 
   const dynamicSummary = getUpdatedCartSummary();
 
+  const InvalidPackageCard: React.FC<{
+    pkg: CartPackage;
+    onRemove: (packageId: number) => void;
+    isRemoving: boolean;
+  }> = ({ pkg, onRemove, isRemoving }) => (
+    <div className={`w-full rounded-xl border border-red-300 overflow-hidden bg-[#FDEEF0] ${isRemoving ? "opacity-50" : ""}`}>
+      <div className="flex justify-between items-center px-4 sm:px-6 py-3 border-b border-[#FF0000] bg-[#FDEEF0]">
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm sm:text-base font-medium text-red-600">
+            Your Selected Package :{" "}
+            <span className="font-semibold">{pkg.packageName}</span>{" "}
+            ({pkg.totalItems} Items)
+          </h3>
+          <button
+            onClick={() => onRemove(pkg.id)}
+            disabled={isRemoving}
+            className="text-red-500 hover:scale-105 transition-transform disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed flex-shrink-0"
+            title={isRemoving ? "Removing..." : "Remove package"}
+          >
+            <Trash size={18} fill="red" strokeWidth={2} />
+          </button>
+        </div>
+        <span className="text-sm sm:text-base font-bold text-red-600 whitespace-nowrap">
+          Rs. {pkg.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+        </span>
+      </div>
+
+      <div className="flex items-center gap-4 sm:gap-6 px-4 sm:px-6 py-4 sm:py-5 bg-[#FFF1F1]">
+        <Image
+          src={invalidPackageIcon}
+          alt="Package unavailable"
+          width={145}
+          height={118}
+          className="w-[100px] h-[81px] sm:w-[145px] sm:h-[118px] object-contain flex-shrink-0"
+        />
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-gray-900 text-sm sm:text-base mb-1">
+            This package is no longer valid
+          </p>
+          <p className="text-xs sm:text-sm text-gray-600 mb-3">
+            We're sorry, but this package is currently unavailable. It may have been removed or is no longer offered.
+          </p>
+          <button
+            onClick={handleContinueShopping}
+            className="text-sm font-medium text-[#3E1E6A] bg-[#F2E3FC] border border-[#3E1E6A] rounded-lg px-4 py-2 hover:bg-[#E1D5F5] transition-colors cursor-pointer"
+          >
+            Explore Other Packages
+          </button>
+        </div>
+      </div>
+    </div>
+  );
   // Mobile Product Card Component
   const MobileProductCard: React.FC<{
     item: CartItem;
@@ -1482,6 +1624,17 @@ const Page: React.FC = () => {
 
                   <div className="space-y-3">
                     {cartData.packages.map((pkg, index) => {
+                      if (pkg.status === "Disabled") {
+                        return (
+                          <InvalidPackageCard
+                            key={index}
+                            pkg={pkg}
+                            onRemove={handleRemoveInvalidPackage}
+                            isRemoving={removingItems.has(`package-${pkg.id}`)}
+                          />
+                        );
+                      }
+
                       const isRemoving = removingItems.has(`package-${pkg.id}`);
                       return (
                         <div
@@ -1540,6 +1693,16 @@ const Page: React.FC = () => {
 
               {/* Desktop View - unchanged */}
               {!isMobile && cartData.packages.map((pkg, index) => {
+                if (pkg.status === "Disabled") {
+                  return (
+                    <InvalidPackageCard
+                      key={index}
+                      pkg={pkg}
+                      onRemove={handleRemoveInvalidPackage}
+                      isRemoving={removingItems.has(`package-${pkg.id}`)}
+                    />
+                  );
+                }
                 const isRemoving = removingItems.has(`package-${pkg.id}`);
                 return (
                   <div
@@ -1673,7 +1836,7 @@ const Page: React.FC = () => {
                   <div className="flex justify-between text-sm sm:text-base">
                     <p className="text-gray-600">Discount</p>
                     <p className="text-[#BE2A45]">
-                     - Rs. {formatPrice(Math.round(dynamicSummary.totalDiscount * 100) / 100)}
+                      - Rs. {formatPrice(Math.round(dynamicSummary.totalDiscount * 100) / 100)}
                     </p>
                   </div>
                 )}

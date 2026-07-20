@@ -23,7 +23,8 @@ interface FormState {
   geoLatitude: number | null;
   geoLongitude: number | null;
   companycenterId?: any;
-  isFinalizeImdt: number; // 1 if "Finalize Immediately" was chosen, else 0
+  isFinalizeImdt: number;
+  saveAs: string; // Add this
 }
 
 const initialState: FormState = {
@@ -50,6 +51,7 @@ const initialState: FormState = {
   geoLongitude: null,
   companycenterId: null,
   isFinalizeImdt: 0,
+  saveAs: '', // Add this
 };
 
 const checkoutSlice = createSlice({

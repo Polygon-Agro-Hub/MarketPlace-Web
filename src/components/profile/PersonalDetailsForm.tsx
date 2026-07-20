@@ -720,7 +720,7 @@ const PersonalDetailsForm = () => {
             <p className="text-[12px] md:text-[16px] text-gray-500">PNG, JPEG under 15MB</p>
           </div>
           <label
-            className="px-4 py-1 rounded-lg cursor-pointer text-sm hover:bg-gray-100 mt-2 md:mt-0"
+            className="px-4 py-2 rounded-lg shadow-md cursor-pointer text-sm hover:bg-gray-100 mt-2 md:mt-0"
             style={{ border: '1px solid #393939', color: '#393939' }}
           >
             Upload new picture

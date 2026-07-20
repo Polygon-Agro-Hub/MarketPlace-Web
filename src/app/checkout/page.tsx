@@ -16,13 +16,14 @@ import dynamic from "next/dynamic";
 import Image from "next/image";
 import summary from "../../../public/summary.png";
 import { getCities, City } from "@/services/cart-service";
+import { getAllCities, CityResult } from "@/services/auth-service";
 import GeoLocationModal from "@/components/delivery-map/GeoLocationModal";
 import { updateCartInfo } from "@/store/slices/authSlice";
 import packageBasketImg from "../../../public/pp1.png";
 import reviewCalendarImg from "../../../public/pp2.png";
 import packageVeggiesImg from "../../../public/pp3.png";
 import cardPaymentImg from "../../../public/pp4.png";
-import { LocateFixed, AlertTriangle, X } from "lucide-react";
+import { ChevronDown, XCircle, LocateFixed, AlertTriangle, X, Info } from "lucide-react";
 
 const OpenStreetMap = dynamic(
   () => import("@/components/open-map/OpenStreetMap"),
@@ -59,6 +60,7 @@ interface FormData {
   geoLatitude: number | null; // Add this
   geoLongitude: number | null; // Add this
   companycenterId?: any; // Add this to store companycenterId for later use
+  saveAs: string;
 }
 
 interface FormErrors {
@@ -81,9 +83,10 @@ interface FormErrors {
   street: string;
   cityName: string;
   scheduleType: string;
-  geoLatitude: string; // Add this
-  geoLongitude: string; // Add this
-  companycenterId?: any; // Add this to store companycenterId for later use
+  geoLatitude: string;
+  geoLongitude: string;
+  companycenterId?: any;
+  saveAs: string; // Add this
 }
 
 const initialFormState: FormData = {
@@ -109,6 +112,7 @@ const initialFormState: FormData = {
   geoLatitude: null, // Add this
   geoLongitude: null, // Add this
   companycenterId: null,
+  saveAs: "",
 };
 
 const initioalError = {
@@ -133,6 +137,7 @@ const initioalError = {
   scheduleType: "",
   geoLatitude: "",
   geoLongitude: "",
+  saveAs: "",
 }
 
 // Field label mapping for dynamic validation messages
@@ -187,10 +192,7 @@ const Page: React.FC = () => {
   const [showErrorPopup, setShowErrorPopup] = useState(false);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [searchParamsLoaded, setSearchParamsLoaded] = useState(false);
-  const [selectedPickupCenter, setSelectedPickupCenter] = useState<{
-    id: number;
-    name: string;
-  } | null>(null);
+  const [selectedPickupCenter, setSelectedPickupCenter] = useState<PickupCenter | null>(null);
   const [pickupCenters, setPickupCenters] = useState<PickupCenter[]>([]);
   const [loadingCenters, setLoadingCenters] = useState(false);
   const [mapCenter, setMapCenter] = useState<[number, number]>([
@@ -214,6 +216,12 @@ const Page: React.FC = () => {
   const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
   const [selectedAddressKey, setSelectedAddressKey] = useState<string | null>(null);
   const [loadingSavedAddresses, setLoadingSavedAddresses] = useState(false);
+  const [recentAddressInfo, setRecentAddressInfo] = useState<{ saveAs: string; isSavedAddress: boolean } | null>(null);
+  const [cityAvailabilityMap, setCityAvailabilityMap] = useState<Map<string, boolean>>(new Map());
+  const [cityNotAvailable, setCityNotAvailable] = useState(false);
+  const [citySearchTerm, setCitySearchTerm] = useState("");
+  const [isCityDropdownOpen, setIsCityDropdownOpen] = useState(false);
+  const cityDropdownRef = useRef<HTMLDivElement>(null);
 
   const [showPackagePopup, setShowPackagePopup] = useState(false);
   const [packageHandlingOption, setPackageHandlingOption] = useState<"review" | "finalize">("review");
@@ -232,6 +240,24 @@ const Page: React.FC = () => {
 
   const firstCardRef = useRef<HTMLButtonElement>(null);
   const [twoRowHeight, setTwoRowHeight] = useState<number | null>(null);
+
+  const [allCityResults, setAllCityResults] = useState<CityResult[]>([]);
+
+  useEffect(() => {
+    const fetchCityAvailability = async () => {
+      try {
+        const results: CityResult[] = await getAllCities();
+        setAllCityResults(results);
+
+        const map = new Map<string, boolean>();
+        results.forEach((c) => map.set(c.city.trim().toLowerCase(), c.isAvailable));
+        setCityAvailabilityMap(map);
+      } catch (error) {
+        console.error("Failed to fetch city availability:", error);
+      }
+    };
+    fetchCityAvailability();
+  }, []);
 
   useLayoutEffect(() => {
     if (firstCardRef.current) {
@@ -271,6 +297,18 @@ const Page: React.FC = () => {
       setDeliveryCharge(0); // Default home delivery charge
     }
   }, [formData.deliveryMethod, selectedCity]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (cityDropdownRef.current && !cityDropdownRef.current.contains(e.target as Node)) {
+        setIsCityDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+
 
   useEffect(() => {
     const baseTotal = cartData?.grandTotal || 0;
@@ -333,6 +371,10 @@ const Page: React.FC = () => {
   ]);
 
   useEffect(() => {
+    setCitySearchTerm(selectedCity?.city || "");
+  }, [selectedCity]);
+
+  useEffect(() => {
     const fetchCities = async () => {
       setLoadingCities(true);
       try {
@@ -353,10 +395,70 @@ const Page: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    const fetchCityAvailability = async () => {
+      try {
+        const results: CityResult[] = await getAllCities();
+        const map = new Map<string, boolean>();
+        results.forEach((c) => map.set(c.city.trim().toLowerCase(), c.isAvailable));
+        setCityAvailabilityMap(map);
+      } catch (error) {
+        console.error("Failed to fetch city availability:", error);
+      }
+    };
+
+    fetchCityAvailability();
+  }, []);
+
+  const isCityAvailable = (cityName: string): boolean => {
+    if (!cityName) return true;
+    if (cityAvailabilityMap.size === 0) return true; // don't block while loading or on fetch failure
+    return cityAvailabilityMap.get(cityName.trim().toLowerCase()) ?? true;
+  };
+
+  useEffect(() => {
     if (formData.deliveryMethod === "home" && searchParamsLoaded) {
       initializeAddressOptions();
     }
   }, [formData.deliveryMethod, searchParamsLoaded, cities]);
+
+  const filteredCityOptions = useMemo(() => {
+    if (!citySearchTerm.trim()) return allCityResults;
+    const term = citySearchTerm.trim().toLowerCase();
+    return allCityResults.filter((c) => c.city.toLowerCase().includes(term));
+  }, [citySearchTerm, allCityResults]);
+
+  const handleCitySearchChange = (value: string) => {
+    setCitySearchTerm(value);
+    setIsCityDropdownOpen(true);
+
+    if (!value.trim()) {
+      setSelectedCity(null);
+      setFormDataLocal((prev) => ({ ...prev, cityName: "" }));
+      setDeliveryCharge(0);
+      setCityNotAvailable(false);
+    }
+  };
+
+  const handleCityArrowClick = () => {
+    if (isReadOnly) return;
+    setIsCityDropdownOpen((prev) => !prev);
+  };
+
+  const handleCityClear = () => {
+    setCitySearchTerm("");
+    setSelectedCity(null);
+    setFormDataLocal((prev) => ({ ...prev, cityName: "" }));
+    setDeliveryCharge(0);
+    setCityNotAvailable(false);
+    setErrors((prev) => ({ ...prev, cityName: "" }));
+    setIsCityDropdownOpen(true);
+  };
+
+  const handleCityOptionSelect = (city: CityResult) => {
+    handleCitySelect(city.city);
+    setCitySearchTerm(city.city);
+    setIsCityDropdownOpen(false);
+  };
 
   const initializeAddressOptions = async () => {
     setAddressOptionsResolving(true);
@@ -421,7 +523,6 @@ const Page: React.FC = () => {
     }
   };
 
-  // Extracted so both init and manual radio-click can reuse the same prefill logic
   const prefillFromRecent = (data: any) => {
     const cityData = cities.find(
       (city) => city.city.toLowerCase() === (data.city || "").toLowerCase(),
@@ -432,6 +533,12 @@ const Page: React.FC = () => {
       setDeliveryCharge(charge);
       setCompanycenterId(cityData.companycenterId);
     }
+    setCityNotAvailable(!isCityAvailable(data.city || ""));
+
+    setRecentAddressInfo({
+      saveAs: data.saveAs || "",
+      isSavedAddress: !!data.isSavedAddress,
+    });
 
     setFormDataLocal((prev) => ({
       ...prev,
@@ -452,6 +559,8 @@ const Page: React.FC = () => {
       floorNumber: data.floorNo || "",
       geoLatitude: data.latitude ? parseFloat(data.latitude) : null,
       geoLongitude: data.longitude ? parseFloat(data.longitude) : null,
+      // Only send saveAs downstream when this recent address is actually a saved one
+      saveAs: data.isSavedAddress ? (data.saveAs || "") : "",
     }));
   };
 
@@ -496,15 +605,16 @@ const Page: React.FC = () => {
       }
     } else if (value === "previous") {
       setAddressMode("previous");
-      // savedAddresses is already populated from init — just re-select the first one
-      // if none is currently selected, otherwise leave the user's choice intact
+      setRecentAddressInfo(null);
       if (savedAddresses.length > 0 && !selectedAddressKey) {
         selectSavedAddress(savedAddresses[0]);
       }
     } else {
       setAddressMode("new");
+      setRecentAddressInfo(null);
       setSelectedAddressKey(null);
       setSelectedCity(null);
+      setCityNotAvailable(false); // <-- add
       setFormDataLocal((prev) => ({
         ...initialFormState,
         deliveryMethod: prev.deliveryMethod,
@@ -526,6 +636,15 @@ const Page: React.FC = () => {
       setCompanycenterId(cityData.companycenterId);
     }
 
+    if (cityData) {
+      setSelectedCity(cityData);
+      const charge = parseFloat(cityData.charge);
+      setDeliveryCharge(charge);
+      setCompanycenterId(cityData.companycenterId);
+    }
+    setCityNotAvailable(!isCityAvailable(addr.city || ""));
+
+
     setFormDataLocal((prev) => ({
       ...prev,
       buildingType: addr.buildingType || "Apartment",
@@ -545,6 +664,7 @@ const Page: React.FC = () => {
       floorNumber: addr.floorNo || "",
       geoLatitude: addr.latitude ? parseFloat(addr.latitude as any) : null,
       geoLongitude: addr.longitude ? parseFloat(addr.longitude as any) : null,
+      saveAs: addr.saveAs || "", // Add this
     }));
 
     setErrors((prev) => ({
@@ -593,13 +713,9 @@ const Page: React.FC = () => {
 
     if (selectedCenter) {
       const centerIdAsNumber = parseInt(centerId, 10);
-      setSelectedPickupCenter({ id: centerIdAsNumber, name: centerName });
+      setSelectedPickupCenter(selectedCenter);
       setFormDataLocal((prev) => ({ ...prev, centerId: centerIdAsNumber }));
-
-      // Clear centerId error when center is selected
       setErrors((prev) => ({ ...prev, centerId: "" }));
-
-      // Update map center and zoom to selected pickup center
       setMapCenter([selectedCenter.latitude, selectedCenter.longitude]);
       setMapZoom(15);
     }
@@ -682,6 +798,7 @@ const Page: React.FC = () => {
         scheduleType: "",
         geoLatitude: "",
         geoLongitude: "",
+        saveAs: "",
       });
 
       if (value === "home") {
@@ -691,6 +808,7 @@ const Page: React.FC = () => {
       } else if (value === "pickup") {
         setUsePreviousAddress(false);
         setSelectedCity(null); // Clear city selection
+        setCityNotAvailable(false);
         setDeliveryCharge(0); // Reset delivery charge
         const basicInfo = {
           title: formData.title,
@@ -773,8 +891,12 @@ const Page: React.FC = () => {
       if (error) return false;
     }
 
-    // Additional check: For home delivery, ensure selectedCity is not null
     if (isHomeDelivery && !selectedCity) {
+      return false;
+    }
+
+    // New: block submit if the chosen city isn't deliverable yet
+    if (isHomeDelivery && cityNotAvailable) {
       return false;
     }
 
@@ -787,27 +909,43 @@ const Page: React.FC = () => {
     setIsFormValidState(isFormValid());
   }, [formData, errors]);
 
-  // Updated validateField function - replace the existing one
-  const handleCitySelect = (cityId: string, cityName: string) => {
-    const selectedCityData = cities.find(
-      (city) => city.id.toString() === cityId,
+  const handleCitySelect = (cityName: string) => {
+    // Find the city in the full availability list (auth-service) — source of truth for availability
+    const cityResult = allCityResults.find(
+      (city) => city.city.trim().toLowerCase() === cityName.trim().toLowerCase(),
     );
 
-    if (selectedCityData) {
-      setSelectedCity(selectedCityData);
+    if (!cityResult) return; // shouldn't happen if called from the dropdown list itself
+
+    // Try to find matching pricing/center data from the cart-service list (only present for available cities)
+    const matchedCity = cities.find(
+      (city) => city.city.trim().toLowerCase() === cityName.trim().toLowerCase(),
+    );
+
+    if (matchedCity) {
+      // City has pricing/center data — fully available for delivery
+      setSelectedCity(matchedCity);
       setFormDataLocal((prev) => ({
         ...prev,
-        cityName: selectedCityData.city,
+        cityName: matchedCity.city,
       }));
 
-      // Set delivery charge based on selected city
-      const charge = parseFloat(selectedCityData.charge);
-      setDeliveryCharge(charge);
-      setCompanycenterId(selectedCityData.companycenterId); // Store companycenterId for later use
-
-      // Clear any existing cityName error
-      setErrors((prev) => ({ ...prev, cityName: "" }));
+      const charge = parseFloat(matchedCity.charge);
+      setDeliveryCharge(isNaN(charge) ? 0 : charge);
+      setCompanycenterId(matchedCity.companycenterId);
+    } else {
+      // City exists but has no pricing/center info — not deliverable yet
+      setSelectedCity(null);
+      setFormDataLocal((prev) => ({
+        ...prev,
+        cityName: cityResult.city,
+      }));
+      setDeliveryCharge(0);
+      setCompanycenterId(null);
     }
+
+    setCityNotAvailable(!isCityAvailable(cityResult.city));
+    setErrors((prev) => ({ ...prev, cityName: "" }));
   };
 
   const validateField = (
@@ -978,6 +1116,7 @@ const Page: React.FC = () => {
         geoLatitude: formData.geoLatitude,
         geoLongitude: formData.geoLongitude,
         companycenterId: companycenterId,
+        saveAs: formData.deliveryMethod === "home" ? (formData.saveAs || "") : "", // Add this
       };
 
       if (formData.deliveryMethod === "home") {
@@ -1320,11 +1459,23 @@ const Page: React.FC = () => {
                         >
                           {savedAddresses.map((addr, index) => {
                             const isSelected = selectedAddressKey === addr.addressKey;
+
                             const summary =
                               addr.buildingType === "Apartment"
-                                ? `${addr.buildingNo || ""}, ${addr.buildingName || ""}${addr.floorNo ? `, ${addr.floorNo}${!isNaN(Number(addr.floorNo)) ? " Floor" : ""}` : ""
-                                }${addr.unitNo ? `, House ${addr.unitNo}` : ""}, ${addr.streetName || ""}, ${addr.city || ""}`
-                                : `No:${addr.houseNo || ""}, ${addr.streetName || ""}, ${addr.city || ""}`;
+                                ? [
+                                  addr.buildingNo,
+                                  addr.buildingName,
+                                  addr.unitNo,
+                                  addr.floorNo,
+                                  addr.houseNo,
+                                  addr.streetName,
+                                  addr.city,
+                                ]
+                                  .filter((part) => part && part.toString().trim())
+                                  .join(", ")
+                                : [addr.houseNo, addr.streetName, addr.city]
+                                  .filter((part) => part && part.toString().trim())
+                                  .join(", ");
 
                             return (
                               <button
@@ -1337,7 +1488,7 @@ const Page: React.FC = () => {
                                   border: isSelected ? "2px solid #3E206D" : "1px solid #DBDADD",
                                   boxShadow: "2px 2px 4px 0px rgba(0, 0, 0, 0.10)",
                                 }}
-                                className="min-w-0 w-full text-left p-4 rounded-lg transition-colors box-border"
+                                className="min-w-0 w-full text-left p-4 rounded-lg transition-colors box-border cursor-pointer"
                               >
                                 <div className="flex items-center gap-2 mb-1.5 min-w-0">
                                   <span
@@ -1404,6 +1555,37 @@ const Page: React.FC = () => {
                     )}
                   </div>
 
+                  {selectedPickupCenter && (
+                    <div
+                      className="mb-6 rounded-[10px] py-6 px-4 text-center bg-white box-border"
+                      style={{
+                        border: "1px dashed #3E206D",
+                        boxShadow: "0px 2px 5px 0px rgba(0, 0, 0, 0.10)",
+                      }}
+                    >
+                      <h3 className="font-bold text-lg  mb-2">
+                        {selectedPickupCenter.name}
+                      </h3>
+                      <p className="text-gray-400 font-semibold text-sm mb-1">Address :</p>
+                      <p className="text-base">
+                        {[
+                          { label: "City", value: selectedPickupCenter.city },
+                          { label: "District", value: selectedPickupCenter.district },
+                          { label: "Province", value: selectedPickupCenter.province },
+                        ]
+                          .filter((item) => item.value)
+                          .map((item, index, arr) => (
+                            <React.Fragment key={item.label}>
+                              <span className="text-[#8492A3]">{item.label} : </span>
+                              <span className="text-[#272727]">{item.value}</span>
+                              {index < arr.length - 1 && (
+                                <span className="text-[#414347]">, </span>
+                              )}
+                            </React.Fragment>
+                          ))}
+                      </p>
+                    </div>
+                  )}
                   {/* Map Component - BELOW the dropdown */}
                   <div className="mb-6 relative z-10">
                     <OpenStreetMap
@@ -1426,6 +1608,19 @@ const Page: React.FC = () => {
                       ? "Pickup Person Information"
                       : "Delivery Information"}
                   </h2>
+
+                  {formData.deliveryMethod === "home" &&
+                    addressMode === "recent" &&
+                    recentAddressInfo?.isSavedAddress && (
+                      <div className="mb-6">
+                        <label className="block font-semibold mb-1 text-[#2E2E2E]">
+                          Saved As
+                        </label>
+                        <div className="w-full border-2 border-[#F2F4F7] bg-[#F9FAFB] rounded-lg px-4 py-3 text-base text-[#2E2E2E]">
+                          {recentAddressInfo.saveAs}
+                        </div>
+                      </div>
+                    )}
 
                   <div className="flex flex-row md:gap-4 gap-2 mb-6">
                     {/* Title dropdown */}
@@ -1483,8 +1678,8 @@ const Page: React.FC = () => {
                   /> */}
                       <input
                         type="text"
-                        className="w-full border-2 border-[#F2F4F7] bg-[#F9FAFB] h-[39px] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-3 text-base capitalize"
-                        placeholder="Enter your full name"
+                        className={`w-full border-2 border-[#F2F4F7] bg-[#F9FAFB] h-[39px] focus:outline-none rounded-lg px-4 py-3 text-base capitalize ${isReadOnly ? "cursor-default" : "focus:ring-2 focus:ring-purple-600"
+                          }`}
                         value={formData.fullName}
                         onChange={(e) => {
                           // Remove leading spaces, numbers, and special characters
@@ -1547,7 +1742,8 @@ const Page: React.FC = () => {
                           <input
                             type="text"
                             inputMode="numeric"
-                            className="w-full h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2"
+                            className={`w-full h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] focus:outline-none rounded-lg px-4 py-2 ${isReadOnly ? "cursor-default" : "focus:ring-2 focus:ring-purple-600"
+                              }`}
                             value={formData.phone1}
                             onChange={(e) => {
                               const value = e.target.value.replace(/\D/g, '');
@@ -1582,7 +1778,8 @@ const Page: React.FC = () => {
                           <input
                             type="text"
                             inputMode="numeric"
-                            className={`w-full h-[39px] border-2 ${duplicatePhoneError ? "border-red-500" : "border-[#F2F4F7]"} bg-[#F9FAFB] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2`}
+                            className={`w-full h-[39px] border-2 ${duplicatePhoneError ? "border-red-500" : "border-[#F2F4F7]"} bg-[#F9FAFB] focus:outline-none rounded-lg px-4 py-2 ${isReadOnly ? "cursor-default" : "focus:ring-2 focus:ring-purple-600"
+                              }`}
                             value={formData.phone2}
                             onChange={(e) => {
                               const value = e.target.value.replace(/\D/g, '');
@@ -1660,7 +1857,8 @@ const Page: React.FC = () => {
                                 type="text"
                                 placeholder="Enter House / Building No"
                                 disabled={isReadOnly}
-                                className="w-full px-4 py-2 h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] rounded-lg  placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                                className={`w-full px-4 py-2 h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] rounded-lg placeholder-gray-400 focus:outline-none ${isReadOnly ? "cursor-default" : "focus:ring-2 focus:ring-purple-600"
+                                  }`}
                               />
                               {errors.buildingNo && (
                                 <p className="text-red-600 text-sm mt-1">
@@ -1689,7 +1887,8 @@ const Page: React.FC = () => {
                                 }}
                                 type="text"
                                 placeholder="Enter building name"
-                                className="w-full px-4 py-2 border-2 h-[39px] border-[#F2F4F7] bg-[#F9FAFB] rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                                className={`w-full px-4 py-2 border-2 h-[39px] border-[#F2F4F7] bg-[#F9FAFB] rounded-lg placeholder-gray-400 focus:outline-none ${isReadOnly ? "cursor-default" : "focus:ring-2 focus:ring-purple-600"
+                                  }`}
                                 readOnly={isReadOnly}
                               />
                               {errors.buildingName && (
@@ -1721,7 +1920,8 @@ const Page: React.FC = () => {
                                 type="text"
                                 placeholder="Enter flat number"
                                 readOnly={isReadOnly}
-                                className="w-full px-4 py-2 border-2 h-[39px] border-[#F2F4F7] bg-[#F9FAFB] rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                                className={`w-full px-4 py-2 border-2 h-[39px] border-[#F2F4F7] bg-[#F9FAFB] rounded-lg placeholder-gray-400 focus:outline-none ${isReadOnly ? "cursor-default" : "focus:ring-2 focus:ring-purple-600"
+                                  }`}
                               />
                               {errors.flatNumber && (
                                 <p className="text-red-600 text-sm mt-1">
@@ -1752,7 +1952,8 @@ const Page: React.FC = () => {
                                 type="text"
                                 placeholder="Enter floor number"
                                 readOnly={isReadOnly}
-                                className="w-full px-4 py-2 border-2 h-[39px] border-[#F2F4F7] bg-[#F9FAFB] rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                                className={`w-full px-4 py-2 border-2 h-[39px] border-[#F2F4F7] bg-[#F9FAFB] rounded-lg placeholder-gray-400 focus:outline-none ${isReadOnly ? "cursor-default" : "focus:ring-2 focus:ring-purple-600"
+                                  }`}
                               />
                               {errors.floorNumber && (
                                 <p className="text-red-600 text-sm mt-1">
@@ -1782,7 +1983,8 @@ const Page: React.FC = () => {
                               type="text"
                               placeholder="Enter house number"
                               readOnly={isReadOnly}
-                              className="w-full px-4 py-2 border-2 h-[39px] border-[#F2F4F7] bg-[#F9FAFB] rounded-lg  placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                              className={`w-full px-4 py-2 border-2 h-[39px] border-[#F2F4F7] bg-[#F9FAFB] rounded-lg placeholder-gray-400 focus:outline-none ${isReadOnly ? "cursor-default" : "focus:ring-2 focus:ring-purple-600"
+                                }`}
                             />
                             {errors.houseNo && (
                               <p className="text-red-600 text-sm mt-1">
@@ -1812,7 +2014,8 @@ const Page: React.FC = () => {
                               type="text"
                               placeholder="Enter Street Name"
                               readOnly={isReadOnly}
-                              className="w-full px-4 py-2 border-2 h-[39px] border-[#F2F4F7] bg-[#F9FAFB] rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600 capitalize"
+                              className={`w-full px-4 py-2 border-2 h-[39px] border-[#F2F4F7] bg-[#F9FAFB] rounded-lg placeholder-gray-400 focus:outline-none capitalize ${isReadOnly ? "cursor-default" : "focus:ring-2 focus:ring-purple-600"
+                                }`}
                             />
                             {errors.street && (
                               <p className="text-red-600 text-sm mt-1">
@@ -1822,38 +2025,101 @@ const Page: React.FC = () => {
                           </div>
 
                           {/* City */}
-                          <div className="w-full md:w-1/2 px-2 mb-4">
+                          {/* City */}
+                          <div className="w-full md:w-1/2 px-2 mb-4" ref={cityDropdownRef}>
                             <label className="block font-semibold text-[#2E2E2E] mb-1">
                               Nearest City *
                             </label>
+
                             {loadingCities ? (
                               <div className="w-full h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] rounded-lg flex items-center justify-center">
-                                <span className="text-sm text-gray-500">
-                                  Loading cities...
-                                </span>
+                                <span className="text-sm text-gray-500">Loading cities...</span>
                               </div>
                             ) : (
-                              <CustomDropdown
-                                options={cityOptions}
-                                selectedValue={selectedCity?.id?.toString() || ""}
-                                onSelect={(value) => {
-                                  const selectedCityData = cities.find(
-                                    (city) => city.id.toString() === value,
-                                  );
-                                  if (selectedCityData) {
-                                    handleCitySelect(value, selectedCityData.city);
-                                  }
-                                }}
-                                placeholder="Select nearest city"
-                                searchable={true}
-                                searchPlaceholder="Type to search cities..."
-                                disabled={isReadOnly}
-                              />
+                              <div className="relative">
+                                <div
+                                  className={`flex items-center gap-2 h-[39px] px-4 border-2 rounded-lg bg-[#F9FAFB] ${errors.cityName ? "border-red-500" : "border-[#F2F4F7]"
+                                    }`}
+                                >
+                                  <input
+                                    type="text"
+                                    value={citySearchTerm}
+                                    onChange={(e) => handleCitySearchChange(e.target.value)}
+                                    onFocus={() => {
+                                      if (!isReadOnly) setIsCityDropdownOpen(true);
+                                    }}
+                                    placeholder="Search nearest city"
+                                    disabled={isReadOnly}
+                                    className={`flex-1 bg-transparent text-base outline-none border-none placeholder-gray-400 ${isReadOnly ? "cursor-default text-gray-500" : ""
+                                      }`}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => (citySearchTerm ? handleCityClear() : handleCityArrowClick())}
+                                    disabled={isReadOnly}
+                                    className="flex-shrink-0 text-gray-400 hover:text-[#3E206D] transition-colors cursor-pointer disabled:cursor-not-allowed"
+                                    aria-label={citySearchTerm ? "Clear" : "Show all cities"}
+                                  >
+                                    {citySearchTerm ? (
+                                      <XCircle size={16} />
+                                    ) : (
+                                      <ChevronDown
+                                        size={16}
+                                        className={`transition-transform duration-200 ${isCityDropdownOpen ? "rotate-180" : ""}`}
+                                      />
+                                    )}
+                                  </button>
+                                </div>
+
+                                {isCityDropdownOpen && !isReadOnly && (
+                                  <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg">
+                                    {filteredCityOptions.length === 0 ? (
+                                      <div className="py-3 px-4 text-sm font-[300] text-[#4C5160] bg-[#F2F2F6] rounded-lg">
+                                        City Not Found
+                                      </div>
+                                    ) : (
+                                      <ul className="max-h-52 overflow-y-auto py-1">
+                                        {filteredCityOptions.map((city) => {
+                                          const available = isCityAvailable(city.city);
+                                          return (
+                                            <li key={city.id}>
+                                              <button
+                                                type="button"
+                                                onClick={() => handleCityOptionSelect(city)}
+                                                className="w-full cursor-pointer text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center justify-between group transition-colors"
+                                              >
+                                                <span className="font-medium text-gray-800">{city.city}</span>
+                                                {available ? (
+                                                  <span className="text-xs text-[#229777] font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    Available
+                                                  </span>
+                                                ) : (
+                                                  <span className="text-xs text-orange-400 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    Coming Soon
+                                                  </span>
+                                                )}
+                                              </button>
+                                            </li>
+                                          );
+                                        })}
+                                      </ul>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
                             )}
+
                             {errors.cityName && (
-                              <p className="text-red-600 text-sm mt-1">
-                                {errors.cityName}
-                              </p>
+                              <p className="text-red-600 text-sm mt-1">{errors.cityName}</p>
+                            )}
+
+                            {!errors.cityName && cityNotAvailable && formData.cityName && (
+                              <div className="mt-2 flex items-start gap-2 rounded-lg border border-[#FFD9A8] bg-[#FFF4E5] px-3 py-2.5">
+                                <Info size={16} className="mt-0.5 flex-shrink-0 text-[#E8792C]" />
+                                <p className="text-[12px] md:text-[13px] text-[#E8792C] leading-snug">
+                                  Delivery not available in {formData.cityName} yet, but we're working on it and coming to your area soon!
+                                </p>
+                              </div>
                             )}
                           </div>
 

@@ -477,13 +477,13 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
                     className="flex items-center text-[#000000] hover:text-[#000000]  cursor-pointer"
                     onClick={toggleDesktopCategory}
                   >
-                    Category{" "}
-                    <span className="ml-1 text-[#000000]">
+                    Category
+                    <span className="text-[#000000]">
                       <FontAwesomeIcon icon={faAngleDown} />
                     </span>
                   </button>
                   {isDesktopCategoryOpen && (
-                    <div className="absolute bg-[#ffffff] text-[#000000] w-48 shadow-lg mt-7 z-10  cursor-pointer">
+                    <div className="absolute border border-[#CECECE] shadow-md bg-[#ffffff] text-[#000000] w-32 shadow-lg mt-2 z-10 cursor-pointer">
                       <button
                         onClick={(e) => handleCategoryClick(e, "Retail")}
                         className="cursor-pointer border-b-1 block px-4 py-2 hover:bg-[#ededed] w-full text-left"
@@ -510,12 +510,12 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
             >
               <button
                 onClick={() => {
-                  if (isZeroBalance) return; 
+                  if (isZeroBalance) return;
                   if (isNegativeBalance) {
-                    router.push("/clear-balance-page"); 
+                    router.push("/clear-balance-page");
                     return;
                   }
-                  setShowMobileWallet((prev) => !prev); 
+                  setShowMobileWallet((prev) => !prev);
                 }}
                 className="flex items-center justify-center w-11 h-11 rounded-full flex-shrink-0 cursor-pointer"
                 style={{ backgroundColor: walletBgColor }}
@@ -560,7 +560,8 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
                     style={{
                       background: "#FFFFFF",
                       borderRadius: "16px",
-                      boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)",
+                      boxShadow:
+                        "0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)",
                       padding: "16px",
                       width: "288px",
                       maxWidth: "calc(100vw - 32px)",
@@ -585,7 +586,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
                           alignItems: "center",
                           justifyContent: "center",
                           flexShrink: 0,
-                          background: 'white',
+                          background: "white",
                         }}
                       >
                         <FontAwesomeIcon

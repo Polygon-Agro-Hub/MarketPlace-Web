@@ -234,6 +234,23 @@ export default function ExcludeItems() {
   // ── Render ────────────────────────────────────────────────────────
   return (
     <div className="w-full flex flex-col justify-center items-center min-h-screen p-4 md:p-6 bg-white">
+      <style jsx global>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background-color: #d1d5db;
+          border-radius: 9999px;
+          cursor: pointer;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background-color: #9ca3af;
+          cursor: pointer;
+        }
+      `}</style>
       {/* Heading */}
       <h2 className="text-[20px] md:text-[28px] font-bold mb-2 text-center text-[#001535]">
         Customize Your Package
@@ -459,7 +476,7 @@ export default function ExcludeItems() {
             <div className="sm:hidden border-t border-[#E1E0E5]" />
             <div className="p-4 flex-1 flex items-center gap-2">
               <Info className="w-5 h-5 text-[#000000] flex-shrink-0" />
-              <p className="text-[11px] text-[#8A899E] leading-relaxed">
+              <p className="text-[11px] text-[#8A899E] leading-relaxed whitespace-nowrap">
                 Items marked as "Include" will be prioritized when possible.
                 <br />
                 Items marked as "Exclude" will be left out of your package.

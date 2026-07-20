@@ -123,7 +123,7 @@ const ViewMyList = ({ setSelectedMenu }: ViewMyListProps) => {
 
   const handleConfirmDelete = async () => {
     if (!authToken) return;
-    setLoading(true);
+
     const itemsToDelete = isBulkDelete
       ? deleteType === "include"
         ? selectedIncludeItems
@@ -131,13 +131,23 @@ const ViewMyList = ({ setSelectedMenu }: ViewMyListProps) => {
       : itemToDelete
         ? [itemToDelete]
         : [];
+    const currentDeleteType = deleteType;
 
+    setShowDeleteModal(false);
+    setItemToDelete(null);
+    setIsBulkDelete(false);
+
+    if (itemsToDelete.length === 0) return;
+
+    setLoading(true);
     try {
       const deleteFn =
-        deleteType === "include" ? deleteIncludedItems : deleteExcludedItems;
+        currentDeleteType === "include"
+          ? deleteIncludedItems
+          : deleteExcludedItems;
       await deleteFn(itemsToDelete, authToken);
 
-      if (deleteType === "include") {
+      if (currentDeleteType === "include") {
         setIncludeItems((prev) =>
           prev.filter((i) => !itemsToDelete.includes(i.displayName)),
         );
@@ -153,15 +163,13 @@ const ViewMyList = ({ setSelectedMenu }: ViewMyListProps) => {
         );
       }
 
+      // 3) Show success popup after completion
       setSubmitStatus("Items deleted successfully!");
       setTimeout(() => setSubmitStatus(null), 3000);
     } catch (err: any) {
       setError(err.message || "Failed to delete items");
       setTimeout(() => setError(null), 3000);
     } finally {
-      setItemToDelete(null);
-      setIsBulkDelete(false);
-      setShowDeleteModal(false);
       setLoading(false);
     }
   };
@@ -284,7 +292,10 @@ const ViewMyList = ({ setSelectedMenu }: ViewMyListProps) => {
                 </div>
 
                 {/* Scrollable rows */}
-                <div className="overflow-y-auto" style={{ maxHeight: "300px" }}>
+                <div
+                  className="custom-scrollbar overflow-y-auto"
+                  style={{ maxHeight: "300px" }}
+                >
                   {items.map((item) => (
                     <div
                       key={item.displayName}
@@ -352,7 +363,7 @@ const ViewMyList = ({ setSelectedMenu }: ViewMyListProps) => {
                       width={90}
                     />
                   </div>
-                  <span className="text-[14px] font-semibold onehover:underline text-[#8C46FB] cursor-pointer">
+                  <span className="text-[14px] font-semibold hover:underline text-[#8C46FB] cursor-pointer">
                     Add Now
                   </span>
                 </button>
@@ -366,6 +377,23 @@ const ViewMyList = ({ setSelectedMenu }: ViewMyListProps) => {
 
   return (
     <div className="relative z-10 px-4 sm:px-6 md:px-8 min-h-screen bg-white py-6">
+      <style jsx global>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background-color: #d1d5db;
+          border-radius: 9999px;
+          cursor: pointer;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background-color: #9ca3af;
+          cursor: pointer;
+        }
+      `}</style>
       <Loader isVisible={loading} />
 
       {/* Header */}

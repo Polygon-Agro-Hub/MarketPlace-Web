@@ -126,6 +126,20 @@ function formatQuantity(quantity: string | number, unit: string = ""): string {
   return unit ? `${formattedQty}${unit}` : formattedQty;
 }
 
+const ALLOWED_ORDER_STATUSES = [
+  "ordered",
+  "processing",
+  "out for delivery",
+  "collected",
+  "ready to pickup",
+  "picked up",
+  "on the way",
+  "delivered",
+  "hold",
+  "return",
+  "return received",
+];
+
 const getStatusClass = (status: string): string => {
   switch (status.toLowerCase()) {
     case "ordered":
@@ -147,6 +161,7 @@ const getStatusClass = (status: string): string => {
     case "hold":
       return "bg-[#FFEDCF] text-[#D17A00]";
     case "return":
+    case "return received":
       return "bg-[#FFDCDA] text-[#FF1100]";
     case "cancelled":
       return "bg-[#FEE2E2] text-[#DC2626]";
@@ -155,6 +170,11 @@ const getStatusClass = (status: string): string => {
     default:
       return "bg-[#F3F4F6] text-[#4B5563]";
   }
+};
+
+const getDisplayStatus = (status: string): string => {
+  if (status.toLowerCase() === "return received") return "Return";
+  return status;
 };
 
 function formatAmount(amount: string | number, decimals: number = 2): string {
@@ -199,7 +219,9 @@ export default function OrderHistoryPage() {
   const [loading, setLoading] = useState(true);
   const [filterLoading, setFilterLoading] = useState(false);
   const [filter, setFilter] = useState("this-week");
-  const [selectedOrder, setSelectedOrder] = useState<DetailedOrder | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<DetailedOrder | null>(
+    null,
+  );
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
 
   // ── Pagination state ──
@@ -222,21 +244,25 @@ export default function OrderHistoryPage() {
 
   // ── Normalize raw API rows → OrderSummary[] ──
   const normalizeOrders = (orderHistory: any[]): OrderSummary[] =>
-    orderHistory.map((order: any) => ({
-      orderId: order.orderId ? String(order.orderId) : "N/A",
-      invoiceNo: order.invoiceNo ? String(order.invoiceNo) : "N/A",
-      scheduleDate: order.scheduleDate
-        ? formatDateTime(order.scheduleDate, "date")
-        : "N/A",
-      scheduleTime: order.scheduleTime || "N/A",
-      deliveryType: order.delivaryMethod || "N/A",
-      total: formatCurrency(order.fullTotal || "0"),
-      orderPlaced: order.createdAt
-        ? formatDateTime(order.createdAt, "date")
-        : "N/A",
-      status: order.processStatus || "Pending",
-      createdAt: new Date(order.createdAt || order.scheduleDate),
-    }));
+    orderHistory
+      .map((order: any) => ({
+        orderId: order.orderId ? String(order.orderId) : "N/A",
+        invoiceNo: order.invoiceNo ? String(order.invoiceNo) : "N/A",
+        scheduleDate: order.scheduleDate
+          ? formatDateTime(order.scheduleDate, "date")
+          : "N/A",
+        scheduleTime: order.scheduleTime || "N/A",
+        deliveryType: order.delivaryMethod || "N/A",
+        total: formatCurrency(order.fullTotal || "0"),
+        orderPlaced: order.createdAt
+          ? formatDateTime(order.createdAt, "date")
+          : "N/A",
+        status: order.processStatus || "Pending",
+        createdAt: new Date(order.createdAt || order.scheduleDate),
+      }))
+      .filter((order) =>
+        ALLOWED_ORDER_STATUSES.includes(order.status.toLowerCase()),
+      );
 
   // ── Reset + initial fetch whenever filter or limit changes ──
   useEffect(() => {
@@ -304,7 +330,7 @@ export default function OrderHistoryPage() {
           loadMore();
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
 
     observer.observe(sentinel);
@@ -364,8 +390,7 @@ export default function OrderHistoryPage() {
                   centerName: apiOrder.pickupInfo.centerName || "N/A",
                   contact01: apiOrder.pickupInfo.contact01 || "N/A",
                   fullName: apiOrder.pickupInfo.fullName || "N/A",
-                  buildingNumber:
-                    apiOrder.pickupInfo.address?.street || "N/A",
+                  buildingNumber: apiOrder.pickupInfo.address?.street || "N/A",
                   street: apiOrder.pickupInfo.address?.street || "N/A",
                   city: apiOrder.pickupInfo.address?.city || "N/A",
                   district: apiOrder.pickupInfo.address?.district || "N/A",
@@ -402,10 +427,7 @@ export default function OrderHistoryPage() {
                       id: item.id || 0,
                       name: item.typeName || "Unknown",
                       weight: item.weight || "1 kg",
-                      price: formatCurrency(
-                        parseFloat(item.price || "0"),
-                        2
-                      ),
+                      price: formatCurrency(parseFloat(item.price || "0"), 2),
                       quantity: String(item.qty || 1),
                     })) || [],
                   totalPrice: formatCurrency(pack.productPrice || 0, 2),
@@ -425,9 +447,7 @@ export default function OrderHistoryPage() {
                 }))
               : [],
           discount: formatCurrency(
-            totalDiscount > 0
-              ? ` ${totalDiscount.toFixed(2)}`
-              : " 0.00"
+            totalDiscount > 0 ? ` ${totalDiscount.toFixed(2)}` : " 0.00",
           ),
         };
 
@@ -442,7 +462,7 @@ export default function OrderHistoryPage() {
 
   const handleFilterChange = (
     newValue: SingleValue<{ value: string; label: string }>,
-    actionMeta: ActionMeta<{ value: string; label: string }>
+    actionMeta: ActionMeta<{ value: string; label: string }>,
   ): void => {
     if (newValue) {
       setFilterLoading(true);
@@ -472,7 +492,7 @@ export default function OrderHistoryPage() {
                   instanceId="order-history-filter"
                   options={filterOptions}
                   value={filterOptions.find(
-                    (option) => option.value === filter
+                    (option) => option.value === filter,
                   )}
                   onChange={handleFilterChange}
                   isSearchable={false}
@@ -498,9 +518,7 @@ export default function OrderHistoryPage() {
                     option: (base, { isFocused }) => ({
                       ...base,
                       cursor: "pointer",
-                      backgroundColor: isFocused
-                        ? "rgb(243,244,246)"
-                        : "white",
+                      backgroundColor: isFocused ? "rgb(243,244,246)" : "white",
                       color: "rgb(31,41,55)",
                       textAlign: "center",
                       padding: "8px 12px",
@@ -576,7 +594,7 @@ export default function OrderHistoryPage() {
                         <button
                           onClick={() =>
                             router.push(
-                              `/history/invoice?orderId=${order.orderId}`
+                              `/history/invoice?orderId=${order.orderId}`,
                             )
                           }
                           className="bg-[rgb(255,255,255)] border text-xs lg:text-sm cursor-pointer border-[rgb(209,213,219)] rounded-lg px-4 py-1.5 hover:bg-[rgb(62,32,109)] hover:text-[rgb(255,255,255)]"
@@ -624,7 +642,7 @@ export default function OrderHistoryPage() {
                         <button
                           onClick={() =>
                             router.push(
-                              `/history/invoice?orderId=${order.orderId}`
+                              `/history/invoice?orderId=${order.orderId}`,
                             )
                           }
                           className="w-full bg-[rgb(255,255,255)] border text-sm cursor-pointer border-[rgb(209,213,219)] rounded-lg px-4 py-2.5 hover:bg-[rgb(62,32,109)] hover:text-[rgb(255,255,255)] transition-colors"
@@ -646,11 +664,11 @@ export default function OrderHistoryPage() {
                         <span className="text-[rgb(107,114,128)]">Status:</span>
                         <p>
                           <span
-                            className={`inline-flex justify-center items-center font-medium px-3 py-0.5 rounded-full text-xs min-w-[100px] ${getStatusClass(
-                              order.status
+                            className={`inline-flex justify-center items-center font-medium px-3 py-2 rounded-full text-xs min-w-[100px] ${getStatusClass(
+                              order.status,
                             )}`}
                           >
-                            {order.status}
+                            {getDisplayStatus(order.status)}
                           </span>
                         </p>
                       </div>
@@ -658,9 +676,7 @@ export default function OrderHistoryPage() {
                         <span className="text-[rgb(107,114,128)]">
                           Order Placed:
                         </span>
-                        <p className="text-[rgb(0,0,0)]">
-                          {order.orderPlaced}
-                        </p>
+                        <p className="text-[rgb(0,0,0)]">{order.orderPlaced}</p>
                       </div>
                       <div>
                         <span className="text-[rgb(107,114,128)]">
@@ -689,7 +705,7 @@ export default function OrderHistoryPage() {
                         <div className="mt-1">
                           <span
                             className={`inline-flex justify-center items-center font-medium px-4 py-1 rounded-full text-xs ${getStatusClass(
-                              order.status
+                              order.status,
                             )}`}
                           >
                             {order.status}
@@ -793,7 +809,9 @@ function PickupOrderView({
     order.familyPackItems?.reduce(
       (sum, pack) =>
         sum +
-        parseFloat(pack.totalPrice.replace("Rs. ", "").replace(/,/g, "") || "0"),
+        parseFloat(
+          pack.totalPrice.replace("Rs. ", "").replace(/,/g, "") || "0",
+        ),
       0,
     ) || 0;
 
@@ -807,7 +825,10 @@ function PickupOrderView({
 
   const familyPackTotal = formatAmount(familyPackTotalNum, 2);
   const additionalItemsTotal = formatAmount(additionalItemsTotalNum, 2);
-  const totalPrice = formatAmount(familyPackTotalNum + additionalItemsTotalNum, 2);
+  const totalPrice = formatAmount(
+    familyPackTotalNum + additionalItemsTotalNum,
+    2,
+  );
 
   return (
     <div className="w-full">
@@ -817,11 +838,13 @@ function PickupOrderView({
             <span className="text-xl">←</span>
           </button>
           <div className="text-center flex-1">
-            <h2 className="text-lg font-semibold">Order ID : #{order.invoiceNo}</h2>
+            <h2 className="text-lg font-semibold">
+              Order ID : #{order.invoiceNo}
+            </h2>
             <span
               className={`inline-block px-3 py-1 rounded-full text-sm font-medium mt-2 ${getStatusClass(order.status)}`}
             >
-              {order.status}
+              {getDisplayStatus(order.status)}
             </span>
           </div>
         </div>
@@ -838,7 +861,7 @@ function PickupOrderView({
         <span
           className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusClass(order.status)}`}
         >
-          {order.status}
+          {getDisplayStatus(order.status)}
         </span>
       </div>
 
@@ -848,21 +871,29 @@ function PickupOrderView({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <span className="text-gray-600 block">Order Placed :</span>
-              <span className="font-semibold">{order.orderPlaced || "N/A"}</span>
+              <span className="font-semibold">
+                {order.orderPlaced || "N/A"}
+              </span>
             </div>
             <div>
               <span className="text-gray-600 block">Scheduled Date :</span>
-              <span className="font-semibold">{order.scheduleDate || "N/A"}</span>
+              <span className="font-semibold">
+                {order.scheduleDate || "N/A"}
+              </span>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <span className="text-gray-600 block">Scheduled Time :</span>
-              <span className="font-semibold">{order.scheduleTime || "N/A"}</span>
+              <span className="font-semibold">
+                {order.scheduleTime || "N/A"}
+              </span>
             </div>
             <div>
               <span className="text-gray-600 block">Delivery / Pickup :</span>
-              <span className="font-semibold">{order.deliveryType || "N/A"}</span>
+              <span className="font-semibold">
+                {order.deliveryType || "N/A"}
+              </span>
             </div>
           </div>
         </div>
@@ -899,8 +930,12 @@ function PickupOrderView({
                   {order.title || "N/A"}. {order.fullName || "N/A"}
                 </span>
                 <div className="text-sm text-gray-700">
-                  {order.phone1 ? `${order.phonecode1 || ""} ${order.phone1}` : ""}
-                  {order.phone2 ? `, ${order.phonecode2 || ""} ${order.phone2}` : ""}
+                  {order.phone1
+                    ? `${order.phonecode1 || ""} ${order.phone1}`
+                    : ""}
+                  {order.phone2
+                    ? `, ${order.phonecode2 || ""} ${order.phone2}`
+                    : ""}
                 </div>
               </div>
             </div>
@@ -910,7 +945,9 @@ function PickupOrderView({
         <div className="bg-white mt-2 rounded-[15px] border border-gray-200 overflow-hidden shadow-lg">
           <div className="bg-gray-50 p-4 border-b border-gray-200">
             <div className="flex flex-col space-y-2">
-              <span className="text-[14px] font-semibold text-black">Ordered Items</span>
+              <span className="text-[14px] font-semibold text-black">
+                Ordered Items
+              </span>
               <span className="text-[14px] font-semibold text-[#3E206D]">
                 Total Price : Rs. {totalPrice}
               </span>
@@ -920,14 +957,18 @@ function PickupOrderView({
           {order.familyPackItems && order.familyPackItems.length > 0 && (
             <div>
               {order.familyPackItems.map((pack, packIndex) => (
-                <div key={packIndex} className="border-b border-gray-200 last:border-b-0">
+                <div
+                  key={packIndex}
+                  className="border-b border-gray-200 last:border-b-0"
+                >
                   <div className="p-4">
                     <div className="flex flex-col mb-4">
                       <span className="text-[14px] text-black">
                         {pack.name} (
                         {String(
                           pack.items?.reduce(
-                            (sum, item) => sum + (parseFloat(item.quantity) || 0),
+                            (sum, item) =>
+                              sum + (parseFloat(item.quantity) || 0),
                             0,
                           ) ?? 0,
                         ).padStart(2, "0")}{" "}
@@ -979,7 +1020,10 @@ function PickupOrderView({
                 <div className="overflow-x-auto -mx-4 px-4">
                   <div className="space-y-4 mt-4">
                     {order.additionalItems.map((item, index) => (
-                      <div key={index} className="flex items-center gap-4 py-2 min-w-[440px]">
+                      <div
+                        key={index}
+                        className="flex items-center gap-4 py-2 min-w-[440px]"
+                      >
                         <div className="w-12 h-12 flex-shrink-0">
                           {item.image ? (
                             <img
@@ -989,12 +1033,16 @@ function PickupOrderView({
                             />
                           ) : (
                             <div className="w-12 h-12 bg-orange-200 rounded flex items-center justify-center">
-                              <span className="text-orange-600 text-xs">🥭</span>
+                              <span className="text-orange-600 text-xs">
+                                🥭
+                              </span>
                             </div>
                           )}
                         </div>
                         <div className="flex-1 min-w-[120px]">
-                          <div className="font-medium text-black">{item.name}</div>
+                          <div className="font-medium text-black">
+                            {item.name}
+                          </div>
                         </div>
                         <div className="w-16 text-right flex-shrink-0">
                           <div className="text-sm text-gray-500">
@@ -1002,7 +1050,9 @@ function PickupOrderView({
                           </div>
                         </div>
                         <div className="w-24 text-right flex-shrink-0">
-                          <div className="font-semibold text-black">{item.price}</div>
+                          <div className="font-semibold text-black">
+                            {item.price}
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -1019,19 +1069,27 @@ function PickupOrderView({
         <div className="border-t border-[rgb(0,0,0)] mb-4 mt-4" />
         <div className="grid grid-cols-4 gap-4 text-sm mb-4">
           <div>
-            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Order Placed:</h4>
+            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">
+              Order Placed:
+            </h4>
             <p className="font-semibold">{order.orderPlaced || "N/A"}</p>
           </div>
           <div>
-            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Scheduled Date:</h4>
+            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">
+              Scheduled Date:
+            </h4>
             <p className="font-semibold">{order.scheduleDate || "N/A"}</p>
           </div>
           <div>
-            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Scheduled Time:</h4>
+            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">
+              Scheduled Time:
+            </h4>
             <p className="font-semibold">{order.scheduleTime || "N/A"}</p>
           </div>
           <div>
-            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Delivery / Pickup:</h4>
+            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">
+              Delivery / Pickup:
+            </h4>
             <p className="font-semibold">{order.deliveryType || "N/A"}</p>
           </div>
         </div>
@@ -1070,8 +1128,12 @@ function PickupOrderView({
               </p>
               <div>
                 <p>
-                  {order.phone1 ? `${order.phonecode1 || ""} ${order.phone1}` : ""}
-                  {order.phone2 ? `, ${order.phonecode2 || ""} ${order.phone2}` : ""}
+                  {order.phone1
+                    ? `${order.phonecode1 || ""} ${order.phone1}`
+                    : ""}
+                  {order.phone2
+                    ? `, ${order.phonecode2 || ""} ${order.phone2}`
+                    : ""}
                 </p>
               </div>
             </div>
@@ -1081,7 +1143,11 @@ function PickupOrderView({
         <div className="mb-4">
           <div
             className="mb-4"
-            style={{ border: "1px solid rgb(215,215,215)", borderRadius: "15px", overflow: "hidden" }}
+            style={{
+              border: "1px solid rgb(215,215,215)",
+              borderRadius: "15px",
+              overflow: "hidden",
+            }}
           >
             <table className="w-full text-sm">
               <tbody>
@@ -1089,7 +1155,10 @@ function PickupOrderView({
                   className="w-full border-b border-[rgb(229,231,235)]"
                   style={{ backgroundColor: "rgb(248,248,248)" }}
                 >
-                  <td colSpan={3} className="font-semibold text-[rgb(31,41,55)] py-2 p-4">
+                  <td
+                    colSpan={3}
+                    className="font-semibold text-[rgb(31,41,55)] py-2 p-4"
+                  >
                     Ordered Items
                   </td>
                   <td
@@ -1107,7 +1176,8 @@ function PickupOrderView({
                           {pack.name} (
                           {String(
                             pack.items?.reduce(
-                              (sum, item) => sum + (parseFloat(item.quantity) || 0),
+                              (sum, item) =>
+                                sum + (parseFloat(item.quantity) || 0),
                               0,
                             ) ?? 0,
                           ).padStart(2, "0")}{" "}
@@ -1147,15 +1217,16 @@ function PickupOrderView({
                     <tr className="border-b border-t border-[rgb(229,231,235)]">
                       <td colSpan={3} className="font-medium py-2 p-4">
                         Additional Items (
-                        {String(order.additionalItems.length ?? 0).padStart(2, "0")}{" "}
+                        {String(order.additionalItems.length ?? 0).padStart(
+                          2,
+                          "0",
+                        )}{" "}
                         Item{order.additionalItems.length > 1 ? "s" : ""})
                       </td>
                       <td className="text-right font-semibold py-2 p-4">
                         <div className="flex justify-end items-center gap-2">
                           {order.discount && order.discount !== "Rs. 0.00" && (
-                            <span
-                              className="text-xs font-normal text-[#3E206D]"
-                            >
+                            <span className="text-xs font-normal text-[#3E206D]">
                               You have saved {order.discount} with us!
                             </span>
                           )}
@@ -1170,7 +1241,10 @@ function PickupOrderView({
                         <div className="p-4">
                           <div className="space-y-4">
                             {order.additionalItems.map((item, index) => (
-                              <div key={index} className="flex items-center gap-6 py-3">
+                              <div
+                                key={index}
+                                className="flex items-center gap-6 py-3"
+                              >
                                 <div className="w-12 h-12 flex-shrink-0">
                                   {item.image ? (
                                     <img
@@ -1180,7 +1254,9 @@ function PickupOrderView({
                                     />
                                   ) : (
                                     <div className="w-full h-full bg-gray-200 rounded flex items-center justify-center">
-                                      <span className="text-gray-500 text-xs">No Image</span>
+                                      <span className="text-gray-500 text-xs">
+                                        No Image
+                                      </span>
                                     </div>
                                   )}
                                 </div>
@@ -1227,7 +1303,9 @@ function DeliveryOrderView({
     order.familyPackItems?.reduce(
       (sum, pack) =>
         sum +
-        parseFloat(pack.totalPrice.replace("Rs. ", "").replace(/,/g, "") || "0"),
+        parseFloat(
+          pack.totalPrice.replace("Rs. ", "").replace(/,/g, "") || "0",
+        ),
       0,
     ) || 0;
 
@@ -1241,7 +1319,10 @@ function DeliveryOrderView({
 
   const familyPackTotal = formatAmount(familyPackTotalNum, 2);
   const additionalItemsTotal = formatAmount(additionalItemsTotalNum, 2);
-  const totalPrice = formatAmount(familyPackTotalNum + additionalItemsTotalNum, 2);
+  const totalPrice = formatAmount(
+    familyPackTotalNum + additionalItemsTotalNum,
+    2,
+  );
 
   return (
     <div className="w-full">
@@ -1252,11 +1333,13 @@ function DeliveryOrderView({
             <span className="text-xl">←</span>
           </button>
           <div className="text-center flex-1">
-            <h2 className="text-lg font-semibold">Order ID : #{order.invoiceNo}</h2>
+            <h2 className="text-lg font-semibold">
+              Order ID : #{order.invoiceNo}
+            </h2>
             <span
               className={`inline-block px-3 py-1 rounded-full text-sm font-medium mt-2 ${getStatusClass(order.status)}`}
             >
-              {order.status}
+              {getDisplayStatus(order.status)}
             </span>
           </div>
         </div>
@@ -1274,7 +1357,7 @@ function DeliveryOrderView({
         <span
           className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusClass(order.status)}`}
         >
-          {order.status}
+          {getDisplayStatus(order.status)}
         </span>
       </div>
 
@@ -1284,21 +1367,29 @@ function DeliveryOrderView({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <span className="text-gray-600 block">Order Placed :</span>
-              <span className="font-semibold">{order.orderPlaced || "N/A"}</span>
+              <span className="font-semibold">
+                {order.orderPlaced || "N/A"}
+              </span>
             </div>
             <div>
               <span className="text-gray-600 block">Scheduled Date :</span>
-              <span className="font-semibold">{order.scheduleDate || "N/A"}</span>
+              <span className="font-semibold">
+                {order.scheduleDate || "N/A"}
+              </span>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <span className="text-gray-600 block">Scheduled Time :</span>
-              <span className="font-semibold">{order.scheduleTime || "N/A"}</span>
+              <span className="font-semibold">
+                {order.scheduleTime || "N/A"}
+              </span>
             </div>
             <div>
               <span className="text-gray-600 block">Delivery / Pickup :</span>
-              <span className="font-semibold">{order.deliveryType || "N/A"}</span>
+              <span className="font-semibold">
+                {order.deliveryType || "N/A"}
+              </span>
             </div>
           </div>
         </div>
@@ -1318,7 +1409,9 @@ function DeliveryOrderView({
                   {order.deliveryInfo?.buildingType === "Apartment" ? (
                     <>
                       <div>No : {order.deliveryInfo?.buildingNo || "--"}</div>
-                      <div>Name : {order.deliveryInfo?.buildingName || "--"}</div>
+                      <div>
+                        Name : {order.deliveryInfo?.buildingName || "--"}
+                      </div>
                       <div>Flat : {order.deliveryInfo?.flatNo || "--"}</div>
                       <div>Floor : {order.deliveryInfo?.floorNo || "--"}</div>
                       <div>House No: {order.deliveryInfo?.houseNo || "--"}</div>
@@ -1344,8 +1437,12 @@ function DeliveryOrderView({
                   {order.title || "N/A"}. {order.fullName || "N/A"}
                 </span>
                 <div className="text-sm text-gray-700">
-                  {order.phone1 ? `${order.phonecode1 || ""} ${order.phone1}` : ""}
-                  {order.phone2 ? `, ${order.phonecode2 || ""} ${order.phone2}` : ""}
+                  {order.phone1
+                    ? `${order.phonecode1 || ""} ${order.phone1}`
+                    : ""}
+                  {order.phone2
+                    ? `, ${order.phonecode2 || ""} ${order.phone2}`
+                    : ""}
                 </div>
               </div>
             </div>
@@ -1355,7 +1452,9 @@ function DeliveryOrderView({
         <div className="bg-white mt-2 rounded-[15px] border border-gray-200 overflow-hidden">
           <div className="bg-gray-50 p-4 border-b border-gray-200">
             <div className="flex flex-col space-y-2">
-              <span className="text-[14px] font-semibold text-black">Ordered Items</span>
+              <span className="text-[14px] font-semibold text-black">
+                Ordered Items
+              </span>
               <span className="text-[14px] font-semibold text-[#3E206D]">
                 Total Price : Rs. {totalPrice}
               </span>
@@ -1365,14 +1464,18 @@ function DeliveryOrderView({
           {order.familyPackItems && order.familyPackItems.length > 0 && (
             <div>
               {order.familyPackItems.map((pack, packIndex) => (
-                <div key={packIndex} className="border-b border-gray-200 last:border-b-0">
+                <div
+                  key={packIndex}
+                  className="border-b border-gray-200 last:border-b-0"
+                >
                   <div className="p-4">
                     <div className="flex flex-col mb-4">
                       <span className="text-[14px] text-black">
                         {pack.name} (
                         {String(
                           pack.items?.reduce(
-                            (sum, item) => sum + (parseFloat(item.quantity) || 0),
+                            (sum, item) =>
+                              sum + (parseFloat(item.quantity) || 0),
                             0,
                           ) ?? 0,
                         ).padStart(2, "0")}{" "}
@@ -1424,7 +1527,10 @@ function DeliveryOrderView({
                 <div className="overflow-x-auto -mx-4 px-4">
                   <div className="space-y-4 mt-4">
                     {order.additionalItems.map((item, index) => (
-                      <div key={index} className="flex items-center gap-4 py-2 min-w-[440px]">
+                      <div
+                        key={index}
+                        className="flex items-center gap-4 py-2 min-w-[440px]"
+                      >
                         <div className="w-12 h-12 flex-shrink-0">
                           {item.image ? (
                             <img
@@ -1434,12 +1540,16 @@ function DeliveryOrderView({
                             />
                           ) : (
                             <div className="w-12 h-12 bg-orange-200 rounded flex items-center justify-center">
-                              <span className="text-orange-600 text-xs">🥭</span>
+                              <span className="text-orange-600 text-xs">
+                                🥭
+                              </span>
                             </div>
                           )}
                         </div>
                         <div className="flex-1 min-w-[120px]">
-                          <div className="font-medium text-black">{item.name}</div>
+                          <div className="font-medium text-black">
+                            {item.name}
+                          </div>
                         </div>
                         <div className="w-16 text-right flex-shrink-0">
                           <div className="text-sm text-gray-500">
@@ -1447,7 +1557,9 @@ function DeliveryOrderView({
                           </div>
                         </div>
                         <div className="w-24 text-right flex-shrink-0">
-                          <div className="font-semibold text-black">{item.price}</div>
+                          <div className="font-semibold text-black">
+                            {item.price}
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -1464,19 +1576,27 @@ function DeliveryOrderView({
         <div className="border-t border-[rgb(0,0,0)] mb-4 mt-4"></div>
         <div className="grid grid-cols-4 gap-4 text-sm mb-4">
           <div>
-            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Order Placed:</h4>
+            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">
+              Order Placed:
+            </h4>
             <p className="font-semibold">{order.orderPlaced || "N/A"}</p>
           </div>
           <div>
-            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Scheduled Date:</h4>
+            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">
+              Scheduled Date:
+            </h4>
             <p className="font-semibold">{order.scheduleDate || "N/A"}</p>
           </div>
           <div>
-            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Scheduled Time:</h4>
+            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">
+              Scheduled Time:
+            </h4>
             <p className="font-semibold">{order.scheduleTime || "N/A"}</p>
           </div>
           <div>
-            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Delivery / Pickup:</h4>
+            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">
+              Delivery / Pickup:
+            </h4>
             <p className="font-semibold">{order.deliveryType || "N/A"}</p>
           </div>
         </div>
@@ -1487,7 +1607,9 @@ function DeliveryOrderView({
           </h3>
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div className="space-y-1 text-sm text-[rgb(31,41,55)]">
-              <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Address:</h4>
+              <h4 className="font-medium text-[rgb(55,65,81)] mb-1">
+                Address:
+              </h4>
               <div className="space-y-1 text-sm">
                 <div>
                   <span className="font-semibold">
@@ -1497,46 +1619,66 @@ function DeliveryOrderView({
                 {order.deliveryInfo?.buildingType === "Apartment" ? (
                   <>
                     <div className="flex gap-2">
-                      <span className="font-medium text-[rgb(146,146,146)]">No :</span>
+                      <span className="font-medium text-[rgb(146,146,146)]">
+                        No :
+                      </span>
                       <span>{order.deliveryInfo?.buildingNo || "--"}</span>
                     </div>
                     <div className="flex gap-2">
-                      <span className="font-medium text-[rgb(146,146,146)]">Name :</span>
+                      <span className="font-medium text-[rgb(146,146,146)]">
+                        Name :
+                      </span>
                       <span>{order.deliveryInfo?.buildingName || "--"}</span>
                     </div>
                     <div className="flex gap-2">
-                      <span className="font-medium text-[rgb(146,146,146)]">Flat :</span>
+                      <span className="font-medium text-[rgb(146,146,146)]">
+                        Flat :
+                      </span>
                       <span>{order.deliveryInfo?.flatNo || "--"}</span>
                     </div>
                     <div className="flex gap-2">
-                      <span className="font-medium text-[rgb(146,146,146)]">Floor :</span>
+                      <span className="font-medium text-[rgb(146,146,146)]">
+                        Floor :
+                      </span>
                       <span>{order.deliveryInfo?.floorNo || "--"}</span>
                     </div>
                     <div className="flex gap-2">
-                      <span className="font-medium text-[rgb(146,146,146)]">House No :</span>
+                      <span className="font-medium text-[rgb(146,146,146)]">
+                        House No :
+                      </span>
                       <span>{order.deliveryInfo?.houseNo || "N/A"}</span>
                     </div>
                     <div className="flex gap-2">
-                      <span className="font-medium text-[rgb(146,146,146)]">Street :</span>
+                      <span className="font-medium text-[rgb(146,146,146)]">
+                        Street :
+                      </span>
                       <span>{order.deliveryInfo?.street || "N/A"}</span>
                     </div>
                     <div className="flex gap-2">
-                      <span className="font-medium text-[rgb(146,146,146)]">City :</span>
+                      <span className="font-medium text-[rgb(146,146,146)]">
+                        City :
+                      </span>
                       <span>{order.deliveryInfo?.city || "N/A"}</span>
                     </div>
                   </>
                 ) : (
                   <>
                     <div className="flex gap-2">
-                      <span className="font-medium text-[rgb(146,146,146)]">House No :</span>
+                      <span className="font-medium text-[rgb(146,146,146)]">
+                        House No :
+                      </span>
                       <span>{order.deliveryInfo?.houseNo || "N/A"}</span>
                     </div>
                     <div className="flex gap-2">
-                      <span className="font-medium text-[rgb(146,146,146)]">Street :</span>
+                      <span className="font-medium text-[rgb(146,146,146)]">
+                        Street :
+                      </span>
                       <span>{order.deliveryInfo?.street || "N/A"}</span>
                     </div>
                     <div className="flex gap-2">
-                      <span className="font-medium text-[rgb(146,146,146)]">City :</span>
+                      <span className="font-medium text-[rgb(146,146,146)]">
+                        City :
+                      </span>
                       <span>{order.deliveryInfo?.city || "N/A"}</span>
                     </div>
                   </>
@@ -1551,8 +1693,12 @@ function DeliveryOrderView({
                 {order.title || "N/A"}. {order.fullName || "N/A"}
               </p>
               <p>
-                {order.phone1 ? `${order.phonecode1 || ""} ${order.phone1}` : ""}
-                {order.phone2 ? `, ${order.phonecode2 || ""} ${order.phone2}` : ""}
+                {order.phone1
+                  ? `${order.phonecode1 || ""} ${order.phone1}`
+                  : ""}
+                {order.phone2
+                  ? `, ${order.phonecode2 || ""} ${order.phone2}`
+                  : ""}
               </p>
             </div>
           </div>
@@ -1561,15 +1707,25 @@ function DeliveryOrderView({
         <div className="mb-4" style={{ borderColor: "rgb(215,215,215)" }}>
           <div
             className="mb-4"
-            style={{ border: "1px solid rgb(215,215,215)", borderRadius: "15px", overflow: "hidden" }}
+            style={{
+              border: "1px solid rgb(215,215,215)",
+              borderRadius: "15px",
+              overflow: "hidden",
+            }}
           >
-            <table className="w-full text-sm" style={{ borderColor: "rgb(215,215,215)" }}>
+            <table
+              className="w-full text-sm"
+              style={{ borderColor: "rgb(215,215,215)" }}
+            >
               <tbody>
                 <tr
                   className="w-full border-b border-[rgb(229,231,235)]"
                   style={{ backgroundColor: "rgb(248,248,248)" }}
                 >
-                  <td colSpan={3} className="font-semibold text-[rgb(31,41,55)] py-2 p-4">
+                  <td
+                    colSpan={3}
+                    className="font-semibold text-[rgb(31,41,55)] py-2 p-4"
+                  >
                     Ordered Items
                   </td>
                   <td
@@ -1587,7 +1743,8 @@ function DeliveryOrderView({
                           {pack.name} (
                           {String(
                             pack.items?.reduce(
-                              (sum, item) => sum + (parseFloat(item.quantity) || 0),
+                              (sum, item) =>
+                                sum + (parseFloat(item.quantity) || 0),
                               0,
                             ) ?? 0,
                           ).padStart(2, "0")}{" "}
@@ -1627,7 +1784,10 @@ function DeliveryOrderView({
                     <tr className="border-b border-t border-[rgb(229,231,235)]">
                       <td colSpan={3} className="font-medium py-2 p-4">
                         Additional Items (
-                        {String(order.additionalItems.length ?? 0).padStart(2, "0")}{" "}
+                        {String(order.additionalItems.length ?? 0).padStart(
+                          2,
+                          "0",
+                        )}{" "}
                         Items)
                       </td>
                       <td className="text-right font-semibold py-2 p-4">
@@ -1648,7 +1808,10 @@ function DeliveryOrderView({
                         <div className="p-4">
                           <div className="space-y-4">
                             {order.additionalItems.map((item, index) => (
-                              <div key={index} className="flex items-center gap-6 py-3">
+                              <div
+                                key={index}
+                                className="flex items-center gap-6 py-3"
+                              >
                                 <div className="w-12 h-12 flex-shrink-0">
                                   {item.image ? (
                                     <img
@@ -1658,7 +1821,9 @@ function DeliveryOrderView({
                                     />
                                   ) : (
                                     <div className="w-full h-full bg-gray-200 rounded flex items-center justify-center">
-                                      <span className="text-gray-500 text-xs">No Image</span>
+                                      <span className="text-gray-500 text-xs">
+                                        No Image
+                                      </span>
                                     </div>
                                   )}
                                 </div>
