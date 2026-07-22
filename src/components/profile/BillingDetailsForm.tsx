@@ -137,8 +137,8 @@ const CustomDropdown = ({
 
   const filteredOptions = withSearch
     ? options.filter((option) =>
-        option.label.toLowerCase().includes(searchTerm.toLowerCase()),
-      )
+      option.label.toLowerCase().includes(searchTerm.toLowerCase()),
+    )
     : options;
 
   const selectedOption = options.find((opt) => opt.value === value);
@@ -147,11 +147,10 @@ const CustomDropdown = ({
     <div className="relative cursor-pointer" ref={dropdownRef}>
       <input type="hidden" {...register(name)} />
       <div
-        className={`appearance-none border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px] pr-8 flex items-center justify-between ${
-          disabled
+        className={`appearance-none border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px] pr-8 flex items-center justify-between ${disabled
             ? "bg-[#F3F4F6] cursor-not-allowed opacity-70"
             : "cursor-pointer"
-        }`}
+          }`}
         onClick={() => !disabled && setIsOpen(!isOpen)}
       >
         <span className="flex items-center gap-2">
@@ -358,11 +357,10 @@ const CityDropdown = ({
   return (
     <div className="relative" ref={dropdownRef}>
       <div
-        className={`flex items-center gap-2 border rounded-lg h-[42px] px-2 ${
-          disabled
+        className={`flex items-center gap-2 border rounded-lg h-[42px] px-2 ${disabled
             ? "bg-[#F3F4F6] border-[#CECECE] cursor-not-allowed opacity-70"
             : "border-[#CECECE]"
-        }`}
+          }`}
       >
         <input
           ref={inputRef}
@@ -398,9 +396,8 @@ const CityDropdown = ({
             ) : (
               <ChevronDown
                 size={16}
-                className={`transition-transform duration-200 ${
-                  isDropdownOpen ? "rotate-180" : ""
-                }`}
+                className={`transition-transform duration-200 ${isDropdownOpen ? "rotate-180" : ""
+                  }`}
               />
             )}
           </button>
@@ -1671,8 +1668,8 @@ const BillingDetailsForm = () => {
                     Geo Location
                   </label>
                   {isMounted &&
-                  (hasGeoLocation ||
-                    (watch("geoLatitude") && watch("geoLongitude"))) ? (
+                    (hasGeoLocation ||
+                      (watch("geoLatitude") && watch("geoLongitude"))) ? (
                     <div className="space-y-2">
                       <button
                         type="button"
@@ -1841,8 +1838,8 @@ const BillingDetailsForm = () => {
                     Geo Location
                   </label>
                   {isMounted &&
-                  (hasGeoLocation ||
-                    (watch("geoLatitude") && watch("geoLongitude"))) ? (
+                    (hasGeoLocation ||
+                      (watch("geoLatitude") && watch("geoLongitude"))) ? (
                     <div className="space-y-2">
                       <button
                         type="button"
@@ -1925,13 +1922,13 @@ const BillingDetailsForm = () => {
                       validate:
                         num === 2
                           ? {
-                              notDuplicate: (value) =>
-                                !value ||
-                                !watch("phone1") ||
-                                watch("phonecode1") !== watch("phonecode2") ||
-                                value !== watch("phone1") ||
-                                "Phone numbers cannot be the same",
-                            }
+                            notDuplicate: (value) =>
+                              !value ||
+                              !watch("phone1") ||
+                              watch("phonecode1") !== watch("phonecode2") ||
+                              value !== watch("phone1") ||
+                              "Phone numbers cannot be the same",
+                          }
                           : undefined,
                     })}
                     className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
@@ -1955,11 +1952,10 @@ const BillingDetailsForm = () => {
         <div className="flex justify-end gap-4 mt-10">
           <button
             type="button"
-            className={`w-[90px] h-[36px] sm:w-[110px] sm:h-[44px] cursor-pointer text-[16px] md:text-[20px] font-medium rounded-lg ${
-              isLoading || !canSave
+            className={`w-[90px] h-[36px] sm:w-[110px] sm:h-[44px] cursor-pointer text-[16px] md:text-[20px] font-medium rounded-lg shadow-[0px_2px_5px_0px_rgba(0,0,0,0.10)] ${isLoading || !canSave
                 ? "opacity-50 cursor-not-allowed text-[#9ca3af] bg-[#f9fafb]"
                 : "text-[#757E87] bg-[#F3F4F7] hover:bg-[#e1e2e5]"
-            }`}
+              }`}
             onClick={() => setShowCancelConfirm(true)}
             disabled={isLoading || !canSave}
           >
@@ -1968,11 +1964,10 @@ const BillingDetailsForm = () => {
 
           <button
             type="submit"
-            className={`w-[90px] h-[36px] sm:w-[110px] sm:h-[44px] cursor-pointer mb-4 text-[16px] md:text-[20px] font-medium rounded-lg text-white ${
-              isLoading || !canSave
+            className={`w-[90px] h-[36px] sm:w-[110px] sm:h-[44px] cursor-pointer mb-4 text-[16px] md:text-[20px] font-medium rounded-lg text-white shadow-[0px_2px_5px_0px_rgba(0,0,0,0.10)] ${isLoading || !canSave
                 ? "opacity-50 cursor-not-allowed bg-[#9ca3af]"
                 : "bg-[#3E206D] hover:bg-[#341a5a]"
-            }`}
+              }`}
             disabled={isLoading || !canSave}
           >
             Save

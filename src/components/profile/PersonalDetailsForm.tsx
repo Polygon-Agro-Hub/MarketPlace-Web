@@ -13,6 +13,10 @@ import ErrorPopup from '@/components/toast-messages/error-message';
 import Loader from '@/components/loader-spinner/Loader';
 import { fetchProfile, updateProfile, updatePassword } from '@/services/auth-service';
 import { updateUser } from '@/store/slices/authSlice';
+import PhoneCodeDropdown, {
+  validatePhoneNumber,
+  getMaxPhoneLength,
+} from '@/components/registration-components/PhoneCodeDropdown';
 
 const schema = yup.object().shape({
   title: yup.string().required('Title is required'),
@@ -70,13 +74,23 @@ const schema = yup.object().shape({
     .string()
     .transform((value) => value?.trim())
     .required('Phone Number is required')
-    .matches(/^7[0-9]{8}$/, 'Please enter a valid Phone Number (format: +947XXXXXXXX)'),
+    .test('valid-phone', function (value) {
+      if (!value) return true; // required() already handles the empty case
+      const { countryCode } = this.parent;
+      const error = validatePhoneNumber(countryCode, value);
+      return error ? this.createError({ message: error }) : true;
+    }),
   phoneNumber2: yup.string().when('$buyerType', {
     is: 'Wholesale',
     then: (schema) => schema
       .transform((value) => value?.trim())
       .required('Phone Number is required')
-      .matches(/^7[0-9]{8}$/, 'Please enter a valid Phone Number (format: +947XXXXXXXX)'),
+      .test('valid-phone2', function (value) {
+        if (!value) return true;
+        const { countryCode2 } = this.parent;
+        const error = validatePhoneNumber(countryCode2, value);
+        return error ? this.createError({ message: error }) : true;
+      }),
     otherwise: (schema) => schema.notRequired(),
   }),
   companyName: yup.string().when('$buyerType', {
@@ -96,7 +110,12 @@ const schema = yup.object().shape({
     then: (schema) => schema
       .transform((value) => value?.trim())
       .required('Company Phone Number is required')
-      .matches(/^7[0-9]{8}$/, 'Please enter a valid Company Phone Number (format: +947XXXXXXXX)'),
+      .test('valid-company-phone', function (value) {
+        if (!value) return true;
+        const { companyPhoneCode } = this.parent;
+        const error = validatePhoneNumber(companyPhoneCode, value);
+        return error ? this.createError({ message: error }) : true;
+      }),
     otherwise: (schema) => schema.notRequired(),
   }),
   currentPassword: yup.string()
@@ -399,15 +418,10 @@ const PersonalDetailsForm = () => {
     return cleaned;
   };
 
-  const handlePhoneInput = (value: string): string => {
-
+  const handlePhoneInput = (value: string, phoneCode: string): string => {
     const cleaned = value.replace(/[^0-9]/g, '');
-
-    if (cleaned.length > 0 && !cleaned.startsWith('7')) {
-      return '7' + cleaned.slice(0, 8);
-    }
-
-    return cleaned.slice(0, 9);
+    const maxLen = getMaxPhoneLength(phoneCode);
+    return cleaned.slice(0, maxLen);
   };
 
   const handleGeneralInput = (value: string): string => {
@@ -647,24 +661,24 @@ const PersonalDetailsForm = () => {
     }, 500);
   };
 
-  const countries = [
-    { code: "LK", dialCode: "+94", name: "Sri Lanka" },
-    { code: "VN", dialCode: "+84", name: "Vietnam" },
-    { code: "KH", dialCode: "+855", name: "Cambodia" },
-    { code: "BD", dialCode: "+880", name: "Bangladesh" },
-    { code: "IN", dialCode: "+91", name: "India" },
-    { code: "NL", dialCode: "+31", name: "Netherlands" },
-  ];
+  // const countries = [
+  //   { code: "LK", dialCode: "+94", name: "Sri Lanka" },
+  //   { code: "VN", dialCode: "+84", name: "Vietnam" },
+  //   { code: "KH", dialCode: "+855", name: "Cambodia" },
+  //   { code: "BD", dialCode: "+880", name: "Bangladesh" },
+  //   { code: "IN", dialCode: "+91", name: "India" },
+  //   { code: "NL", dialCode: "+31", name: "Netherlands" },
+  // ];
 
-  const phoneCodeOptions = countries.map(country => ({
-    value: country.dialCode,
-    label: country.dialCode,
-    countryCode: country.code
-  }));
+  // const phoneCodeOptions = countries.map(country => ({
+  //   value: country.dialCode,
+  //   label: country.dialCode,
+  //   countryCode: country.code
+  // }));
 
-  const getFlagUrl = (countryCode: string): string => {
-    return `https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png`;
-  };
+  // const getFlagUrl = (countryCode: string): string => {
+  //   return `https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png`;
+  // };
 
   const titleOptions = [
     { value: 'Mr', label: 'Mr' },
@@ -837,28 +851,27 @@ const PersonalDetailsForm = () => {
           <div className="md:w-[56%]">
             <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">Phone Number</label>
             <div className="flex gap-4">
-              <div className="relative max-w-[30%] md:max-w-[18%]">
-                <CustomDropdown
-                  register={register}
-                  name="countryCode"
-                  value={countryCodeValue}
-                  errors={errors}
-                  options={phoneCodeOptions}
-                  placeholder="Select Code"
-                  onChange={(value) => setValue('countryCode', value, { shouldValidate: true })}
+              <div className="relative max-w-[32%] md:max-w-[18%]">
+                <PhoneCodeDropdown
+                  selectedValue={countryCodeValue}
+                  onSelect={(value) => {
+                    setValue('countryCode', value, { shouldValidate: true });
+                    trigger('phoneNumber');
+                  }}
                 />
+                <p className="text-red-500 text-xs">{errors.countryCode?.message}</p>
               </div>
               <div className="w-[70%]">
                 <input
                   {...register('phoneNumber')}
                   onChange={(e) => {
-                    const formattedValue = handlePhoneInput(e.target.value);
+                    const formattedValue = handlePhoneInput(e.target.value, countryCodeValue);
                     e.target.value = formattedValue;
                     setValue('phoneNumber', formattedValue, { shouldValidate: true });
                   }}
                   className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm"
-                  placeholder="7XXXXXXXX"
-                  maxLength={9}
+                  placeholder="e.g. 712345678"
+                  maxLength={getMaxPhoneLength(countryCodeValue)}
                 />
               </div>
             </div>
@@ -897,28 +910,27 @@ const PersonalDetailsForm = () => {
               <div className="md:w-[56%]">
                 <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">Company Phone Number</label>
                 <div className="flex gap-4">
-                  <div className="relative w-[30%] md:w-[18%]">
-                    <CustomDropdown
-                      register={register}
-                      name="companyPhoneCode"
-                      value={companyPhoneCodeValue as any}
-                      errors={errors}
-                      options={phoneCodeOptions}
-                      placeholder="Select Code"
-                      onChange={(value) => setValue('companyPhoneCode', value, { shouldValidate: true })}
+                  <div className="relative w-[32%] md:w-[18%]">
+                    <PhoneCodeDropdown
+                      selectedValue={companyPhoneCodeValue as string}
+                      onSelect={(value) => {
+                        setValue('companyPhoneCode', value, { shouldValidate: true });
+                        trigger('companyPhone');
+                      }}
                     />
+                    <p className="text-red-500 text-xs">{errors.companyPhoneCode?.message}</p>
                   </div>
                   <div className="w-[70%]">
                     <input
                       {...register('companyPhone')}
                       onChange={(e) => {
-                        const formattedValue = handlePhoneInput(e.target.value);
+                        const formattedValue = handlePhoneInput(e.target.value, companyPhoneCodeValue as string);
                         e.target.value = formattedValue;
                         setValue('companyPhone', formattedValue, { shouldValidate: true });
                       }}
                       className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm"
-                      placeholder="7XXXXXXXX"
-                      maxLength={9}
+                      placeholder="e.g. 712345678"
+                      maxLength={getMaxPhoneLength(companyPhoneCodeValue as string)}
                     />
                   </div>
                 </div>

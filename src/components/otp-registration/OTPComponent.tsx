@@ -232,7 +232,7 @@ export default function OTPComponent({
               <FontAwesomeIcon icon={faCircleInfo} className="w-4 h-4 text-[#EC6821]" />
             </div>
             <div className="flex flex-col gap-0.5">
-              <span className="text-[13px] text-[#EC6821] font-semibold">Code Expired!</span>
+              <span className="text-[13px] text-[#4C5160] font-semibold">Code Expired!</span>
               <span className="text-[12px] font-regular text-[#4C5160] leading-snug">
                 Your verification code has expired.Please request a new code to continue.
               </span>
