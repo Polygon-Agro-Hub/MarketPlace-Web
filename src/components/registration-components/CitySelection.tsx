@@ -39,6 +39,8 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [showCityRequiredError, setShowCityRequiredError] = useState(false);
 
+
+
     // Close dropdown on outside click
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
@@ -150,6 +152,7 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
     };
 
     const canConfirm = selectedCity !== null && selectedCity.isAvailable;
+    const isConfirmDisabled = status === "unavailable" || status === "not-found";
     const showSpinner = isSearching || isLoadingAll;
     // What to display inside the list
     const displayList = results;
@@ -199,7 +202,7 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
 
                             {/* Label */}
                             <div className="flex items-center gap-2 mb-3">
-                               <FontAwesomeIcon icon={faLocationDot} style={{ fontSize: 16 }} className="text-[#4A4A4A]"/>
+                                <FontAwesomeIcon icon={faLocationDot} style={{ fontSize: 16 }} className="text-[#4A4A4A]" />
                                 <span className="text-sm font-semibold text-[#3E206D]">Select Your City</span>
                             </div>
 
@@ -241,19 +244,26 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
                             </div>
 
                             {/* ── Dropdown list ── */}
+                            {/* ── Dropdown list ── */}
                             {isDropdownOpen && (
-                                <div className="mt-2 border-t border-gray-100">
+                                <div
+                                    className={
+                                        hasSearched && displayList.length === 0 && !showSpinner
+                                            ? ""
+                                            : "mt-2 border-t border-gray-100"
+                                    }
+                                >
                                     {showSpinner ? (
                                         <div className="py-3 flex items-center gap-2 text-sm text-gray-500">
                                             <Loader2 size={14} className="animate-spin" />
                                             {isLoadingAll ? "Loading cities..." : "Searching..."}
                                         </div>
                                     ) : hasSearched && displayList.length === 0 ? (
-                                        <div className="py-3 px-4 text-sm font-inter font-[300] text-[#4C5160] bg-[#F2F2F6] rounded-lg">
+                                        <div className="px-4 py-3 text-sm font-inter font-[300] text-[#4C5160] bg-[#F2F2F6] rounded-b-lg">
                                             City Not Found
                                         </div>
                                     ) : displayList.length === 0 ? null : (
-                                        <ul className="max-h-52 overflow-y-auto">
+                                        <ul className="max-h-52 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:cursor-pointer [&::-webkit-scrollbar-thumb]:cursor-pointer [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full">
                                             {displayList.map((city) => (
                                                 <li key={city.id}>
                                                     <button
@@ -350,10 +360,15 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
                         </div>
 
                         {/* CTA */}
+                        {/* CTA */}
                         <button
                             type="button"
                             onClick={handleConfirm}
-                            className="w-full py-3 rounded-xl text-base font-semibold transition-all duration-200 bg-[#3E206D] text-white hover:bg-[#2d1750] cursor-pointer shadow-md"
+                            disabled={isConfirmDisabled}
+                            className={`w-full py-3 rounded-xl text-base font-semibold transition-all duration-200 shadow-md ${isConfirmDisabled
+                                ? "bg-[#EBEEF2] text-gray-500 cursor-not-allowed"
+                                : "bg-[#3E206D] text-white hover:bg-[#2d1750] cursor-pointer"
+                                }`}
                         >
                             Confirm & Continue
                         </button>
@@ -376,12 +391,12 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
                 </div>
             </div>
 
-                <ErrorPopup
-                    isVisible={showCityRequiredError}
-                    onClose={() => setShowCityRequiredError(false)}
-                    title="City is required!"
-                    description="Please select your city to continue shopping."
-                />
+            <ErrorPopup
+                isVisible={showCityRequiredError}
+                onClose={() => setShowCityRequiredError(false)}
+                title="City is required!"
+                description="Please select your city to continue shopping."
+            />
         </div>
     );
 }

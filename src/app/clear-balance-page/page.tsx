@@ -76,7 +76,7 @@ export default function ClearBalancePage() {
 
         {/* Amount */}
         <p className="text-3xl font-bold mb-4" style={{ color: "#FF0000" }}>
-          - Rs. {Math.abs(creditBalance).toFixed(2)}
+          - Rs. {Math.abs(creditBalance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </p>
 
         {/* Description */}
@@ -296,12 +296,12 @@ export default function ClearBalancePage() {
               className="font-medium text-sm px-20 py-2 rounded-lg transition-colors whitespace-nowrap cursor-pointer text-[#FFFFFF] w-full sm:w-auto"
               style={{ backgroundColor: "#3E206D" }}
               onMouseEnter={(e) =>
-                ((e.target as HTMLButtonElement).style.backgroundColor =
-                  "#1e1b5b")
+              ((e.target as HTMLButtonElement).style.backgroundColor =
+                "#1e1b5b")
               }
               onMouseLeave={(e) =>
-                ((e.target as HTMLButtonElement).style.backgroundColor =
-                  "#3E206D")
+              ((e.target as HTMLButtonElement).style.backgroundColor =
+                "#3E206D")
               }
             >
               Pay Now with Card

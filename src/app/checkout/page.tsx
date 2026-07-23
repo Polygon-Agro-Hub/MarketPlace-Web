@@ -24,6 +24,8 @@ import reviewCalendarImg from "../../../public/pp2.png";
 import packageVeggiesImg from "../../../public/pp3.png";
 import cardPaymentImg from "../../../public/pp4.png";
 import { ChevronDown, XCircle, LocateFixed, AlertTriangle, X, Info } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCircleInfo } from "@fortawesome/free-solid-svg-icons";
 
 const OpenStreetMap = dynamic(
   () => import("@/components/open-map/OpenStreetMap"),
@@ -1616,7 +1618,7 @@ const Page: React.FC = () => {
                         <label className="block font-semibold mb-1 text-[#2E2E2E]">
                           Saved As
                         </label>
-                        <div className="w-full border-2 border-[#F2F4F7] bg-[#F9FAFB] rounded-lg px-4 py-3 text-base text-[#2E2E2E]">
+                        <div className="w-full h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] rounded-lg px-4 flex items-center text-base text-[#2E2E2E]">
                           {recentAddressInfo.saveAs}
                         </div>
                       </div>
@@ -2060,7 +2062,7 @@ const Page: React.FC = () => {
                                     className="flex-shrink-0 text-gray-400 hover:text-[#3E206D] transition-colors cursor-pointer disabled:cursor-not-allowed"
                                     aria-label={citySearchTerm ? "Clear" : "Show all cities"}
                                   >
-                                    {citySearchTerm ? (
+                                    {citySearchTerm && !isReadOnly ? (
                                       <XCircle size={16} />
                                     ) : (
                                       <ChevronDown
@@ -2114,9 +2116,9 @@ const Page: React.FC = () => {
                             )}
 
                             {!errors.cityName && cityNotAvailable && formData.cityName && (
-                              <div className="mt-2 flex items-start gap-2 rounded-lg border border-[#FFD9A8] bg-[#FFF4E5] px-3 py-2.5">
-                                <Info size={16} className="mt-0.5 flex-shrink-0 text-[#E8792C]" />
-                                <p className="text-[12px] md:text-[13px] text-[#E8792C] leading-snug">
+                              <div className="mt-2 flex items-start gap-2 rounded-lg border border-[#FFDCB5] bg-[#FEF6ED] px-3 py-2.5">
+                                <FontAwesomeIcon icon={faCircleInfo} className="w-4 h-4 text-[#EC6821] flex-shrink-0 mt-2.5" />
+                                <p className="text-[12px] md:text-[13px] text-[#EC6821] leading-snug">
                                   Delivery not available in {formData.cityName} yet, but we're working on it and coming to your area soon!
                                 </p>
                               </div>
@@ -2517,6 +2519,7 @@ const PhoneCustomDropdown: React.FC<any> = ({
   onSelect,
   placeholder,
   className = "",
+  disabled = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const selectedOption = options.find(
@@ -2528,8 +2531,14 @@ const PhoneCustomDropdown: React.FC<any> = ({
       {/* Display Button */}
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className={`h-10 w-full border rounded-md px-4 py-2 focus:outline-none focus:ring-1 cursor-pointer border-gray-300 focus:ring-purple-500 focus:border-purple-500 ${className} ${selectedValue ? "text-black" : "text-gray-500"} flex items-center justify-between bg-white`}
+        onClick={() => {
+          if (disabled) return;
+          setIsOpen(!isOpen);
+        }}
+        disabled={disabled}
+        className={`h-10 w-full border rounded-md px-4 py-2 focus:outline-none focus:ring-1 border-gray-300 focus:ring-purple-500 focus:border-purple-500 ${className} ${selectedValue ? "text-black" : "text-gray-500"
+          } flex items-center justify-between ${disabled ? "bg-gray-100 cursor-not-allowed opacity-70" : "bg-white cursor-pointer"
+          }`}
       >
         <div className="flex items-center gap-2 flex-1">
           {selectedOption?.flag && (
@@ -2559,7 +2568,7 @@ const PhoneCustomDropdown: React.FC<any> = ({
       </button>
 
       {/* Dropdown Options */}
-      {isOpen && (
+      {isOpen && !disabled && (
         <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
           {options.map((option: any) => (
             <button
@@ -2590,7 +2599,7 @@ const PhoneCustomDropdown: React.FC<any> = ({
       )}
 
       {/* Click outside to close */}
-      {isOpen && (
+      {isOpen && !disabled && (
         <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
       )}
     </div>
