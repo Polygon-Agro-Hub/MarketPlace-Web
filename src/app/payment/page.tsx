@@ -863,7 +863,7 @@ const Page: React.FC = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Discount</span>
-                <span className="font-medium text-[#BE2A45]">Rs. {formatPrice(displayValues.discountAmount)}</span>
+                <span className="font-medium text-[#BE2A45]">- Rs. {formatPrice(displayValues.discountAmount)}</span>
               </div>
               {isCouponApplied && (
                 <div className="flex justify-between">
@@ -897,9 +897,9 @@ const Page: React.FC = () => {
 
             {/* Confirm Order Button */}
             <div className="flex justify-between items-center text-sm mb-3">
-              <span className={useCredit ? "text-[#1C8732]" : "text-gray-500"}>Credit Applied</span>
-              <span className={`font-medium ${useCredit ? "text-green-600" : "text-gray-500"}`}>
-                {useCredit ? `- Rs. ${formatPrice(creditApplied)}` : "Rs. 0.00"}
+              <span className={useCredit ? "text-[#1C8732]" : "text-[#1C8732]"}>Credit Applied</span>
+              <span className={`font-medium ${useCredit ? "text-[#1C8732]" : "text-[#1C8732]"}`}>
+                {useCredit ? `- Rs. ${formatPrice(creditApplied)}` : "- Rs. 0.00"}
               </span>
             </div>
 
