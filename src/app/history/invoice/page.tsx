@@ -1251,21 +1251,9 @@ function InvoicePageContent() {
                 bold: true,
                 fontSize: 11,
               },
-              {
-                text: "No. 42/46, Nawam Mawatha, Colombo 02",
-                fontSize: 9,
-                margin: [0, 1, 0, 0],
-              },
-              {
-                text: "Contact No: +94 770 111 999",
-                fontSize: 9,
-                margin: [0, 1, 0, 0],
-              },
-              {
-                text: "Email Address : info@polygon.lk",
-                fontSize: 9,
-                margin: [0, 1, 0, 0],
-              },
+              { text: "No. 42/46, Nawam Mawatha, Colombo 02", fontSize: 9 },
+              { text: "Contact No: +94 770 111 999", fontSize: 9 },
+              { text: "Email Address : info@polygon.lk", fontSize: 9 },
             ],
             [
               {
@@ -1276,208 +1264,304 @@ function InvoicePageContent() {
               },
             ],
           ],
-          columnGap: 24,
+          columnGap: 16,
           margin: [0, 0, 0, 8],
         },
 
         // Two-column Info
-        ...(() => {
-          const isPickupTbl = invoice.deliveryMethod
-            ?.toLowerCase()
-            .includes("pickup");
-
-          const grey = "#929292";
-          const labeled = (label: string, value: string) => ({
-            text: [
-              { text: `${label} : `, fontSize: 9, color: grey },
-              { text: value, fontSize: 9 },
-            ],
-          });
-
-          const leftRows: any[] = [];
-          leftRows.push({ text: "Bill To:", bold: true, fontSize: 9 });
-
-          leftRows.push({
-            text: [
-              `${invoice.billingInfo.title}. ${invoice.billingInfo.fullName}\n`,
-              `Mobile: ${invoice.billingInfo.phone}\n`,
-              `Email: ${invoice.billingInfo.email}`,
-            ],
-            fontSize: 9,
-          });
-
-          if (!isPickupTbl) {
-            if (invoice.billingInfo.buildingType === "House") {
-              leftRows.push({
-                text: "House Address:",
+        // Two-column Info
+        {
+          columns: [
+            [
+              {
+                text: "Bill To:",
                 bold: true,
                 fontSize: 9,
-                margin: [0, 6, 0, 0],
-              });
-              leftRows.push(
-                labeled("House No", `${invoice.billingInfo.houseNo},`),
-              );
-              leftRows.push(
-                labeled("Street Name", `${invoice.billingInfo.street},`),
-              );
-              leftRows.push(labeled("City", invoice.billingInfo.city));
-            } else if (invoice.billingInfo.buildingType === "Apartment") {
-              leftRows.push({
-                text: "Apartment Address:",
+                margin: [0, 0, 0, 4],
+              },
+              {
+                text: `${invoice.billingInfo.title}. ${invoice.billingInfo.fullName}`,
+                fontSize: 9,
+                margin: [0, 0, 0, 2],
+              },
+              {
+                text: `Mobile: ${invoice.billingInfo.phone}`,
+                fontSize: 9,
+                margin: [0, 0, 0, 2],
+              },
+              {
+                text: `Email: ${invoice.billingInfo.email}`,
+                fontSize: 9,
+                margin: [0, 0, 0, 2],
+              },
+
+              ...(invoice.deliveryMethod?.toLowerCase() !== "instore pickup"
+                ? [
+                    ...(invoice.billingInfo.buildingType === "House"
+                      ? [
+                          {
+                            text: "House Address:",
+                            bold: true,
+                            fontSize: 9,
+                            margin: [0, 10, 0, 4],
+                          },
+                          {
+                            text: [
+                              {
+                                text: "House No : ",
+                                fontSize: 9,
+                                color: "#929292",
+                              },
+                              {
+                                text: `${invoice.billingInfo.houseNo},`,
+                                fontSize: 9,
+                              },
+                            ],
+                            margin: [0, 0, 0, 2],
+                          },
+                          {
+                            text: [
+                              {
+                                text: "Street Name : ",
+                                fontSize: 9,
+                                color: "#929292",
+                              },
+                              {
+                                text: `${invoice.billingInfo.street},`,
+                                fontSize: 9,
+                              },
+                            ],
+                            margin: [0, 0, 0, 2],
+                          },
+                          {
+                            text: [
+                              {
+                                text: "City : ",
+                                fontSize: 9,
+                                color: "#929292",
+                              },
+                              { text: invoice.billingInfo.city, fontSize: 9 },
+                            ],
+                            margin: [0, 0, 0, 2],
+                          },
+                        ]
+                      : invoice.billingInfo.buildingType === "Apartment"
+                        ? [
+                            {
+                              text: "Apartment Address:",
+                              bold: true,
+                              fontSize: 9,
+                              margin: [0, 10, 0, 4],
+                            },
+                            {
+                              text: [
+                                {
+                                  text: "No : ",
+                                  fontSize: 9,
+                                  color: "#929292",
+                                },
+                                {
+                                  text: `${invoice.billingInfo.buildingNo || "N/A"},`,
+                                  fontSize: 9,
+                                },
+                              ],
+                              margin: [0, 0, 0, 2],
+                            },
+                            {
+                              text: [
+                                {
+                                  text: "Name : ",
+                                  fontSize: 9,
+                                  color: "#929292",
+                                },
+                                {
+                                  text: `${invoice.billingInfo.apartmentName || "N/A"},`,
+                                  fontSize: 9,
+                                },
+                              ],
+                              margin: [0, 0, 0, 2],
+                            },
+                            {
+                              text: [
+                                {
+                                  text: "Flat : ",
+                                  fontSize: 9,
+                                  color: "#929292",
+                                },
+                                {
+                                  text: `${invoice.billingInfo.flatNo || "N/A"},`,
+                                  fontSize: 9,
+                                },
+                              ],
+                              margin: [0, 0, 0, 2],
+                            },
+                            {
+                              text: [
+                                {
+                                  text: "Floor : ",
+                                  fontSize: 9,
+                                  color: "#929292",
+                                },
+                                {
+                                  text: `${invoice.billingInfo.floorNo || "N/A"},`,
+                                  fontSize: 9,
+                                },
+                              ],
+                              margin: [0, 0, 0, 2],
+                            },
+                            {
+                              text: [
+                                {
+                                  text: "House No : ",
+                                  fontSize: 9,
+                                  color: "#929292",
+                                },
+                                {
+                                  text: `${invoice.billingInfo.houseNo},`,
+                                  fontSize: 9,
+                                },
+                              ],
+                              margin: [0, 0, 0, 2],
+                            },
+                            {
+                              text: [
+                                {
+                                  text: "Street Name : ",
+                                  fontSize: 9,
+                                  color: "#929292",
+                                },
+                                {
+                                  text: `${invoice.billingInfo.street},`,
+                                  fontSize: 9,
+                                },
+                              ],
+                              margin: [0, 0, 0, 2],
+                            },
+                            {
+                              text: [
+                                {
+                                  text: "City : ",
+                                  fontSize: 9,
+                                  color: "#929292",
+                                },
+                                { text: invoice.billingInfo.city, fontSize: 9 },
+                              ],
+                              margin: [0, 0, 0, 2],
+                            },
+                          ]
+                        : [
+                            {
+                              text: `No. ${invoice.billingInfo.houseNo}`,
+                              fontSize: 9,
+                              margin: [0, 0, 0, 2],
+                            },
+                            {
+                              text: invoice.billingInfo.street,
+                              fontSize: 9,
+                              margin: [0, 0, 0, 2],
+                            },
+                            {
+                              text: invoice.billingInfo.city,
+                              fontSize: 9,
+                              margin: [0, 0, 0, 2],
+                            },
+                          ]),
+                  ]
+                : []),
+
+              {
+                text: "Invoice No:",
                 bold: true,
                 fontSize: 9,
-                margin: [0, 6, 0, 0],
-              });
-              leftRows.push(
-                labeled("No", `${invoice.billingInfo.buildingNo || "N/A"},`),
-              );
-              leftRows.push(
-                labeled(
-                  "Name",
-                  `${invoice.billingInfo.apartmentName || "N/A"},`,
-                ),
-              );
-              leftRows.push(
-                labeled("Flat", `${invoice.billingInfo.flatNo || "N/A"},`),
-              );
-              leftRows.push(
-                labeled("Floor", `${invoice.billingInfo.floorNo || "N/A"},`),
-              );
-              leftRows.push(
-                labeled("House No", `${invoice.billingInfo.houseNo},`),
-              );
-              leftRows.push(
-                labeled("Street Name", `${invoice.billingInfo.street},`),
-              );
-              leftRows.push(labeled("City", invoice.billingInfo.city));
-            } else {
-              leftRows.push({
-                text: `No. ${invoice.billingInfo.houseNo}`,
+                margin: [0, 10, 0, 4],
+              },
+              { text: invoice.invoiceNumber, fontSize: 9 },
+
+              {
+                text: "Delivery Method:",
+                bold: true,
                 fontSize: 9,
-              });
-              leftRows.push({ text: invoice.billingInfo.street, fontSize: 9 });
-              leftRows.push({ text: invoice.billingInfo.city, fontSize: 9 });
-            }
-          }
-
-          const leftAnchor1 = leftRows.length;
-
-          leftRows.push({
-            text: "Invoice No:",
-            bold: true,
-            fontSize: 9,
-            margin: [0, 12, 0, 2],
-          });
-
-          leftRows.push({
-            text: invoice.invoiceNumber,
-            fontSize: 9,
-          });
-
-          leftRows.push({
-            text: "Delivery Method:",
-            bold: true,
-            fontSize: 9,
-            margin: [0, 8, 0, 2],
-          });
-
-          leftRows.push({
-            text: isPickupTbl ? "Instore Pickup" : "Home Delivery",
-            fontSize: 9,
-          });
-
-          if (isPickupTbl && invoice.pickupInfo) {
-            leftRows.push({
-              text: `Centre: ${invoice.pickupInfo.centerName}`,
-              bold: true,
-              fontSize: 9,
-            });
-            leftRows.push({
-              text: `${invoice.pickupInfo.address.city}, ${invoice.pickupInfo.address.district}`,
-              fontSize: 9,
-            });
-            leftRows.push({
-              text: `${invoice.pickupInfo.address.province}, ${invoice.pickupInfo.address.country}`,
-              fontSize: 9,
-            });
-          }
-
-          const rightRows: any[] = [];
-          rightRows.push({ text: "Grand Total:", bold: true, fontSize: 9 });
-          rightRows.push({
-            text: formatCurrencyForPDF(invoice.grandTotal),
-            bold: true,
-            fontSize: 11,
-          });
-          rightRows.push({
-            text: "Payment Method:",
-            bold: true,
-            fontSize: 9,
-            margin: [0, 10, 0, 0],
-          });
-          rightRows.push({ text: paymentTypeLabel, fontSize: 9 });
-
-          const rightAnchor1 = rightRows.length;
-
-          const pad = leftAnchor1 - rightAnchor1;
-          if (pad > 0) {
-            for (let i = 0; i < pad; i++) rightRows.push({ text: "" });
-          } else if (pad < 0) {
-            for (let i = 0; i < Math.abs(pad); i++)
-              leftRows.splice(leftAnchor1, 0, { text: "" });
-          }
-
-          rightRows.push({
-            text: "Ordered Date:",
-            bold: true,
-            fontSize: 9,
-            margin: [0, 12, 0, 2],
-          });
-
-          rightRows.push({
-            text: formatDate(invoice.invoiceDate),
-            fontSize: 9,
-          });
-
-          rightRows.push({
-            text: "Scheduled Date:",
-            bold: true,
-            fontSize: 9,
-            margin: [0, 6, 0, 2],
-          });
-
-          rightRows.push({
-            text: formatDate(invoice.scheduledDate),
-            fontSize: 9,
-          });
-
-          const rowCount = Math.max(leftRows.length, rightRows.length);
-          const body: any[] = [];
-          for (let i = 0; i < rowCount; i++) {
-            body.push([
-              leftRows[i] || { text: "" },
-              rightRows[i] || { text: "" },
-            ]);
-          }
-
-          return [
-            {
-              table: {
-                widths: ["60%", "40%"],
-                body,
+                margin: [0, 10, 0, 4],
               },
-              layout: {
-                hLineWidth: () => 0,
-                vLineWidth: () => 0,
-                paddingLeft: (i: number) => (i === 1 ? 16 : 0),
-                paddingRight: () => 0,
-                paddingTop: () => 2,
-                paddingBottom: () => 2,
+              {
+                text: invoice.deliveryMethod?.toLowerCase().includes("pickup")
+                  ? "Instore Pickup"
+                  : "Home Delivery",
+                fontSize: 9,
               },
-              margin: [0, 0, 0, 18],
-            },
-          ];
-        })(),
+
+              ...(invoice.deliveryMethod?.toLowerCase().includes("pickup") &&
+              invoice.pickupInfo
+                ? [
+                    {
+                      text: `Centre: ${invoice.pickupInfo.centerName}`,
+                      bold: true,
+                      fontSize: 9,
+                      margin: [0, 10, 0, 2],
+                    },
+                    {
+                      text: `${invoice.pickupInfo.address.city}, ${invoice.pickupInfo.address.district}`,
+                      fontSize: 9,
+                      margin: [0, 0, 0, 2],
+                    },
+                    {
+                      text: `${invoice.pickupInfo.address.province}, ${invoice.pickupInfo.address.country}`,
+                      fontSize: 9,
+                    },
+                  ]
+                : []),
+            ],
+            [
+              {
+                text: "Grand Total:",
+                bold: true,
+                fontSize: 9,
+                margin: [105, 0, 0, 4],
+              },
+              {
+                text: formatCurrencyForPDF(invoice.grandTotal),
+                fontSize: 11,
+                bold: true,
+                margin: [105, 0, 0, 10],
+              },
+              {
+                text: "Payment Method:",
+                bold: true,
+                fontSize: 9,
+                margin: [105, 0, 0, 4],
+              },
+              {
+                text: paymentTypeLabel,
+                fontSize: 9,
+                margin: [105, 0, 0, 10],
+              },
+              {
+                text: "Ordered Date:",
+                bold: true,
+                fontSize: 9,
+                margin: [105, 0, 0, 4],
+              },
+              {
+                text: formatDate(invoice.invoiceDate),
+                fontSize: 9,
+                margin: [105, 0, 0, 10],
+              },
+              {
+                text: "Scheduled Date:",
+                bold: true,
+                fontSize: 9,
+                margin: [105, 0, 0, 4],
+              },
+              {
+                text: formatDate(invoice.scheduledDate),
+                fontSize: 9,
+                margin: [105, 0, 0, 0],
+              },
+            ],
+          ],
+          columnGap: 16,
+          margin: [0, 0, 0, 12],
+        },
 
         // Family Pack Sections - conditional
         ...familyPackSections,
