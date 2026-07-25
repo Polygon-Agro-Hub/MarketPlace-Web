@@ -623,13 +623,19 @@ const Page: React.FC = () => {
                         </svg>
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-[#252525]">Your Credit Balance is enough to pay for this order.</p>
+                        <p className="text-sm font-semibold text-[#252525]">
+                          {creditBalance > displayValues.grandTotal
+                            ? "Your Credit Balance is more than enough to pay for this order."
+                            : "Your Credit Balance is enough to pay for this order."}
+                        </p>
                         <p className="text-xs text-[#5A6B5D]">
                           {creditBalance - creditApplied > 0 ? (
                             <>
                               You will save{" "}
                               <span className="font-semibold text-[#1C8732]">
-                                Rs. {formatPrice(creditBalance - creditApplied)}
+                                Rs. {formatPrice(
+                                  Math.max(0, (Number(creditBalance) || 0) - (Number(creditApplied) || 0))
+                                )}
                               </span>{" "}
                               in your credit balance.
                             </>
@@ -771,7 +777,7 @@ const Page: React.FC = () => {
                         <span>
                           {isFinalizeImdt
                             ? "Pay by cash is not available for immediate package finalization."
-                            : `Pay By Cash is available only for orders equal to or less than Rs. ${formatPrice(cashPaymentLimit)}.`}
+                            : `Pay By Cash is available only for orders equal to or less than Rs. ${formatPrice(cashPaymentLimit)}`}
                         </span>
                       </div>
                     </div>
@@ -896,18 +902,23 @@ const Page: React.FC = () => {
             </div>
 
             {/* Confirm Order Button */}
-            <div className="flex justify-between items-center text-sm mb-3">
-              <span className={useCredit ? "text-[#1C8732]" : "text-[#1C8732]"}>Credit Applied</span>
-              <span className={`font-medium ${useCredit ? "text-[#1C8732]" : "text-[#1C8732]"}`}>
-                {useCredit ? `- Rs. ${formatPrice(creditApplied)}` : "- Rs. 0.00"}
-              </span>
-            </div>
+            {/* Credit Applied - only show if there's a credit balance */}
+            {creditBalance > 0 && (
+              <div className="flex justify-between items-center text-sm mb-3">
+                <span className="text-[#1C8732]">Credit Applied</span>
+                <span className="font-medium text-[#1C8732]">
+                  {useCredit ? `- Rs. ${formatPrice(creditApplied)}` : "- Rs. 0.00"}
+                </span>
+              </div>
+            )}
 
-            {/* Remaining Amount - always visible */}
-            <div className="flex justify-between items-center border border-[#E8E5F7] bg-[#F5F3FD] rounded-lg px-3 py-2 mb-3">
-              <span className="text-sm text-[#3E206D]">Remaining Amount</span>
-              <span className="font-semibold text-[#3E206D]">Rs. {formatPrice(remainingAfterCredit)}</span>
-            </div>
+            {/* Remaining Amount - only show if there's a credit balance */}
+            {creditBalance > 0 && (
+              <div className="flex justify-between items-center border border-[#E8E5F7] bg-[#F5F3FD] rounded-lg px-3 py-2 mb-3">
+                <span className="text-sm text-[#3E206D]">Remaining Amount</span>
+                <span className="font-semibold text-[#3E206D]">Rs. {formatPrice(remainingAfterCredit)}</span>
+              </div>
+            )}
 
             {/* Card Payment box - only when there's a remaining balance to pay */}
             {remainingAfterCredit > 0 && (

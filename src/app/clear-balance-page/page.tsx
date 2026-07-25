@@ -294,7 +294,10 @@ export default function ClearBalancePage() {
             <button
               onClick={handlePayNow}
               className="font-medium text-sm px-20 py-2 rounded-lg transition-colors whitespace-nowrap cursor-pointer text-[#FFFFFF] w-full sm:w-auto"
-              style={{ backgroundColor: "#3E206D" }}
+              style={{
+                backgroundColor: "#3E206D",
+                boxShadow: "0px 2px 5px 0px rgba(0, 0, 0, 0.1)",
+              }}
               onMouseEnter={(e) =>
               ((e.target as HTMLButtonElement).style.backgroundColor =
                 "#1e1b5b")
