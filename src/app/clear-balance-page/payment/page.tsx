@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
 import Image from "next/image";
-import { Lock, Calendar } from "lucide-react";
+import { Calendar } from "lucide-react";
 import walletIllustration from "../../../../public/wallet-illustration.png";
 import { updateCreditBalance } from "@/services/auth-service";
 import visaLogo from "../../../../public/icons/Visa-Logo.png";
@@ -14,6 +14,8 @@ import masterCardText from "../../../../public/icons/MasterCardText.png";
 import checkMark from "../../../../public/un.png";
 import { useDispatch } from "react-redux";
 import { updateCreditBalance as setCreditBalanceInStore } from "@/store/slices/authSlice";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faLock } from "@fortawesome/free-solid-svg-icons";
 
 const Page = () => {
   const router = useRouter();
@@ -64,51 +66,104 @@ const Page = () => {
     return `${digitsOnly.slice(0, 2)}/${digitsOnly.slice(2)}`;
   };
 
-  const validateFields = (): boolean => {
-    const errors: typeof fieldErrors = {};
+  // ---- Real-time field validators ----
 
-    const cardDigits = cardNumber.replace(/\s/g, "");
-    if (!cardDigits) {
-      errors.cardNumber = "Card number is required.";
-    } else if (cardDigits.length !== 16) {
-      errors.cardNumber = "Card number must be 16 digits.";
+  const validateCardNumberValue = (rawValue: string): string | undefined => {
+    const digits = rawValue.replace(/\s/g, "");
+    if (!digits) return "Card number is required.";
+    if (digits.length !== 16) return "Card number must be 16 digits.";
+    return undefined;
+  };
+
+  const validateNameValue = (value: string): string | undefined => {
+    if (!value.trim()) return "Name on card is required.";
+    return undefined;
+  };
+
+  const validateExpiryValue = (value: string): string | undefined => {
+    if (!value.trim()) return "Expiration date is required.";
+
+    const expiryMatch = /^(\d{2})\/(\d{2})$/.exec(value);
+    if (!expiryMatch) return "Use MM/YY format.";
+
+    const month = Number(expiryMatch[1]);
+    const year = Number(expiryMatch[2]);
+
+    if (month < 1 || month > 12) return "Enter a valid month.";
+
+    const now = new Date();
+    const currentYear = now.getFullYear() % 100;
+    const currentMonth = now.getMonth() + 1;
+
+    if (year < currentYear || (year === currentYear && month < currentMonth)) {
+      return "Card has expired.";
     }
 
-    if (!nameOnCard.trim()) {
-      errors.nameOnCard = "Name on card is required.";
-    }
+    return undefined;
+  };
 
-    const expiryMatch = /^(\d{2})\/(\d{2})$/.exec(expiry);
-    if (!expiry.trim()) {
-      errors.expiry = "Expiration date is required.";
-    } else if (!expiryMatch) {
-      errors.expiry = "Use MM/YY format.";
+  const validateCvvValue = (value: string): string | undefined => {
+    if (!value.trim()) return "CVV is required.";
+    if (!/^\d{3}$/.test(value)) return "CVV must be exactly 3 digits.";
+    return undefined;
+  };
+
+  // ---- Input change handlers (filter + real-time validate) ----
+
+  const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatCardNumberInput(e.target.value);
+    setCardNumber(formatted);
+    setFieldErrors((prev) => ({
+      ...prev,
+      cardNumber: validateCardNumberValue(formatted),
+    }));
+  };
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Only letters and spaces allowed — strip digits/special characters as typed
+    const lettersOnly = e.target.value.replace(/[^a-zA-Z\s]/g, "");
+    setNameOnCard(lettersOnly);
+    setFieldErrors((prev) => ({
+      ...prev,
+      nameOnCard: validateNameValue(lettersOnly),
+    }));
+  };
+
+  const handleExpiryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatExpiryInput(e.target.value);
+    setExpiry(formatted);
+
+    // Only run full validation once a complete MM/YY has been entered,
+    // otherwise clear any stale error while the user is still typing.
+    if (formatted.length === 5) {
+      setFieldErrors((prev) => ({
+        ...prev,
+        expiry: validateExpiryValue(formatted),
+      }));
     } else {
-      const month = Number(expiryMatch[1]);
-      const year = Number(expiryMatch[2]);
-      if (month < 1 || month > 12) {
-        errors.expiry = "Enter a valid month.";
-      } else {
-        const now = new Date();
-        const currentYear = now.getFullYear() % 100;
-        const currentMonth = now.getMonth() + 1;
-        if (
-          year < currentYear ||
-          (year === currentYear && month < currentMonth)
-        ) {
-          errors.expiry = "Card has expired.";
-        }
-      }
+      setFieldErrors((prev) => ({ ...prev, expiry: undefined }));
     }
+  };
 
-    if (!cvv.trim()) {
-      errors.cvv = "CVV is required.";
-    } else if (!/^\d{3,4}$/.test(cvv)) {
-      errors.cvv = "CVV must be 3 or 4 digits.";
-    }
+  const handleCvvChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const digitsOnly = e.target.value.replace(/\D/g, "").slice(0, 3);
+    setCvv(digitsOnly);
+    setFieldErrors((prev) => ({
+      ...prev,
+      cvv: validateCvvValue(digitsOnly),
+    }));
+  };
+
+  const validateFields = (): boolean => {
+    const errors: typeof fieldErrors = {
+      cardNumber: validateCardNumberValue(cardNumber),
+      nameOnCard: validateNameValue(nameOnCard),
+      expiry: validateExpiryValue(expiry),
+      cvv: validateCvvValue(cvv),
+    };
 
     setFieldErrors(errors);
-    return Object.keys(errors).length === 0;
+    return Object.values(errors).every((err) => !err);
   };
 
   const handlePayNow = async () => {
@@ -195,9 +250,7 @@ const Page = () => {
                 <input
                   type="text"
                   value={cardNumber}
-                  onChange={(e) =>
-                    setCardNumber(formatCardNumberInput(e.target.value))
-                  }
+                  onChange={handleCardNumberChange}
                   placeholder="Enter Card Number"
                   inputMode="numeric"
                   className="w-full py-3 pl-4 pr-32 rounded-lg text-sm text-[#808FA2] placeholder-[#808FA2] bg-[#F2F4F7] focus:outline-none"
@@ -265,7 +318,7 @@ const Page = () => {
               <input
                 type="text"
                 value={nameOnCard}
-                onChange={(e) => setNameOnCard(e.target.value)}
+                onChange={handleNameChange}
                 placeholder="Enter Name on Card"
                 className="w-full py-3 px-4 rounded-lg text-sm text-[#808FA2] placeholder:text-[#808FA2] bg-[#F2F4F7] focus:outline-none"
               />
@@ -283,9 +336,7 @@ const Page = () => {
                   <input
                     type="text"
                     value={expiry}
-                    onChange={(e) =>
-                      setExpiry(formatExpiryInput(e.target.value))
-                    }
+                    onChange={handleExpiryChange}
                     placeholder="Enter Expiration Date (MM/YY)"
                     inputMode="numeric"
                     className="w-full py-3 pl-4 pr-10 rounded-lg text-sm text-[#808FA2] placeholder:text-[#808FA2] bg-[#F2F4F7] focus:outline-none"
@@ -305,11 +356,10 @@ const Page = () => {
                 <input
                   type="text"
                   value={cvv}
-                  onChange={(e) =>
-                    setCvv(e.target.value.replace(/\D/g, "").slice(0, 4))
-                  }
+                  onChange={handleCvvChange}
                   placeholder="Enter CVV"
                   inputMode="numeric"
+                  maxLength={3}
                   className="w-full py-3 px-4 rounded-lg text-sm text-[#808FA2] placeholder:text-[#808FA2] bg-[#F2F4F7] focus:outline-none"
                 />
                 {fieldErrors.cvv && (
@@ -331,16 +381,16 @@ const Page = () => {
               className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-[#FFFFFF] text-sm font-medium transition-colors cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
               style={{ backgroundColor: "#3E206D" }}
             >
-              <Lock size={16} />
+              <FontAwesomeIcon icon={faLock} className="w-4 h-4" />
               {isProcessing
                 ? "Processing..."
                 : `Pay Rs. ${formatPrice(amountToPay)} Now`}
             </button>
 
-            <p className="text-xs text-[#6C6C6C] mt-3 font-medium text-center px-2 leading-relaxed">
-              <Lock
-                size={12}
-                className="inline-block align-middle mr-1 -mt-0.5"
+           <p className="text-xs text-[#6C6C6C] mt-3 font-medium text-center px-2 leading-relaxed">
+              <FontAwesomeIcon
+                icon={faLock}
+                className="inline-block align-middle mr-1 -mt-0.5 w-3 h-3"
               />
               By proceeding, you agree to our{" "}
               <a

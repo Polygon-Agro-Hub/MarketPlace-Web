@@ -1190,11 +1190,6 @@ const Page: React.FC = () => {
 
   const countries: any[] = [
     { code: "LK", dialCode: "+94", name: "Sri Lanka" },
-    { code: "VN", dialCode: "+84", name: "Vietnam" },
-    { code: "KH", dialCode: "+855", name: "Cambodia" },
-    { code: "BD", dialCode: "+880", name: "Bangladesh" },
-    { code: "IN", dialCode: "+91", name: "India" },
-    { code: "NL", dialCode: "+31", name: "Netherlands" },
   ];
 
   const getFlagUrl = (countryCode: string): string => {
@@ -1224,7 +1219,7 @@ const Page: React.FC = () => {
         description="Something happen, Please try again!"
       />
       <form onSubmit={handleSubmit}>
-        <div className="px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5 ">
+        <div className="px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5 pt-28 sm:pt-32">
           {showPackagePopup && (
             <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-3 sm:p-4">
               <div className="bg-white rounded-2xl w-full max-w-2xl sm:max-w-3xl max-h-[90vh] overflow-y-auto p-4 sm:p-6 relative">
@@ -1240,12 +1235,14 @@ const Page: React.FC = () => {
                 </button>
 
                 {/* Header */}
-                <div className="flex items-start gap-2.5 sm:gap-4 mb-3 sm:mb-5 pr-8">
-                  <div className="flex-shrink-0 w-11 h-11 sm:w-16 sm:h-16 relative">
+                <div className="flex items-center gap-2.5 sm:gap-4 mb-3 sm:mb-5 pr-8">
+                  <div className="flex-shrink-0 w-14 h-14 sm:w-20 sm:h-20 relative">
                     <Image src={packageBasketImg} alt="Package items" fill className="object-contain" />
                   </div>
-                  <h2 className="text-[15px] sm:text-xl font-bold text-[#252525] leading-snug pt-1 sm:pt-2">
-                    How would you like us to handle your order&apos;s package items?
+                  <h2 className="text-[15px] sm:text-xl font-bold text-[#252525] leading-snug">
+                    How would you like us to handle your order&apos;s
+                    <br />
+                    package items?
                   </h2>
                 </div>
 
@@ -1290,8 +1287,10 @@ const Page: React.FC = () => {
                   </div>
 
                   {/* Orange warning box */}
-                  <div className="relative mt-3">
-                    <div className="flex items-start gap-2 sm:gap-3 bg-[#FFF9F5] border border-orange-200 rounded-lg p-2.5 sm:p-3 pr-12 sm:pr-20">
+                  {/* Orange warning box */}
+                  {/* Orange warning box */}
+                  <div className="mt-3 flex items-stretch gap-2 sm:gap-3">
+                    <div className="flex items-start gap-2 sm:gap-3 bg-[#FFF9F5] border border-orange-200 rounded-lg p-2.5 sm:p-3 flex-1">
                       <AlertTriangle size={16} className="text-[#EE7719] flex-shrink-0 mt-0.5 sm:hidden" />
                       <AlertTriangle size={18} className="text-[#EE7719] flex-shrink-0 mt-0.5 hidden sm:block" />
                       <p className="text-[12px] sm:text-[14px] text-[#EE7719] leading-snug flex-1">
@@ -1301,8 +1300,8 @@ const Page: React.FC = () => {
                         order. You may check again later for any available slots.
                       </p>
                     </div>
-                    {/* Veggie image — now visible on mobile too, scaled down */}
-                    <div className="block absolute -top-3 -right-2 w-10 h-10 sm:-top-4 sm:-right-3 sm:w-20 sm:h-20">
+                    {/* Veggie image — matches the orange box's full height */}
+                    <div className="flex-shrink-0 w-16 sm:w-28 relative">
                       <Image src={packageVeggiesImg} alt="" fill className="object-contain drop-shadow-md" />
                     </div>
                   </div>
@@ -1519,9 +1518,9 @@ const Page: React.FC = () => {
                     Find your nearest centre
                   </h2>
 
+
                   {/* Center Selection Dropdown - ABOVE the map */}
-                  {/* Center Selection Dropdown - ABOVE the map */}
-                  <div className="mb-4 relative z-50">
+                  <div className="mb-4 relative z-[10]">
                     <label className="block font-semibold mb-2 text-[#2E2E2E]">
                       Select Pickup Centre
                     </label>
