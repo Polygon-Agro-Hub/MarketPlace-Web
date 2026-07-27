@@ -24,6 +24,8 @@ import { WalletMinimal, ReceiptText } from "lucide-react";
 import creditWalletImage from "../../../public/credit-wallet.png";
 import cardPaymentIcon from "../../../public/pay-now-illustration.png";
 import cashPaymentIcon from "../../../public/cashicon.png";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faLock } from "@fortawesome/free-solid-svg-icons";
 
 const Page: React.FC = () => {
   const router = useRouter();
@@ -587,7 +589,7 @@ const Page: React.FC = () => {
                     </div>
                     <div>
                       <p className="text-xs text-gray-500">Credit Applied</p>
-                      <p className={`font-semibold ${useCredit ? "text-green-600" : "text-gray-700"}`}>
+                      <p className={`font-semibold ${useCredit ? "text-[#27AA48]" : "text-[#27AA48]"}`}>
                         {useCredit ? `- Rs. ${formatPrice(creditApplied)}` : "0.00"}
                       </p>
                     </div>
@@ -990,10 +992,7 @@ const Page: React.FC = () => {
                   color: "#676767",
                 }}
               >
-                <svg className="w-3 h-3 flex-shrink-0" viewBox="0 0 24 24" fill="none">
-                  <rect x="4" y="10" width="16" height="10" rx="2" stroke="currentColor" strokeWidth="1.5" />
-                  <path d="M8 10V7a4 4 0 018 0v3" stroke="currentColor" strokeWidth="1.5" />
-                </svg>
+               <FontAwesomeIcon icon={faLock} className="w-4 h-4" />
                 Your payment is secure and encrypted.
               </p>
             )}
