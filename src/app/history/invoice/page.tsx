@@ -396,79 +396,110 @@ function InvoiceView({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 text-xs sm:text-sm lg:grid-cols-[1.15fr_0.85fr] lg:gap-10">
-        <div>
-          <p className="font-bold">Bill To:</p>
-          <p>{`${invoice.billingInfo.title}. ${invoice.billingInfo.fullName}`}</p>
-          <p className="break-all">{invoice.billingInfo.email}</p>
-          <p>{invoice.billingInfo.phone}</p>
+      <div className="space-y-4 text-xs sm:text-sm">
+        {/* Row 1: Bill To + Grand Total */}
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1.15fr_0.85fr] lg:gap-10">
+          <div>
+            <p className="font-bold">Bill To:</p>
+            <p>{`${invoice.billingInfo.title}. ${invoice.billingInfo.fullName}`}</p>
+            <p className="break-all">{invoice.billingInfo.email}</p>
+            <p>{invoice.billingInfo.phone}</p>
+          </div>
+          <div className="lg:pl-12">
+            <p className="font-bold">Grand Total:</p>
+            <p className="text-lg font-extrabold sm:text-xl">
+              {formatCurrencyWithCommas(invoice.grandTotal)}
+            </p>
+          </div>
+        </div>
 
-          {!invoice.deliveryMethod?.toLowerCase().includes("pickup") && (
-            <div className="mt-4 space-y-1">
-              {invoice.billingInfo.buildingType === "House" ? (
-                <>
-                  <p className="font-bold">House Address :</p>
-                  <p>
-                    <span style={{ color: "#929292" }}>House No :</span>{" "}
-                    {invoice.billingInfo.houseNo},
-                  </p>
-                  <p>
-                    <span style={{ color: "#929292" }}>Street Name :</span>{" "}
-                    {invoice.billingInfo.street},
-                  </p>
-                  <p>
-                    <span style={{ color: "#929292" }}>City :</span>{" "}
-                    {invoice.billingInfo.city}
-                  </p>
-                </>
-              ) : invoice.billingInfo.buildingType === "Apartment" ? (
-                <>
-                  <p className="font-bold">Apartment Address :</p>
-                  <p>
-                    <span style={{ color: "#929292" }}>No :</span>{" "}
-                    {invoice.billingInfo.buildingNo || "N/A"},
-                  </p>
-                  <p>
-                    <span style={{ color: "#929292" }}>Name :</span>{" "}
-                    {invoice.billingInfo.apartmentName || "N/A"},
-                  </p>
-                  <p>
-                    <span style={{ color: "#929292" }}>Flat :</span>{" "}
-                    {invoice.billingInfo.flatNo || "N/A"},
-                  </p>
-                  <p>
-                    <span style={{ color: "#929292" }}>Floor :</span>{" "}
-                    {invoice.billingInfo.floorNo || "N/A"},
-                  </p>
-                  <p>
-                    <span style={{ color: "#929292" }}>House No :</span>{" "}
-                    {invoice.billingInfo.houseNo},
-                  </p>
-                  <p>
-                    <span style={{ color: "#929292" }}>Street Name :</span>{" "}
-                    {invoice.billingInfo.street}
-                  </p>
-                  <p>
-                    <span style={{ color: "#929292" }}>City :</span>{" "}
-                    {invoice.billingInfo.city}
-                  </p>
-                </>
-              ) : (
-                <>
-                  <p>{`No. ${invoice.billingInfo.houseNo}`}</p>
-                  <p>{invoice.billingInfo.street}</p>
-                  <p>{invoice.billingInfo.city}</p>
-                </>
+        {/* Row 2: Address + Payment Method */}
+        {(!invoice.deliveryMethod?.toLowerCase().includes("pickup") ||
+          true) && (
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1.15fr_0.85fr] lg:gap-10">
+            <div>
+              {!invoice.deliveryMethod?.toLowerCase().includes("pickup") && (
+                <div className="space-y-1">
+                  {invoice.billingInfo.buildingType === "House" ? (
+                    <>
+                      <p className="font-bold">House Address :</p>
+                      <p>
+                        <span style={{ color: "#929292" }}>House No :</span>{" "}
+                        {invoice.billingInfo.houseNo},
+                      </p>
+                      <p>
+                        <span style={{ color: "#929292" }}>Street Name :</span>{" "}
+                        {invoice.billingInfo.street},
+                      </p>
+                      <p>
+                        <span style={{ color: "#929292" }}>City :</span>{" "}
+                        {invoice.billingInfo.city}
+                      </p>
+                    </>
+                  ) : invoice.billingInfo.buildingType === "Apartment" ? (
+                    <>
+                      <p className="font-bold">Apartment Address :</p>
+                      <p>
+                        <span style={{ color: "#929292" }}>No :</span>{" "}
+                        {invoice.billingInfo.buildingNo || "N/A"},
+                      </p>
+                      <p>
+                        <span style={{ color: "#929292" }}>Name :</span>{" "}
+                        {invoice.billingInfo.apartmentName || "N/A"},
+                      </p>
+                      <p>
+                        <span style={{ color: "#929292" }}>Flat :</span>{" "}
+                        {invoice.billingInfo.flatNo || "N/A"},
+                      </p>
+                      <p>
+                        <span style={{ color: "#929292" }}>Floor :</span>{" "}
+                        {invoice.billingInfo.floorNo || "N/A"},
+                      </p>
+                      <p>
+                        <span style={{ color: "#929292" }}>House No :</span>{" "}
+                        {invoice.billingInfo.houseNo},
+                      </p>
+                      <p>
+                        <span style={{ color: "#929292" }}>Street Name :</span>{" "}
+                        {invoice.billingInfo.street}
+                      </p>
+                      <p>
+                        <span style={{ color: "#929292" }}>City :</span>{" "}
+                        {invoice.billingInfo.city}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p>{`No. ${invoice.billingInfo.houseNo}`}</p>
+                      <p>{invoice.billingInfo.street}</p>
+                      <p>{invoice.billingInfo.city}</p>
+                    </>
+                  )}
+                </div>
               )}
             </div>
-          )}
+            <div className="lg:pl-12">
+              <p className="font-bold">Payment Method:</p>
+              <p>{paymentTypeLabel}</p>
+            </div>
+          </div>
+        )}
 
-          <div className="mt-5 space-y-1">
+        {/* Row 3: Invoice No + Ordered Date */}
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1.15fr_0.85fr] lg:gap-10">
+          <div>
             <p className="font-bold">Invoice No:</p>
             <p>{invoice.invoiceNumber}</p>
           </div>
+          <div className="lg:pl-12">
+            <p className="font-bold">Ordered Date:</p>
+            <p>{formatDateTime(invoice.invoiceDate, "date")}</p>
+          </div>
+        </div>
 
-          <div className="mt-5 space-y-1">
+        {/* Row 4: Delivery Method + Scheduled Date */}
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1.15fr_0.85fr] lg:gap-10">
+          <div>
             <p className="font-bold">Delivery Method:</p>
             <p>
               {invoice.deliveryMethod?.toLowerCase().includes("pickup")
@@ -476,42 +507,26 @@ function InvoiceView({
                 : "Home Delivery"}
             </p>
           </div>
+          <div className="lg:pl-12">
+            <p className="font-bold">Scheduled Date:</p>
+            <p>{formatDateTime(invoice.scheduledDate, "date")}</p>
+          </div>
+        </div>
 
-          {invoice.deliveryMethod?.toLowerCase().includes("pickup") &&
-            invoice.pickupInfo && (
-              <div className="mt-3 space-y-1">
+        {/* Row 5: Pickup centre info (if applicable) */}
+        {invoice.deliveryMethod?.toLowerCase().includes("pickup") &&
+          invoice.pickupInfo && (
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1.15fr_0.85fr] lg:gap-10">
+              <div className="space-y-1">
                 <p className="font-bold">
                   Centre: {invoice.pickupInfo.centerName || "N/A"}
                 </p>
                 <p>{`${invoice.pickupInfo.address?.city || "N/A"}, ${invoice.pickupInfo.address?.district || "N/A"}`}</p>
                 <p>{`${invoice.pickupInfo.address?.province || "N/A"}, ${invoice.pickupInfo.address?.country || "N/A"}`}</p>
               </div>
-            )}
-        </div>
-
-        <div className="lg:pl-12 lg:pt-10">
-          <div>
-            <p className="font-bold">Grand Total:</p>
-            <p className="text-lg font-extrabold sm:text-xl">
-              {formatCurrencyWithCommas(invoice.grandTotal)}
-            </p>
-          </div>
-
-          <div className="mt-5">
-            <p className="font-bold">Payment Method:</p>
-            <p>{paymentTypeLabel}</p>
-          </div>
-
-          <div className="mt-5">
-            <p className="font-bold">Ordered Date:</p>
-            <p>{formatDateTime(invoice.invoiceDate, "date")}</p>
-          </div>
-
-          <div className="mt-5">
-            <p className="font-bold">Scheduled Date:</p>
-            <p>{formatDateTime(invoice.scheduledDate, "date")}</p>
-          </div>
-        </div>
+              <div />
+            </div>
+          )}
       </div>
 
       <div className="mt-8 space-y-6">
