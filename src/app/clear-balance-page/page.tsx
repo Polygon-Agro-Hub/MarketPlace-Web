@@ -7,7 +7,6 @@ import { useEffect } from "react";
 import Image from "next/image";
 import walletIllustration from "../../../public/wallet-illustration.png";
 import payNowIllustration from "../../../public/pay-now-illustration.png";
-import { ShoppingCart, ReceiptText, Medal } from "lucide-react";
 import visaLogo from "../../../public/icons/Visa-Logo.png";
 import mastercardLogo from "../../../public/icons/Master-Card.png";
 import masterCardText from "../../../public/icons/MasterCardText.png";
