@@ -14,6 +14,11 @@ import Image from "next/image";
 import LoginImg from "../../../public/newbg.png";
 import glogo from "../../../public/glogo.png";
 import { CityResult } from "@/services/auth-service";
+import PhoneCodeDropdown, {
+    validatePhoneNumber,
+    validatePhoneNumberLive,
+    getMaxPhoneLength,
+} from "@/components/registration-components/PhoneCodeDropdown";
 
 type FormErrors = {
     title?: string;
@@ -168,25 +173,25 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
         cityId: selectedCity?.id || null,
     });
 
-    const countries: PhoneCode[] = [
-        { code: "LK", dialCode: "+94", name: "Sri Lanka" },
-        { code: "VN", dialCode: "+84", name: "Vietnam" },
-        { code: "KH", dialCode: "+855", name: "Cambodia" },
-        { code: "BD", dialCode: "+880", name: "Bangladesh" },
-        { code: "IN", dialCode: "+91", name: "India" },
-        { code: "NL", dialCode: "+31", name: "Netherlands" },
-    ];
+    // const countries: PhoneCode[] = [
+    //     { code: "LK", dialCode: "+94", name: "Sri Lanka" },
+    //     { code: "VN", dialCode: "+84", name: "Vietnam" },
+    //     { code: "KH", dialCode: "+855", name: "Cambodia" },
+    //     { code: "BD", dialCode: "+880", name: "Bangladesh" },
+    //     { code: "IN", dialCode: "+91", name: "India" },
+    //     { code: "NL", dialCode: "+31", name: "Netherlands" },
+    // ];
 
-    const getFlagUrl = (countryCode: string): string => {
-        return `https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png`;
-    };
+    // const getFlagUrl = (countryCode: string): string => {
+    //     return `https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png`;
+    // };
 
-    const countryOptions = countries.map((country) => ({
-        value: country.dialCode,
-        label: country.dialCode,
-        flag: getFlagUrl(country.code),
-        countryName: country.name,
-    }));
+    // const countryOptions = countries.map((country) => ({
+    //     value: country.dialCode,
+    //     label: country.dialCode,
+    //     flag: getFlagUrl(country.code),
+    //     countryName: country.name,
+    // }));
 
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -216,9 +221,12 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
                 .join(" ");
         }
 
-        // Special handling for phone numbers - allow only digits
-        if (name === "phoneNumber" || name === "companyPhoneNumber") {
-            processedValue = value.replace(/[^\d]/g, "");
+        if (name === "phoneNumber") {
+            checkPhoneLive("phoneNumber", formData.phoneCode, processedValue);
+        }
+
+        if (name === "companyPhoneNumber") {
+            checkPhoneLive("companyPhoneNumber", formData.companyPhoneCode, processedValue);
         }
 
         // Special handling for company name - block leading spaces but allow other characters
@@ -254,6 +262,33 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
     const checkPasswordLive = (password: string) => {
         const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{6,}$/;
         setIsPasswordValid(passwordRegex.test(password));
+    };
+
+    const checkPhoneLive = (
+        fieldName: "phoneNumber" | "companyPhoneNumber",
+        phoneCode: string,
+        phoneNumber: string,
+    ) => {
+        if (!phoneNumber) {
+            setErrors((prev) => {
+                const newErrors = { ...prev };
+                delete newErrors[fieldName];
+                return newErrors;
+            });
+            return;
+        }
+
+        const error = validatePhoneNumberLive(phoneCode, phoneNumber); // <-- changed
+
+        setErrors((prev) => {
+            const newErrors = { ...prev };
+            if (error) {
+                newErrors[fieldName] = error;
+            } else {
+                delete newErrors[fieldName];
+            }
+            return newErrors;
+        });
     };
 
     const checkEmailLive = (email: string) => {
@@ -325,12 +360,9 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
             newErrors.lastName = "Last name cannot begin or end with a space";
         }
 
-        if (!formData.phoneNumber) {
-            newErrors.phoneNumber = "Phone number is required";
-        } else if (!/^\d{9}$/.test(formData.phoneNumber)) {
-            newErrors.phoneNumber = `Please enter a valid mobile number (format: ${formData.phoneCode}7XXXXXXXX)`;
-        } else if (!formData.phoneNumber.startsWith("7")) {
-            newErrors.phoneNumber = `Please enter a valid Phone Number (format: ${formData.phoneCode}7XXXXXXXX)`;
+        const phoneError = validatePhoneNumber(formData.phoneCode, formData.phoneNumber);
+        if (phoneError) {
+            newErrors.phoneNumber = phoneError;
         }
 
 
@@ -396,12 +428,12 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
                 newErrors.companyName = "Company name is required";
             }
 
-            if (!formData.companyPhoneNumber) {
-                newErrors.companyPhoneNumber = "Company phone number is required";
-            } else if (!/^\d{9}$/.test(formData.companyPhoneNumber)) {
-                newErrors.companyPhoneNumber = `Please enter a valid mobile number (format: ${formData.companyPhoneCode}7XXXXXXXX)`;
-            } else if (!formData.companyPhoneNumber.startsWith("7")) {
-                newErrors.companyPhoneNumber = `Please enter a valid Phone Number (format: ${formData.companyPhoneCode}7XXXXXXXX)`;
+            const companyPhoneError = validatePhoneNumber(
+                formData.companyPhoneCode,
+                formData.companyPhoneNumber,
+            );
+            if (companyPhoneError) {
+                newErrors.companyPhoneNumber = companyPhoneError;
             }
         }
 
@@ -762,15 +794,14 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
                                 <div className="flex flex-col md:flex-row md:space-x-3 space-y-4 md:space-y-0">
                                     <div className="flex flex-row w-full md:w-1/2 space-x-3">
                                         <div className="w-42 md:w-28">
-                                            <CustomDropdown
-                                                options={countryOptions}
+                                            <PhoneCodeDropdown
                                                 selectedValue={formData.phoneCode}
-                                                onSelect={(value) =>
+                                                onSelect={(value) => {
                                                     handleChange({
                                                         target: { name: "phoneCode", value },
-                                                    } as React.ChangeEvent<HTMLSelectElement>)
-                                                }
-                                                placeholder="Code"
+                                                    } as React.ChangeEvent<HTMLSelectElement>);
+                                                    checkPhoneLive("phoneNumber", value, formData.phoneNumber);
+                                                }}
                                                 className="cursor-pointer"
                                             />
                                         </div>
@@ -804,7 +835,7 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
                                                 className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass(
                                                     "phoneNumber",
                                                 )}`}
-                                                maxLength={9}
+                                                maxLength={getMaxPhoneLength(formData.phoneCode)}
                                             />
 
                                             {errors.phoneNumber && (
@@ -839,6 +870,17 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
                                         )}
                                     </div>
                                 </div>
+
+                                {formData.phoneCode !== "+94" && (
+                                    <div className="flex items-start gap-2 bg-[#FEF6ED] border border-[#FFDCB5] rounded-lg px-3 py-2.5">
+                                        <div className="w-4 h-4 rounded-full bg-[#EC6821] flex items-center justify-center flex-shrink-0 mt-0.5">
+                                            <span className="text-white text-[10px] font-bold leading-none">i</span>
+                                        </div>
+                                        <p className="text-sm text-[#EC6821] leading-snug">
+                                            Delivery is limited to Sri Lankan addresses. Overseas customers may place orders for recipients in Sri Lanka.
+                                        </p>
+                                    </div>
+                                )}
 
                                 <div className="flex flex-col md:flex-row md:space-x-3 space-y-4 md:space-y-0">
                                     <div className="w-full md:w-1/2 relative">
@@ -972,15 +1014,14 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
 
                                                 <div className="flex flex-row w-full md:w-1/2 space-x-3">
                                                     <div className="w-42 md:w-26">
-                                                        <CustomDropdown
-                                                            options={countryOptions}
+                                                        <PhoneCodeDropdown
                                                             selectedValue={formData.companyPhoneCode}
-                                                            onSelect={(value) =>
+                                                            onSelect={(value) => {
                                                                 handleChange({
                                                                     target: { name: "companyPhoneCode", value },
-                                                                } as React.ChangeEvent<HTMLSelectElement>)
-                                                            }
-                                                            placeholder="Code"
+                                                                } as React.ChangeEvent<HTMLSelectElement>);
+                                                                checkPhoneLive("companyPhoneNumber", value, formData.companyPhoneNumber);
+                                                            }}
                                                             className="cursor-pointer"
                                                         />
                                                     </div>
@@ -1021,7 +1062,7 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
                                                             className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass(
                                                                 "companyPhoneNumber",
                                                             )}`}
-                                                            maxLength={9}
+                                                            maxLength={getMaxPhoneLength(formData.companyPhoneCode)}
                                                         />
                                                         {errors.companyPhoneNumber && (
                                                             <p className="mt-1 text-sm text-red-600">

@@ -24,6 +24,8 @@ import reviewCalendarImg from "../../../public/pp2.png";
 import packageVeggiesImg from "../../../public/pp3.png";
 import cardPaymentImg from "../../../public/pp4.png";
 import { ChevronDown, XCircle, LocateFixed, AlertTriangle, X, Info } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCircleInfo } from "@fortawesome/free-solid-svg-icons";
 
 const OpenStreetMap = dynamic(
   () => import("@/components/open-map/OpenStreetMap"),
@@ -1188,11 +1190,6 @@ const Page: React.FC = () => {
 
   const countries: any[] = [
     { code: "LK", dialCode: "+94", name: "Sri Lanka" },
-    { code: "VN", dialCode: "+84", name: "Vietnam" },
-    { code: "KH", dialCode: "+855", name: "Cambodia" },
-    { code: "BD", dialCode: "+880", name: "Bangladesh" },
-    { code: "IN", dialCode: "+91", name: "India" },
-    { code: "NL", dialCode: "+31", name: "Netherlands" },
   ];
 
   const getFlagUrl = (countryCode: string): string => {
@@ -1222,7 +1219,7 @@ const Page: React.FC = () => {
         description="Something happen, Please try again!"
       />
       <form onSubmit={handleSubmit}>
-        <div className="px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5 ">
+        <div className="px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5 pt-28 sm:pt-32">
           {showPackagePopup && (
             <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-3 sm:p-4">
               <div className="bg-white rounded-2xl w-full max-w-2xl sm:max-w-3xl max-h-[90vh] overflow-y-auto p-4 sm:p-6 relative">
@@ -1238,12 +1235,14 @@ const Page: React.FC = () => {
                 </button>
 
                 {/* Header */}
-                <div className="flex items-start gap-2.5 sm:gap-4 mb-3 sm:mb-5 pr-8">
-                  <div className="flex-shrink-0 w-11 h-11 sm:w-16 sm:h-16 relative">
+                <div className="flex items-center gap-2.5 sm:gap-4 mb-3 sm:mb-5 pr-8">
+                  <div className="flex-shrink-0 w-14 h-14 sm:w-20 sm:h-20 relative">
                     <Image src={packageBasketImg} alt="Package items" fill className="object-contain" />
                   </div>
-                  <h2 className="text-[15px] sm:text-xl font-bold text-[#252525] leading-snug pt-1 sm:pt-2">
-                    How would you like us to handle your order&apos;s package items?
+                  <h2 className="text-[15px] sm:text-xl font-bold text-[#252525] leading-snug">
+                    How would you like us to handle your order&apos;s
+                    <br />
+                    package items?
                   </h2>
                 </div>
 
@@ -1288,8 +1287,10 @@ const Page: React.FC = () => {
                   </div>
 
                   {/* Orange warning box */}
-                  <div className="relative mt-3">
-                    <div className="flex items-start gap-2 sm:gap-3 bg-[#FFF9F5] border border-orange-200 rounded-lg p-2.5 sm:p-3 pr-12 sm:pr-20">
+                  {/* Orange warning box */}
+                  {/* Orange warning box */}
+                  <div className="mt-3 flex items-stretch gap-2 sm:gap-3">
+                    <div className="flex items-start gap-2 sm:gap-3 bg-[#FFF9F5] border border-orange-200 rounded-lg p-2.5 sm:p-3 flex-1">
                       <AlertTriangle size={16} className="text-[#EE7719] flex-shrink-0 mt-0.5 sm:hidden" />
                       <AlertTriangle size={18} className="text-[#EE7719] flex-shrink-0 mt-0.5 hidden sm:block" />
                       <p className="text-[12px] sm:text-[14px] text-[#EE7719] leading-snug flex-1">
@@ -1299,8 +1300,8 @@ const Page: React.FC = () => {
                         order. You may check again later for any available slots.
                       </p>
                     </div>
-                    {/* Veggie image — now visible on mobile too, scaled down */}
-                    <div className="block absolute -top-3 -right-2 w-10 h-10 sm:-top-4 sm:-right-3 sm:w-20 sm:h-20">
+                    {/* Veggie image — matches the orange box's full height */}
+                    <div className="flex-shrink-0 w-16 sm:w-28 relative">
                       <Image src={packageVeggiesImg} alt="" fill className="object-contain drop-shadow-md" />
                     </div>
                   </div>
@@ -1517,9 +1518,9 @@ const Page: React.FC = () => {
                     Find your nearest centre
                   </h2>
 
+
                   {/* Center Selection Dropdown - ABOVE the map */}
-                  {/* Center Selection Dropdown - ABOVE the map */}
-                  <div className="mb-4 relative z-50">
+                  <div className="mb-4 relative z-[10]">
                     <label className="block font-semibold mb-2 text-[#2E2E2E]">
                       Select Pickup Centre
                     </label>
@@ -1616,7 +1617,7 @@ const Page: React.FC = () => {
                         <label className="block font-semibold mb-1 text-[#2E2E2E]">
                           Saved As
                         </label>
-                        <div className="w-full border-2 border-[#F2F4F7] bg-[#F9FAFB] rounded-lg px-4 py-3 text-base text-[#2E2E2E]">
+                        <div className="w-full h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] rounded-lg px-4 flex items-center text-base text-[#2E2E2E]">
                           {recentAddressInfo.saveAs}
                         </div>
                       </div>
@@ -2060,7 +2061,7 @@ const Page: React.FC = () => {
                                     className="flex-shrink-0 text-gray-400 hover:text-[#3E206D] transition-colors cursor-pointer disabled:cursor-not-allowed"
                                     aria-label={citySearchTerm ? "Clear" : "Show all cities"}
                                   >
-                                    {citySearchTerm ? (
+                                    {citySearchTerm && !isReadOnly ? (
                                       <XCircle size={16} />
                                     ) : (
                                       <ChevronDown
@@ -2114,9 +2115,9 @@ const Page: React.FC = () => {
                             )}
 
                             {!errors.cityName && cityNotAvailable && formData.cityName && (
-                              <div className="mt-2 flex items-start gap-2 rounded-lg border border-[#FFD9A8] bg-[#FFF4E5] px-3 py-2.5">
-                                <Info size={16} className="mt-0.5 flex-shrink-0 text-[#E8792C]" />
-                                <p className="text-[12px] md:text-[13px] text-[#E8792C] leading-snug">
+                              <div className="mt-2 flex items-start gap-2 rounded-lg border border-[#FFDCB5] bg-[#FEF6ED] px-3 py-2.5">
+                                <FontAwesomeIcon icon={faCircleInfo} className="w-4 h-4 text-[#EC6821] flex-shrink-0 mt-2.5" />
+                                <p className="text-[12px] md:text-[13px] text-[#EC6821] leading-snug">
                                   Delivery not available in {formData.cityName} yet, but we're working on it and coming to your area soon!
                                 </p>
                               </div>
@@ -2517,6 +2518,7 @@ const PhoneCustomDropdown: React.FC<any> = ({
   onSelect,
   placeholder,
   className = "",
+  disabled = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const selectedOption = options.find(
@@ -2528,8 +2530,14 @@ const PhoneCustomDropdown: React.FC<any> = ({
       {/* Display Button */}
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className={`h-10 w-full border rounded-md px-4 py-2 focus:outline-none focus:ring-1 cursor-pointer border-gray-300 focus:ring-purple-500 focus:border-purple-500 ${className} ${selectedValue ? "text-black" : "text-gray-500"} flex items-center justify-between bg-white`}
+        onClick={() => {
+          if (disabled) return;
+          setIsOpen(!isOpen);
+        }}
+        disabled={disabled}
+        className={`h-10 w-full border rounded-md px-4 py-2 focus:outline-none focus:ring-1 border-gray-300 focus:ring-purple-500 focus:border-purple-500 ${className} ${selectedValue ? "text-black" : "text-gray-500"
+          } flex items-center justify-between ${disabled ? "bg-gray-100 cursor-not-allowed opacity-70" : "bg-white cursor-pointer"
+          }`}
       >
         <div className="flex items-center gap-2 flex-1">
           {selectedOption?.flag && (
@@ -2559,7 +2567,7 @@ const PhoneCustomDropdown: React.FC<any> = ({
       </button>
 
       {/* Dropdown Options */}
-      {isOpen && (
+      {isOpen && !disabled && (
         <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
           {options.map((option: any) => (
             <button
@@ -2590,7 +2598,7 @@ const PhoneCustomDropdown: React.FC<any> = ({
       )}
 
       {/* Click outside to close */}
-      {isOpen && (
+      {isOpen && !disabled && (
         <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
       )}
     </div>

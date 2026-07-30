@@ -1243,58 +1243,65 @@ export const fetchComplaints = async (
   }
 };
 
+const uploadSingleImage = async (
+  image: File,
+  token: string,
+): Promise<string> => {
+  const formData = new FormData();
+  formData.append("file", image);
+
+  const response = await axios.post("/upload/image", formData, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.data?.url) {
+    throw new Error(`Failed to upload image: ${image.name}`);
+  }
+
+  return response.data.url;
+};
+
+const rollbackImages = async (
+  imageUrls: string[],
+  token: string,
+): Promise<void> => {
+  if (!imageUrls.length) return;
+  try {
+    await axios.post(
+      "/upload/rollback",
+      { imageUrls },
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    console.log("Rollback complete");
+  } catch (err) {
+    console.error("Rollback failed:", err);
+  }
+};
+
 export const submitComplaint = async (
   payload: ComplaintPayload,
 ): Promise<ComplaintResponse> => {
+  const uploadedUrls: string[] = [];
+
   try {
     if (!payload.userId || !payload.token) {
-      throw new Error("You are not authenticated. Please log in first.");
+      throw new Error("You are not authenticated.");
     }
-
     if (!payload.complaintCategoryId || !payload.complaint) {
       throw new Error("Please select a category and enter a complaint.");
     }
 
-    const allowedMimeTypes = [
-      "image/jpeg",
-      "image/png",
-      "image/gif",
-      "image/webp",
-      "image/svg+xml",
-    ];
-    const maxFileSize = 5 * 1024 * 1024;
-
-    // Validate images if they exist
     if (payload.images && payload.images.length > 0) {
       for (const image of payload.images) {
-        if (!allowedMimeTypes.includes(image.type)) {
-          throw new Error(`Unsupported file type for ${image.name}.`);
-        }
-        if (image.size > maxFileSize) {
-          throw new Error(`File ${image.name} exceeds 5MB limit.`);
-        }
+        const url = await uploadSingleImage(image, payload.token);
+        uploadedUrls.push(url);
       }
     }
 
-    const formData = new FormData();
-    formData.append(
-      "complaintCategoryId",
-      payload.complaintCategoryId.toString(),
-    );
-    formData.append("complaint", payload.complaint);
-
-    // Only append images if they exist
-    if (payload.images && payload.images.length > 0) {
-      payload.images.forEach((image) => formData.append("images", image));
-    }
-
-    if (payload.imagesToDelete?.length) {
-      formData.append("imagesToDelete", JSON.stringify(payload.imagesToDelete));
-    }
-
-    // Updated URL to match your backend endpoint
     const url = payload.complaintId
-      ? `/auth/complaints/update/${payload.complaintId}` // Updated path
+      ? `/auth/complaints/update/${payload.complaintId}`
       : `/auth/submit`;
 
     const response = await axios({
@@ -1302,79 +1309,36 @@ export const submitComplaint = async (
       url,
       headers: {
         Authorization: `Bearer ${payload.token}`,
-        // Don't set Content-Type - let browser handle it for FormData
+        "Content-Type": "application/json",
       },
-      data: formData,
-      timeout: 60000, // 60 seconds timeout for file uploads
-      validateStatus: function (status) {
-        // Consider 2xx and 3xx as success, handle 4xx and 5xx in catch
-        return status >= 200 && status < 400;
+      data: {
+        complaintCategoryId: payload.complaintCategoryId,
+        complaint: payload.complaint,
+        imageUrls: uploadedUrls,
+        imagesToDelete: payload.imagesToDelete || [],
       },
+      timeout: 60000,
     });
 
     if (response.data?.status) {
       return response.data;
-    } else {
-      throw new Error(
-        response.data?.message || "Complaint submission failed on server.",
-      );
     }
+
+    await rollbackImages(uploadedUrls, payload.token);
+    throw new Error(response.data?.message || "Complaint submission failed.");
   } catch (error: any) {
-    console.error("Complaint submission error:", error);
-
-    // Handle axios timeout
-    if (error.code === "ECONNABORTED") {
-      throw new Error(
-        "Request timeout. The server is taking too long to respond. Please try again.",
-      );
+    if (uploadedUrls.length > 0) {
+      await rollbackImages(uploadedUrls, payload.token);
     }
 
-    // Handle network errors
-    if (
-      error.code === "NETWORK_ERROR" ||
-      error.message?.includes("Network Error")
-    ) {
-      throw new Error(
-        "Network connection failed. Please check your internet connection and try again.",
-      );
-    }
-
+    if (error.code === "ECONNABORTED") throw new Error("Request timeout.");
     if (error.response) {
-      // Server responded with an error status
-      console.error("Server error response:", {
-        status: error.response.status,
-        data: error.response.data,
-        headers: error.response.headers,
-      });
-
-      const contentType = error.response.headers["content-type"];
-      if (!contentType?.includes("application/json")) {
-        console.error("Non-JSON server response received");
-        throw new Error(
-          `Server returned an unexpected response format. Status: ${error.response.status}`,
-        );
-      }
-
-      // Extract error message from response
-      const errorMessage =
+      throw new Error(
         error.response.data?.message ||
-        error.response.data?.error ||
-        `Server error with status ${error.response.status}`;
-
-      throw new Error(errorMessage);
-    } else if (error.request) {
-      // Request was made but no response received
-      console.error("No response received from server:", error.request);
-      throw new Error(
-        "No response received from server. Please check your network connection and try again.",
-      );
-    } else {
-      // Something else happened in setting up the request
-      console.error("Request setup error:", error.message);
-      throw new Error(
-        error.message || "An error occurred during complaint submission.",
+          `Server error: ${error.response.status}`,
       );
     }
+    throw new Error(error.message || "An error occurred.");
   }
 };
 
@@ -1629,16 +1593,12 @@ export const updateCreditBalance = async (
   payload: UpdateCreditBalancePayload,
 ): Promise<UpdateCreditBalanceResult> => {
   try {
-    const response = await axios.put(
-      "/auth/update-credit-balance",
-      payload,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+    const response = await axios.put("/auth/update-credit-balance", payload, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
-    );
+    });
 
     if (response.status >= 200 && response.status < 300) {
       const resData: ApiResponse<UpdateCreditBalanceResult> = response.data;
@@ -1647,9 +1607,7 @@ export const updateCreditBalance = async (
         return resData.data;
       }
 
-      throw new Error(
-        resData.message || "Failed to update credit balance",
-      );
+      throw new Error(resData.message || "Failed to update credit balance");
     }
 
     throw new Error(
