@@ -328,8 +328,14 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
       return;
     }
 
+    if (isNegativeBalance) {
+      router.push("/clear-balance-page/payment");
+      return;
+    }
+
     router.push("/cart");
   };
+
 
   const renderAuthButtons = () => {
     if (!isHydrated) {
