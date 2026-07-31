@@ -228,31 +228,24 @@ function parseAmount(value: string | number | null | undefined): number {
 function detectPaymentType(
   payType: string,
   deliveryMethod: string,
-  credit: number | null,
-  cash: number | null,
+  creditPaid: number,
+  grandTotal: number,
 ): string {
   const isPickup = deliveryMethod?.toLowerCase().includes("pickup");
+  const hasCredit = creditPaid > 0;
+  const fullyCoveredByCredit = hasCredit && creditPaid >= grandTotal - 0.01;
 
-  if (credit !== null && cash === null) {
+  if (fullyCoveredByCredit) {
     return "Credit Balance";
   }
 
   if (payType === "Card") {
-    if (credit === null && cash !== null && cash > 0) return "Online Transfer";
-    if (credit !== null && cash !== null)
-      return "Online Transfer + Credit Balance";
-  } else if (payType === "Cash") {
-    if (credit === null && cash !== null && cash > 0) {
-      return isPickup ? "Cash on Pickup" : "Cash on Delivery";
-    }
-    if (credit !== null && cash !== null) {
-      return isPickup
-        ? "Cash on Pickup + Credit Balance"
-        : "Cash on Delivery + Credit Balance";
-    }
+    return hasCredit ? "Online Transfer + Credit Balance" : "Online Transfer";
   }
 
-  return payType === "Card" ? "Debit/Credit Card" : "Cash On Delivery";
+  // Cash
+  const base = isPickup ? "Cash on Pickup" : "Cash on Delivery";
+  return hasCredit ? `${base} + Credit Balance` : base;
 }
 
 interface PaymentStatusRow {
@@ -328,18 +321,14 @@ function InvoiceView({
     );
   }
 
-  const creditForType =
-    parseAmount(invoice.creditPaid) > 0
-      ? parseAmount(invoice.creditPaid)
-      : null;
-  const cashForType =
-    parseAmount(invoice.moneyPaid) > 0 ? parseAmount(invoice.moneyPaid) : null;
+  const creditPaidAmount = parseAmount(invoice.creditPaid);
+  const grandTotalAmount = parseAmount(invoice.grandTotal);
   const paymentTypeLabel =
     detectPaymentType(
       invoice.paymentMethod,
       invoice.deliveryMethod,
-      creditForType,
-      cashForType,
+      creditPaidAmount,
+      grandTotalAmount,
     ) || "N/A";
 
   function formatCurrencyWithCommas(value: string | number): string {
@@ -396,7 +385,7 @@ function InvoiceView({
         </div>
       </div>
 
-      <div className="space-y-4 text-xs sm:text-sm">
+      <div className="text-xs sm:text-sm">
         {/* Row 1: Bill To + Grand Total */}
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1.15fr_0.85fr] lg:gap-10">
           <div>
@@ -416,7 +405,7 @@ function InvoiceView({
         {/* Row 2: Address + Payment Method */}
         {(!invoice.deliveryMethod?.toLowerCase().includes("pickup") ||
           true) && (
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1.15fr_0.85fr] lg:gap-10">
+          <div className="mb-4 grid grid-cols-1 gap-3 lg:grid-cols-[1.15fr_0.85fr] lg:gap-10">
             <div>
               {!invoice.deliveryMethod?.toLowerCase().includes("pickup") && (
                 <div className="space-y-1">
@@ -486,7 +475,7 @@ function InvoiceView({
         )}
 
         {/* Row 3: Invoice No + Ordered Date */}
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1.15fr_0.85fr] lg:gap-10">
+        <div className="mb-4 grid grid-cols-1 gap-3 lg:grid-cols-[1.15fr_0.85fr] lg:gap-10">
           <div>
             <p className="font-bold">Invoice No:</p>
             <p>{invoice.invoiceNumber}</p>
@@ -498,7 +487,7 @@ function InvoiceView({
         </div>
 
         {/* Row 4: Delivery Method + Scheduled Date */}
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1.15fr_0.85fr] lg:gap-10">
+        <div className="mb-4 grid grid-cols-1 gap-3 lg:grid-cols-[1.15fr_0.85fr] lg:gap-10">
           <div>
             <p className="font-bold">Delivery Method:</p>
             <p>
@@ -519,10 +508,21 @@ function InvoiceView({
             <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1.15fr_0.85fr] lg:gap-10">
               <div className="space-y-1">
                 <p className="font-bold">
-                  Centre: {invoice.pickupInfo.centerName || "N/A"}
+                  <span style={{ color: "#000000" }}>Centre :</span>{" "}
+                  {invoice.pickupInfo.centerName || "N/A"}
                 </p>
-                <p>{`${invoice.pickupInfo.address?.city || "N/A"}, ${invoice.pickupInfo.address?.district || "N/A"}`}</p>
-                <p>{`${invoice.pickupInfo.address?.province || "N/A"}, ${invoice.pickupInfo.address?.country || "N/A"}`}</p>
+                <p>
+                  <span style={{ color: "#929292" }}>City :</span>{" "}
+                  {invoice.pickupInfo.address?.city || "N/A"}
+                </p>
+                <p>
+                  <span style={{ color: "#929292" }}>District :</span>{" "}
+                  {invoice.pickupInfo.address?.district || "N/A"}
+                </p>
+                <p>
+                  <span style={{ color: "#929292" }}>Province :</span>{" "}
+                  {invoice.pickupInfo.address?.province || "N/A"}
+                </p>
               </div>
               <div />
             </div>
@@ -922,20 +922,14 @@ function InvoicePageContent() {
       return isNaN(num) ? 0 : num;
     };
 
-    const creditForType =
-      parseNum(String(invoice.creditPaid ?? "")) > 0
-        ? parseNum(String(invoice.creditPaid ?? ""))
-        : null;
-    const cashForType =
-      parseNum(String(invoice.moneyPaid ?? "")) > 0
-        ? parseNum(String(invoice.moneyPaid ?? ""))
-        : null;
+    const creditPaidAmount = parseNum(String(invoice.creditPaid ?? ""));
+    const grandTotalAmount = parseNum(invoice.grandTotal);
     const paymentTypeLabel =
       detectPaymentType(
         invoice.paymentMethod,
         invoice.deliveryMethod,
-        creditForType,
-        cashForType,
+        creditPaidAmount,
+        grandTotalAmount,
       ) || "N/A";
 
     // Add this new function for formatting currency with commas in PDF
@@ -1406,15 +1400,23 @@ function InvoicePageContent() {
               text: `Centre: ${invoice.pickupInfo.centerName}`,
               bold: true,
               fontSize: 9,
+              margin: [0, 6, 0, 0],
             });
-            leftRows.push({
-              text: `${invoice.pickupInfo.address.city}, ${invoice.pickupInfo.address.district}`,
-              fontSize: 9,
-            });
-            leftRows.push({
-              text: `${invoice.pickupInfo.address.province}, ${invoice.pickupInfo.address.country}`,
-              fontSize: 9,
-            });
+            leftRows.push(
+              labeled("City", invoice.pickupInfo.address?.city || "N/A"),
+            );
+            leftRows.push(
+              labeled(
+                "District",
+                invoice.pickupInfo.address?.district || "N/A",
+              ),
+            );
+            leftRows.push(
+              labeled(
+                "Province",
+                invoice.pickupInfo.address?.province || "N/A",
+              ),
+            );
           }
 
           const rightRows: any[] = [];
@@ -1428,7 +1430,7 @@ function InvoicePageContent() {
             text: "Payment Method:",
             bold: true,
             fontSize: 9,
-            margin: [0, 10, 0, 0],
+            margin: [0, 0, 0, 0],
           });
           rightRows.push({ text: paymentTypeLabel, fontSize: 9 });
 
@@ -1486,8 +1488,8 @@ function InvoicePageContent() {
                 vLineWidth: () => 0,
                 paddingLeft: (i: number) => (i === 1 ? 16 : 0),
                 paddingRight: () => 0,
-                paddingTop: () => 2,
-                paddingBottom: () => 2,
+                paddingTop: (i: number) => (i === 2 ? 0 : 2),
+                paddingBottom: (i: number) => (i === 1 ? 0 : 2),
               },
               margin: [0, 0, 0, 18],
             },
