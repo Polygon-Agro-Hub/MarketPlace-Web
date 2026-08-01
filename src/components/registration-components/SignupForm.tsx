@@ -831,7 +831,7 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
                                                         },
                                                     } as React.ChangeEvent<HTMLInputElement>);
                                                 }}
-                                                placeholder="7XXXXXXXX"
+                                                placeholder="Phone number"
                                                 className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass(
                                                     "phoneNumber",
                                                 )}`}
@@ -1058,7 +1058,7 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
                                                                     },
                                                                 } as React.ChangeEvent<HTMLInputElement>);
                                                             }}
-                                                            placeholder="7XXXXXXXX"
+                                                            placeholder="Company number"
                                                             className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass(
                                                                 "companyPhoneNumber",
                                                             )}`}

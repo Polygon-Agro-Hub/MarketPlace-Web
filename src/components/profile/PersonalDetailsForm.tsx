@@ -870,7 +870,7 @@ const PersonalDetailsForm = () => {
                     setValue('phoneNumber', formattedValue, { shouldValidate: true });
                   }}
                   className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm"
-                  placeholder="e.g. 712345678"
+                  placeholder="Phone number"
                   maxLength={getMaxPhoneLength(countryCodeValue)}
                 />
               </div>
