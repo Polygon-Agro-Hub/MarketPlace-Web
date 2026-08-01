@@ -46,12 +46,6 @@ const Page: React.FC = () => {
   // Local state
   const [paymentMethod, setPaymentMethod] = useState<"card" | "cash">("card");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [cardDetails, setCardDetails] = useState({
-    cardNumber: "",
-    nameOnCard: "",
-    expirationDate: "",
-    cvv: "",
-  });
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [showErrorPopup, setShowErrorPopup] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -70,6 +64,14 @@ const Page: React.FC = () => {
   const isFinalizeImdt = checkoutDetails?.isFinalizeImdt === 1;
   const [showUnavailableModal, setShowUnavailableModal] = useState(false);
   const [cashPaymentLimit, setCashPaymentLimit] = useState<number>(2000); // sensible default while loading
+  const [cardDetails, setCardDetails] = useState({
+    cardNumber: "",
+    nameOnCard: "",
+    expirationDate: "",
+    cvv: "",
+  });
+  const [expirationDateError, setExpirationDateError] = useState("");
+  const [cardNumberError, setCardNumberError] = useState("");
 
   useEffect(() => {
     if (!token) return;
@@ -101,6 +103,38 @@ const Page: React.FC = () => {
     }
   }, []);
 
+  const validateExpirationDate = (value: string): string => {
+    if (!value) return "";
+    if (!/^\d{2}\/\d{2}$/.test(value)) return "";
+
+    const [monthStr, yearStr] = value.split("/");
+    const month = parseInt(monthStr, 10);
+    const year = parseInt(yearStr, 10);
+
+    if (month < 1 || month > 12) {
+      return "Please enter a valid month (01-12).";
+    }
+
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1; // 1-12
+    const currentYear = now.getFullYear() % 100; // last two digits
+
+    if (year < currentYear || (year === currentYear && month < currentMonth)) {
+      return "This card has expired. Please enter a valid expiration date.";
+    }
+
+    return "";
+  };
+
+  const validateCardNumber = (formattedValue: string): string => {
+    const digitsOnly = formattedValue.replace(/\s/g, "");
+    if (!digitsOnly) return "";
+    if (digitsOnly.length !== 16) {
+      return "Card number must be exactly 16 digits.";
+    }
+    return "";
+  };
+
 
   const handleCardInputChange = (field: string, value: string) => {
     setCardDetails((prev) => ({ ...prev, [field]: value }));
@@ -131,6 +165,10 @@ const Page: React.FC = () => {
 
     const creditAppliedAmount = useCredit ? Math.min(creditBalance, finalGrandTotal) : 0;
     const remainingAmount = finalGrandTotal - creditAppliedAmount;
+
+    // If credit fully covers the order, there's no actual cash/card transaction —
+    // always report it as "card" regardless of what was selected earlier.
+    const effectivePaymentMethod = isFullyCoveredByCredit ? "card" : paymentMethod;
 
     let finalCheckoutDetails: any = {
       deliveryMethod: checkoutDetails.deliveryMethod || "home",
@@ -182,7 +220,7 @@ const Page: React.FC = () => {
     return {
       cartId: cartItems.cartId || 0,
       checkoutDetails: finalCheckoutDetails,
-      paymentMethod, // always send it, never null — avoids the type error
+      paymentMethod: effectivePaymentMethod, // never "cash" when credit fully covers the order
       discountAmount: Number(discountAmount) || 0,
       grandTotal: Number(finalGrandTotal) || 0,
       orderApp: "marketplace",
@@ -686,18 +724,30 @@ const Page: React.FC = () => {
                   {paymentMethod === "card" && (
                     <div className="p-5 border-t border-gray-200 bg-gray-50/30">
                       <div className="space-y-4">
-                        <input
-                          type="text"
-                          placeholder="Enter Card Number"
-                          value={cardDetails.cardNumber}
-                          onChange={(e) => {
-                            const value = e.target.value.replace(/[^0-9]/g, "");
-                            const formattedValue = value.replace(/(\d{4})(?=\d)/g, "$1 ");
-                            if (value.length <= 16) handleCardInputChange("cardNumber", formattedValue);
-                          }}
-                          maxLength={19}
-                          className="w-full p-3 border border-gray-200 rounded-lg bg-white text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
-                        />
+                        <div>
+                          <input
+                            type="text"
+                            placeholder="Enter Card Number"
+                            value={cardDetails.cardNumber}
+                            onChange={(e) => {
+                              const value = e.target.value.replace(/[^0-9]/g, "");
+                              const formattedValue = value.replace(/(\d{4})(?=\d)/g, "$1 ");
+                              if (value.length <= 16) {
+                                handleCardInputChange("cardNumber", formattedValue);
+                                setCardNumberError(validateCardNumber(formattedValue));
+                              }
+                            }}
+                            onBlur={(e) => {
+                              setCardNumberError(validateCardNumber(e.target.value));
+                            }}
+                            maxLength={19}
+                            className={`w-full p-3 border rounded-lg bg-white text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200 ${cardNumberError ? "border-red-400" : "border-gray-200"
+                              }`}
+                          />
+                          {cardNumberError && (
+                            <p className="text-red-600 text-xs mt-1">{cardNumberError}</p>
+                          )}
+                        </div>
                         <input
                           type="text"
                           placeholder="Enter Name on Card"
@@ -712,32 +762,46 @@ const Page: React.FC = () => {
                           className="w-full p-3 border border-gray-200 rounded-lg bg-white text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
                         />
                         <div className="flex gap-4">
-                          <input
-                            type="text"
-                            placeholder="Enter Expiration Date (MM/YY)"
-                            value={cardDetails.expirationDate}
-                            onChange={(e) => {
-                              const value = e.target.value.replace(/[^0-9/]/g, "");
-                              let formattedValue = value;
-                              if (value.length === 2 && !value.includes("/") && e.target.value.length > cardDetails.expirationDate.length) {
-                                formattedValue = value + "/";
-                              }
-                              if (formattedValue.length <= 5) handleCardInputChange("expirationDate", formattedValue);
-                            }}
-                            maxLength={5}
-                            className="w-2/3 p-3 border border-gray-200 rounded-lg bg-white text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
-                          />
-                          <input
-                            type="text"
-                            placeholder="Enter CVV"
-                            value={cardDetails.cvv}
-                            onChange={(e) => {
-                              const value = e.target.value.replace(/[^0-9]/g, "");
-                              if (value.length <= 3) handleCardInputChange("cvv", value);
-                            }}
-                            maxLength={3}
-                            className="w-1/3 p-3 border border-gray-200 rounded-lg bg-white text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
-                          />
+                          <div className="w-2/3">
+                            <input
+                              type="text"
+                              placeholder="Enter Expiration Date (MM/YY)"
+                              value={cardDetails.expirationDate}
+                              onChange={(e) => {
+                                const value = e.target.value.replace(/[^0-9/]/g, "");
+                                let formattedValue = value;
+                                if (value.length === 2 && !value.includes("/") && e.target.value.length > cardDetails.expirationDate.length) {
+                                  formattedValue = value + "/";
+                                }
+                                if (formattedValue.length <= 5) {
+                                  handleCardInputChange("expirationDate", formattedValue);
+                                  setExpirationDateError(validateExpirationDate(formattedValue));
+                                }
+                              }}
+                              onBlur={(e) => {
+                                setExpirationDateError(validateExpirationDate(e.target.value));
+                              }}
+                              maxLength={5}
+                              className={`w-full p-3 border rounded-lg bg-white text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200 ${expirationDateError ? "border-red-400" : "border-gray-200"
+                                }`}
+                            />
+                            {expirationDateError && (
+                              <p className="text-red-600 text-xs mt-1">{expirationDateError}</p>
+                            )}
+                          </div>
+                          <div className="w-1/3">
+                            <input
+                              type="text"
+                              placeholder="Enter CVV"
+                              value={cardDetails.cvv}
+                              onChange={(e) => {
+                                const value = e.target.value.replace(/[^0-9]/g, "");
+                                if (value.length <= 3) handleCardInputChange("cvv", value);
+                              }}
+                              maxLength={3}
+                              className="w-full p-3 border border-gray-200 rounded-lg bg-white text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -922,8 +986,7 @@ const Page: React.FC = () => {
               </div>
             )}
 
-            {/* Card Payment box - only when there's a remaining balance to pay */}
-            {remainingAfterCredit > 0 && (
+            {creditBalance > 0 && remainingAfterCredit > 0 && (
               <>
                 {paymentMethod === "cash" && showCashOption ? (
                   <div className="border border-[#E8E5F7] bg-[#F5F3FD] rounded-lg p-3 mb-4">
@@ -979,23 +1042,21 @@ const Page: React.FC = () => {
               {orderSubmitted ? "Order Submitted" : isSubmitting ? "Processing Order..." : "Confirm Order"}
             </button>
 
-            {creditBalance > 0 && (
-              <p
-                className="flex items-center justify-center gap-1 mt-3"
-                style={{
-                  fontFamily: "Inter, sans-serif",
-                  fontWeight: 400,
-                  fontStyle: "normal",
-                  fontSize: "14px",
-                  lineHeight: "100%",
-                  letterSpacing: "0%",
-                  color: "#676767",
-                }}
-              >
-               <FontAwesomeIcon icon={faLock} className="w-4 h-4" />
-                Your payment is secure and encrypted.
-              </p>
-            )}
+            <p
+              className="flex items-center justify-center gap-1 mt-3"
+              style={{
+                fontFamily: "Inter, sans-serif",
+                fontWeight: 400,
+                fontStyle: "normal",
+                fontSize: "14px",
+                lineHeight: "100%",
+                letterSpacing: "0%",
+                color: "#676767",
+              }}
+            >
+              <FontAwesomeIcon icon={faLock} className="w-4 h-4" />
+              Your payment is secure and encrypted.
+            </p>
           </div>
         </div>
       </div>

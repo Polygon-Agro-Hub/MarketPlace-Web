@@ -182,6 +182,18 @@ const Page: React.FC = () => {
 
   const isCartEmpty = (): boolean => {
     if (!cartData.cart) return true;
+    const hasPackages = cartData.packages && cartData.packages.length > 0;
+    const hasAdditionalItems =
+      cartData.additionalItems &&
+      cartData.additionalItems.length > 0 &&
+      cartData.additionalItems.some(
+        (group) => group.Items && group.Items.length > 0,
+      );
+    return !hasPackages && !hasAdditionalItems;
+  };
+
+  const hasNoValidItems = (): boolean => {
+    if (!cartData.cart) return true;
     const hasValidPackages =
       cartData.packages && cartData.packages.some((pkg) => pkg.status !== "Disabled");
     const hasAdditionalItems =
@@ -231,10 +243,22 @@ const Page: React.FC = () => {
           }),
         );
 
+        // ── Determine validity from the FRESH fetched data, not from `cartData`
+        // (the Redux selector in this closure hasn't picked up setCartData yet). ──
+        const hasValidPackages =
+          response.packages &&
+          response.packages.some((pkg: CartPackage) => pkg.status !== "Disabled");
+        const hasAdditionalItems =
+          filteredAdditionalItems.length > 0 &&
+          filteredAdditionalItems.some(
+            (group: AdditionalItems) => group.Items && group.Items.length > 0,
+          );
+        const cartHasOnlyInvalidItems = !hasValidPackages && !hasAdditionalItems;
+
         dispatch(
           updateCartInfo({
-            price: authCart.price,
-            count: authCart.count,
+            price: cartHasOnlyInvalidItems ? 0 : authCart.price,
+            count: cartHasOnlyInvalidItems ? 0 : authCart.count,
             creditBalance: response.cart?.creditBalance ?? 0,
           }),
         );
@@ -243,7 +267,6 @@ const Page: React.FC = () => {
         setError(null);
 
         // Fire-and-forget: sync backend cart with what the user actually sees.
-        // No alert/notice — this is a background cleanup, not a user action.
         if (disabledProductIds.length > 0) {
           bulkRemoveCartProducts(disabledProductIds, token).catch((err) =>
             console.error("Silent cleanup of disabled products failed:", err),
@@ -258,6 +281,12 @@ const Page: React.FC = () => {
 
     if (token) fetchCartData();
   }, [token, dispatch]);
+
+  const hasInvalidPackage = (): boolean => {
+    return Boolean(
+      cartData.packages && cartData.packages.some((pkg) => pkg.status === "Disabled"),
+    );
+  };
 
   const calculateSavedAmount = (): number => {
     let totalSaved = 0;
@@ -740,6 +769,22 @@ const Page: React.FC = () => {
   };
 
   const handleCheckout = async () => {
+    if (hasInvalidPackage()) {
+      alert("Please remove the invalid package before proceeding to checkout.");
+      return;
+    }
+
+    if (hasNoValidItems()) {
+      dispatch(
+        updateCartInfo({
+          price: 0,
+          count: 0,
+          creditBalance: authCart.creditBalance,
+        }),
+      );
+      return;
+    }
+
     if (
       isCartEmpty() ||
       !calculatedSummary ||
@@ -1854,9 +1899,15 @@ const Page: React.FC = () => {
                 disabled={
                   checkoutLoading ||
                   isCartEmpty() ||
-                  dynamicSummary.totalItems === 0
+                  dynamicSummary.totalItems === 0 ||
+                  hasInvalidPackage()
                 }
-                className="w-full bg-[#3E206D] text-white font-semibold rounded-xl py-3.5 hover:bg-[#2f1854] transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-[#3E206D] text-white font-semibold rounded-xl py-3.5 hover:bg-[#2f1854] transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#3E206D]"
+                title={
+                  hasInvalidPackage()
+                    ? "Remove the invalid package before checking out"
+                    : undefined
+                }
               >
                 {checkoutLoading ? "Processing..." : "Checkout Now"}
               </button>

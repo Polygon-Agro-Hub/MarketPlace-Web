@@ -1219,7 +1219,7 @@ const Page: React.FC = () => {
         description="Something happen, Please try again!"
       />
       <form onSubmit={handleSubmit}>
-        <div className="px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5 pt-28 sm:pt-32">
+        <div className="px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5 pt-10 sm:pt-12">
           {showPackagePopup && (
             <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-3 sm:p-4">
               <div className="bg-white rounded-2xl w-full max-w-2xl sm:max-w-3xl max-h-[90vh] overflow-y-auto p-4 sm:p-6 relative">
@@ -1520,7 +1520,7 @@ const Page: React.FC = () => {
 
 
                   {/* Center Selection Dropdown - ABOVE the map */}
-                  <div className="mb-4 relative z-[10]">
+                  <div className="mb-4 relative z-[9999]">
                     <label className="block font-semibold mb-2 text-[#2E2E2E]">
                       Select Pickup Centre
                     </label>
@@ -1533,9 +1533,7 @@ const Page: React.FC = () => {
                     ) : (
                       <CustomDropdown
                         options={pickupCenterOptions}
-                        selectedValue={
-                          selectedPickupCenter?.id?.toString() || ""
-                        }
+                        selectedValue={selectedPickupCenter?.id?.toString() || ""}
                         onSelect={(value) => {
                           const selectedCenter = pickupCenters.find(
                             (center) => center.value === value,
@@ -1588,13 +1586,13 @@ const Page: React.FC = () => {
                     </div>
                   )}
                   {/* Map Component - BELOW the dropdown */}
-                  <div className="mb-6 relative z-10">
+                  <div className="mb-6 relative z-0">
                     <OpenStreetMap
                       center={mapCenter}
                       zoom={mapZoom}
                       height="300px"
                       onCenterSelect={handleCenterSelect}
-                      pickupCenters={memoizedPickupCenters} // Use memoized version
+                      pickupCenters={memoizedPickupCenters}
                       selectedCenterId={selectedPickupCenter?.id?.toString()}
                     />
                   </div>
@@ -1730,14 +1728,8 @@ const Page: React.FC = () => {
                         Phone Number 1 *
                       </label>
                       <div className="flex gap-2">
-                        <div className="w-28">
-                          <PhoneCustomDropdown
-                            options={countryOptions}
-                            selectedValue={formData.phoneCode1}
-                            onSelect={(value: any) => handleFieldChange("phoneCode1", value)}
-                            placeholder="+94"
-                            disabled={isReadOnly}
-                          />
+                        <div className="w-16 h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] rounded-lg flex items-center justify-center font-medium text-[#2E2E2E]">
+                          +94
                         </div>
                         <div className="w-full">
                           <input
@@ -1766,14 +1758,8 @@ const Page: React.FC = () => {
                         Phone Number 2
                       </label>
                       <div className="flex gap-2">
-                        <div className="w-28">
-                          <PhoneCustomDropdown
-                            options={countryOptions}
-                            selectedValue={formData.phoneCode2}
-                            onSelect={(value: any) => handleFieldChange("phoneCode2", value)}
-                            placeholder="+94"
-                            disabled={isReadOnly}
-                          />
+                        <div className="w-16 h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] rounded-lg flex items-center justify-center font-medium text-[#2E2E2E]">
+                          +94
                         </div>
                         <div className="w-full">
                           <input
@@ -2026,8 +2012,28 @@ const Page: React.FC = () => {
                           </div>
 
                           {/* City */}
-                          {/* City */}
                           <div className="w-full md:w-1/2 px-2 mb-4" ref={cityDropdownRef}>
+                            <style
+                              dangerouslySetInnerHTML={{
+                                __html: `
+        .city-scroll::-webkit-scrollbar {
+          width: 8px;
+        }
+        .city-scroll::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .city-scroll::-webkit-scrollbar-thumb {
+          background-color: #DBDADD;
+          border-radius: 9999px;
+          cursor: pointer;
+        }
+        .city-scroll::-webkit-scrollbar-thumb:hover {
+          background-color: #B186EF;
+          cursor: pointer;
+        }
+      `,
+                              }}
+                            />
                             <label className="block font-semibold text-[#2E2E2E] mb-1">
                               Nearest City *
                             </label>
@@ -2079,7 +2085,7 @@ const Page: React.FC = () => {
                                         City Not Found
                                       </div>
                                     ) : (
-                                      <ul className="max-h-52 overflow-y-auto py-1">
+                                      <ul className="city-scroll max-h-52 overflow-y-auto py-1">
                                         {filteredCityOptions.map((city) => {
                                           const available = isCityAvailable(city.city);
                                           return (
