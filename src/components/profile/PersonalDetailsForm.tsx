@@ -851,7 +851,7 @@ const PersonalDetailsForm = () => {
           <div className="md:w-[56%]">
             <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">Phone Number</label>
             <div className="flex gap-4">
-              <div className="relative max-w-[32%] md:max-w-[18%]">
+              <div className="relative max-w-[40%] md:max-w-[26%]">
                 <PhoneCodeDropdown
                   selectedValue={countryCodeValue}
                   onSelect={(value) => {
@@ -861,7 +861,7 @@ const PersonalDetailsForm = () => {
                 />
                 <p className="text-red-500 text-xs">{errors.countryCode?.message}</p>
               </div>
-              <div className="w-[70%]">
+              <div className="w-[60%] md:w-[70%]">
                 <input
                   {...register('phoneNumber')}
                   onChange={(e) => {
@@ -910,7 +910,7 @@ const PersonalDetailsForm = () => {
               <div className="md:w-[56%]">
                 <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">Company Phone Number</label>
                 <div className="flex gap-4">
-                  <div className="relative w-[32%] md:w-[18%]">
+                  <div className="relative w-[40%] md:w-[26%]">
                     <PhoneCodeDropdown
                       selectedValue={companyPhoneCodeValue as string}
                       onSelect={(value) => {
@@ -920,7 +920,7 @@ const PersonalDetailsForm = () => {
                     />
                     <p className="text-red-500 text-xs">{errors.companyPhoneCode?.message}</p>
                   </div>
-                  <div className="w-[70%]">
+                  <div className="w-[60%] md:w-[70%]">
                     <input
                       {...register('companyPhone')}
                       onChange={(e) => {

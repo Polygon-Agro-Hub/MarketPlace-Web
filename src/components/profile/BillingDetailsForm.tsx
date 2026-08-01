@@ -148,8 +148,8 @@ const CustomDropdown = ({
       <input type="hidden" {...register(name)} />
       <div
         className={`appearance-none border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px] pr-8 flex items-center justify-between ${disabled
-            ? "bg-[#F3F4F6] cursor-not-allowed opacity-70"
-            : "cursor-pointer"
+          ? "bg-[#F3F4F6] cursor-not-allowed opacity-70"
+          : "cursor-pointer"
           }`}
         onClick={() => !disabled && setIsOpen(!isOpen)}
       >
@@ -358,8 +358,8 @@ const CityDropdown = ({
     <div className="relative" ref={dropdownRef}>
       <div
         className={`flex items-center gap-2 border rounded-lg h-[42px] px-2 ${disabled
-            ? "bg-[#F3F4F6] border-[#CECECE] cursor-not-allowed opacity-70"
-            : "border-[#CECECE]"
+          ? "bg-[#F3F4F6] border-[#CECECE] cursor-not-allowed opacity-70"
+          : "border-[#CECECE]"
           }`}
       >
         <input
@@ -1891,16 +1891,10 @@ const BillingDetailsForm = () => {
                 Phone Number {num}
               </label>
               <div className="flex gap-4">
-                <div className="relative max-w-[30%] md:max-w-[20%]">
-                  <CustomDropdown
-                    register={register}
-                    setValue={setValue}
-                    name={`phonecode${num}` as "phonecode1" | "phonecode2"}
-                    value={num === 1 ? phonecode1Value : phonecode2Value}
-                    errors={errors}
-                    options={phoneCodeOptions}
-                    placeholder="Select Code"
-                  />
+                <div className="max-w-[30%] md:max-w-[20%]">
+                  <div className="flex items-center justify-center border border-[#CECECE] rounded-lg h-[42px] px-2 text-[12px] md:text-[14px] text-gray-700 bg-[#F3F4F6] select-none">
+                    +94
+                  </div>
                 </div>
 
                 <div className="w-[70%] lg:w-[65%]">
@@ -1944,29 +1938,31 @@ const BillingDetailsForm = () => {
           ))}
         </div>
 
-        <div className="flex justify-end gap-4 mt-10">
-          <button
-            type="button"
-            className={`w-[90px] h-[36px] sm:w-[110px] sm:h-[44px] cursor-pointer text-[16px] md:text-[20px] font-medium rounded-lg shadow-[0px_2px_5px_0px_rgba(0,0,0,0.10)] ${isLoading || !canSave
+        <div className="flex justify-end mt-10 p-4">
+          <div className="flex gap-4">
+            <button
+              type="button"
+              className={`px-6 py-2.5 text-[12px] md:text-[16px] font-medium rounded-lg leading-none ${isLoading || !canSave
                 ? "opacity-50 cursor-not-allowed text-[#9ca3af] bg-[#f9fafb]"
-                : "text-[#757E87] bg-[#F3F4F7] hover:bg-[#e1e2e5]"
-              }`}
-            onClick={() => setShowCancelConfirm(true)}
-            disabled={isLoading || !canSave}
-          >
-            Cancel
-          </button>
+                : "text-[#757E87] bg-[#F3F4F7] hover:bg-[#e1e2e5] cursor-pointer"
+                }`}
+              onClick={() => setShowCancelConfirm(true)}
+              disabled={isLoading || !canSave}
+            >
+              Cancel
+            </button>
 
-          <button
-            type="submit"
-            className={`w-[90px] h-[36px] sm:w-[110px] sm:h-[44px] cursor-pointer mb-4 text-[16px] md:text-[20px] font-medium rounded-lg text-white shadow-[0px_2px_5px_0px_rgba(0,0,0,0.10)] ${isLoading || !canSave
-                ? "opacity-50 cursor-not-allowed bg-[#9ca3af]"
-                : "bg-[#3E206D] hover:bg-[#341a5a]"
-              }`}
-            disabled={isLoading || !canSave}
-          >
-            Save
-          </button>
+            <button
+              type="submit"
+              className={`px-6 py-2.5 text-[12px] md:text-[16px] font-medium rounded-lg text-white leading-none ${isLoading || !canSave
+                ? "bg-gray-400 cursor-not-allowed opacity-50"
+                : "bg-[#3E206D] hover:bg-[#341a5a] cursor-pointer"
+                }`}
+              disabled={isLoading || !canSave}
+            >
+              Save
+            </button>
+          </div>
         </div>
 
         <GeoLocationModal
