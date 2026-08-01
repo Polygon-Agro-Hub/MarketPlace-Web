@@ -872,8 +872,8 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
                                 </div>
 
                                 {formData.phoneCode !== "+94" && (
-                                    <div className="flex items-start gap-2 bg-[#FEF6ED] border border-[#FFDCB5] rounded-lg px-3 py-2.5">
-                                        <div className="w-4 h-4 rounded-full bg-[#EC6821] flex items-center justify-center flex-shrink-0 mt-0.5">
+                                    <div className="flex items-center gap-2 bg-[#FEF6ED] border border-[#FFDCB5] rounded-lg px-3 py-2.5">
+                                        <div className="w-4 h-4 rounded-full bg-[#EC6821] flex items-center justify-center flex-shrink-0">
                                             <span className="text-white text-[10px] font-bold leading-none">i</span>
                                         </div>
                                         <p className="text-sm text-[#EC6821] leading-snug">
@@ -1095,7 +1095,7 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
                                         </label>
                                     </div>
                                     {errors.agreeToTerms && (
-                                        <p className="mt-1 text-sm text-[#FF0000] ml-6">
+                                        <p className="mt-1 text-sm text-red-600 ml-6">
                                             {errors.agreeToTerms}
                                         </p>
                                     )}

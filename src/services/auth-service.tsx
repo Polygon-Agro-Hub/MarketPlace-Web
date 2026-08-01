@@ -299,8 +299,8 @@ export const login = async (payload: LoginPayload): Promise<LoginResponse> => {
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          `Login failed with status ${error.response.status}`,
+        error.response.data?.error ||
+        `Login failed with status ${error.response.status}`,
       );
     } else if (error.request) {
       throw new Error(
@@ -349,8 +349,8 @@ export const signup = async (
       const resData = error.response.data;
       throw new Error(
         resData?.message ||
-          resData?.error ||
-          `Registration failed with status ${error.response.status}`,
+        resData?.error ||
+        `Registration failed with status ${error.response.status}`,
       );
     } else if (error.request) {
       throw new Error(
@@ -396,8 +396,8 @@ export const verifyUserDetails = async (
       const resData = error.response.data;
       throw new Error(
         resData?.message ||
-          resData?.error ||
-          `Verification failed with status ${error.response.status}`,
+        resData?.error ||
+        `Verification failed with status ${error.response.status}`,
       );
     } else if (error.request) {
       throw new Error(
@@ -421,8 +421,8 @@ export const sendResetEmail = async (
     if (error.response) {
       throw new Error(
         error.response.data?.error ||
-          error.response.data?.message ||
-          `Failed to send reset email (${error.response.status})`,
+        error.response.data?.message ||
+        `Failed to send reset email (${error.response.status})`,
       );
     }
     throw new Error(error.message || "Failed to send reset email");
@@ -444,7 +444,7 @@ export const validateResetToken = async (
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          `Token validation failed (${error.response.status})`,
+        `Token validation failed (${error.response.status})`,
       );
     }
     throw new Error(error.message || "Failed to validate token");
@@ -465,7 +465,7 @@ export const resetPassword = async (
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          `Password reset failed (${error.response.status})`,
+        `Password reset failed (${error.response.status})`,
       );
     }
     throw new Error(error.message || "Failed to reset password");
@@ -543,7 +543,7 @@ export const sendOTP = async (
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          `Failed to send OTP (${error.response.status})`,
+        `Failed to send OTP (${error.response.status})`,
       );
     }
     throw new Error(error.message || "Failed to send OTP");
@@ -612,7 +612,7 @@ export const sendOTPInSignup = async (
       if (error.response) {
         throw new Error(
           error.response.data?.message ||
-            `Failed to send OTP email (${error.response.status})`,
+          `Failed to send OTP email (${error.response.status})`,
         );
       }
       throw new Error(error.message || "Failed to send OTP email");
@@ -658,7 +658,7 @@ export const sendOTPInSignup = async (
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          `Failed to send OTP (${error.response.status})`,
+        `Failed to send OTP (${error.response.status})`,
       );
     }
     throw new Error(error.message || "Failed to send SMS OTP");
@@ -814,8 +814,8 @@ export const fetchProfile = async (
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          `Profile fetch failed with status ${error.response.status}`,
+        error.response.data?.error ||
+        `Profile fetch failed with status ${error.response.status}`,
       );
     } else if (error.request) {
       throw new Error(
@@ -891,8 +891,8 @@ export const updateProfile = async (
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          `Profile update failed with status ${error.response.status}`,
+        error.response.data?.error ||
+        `Profile update failed with status ${error.response.status}`,
       );
     } else if (error.request) {
       throw new Error(
@@ -940,8 +940,8 @@ export const updatePassword = async (
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          `Password update failed with status ${error.response.status}`,
+        error.response.data?.error ||
+        `Password update failed with status ${error.response.status}`,
       );
     } else if (error.request) {
       throw new Error(
@@ -980,32 +980,32 @@ export const fetchBillingDetails = async (
 
         const addresses: UserAddressEntry[] = Array.isArray(apiData.addresses)
           ? apiData.addresses.map((entry: any) => ({
-              id: entry.id,
-              buildingType: entry.buildingType,
-              billingTitle: entry.billingTitle || "",
-              billingName: entry.billingName || "",
-              phoneCode: entry.phoneCode || "+94",
-              phoneNumber: entry.phoneNumber || "",
-              phoneCode2: entry.phoneCode2 || "+94",
-              phoneNumber2: entry.phoneNumber2 || "",
-              geoLatitude: entry.geoLatitude
-                ? Number(entry.geoLatitude)
-                : undefined,
-              geoLongitude: entry.geoLongitude
-                ? Number(entry.geoLongitude)
-                : undefined,
-              address: {
-                id: entry.address?.id,
-                saveAs: entry.address?.saveAs || "",
-                houseNo: entry.address?.houseNo || "",
-                buildingNo: entry.address?.buildingNo || "",
-                buildingName: entry.address?.buildingName || "",
-                unitNo: entry.address?.unitNo || "",
-                floorNo: entry.address?.floorNo ?? null,
-                streetName: entry.address?.streetName || "",
-                city: entry.address?.city || "",
-              },
-            }))
+            id: entry.id,
+            buildingType: entry.buildingType,
+            billingTitle: entry.billingTitle || "",
+            billingName: entry.billingName || "",
+            phoneCode: entry.phoneCode || "+94",
+            phoneNumber: entry.phoneNumber || "",
+            phoneCode2: entry.phoneCode2 || "+94",
+            phoneNumber2: entry.phoneNumber2 || "",
+            geoLatitude: entry.geoLatitude
+              ? Number(entry.geoLatitude)
+              : undefined,
+            geoLongitude: entry.geoLongitude
+              ? Number(entry.geoLongitude)
+              : undefined,
+            address: {
+              id: entry.address?.id,
+              saveAs: entry.address?.saveAs || "",
+              houseNo: entry.address?.houseNo || "",
+              buildingNo: entry.address?.buildingNo || "",
+              buildingName: entry.address?.buildingName || "",
+              unitNo: entry.address?.unitNo || "",
+              floorNo: entry.address?.floorNo ?? null,
+              streetName: entry.address?.streetName || "",
+              city: entry.address?.city || "",
+            },
+          }))
           : [];
 
         return {
@@ -1030,8 +1030,8 @@ export const fetchBillingDetails = async (
       if (error.response.status === 404) return null;
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          `Billing details fetch failed with status ${error.response.status}`,
+        error.response.data?.error ||
+        `Billing details fetch failed with status ${error.response.status}`,
       );
     } else if (error.request) {
       throw new Error(
@@ -1116,8 +1116,8 @@ export const saveBillingDetails = async (payload: {
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          `Saving billing details failed with status ${error.response.status}`,
+        error.response.data?.error ||
+        `Saving billing details failed with status ${error.response.status}`,
       );
     } else if (error.request) {
       throw new Error(
@@ -1160,7 +1160,7 @@ export const deleteBillingAddress = async (payload: {
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          `Deleting address failed with status ${error.response.status}`,
+        `Deleting address failed with status ${error.response.status}`,
       );
     } else if (error.request) {
       throw new Error(
@@ -1228,8 +1228,8 @@ export const fetchComplaints = async (
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          `Complaint fetch failed with status ${error.response.status}`,
+        error.response.data?.error ||
+        `Complaint fetch failed with status ${error.response.status}`,
       );
     } else if (error.request) {
       throw new Error(
@@ -1253,7 +1253,9 @@ const uploadSingleImage = async (
   const response = await axios.post("/upload/image", formData, {
     headers: {
       Authorization: `Bearer ${token}`,
+      "Content-Type": "multipart/form-data",
     },
+    timeout: 60000, // don't inherit a short global default for large uploads
   });
 
   if (!response.data?.url) {
@@ -1294,10 +1296,10 @@ export const submitComplaint = async (
     }
 
     if (payload.images && payload.images.length > 0) {
-      for (const image of payload.images) {
-        const url = await uploadSingleImage(image, payload.token);
-        uploadedUrls.push(url);
-      }
+      const urls = await Promise.all(
+        payload.images.map((image) => uploadSingleImage(image, payload.token))
+      );
+      uploadedUrls.push(...urls);
     }
 
     const url = payload.complaintId
@@ -1335,7 +1337,7 @@ export const submitComplaint = async (
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          `Server error: ${error.response.status}`,
+        `Server error: ${error.response.status}`,
       );
     }
     throw new Error(error.message || "An error occurred.");
@@ -1417,8 +1419,8 @@ export const getCartInfo = async (token: string | null): Promise<any> => {
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          "Failed to update package quantity",
+        error.response.data?.error ||
+        "Failed to update package quantity",
       );
     } else if (error.request) {
       throw new Error("No response from server. Please try again.");
@@ -1453,8 +1455,8 @@ export const getAllCities = async (): Promise<CityResult[]> => {
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          `Fetching cities failed with status ${error.response.status}`,
+        error.response.data?.error ||
+        `Fetching cities failed with status ${error.response.status}`,
       );
     } else if (error.request) {
       throw new Error(
@@ -1496,8 +1498,8 @@ export const searchCities = async (query: string): Promise<CityResult[]> => {
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          `City search failed with status ${error.response.status}`,
+        error.response.data?.error ||
+        `City search failed with status ${error.response.status}`,
       );
     } else if (error.request) {
       throw new Error(
@@ -1541,8 +1543,8 @@ export const checkCityAvailability = async (
       if (error.response.status === 404) return null;
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          `City availability check failed with status ${error.response.status}`,
+        error.response.data?.error ||
+        `City availability check failed with status ${error.response.status}`,
       );
     } else if (error.request) {
       throw new Error(
@@ -1617,8 +1619,8 @@ export const updateCreditBalance = async (
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          `Updating credit balance failed with status ${error.response.status}`,
+        error.response.data?.error ||
+        `Updating credit balance failed with status ${error.response.status}`,
       );
     } else if (error.request) {
       throw new Error(
