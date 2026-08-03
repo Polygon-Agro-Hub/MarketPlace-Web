@@ -90,11 +90,10 @@ export default function CustomDropdown({
       <button
         type="button"
         disabled={disabled}
-        className={`w-full flex items-center justify-between px-4 py-2 text-sm font-medium border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#ad46ff] ${
-          disabled
+        className={`w-full flex items-center justify-between px-4 py-2 text-sm font-medium border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#ad46ff] ${disabled
             ? 'text-gray-400 border-gray-200 bg-[#F9FAFB] cursor-not-allowed'
             : 'text-gray-700 border-gray-300 hover:bg-gray-50 cursor-pointer'
-        }`}
+          }`}
         onClick={handleToggle}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
@@ -102,9 +101,8 @@ export default function CustomDropdown({
       >
         <span>{selectedOption ? selectedOption.label : placeholder}</span>
         <svg
-          className={`w-5 h-5 ml-2 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''} ${
-            disabled ? 'text-gray-300' : ''
-          }`}
+          className={`w-5 h-5 ml-2 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''} ${disabled ? 'text-gray-300' : ''
+            }`}
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 20 20"
           fill="currentColor"
@@ -120,7 +118,7 @@ export default function CustomDropdown({
 
       {isOpen && !disabled && (
         <div
-          className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-hidden"
+          className="absolute z-[9999] w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-hidden"
           role="listbox"
         >
           {/* Search Input - only show if searchable */}

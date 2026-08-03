@@ -228,12 +228,21 @@ const Page: React.FC = () => {
   const [showPackagePopup, setShowPackagePopup] = useState(false);
   const [packageHandlingOption, setPackageHandlingOption] = useState<"review" | "finalize">("review");
   const cartPackages = useSelector((state: RootState) => state.cartItems.packages);
+  const userNearestCity = useSelector(
+    (state: RootState) => state.auth.user?.nearesCity,
+  ) as string | null | undefined;
+  console.log("userNearestCity in checkout page:", userNearestCity);
+  const [isNewAddressCityLocked, setIsNewAddressCityLocked] = useState(false);
   console.log("cartPackages in checkout page:", cartPackages);
   const hasPackages = cartPackages.length > 0;
 
   const isReadOnly =
     formData.deliveryMethod === "home" &&
     (addressMode === "recent" || (addressMode === "previous" && !!selectedAddressKey));
+
+  const isCityFieldLocked =
+    isReadOnly ||
+    (formData.deliveryMethod === "home" && addressMode === "new" && !hasRecentAddress);
 
   const hideDeliveryInfoSection =
     formData.deliveryMethod === "home" &&
@@ -260,6 +269,19 @@ const Page: React.FC = () => {
     };
     fetchCityAvailability();
   }, []);
+
+  useEffect(() => {
+    if (
+      formData.deliveryMethod === "home" &&
+      addressMode === "new" &&
+      userNearestCity &&
+      allCityResults.length > 0 &&
+      !formData.cityName
+    ) {
+      handleCitySelect(userNearestCity);
+      setCitySearchTerm(userNearestCity);
+    }
+  }, [addressMode, formData.deliveryMethod, userNearestCity, allCityResults, formData.cityName]);
 
   useLayoutEffect(() => {
     if (firstCardRef.current) {
@@ -442,7 +464,7 @@ const Page: React.FC = () => {
   };
 
   const handleCityArrowClick = () => {
-    if (isReadOnly) return;
+    if (isCityFieldLocked) return;
     setIsCityDropdownOpen((prev) => !prev);
   };
 
@@ -594,7 +616,6 @@ const Page: React.FC = () => {
       setAddressMode("recent");
       setIsLoadingAddress(true);
       setErrors(initioalError);
-
       try {
         const response = await getRecentOrderAddress(token);
         if (response && response.status && response.hasAddress) {
@@ -616,7 +637,7 @@ const Page: React.FC = () => {
       setRecentAddressInfo(null);
       setSelectedAddressKey(null);
       setSelectedCity(null);
-      setCityNotAvailable(false); // <-- add
+      setCityNotAvailable(false);
       setFormDataLocal((prev) => ({
         ...initialFormState,
         deliveryMethod: prev.deliveryMethod,
@@ -624,6 +645,8 @@ const Page: React.FC = () => {
       setDeliveryCharge(0);
     }
   };
+
+
 
   const selectSavedAddress = (addr: SavedAddress) => {
     setSelectedAddressKey(addr.addressKey);
@@ -1517,18 +1540,13 @@ const Page: React.FC = () => {
                   <h2 className="text-xl font-bold mb-6 mt-8 text-[#252525]">
                     Find your nearest centre
                   </h2>
-
-
-                  {/* Center Selection Dropdown - ABOVE the map */}
-                  <div className="mb-4 relative z-[9999]">
-                    <label className="block font-semibold mb-2 text-[#2E2E2E]">
+                  <div className="mb-4 relative">
+                    <label className="block font-semibold mb-2 text-[#2E2E2E] bg-white">
                       Select Pickup Centre
                     </label>
                     {loadingCenters ? (
                       <div className="w-full h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] rounded-lg flex items-center justify-center">
-                        <span className="text-sm text-gray-500">
-                          Loading centers...
-                        </span>
+                        <span className="text-sm text-gray-500">Loading centers...</span>
                       </div>
                     ) : (
                       <CustomDropdown
@@ -1548,9 +1566,7 @@ const Page: React.FC = () => {
                       />
                     )}
                     {errors.centerId && (
-                      <p className="text-red-600 text-sm mt-1">
-                        {errors.centerId}
-                      </p>
+                      <p className="text-red-600 text-sm mt-1">{errors.centerId}</p>
                     )}
                   </div>
 
@@ -2046,28 +2062,32 @@ const Page: React.FC = () => {
                               <div className="relative">
                                 <div
                                   className={`flex items-center gap-2 h-[39px] px-4 border-2 rounded-lg bg-[#F9FAFB] ${errors.cityName ? "border-red-500" : "border-[#F2F4F7]"
-                                    }`}
+                                    } ${isCityFieldLocked ? "cursor-not-allowed" : ""}`}
+                                  title={isCityFieldLocked ? "This field is locked for new address entries" : undefined}
                                 >
                                   <input
                                     type="text"
                                     value={citySearchTerm}
                                     onChange={(e) => handleCitySearchChange(e.target.value)}
                                     onFocus={() => {
-                                      if (!isReadOnly) setIsCityDropdownOpen(true);
+                                      if (!isCityFieldLocked) setIsCityDropdownOpen(true);
                                     }}
                                     placeholder="Search nearest city"
-                                    disabled={isReadOnly}
-                                    className={`flex-1 bg-transparent text-base outline-none border-none placeholder-gray-400 ${isReadOnly ? "cursor-default text-gray-500" : ""
+                                    disabled={isCityFieldLocked}
+                                    className={`flex-1 bg-transparent text-base outline-none border-none placeholder-gray-400 ${isCityFieldLocked ? "cursor-not-allowed text-gray-500" : ""
                                       }`}
                                   />
                                   <button
                                     type="button"
                                     onClick={() => (citySearchTerm ? handleCityClear() : handleCityArrowClick())}
-                                    disabled={isReadOnly}
-                                    className="flex-shrink-0 text-gray-400 hover:text-[#3E206D] transition-colors cursor-pointer disabled:cursor-not-allowed"
+                                    disabled={isCityFieldLocked}
+                                    className={`flex-shrink-0 text-gray-400 transition-colors ${isCityFieldLocked
+                                        ? "cursor-not-allowed"
+                                        : "hover:text-[#3E206D] cursor-pointer"
+                                      }`}
                                     aria-label={citySearchTerm ? "Clear" : "Show all cities"}
                                   >
-                                    {citySearchTerm && !isReadOnly ? (
+                                    {citySearchTerm && !isCityFieldLocked ? (
                                       <XCircle size={16} />
                                     ) : (
                                       <ChevronDown
@@ -2078,7 +2098,7 @@ const Page: React.FC = () => {
                                   </button>
                                 </div>
 
-                                {isCityDropdownOpen && !isReadOnly && (
+                                {isCityDropdownOpen && !isCityFieldLocked && (
                                   <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg">
                                     {filteredCityOptions.length === 0 ? (
                                       <div className="py-3 px-4 text-sm font-[300] text-[#4C5160] bg-[#F2F2F6] rounded-lg">
@@ -2574,7 +2594,10 @@ const PhoneCustomDropdown: React.FC<any> = ({
 
       {/* Dropdown Options */}
       {isOpen && !disabled && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
+        <div
+          className="absolute z-[9999] w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-hidden"
+          role="listbox"
+        >
           {options.map((option: any) => (
             <button
               key={option.value}

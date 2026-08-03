@@ -72,6 +72,7 @@ const Page: React.FC = () => {
   });
   const [expirationDateError, setExpirationDateError] = useState("");
   const [cardNumberError, setCardNumberError] = useState("");
+  const [cvvError, setCvvError] = useState("");
 
   useEffect(() => {
     if (!token) return;
@@ -131,6 +132,14 @@ const Page: React.FC = () => {
     if (!digitsOnly) return "";
     if (digitsOnly.length !== 16) {
       return "Card number must be exactly 16 digits.";
+    }
+    return "";
+  };
+
+  const validateCvv = (value: string): string => {
+    if (!value) return "";
+    if (!/^\d{3}$/.test(value)) {
+      return "CVV must be exactly 3 digits.";
     }
     return "";
   };
@@ -481,10 +490,13 @@ const Page: React.FC = () => {
 
     if (paymentMethod === "card") {
       const { cardNumber, nameOnCard, expirationDate, cvv } = cardDetails;
-      return Boolean(cardNumber && nameOnCard && expirationDate && cvv);
+      const fieldsFilled = Boolean(cardNumber && nameOnCard && expirationDate && cvv);
+      const noValidationErrors = !cardNumberError && !expirationDateError && !cvvError;
+      return fieldsFilled && noValidationErrors;
     }
     return paymentMethod === "cash" && showCashOption;
   };
+
 
   return (
     <div className="px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5">
@@ -796,11 +808,21 @@ const Page: React.FC = () => {
                               value={cardDetails.cvv}
                               onChange={(e) => {
                                 const value = e.target.value.replace(/[^0-9]/g, "");
-                                if (value.length <= 3) handleCardInputChange("cvv", value);
+                                if (value.length <= 3) {
+                                  handleCardInputChange("cvv", value);
+                                  setCvvError(validateCvv(value));
+                                }
+                              }}
+                              onBlur={(e) => {
+                                setCvvError(validateCvv(e.target.value));
                               }}
                               maxLength={3}
-                              className="w-full p-3 border border-gray-200 rounded-lg bg-white text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
+                              className={`w-full p-3 border rounded-lg bg-white text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200 ${cvvError ? "border-red-400" : "border-gray-200"
+                                }`}
                             />
+                            {cvvError && (
+                              <p className="text-red-600 text-xs mt-1">{cvvError}</p>
+                            )}
                           </div>
                         </div>
                       </div>
