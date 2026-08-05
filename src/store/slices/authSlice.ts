@@ -8,6 +8,7 @@ interface UserData {
   buyerType: string;
   image: string | null;
   creditBalance: number;
+  nearesCity: string | null;
 }
 
 interface AuthState {

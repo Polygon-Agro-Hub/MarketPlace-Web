@@ -457,7 +457,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
       <header className="bg-[#FFFFFF] text-white py-5 px-5 shadow-md">
         <div className="mx-auto flex justify-between items-center gap-3">
           <div className="text-2xl font-bold flex items-center">
-            <Link href="/">
+            <Link href={getHomeUrl()}>
               <Image
                 src={glogo}
                 alt="My Farm Logo"
