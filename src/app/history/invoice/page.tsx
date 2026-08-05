@@ -11,7 +11,7 @@ pdfMake.vfs = (pdfFonts as any).vfs;
 import { Suspense } from "react";
 import Loader from "@/components/loader-spinner/Loader";
 import NextImage from "next/image";
-import Logo from "../../../../public/glogo.png";
+import Logo from "../../../../public/POLYGON LOGO26.png";
 
 // Define interfaces based on the API responses
 export interface InvoiceItem {
@@ -880,7 +880,7 @@ function InvoicePageContent() {
         // Load logo image as base64 - FIXED: Use HTMLImageElement explicitly
         const img = new (window as any).Image() as HTMLImageElement;
 
-        img.src = `${window.location.origin}/glogo.png`;
+        img.src = `${window.location.origin}/POLYGON LOGO26.png`;
         img.crossOrigin = "anonymous";
         img.onload = () => {
           const canvas = document.createElement("canvas");
