@@ -329,7 +329,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
     }
 
     if (isNegativeBalance) {
-      router.push("/clear-balance-page/payment");
+      router.push("/clear-balance-page/");
       return;
     }
 
