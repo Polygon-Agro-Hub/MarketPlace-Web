@@ -118,7 +118,7 @@ export default function CustomDropdown({
 
       {isOpen && !disabled && (
         <div
-          className="absolute z-[9999] w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-hidden"
+          className="absolute z-40 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-hidden"
           role="listbox"
         >
           {/* Search Input - only show if searchable */}

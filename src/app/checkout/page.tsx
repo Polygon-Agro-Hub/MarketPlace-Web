@@ -276,12 +276,20 @@ const Page: React.FC = () => {
       addressMode === "new" &&
       userNearestCity &&
       allCityResults.length > 0 &&
+      cities.length > 0 &&              // ✅ wait for pricing data too
       !formData.cityName
     ) {
       handleCitySelect(userNearestCity);
       setCitySearchTerm(userNearestCity);
     }
-  }, [addressMode, formData.deliveryMethod, userNearestCity, allCityResults, formData.cityName]);
+  }, [
+    addressMode,
+    formData.deliveryMethod,
+    userNearestCity,
+    allCityResults,
+    cities,                              // ✅ add to deps so it re-checks once cities arrives
+    formData.cityName,
+  ]);
 
   useLayoutEffect(() => {
     if (firstCardRef.current) {
@@ -313,14 +321,14 @@ const Page: React.FC = () => {
     setSearchParamsLoaded(true);
   }, []);
 
-  useEffect(() => {
-    // Reset delivery charge when delivery method changes
-    if (formData.deliveryMethod === "pickup") {
-      setDeliveryCharge(0);
-    } else if (formData.deliveryMethod === "home" && !selectedCity) {
-      setDeliveryCharge(0); // Default home delivery charge
-    }
-  }, [formData.deliveryMethod, selectedCity]);
+  // useEffect(() => {
+  //   // Reset delivery charge when delivery method changes
+  //   if (formData.deliveryMethod === "pickup") {
+  //     setDeliveryCharge(0);
+  //   } else if (formData.deliveryMethod === "home" && !selectedCity) {
+  //     setDeliveryCharge(0); // Default home delivery charge
+  //   }
+  // }, [formData.deliveryMethod, selectedCity]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -2082,8 +2090,8 @@ const Page: React.FC = () => {
                                     onClick={() => (citySearchTerm ? handleCityClear() : handleCityArrowClick())}
                                     disabled={isCityFieldLocked}
                                     className={`flex-shrink-0 text-gray-400 transition-colors ${isCityFieldLocked
-                                        ? "cursor-not-allowed"
-                                        : "hover:text-[#3E206D] cursor-pointer"
+                                      ? "cursor-not-allowed"
+                                      : "hover:text-[#3E206D] cursor-pointer"
                                       }`}
                                     aria-label={citySearchTerm ? "Clear" : "Show all cities"}
                                   >
