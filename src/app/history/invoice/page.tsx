@@ -262,6 +262,7 @@ function getPaymentStatusInfo(
   let showDeliveryNote = false;
 
   const isPaid = Number(invoice.isPaid) === 1;
+  const isCardPayment = invoice.paymentMethod === "Card"; 
   const creditPaidNum = parseAmount(invoice.creditPaid);
   const hasCreditPaid =
     invoice.creditPaid !== null &&
@@ -269,6 +270,7 @@ function getPaymentStatusInfo(
     creditPaidNum > 0;
   const remainingAfterCredit = grandTotal - creditPaidNum;
   const isPickup = invoice.deliveryMethod?.toLowerCase().includes("pickup");
+  const cashLabel = isPickup ? "Cash on Pickup" : "Cash on Delivery";
 
   const push = (label: string, amount: number, status: "paid" | "pending") => {
     rows.push({ label, amount, status });
@@ -279,21 +281,29 @@ function getPaymentStatusInfo(
 
     if (remainingAfterCredit > 0.01) {
       if (isPaid) {
-        push("Online Transferred Amount", remainingAfterCredit, "paid");
+        if (isCardPayment) {
+          push("Online Transferred Amount", remainingAfterCredit, "paid");
+        } else {
+          push(cashLabel, remainingAfterCredit, "paid");
+        }
       } else if (isPickup) {
-        push("Cash On Pickup (Pending)", remainingAfterCredit, "pending");
+        push("Cash On Pickup", remainingAfterCredit, "pending");
       } else {
-        push("Cash On Delivery (Pending)", remainingAfterCredit, "pending");
+        push("Cash On Delivery", remainingAfterCredit, "pending");
         showDeliveryNote = true;
       }
     }
   } else {
     if (isPaid) {
-      push("Online Transferred Amount", grandTotal, "paid");
+      if (isCardPayment) {
+        push("Online Transferred Amount", grandTotal, "paid");
+      } else {
+        push(cashLabel, grandTotal, "paid");
+      }
     } else if (isPickup) {
-      push("Cash On Pickup (Pending)", grandTotal, "pending");
+      push("Cash On Pickup", grandTotal, "pending");
     } else {
-      push("Cash On Delivery (Pending)", grandTotal, "pending");
+      push("Cash On Delivery", grandTotal, "pending");
       showDeliveryNote = true;
     }
   }

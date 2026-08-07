@@ -434,7 +434,65 @@ const PersonalDetailsForm = () => {
     return value.replace(/\s/g, '');
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const compressImage = (file: File, maxWidth = 1024, maxHeight = 1024, quality = 0.8): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+
+        let { width, height } = img;
+
+        // Scale down proportionally if larger than max dimensions
+        if (width > maxWidth || height > maxHeight) {
+          const ratio = Math.min(maxWidth / width, maxHeight / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Could not get canvas context'));
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Preserve original mime type (png stays lossless-ish, jpeg gets quality compression)
+        const outputType = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              reject(new Error('Canvas toBlob failed'));
+              return;
+            }
+            const compressedFile = new File([blob], file.name, {
+              type: outputType,
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          },
+          outputType,
+          quality,
+        );
+      };
+
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error('Failed to load image for compression'));
+      };
+
+      img.src = objectUrl;
+    });
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const allowedTypes = ['image/png', 'image/jpeg'];
@@ -460,8 +518,17 @@ const PersonalDetailsForm = () => {
         return;
       }
 
-      setProfilePic(file);
-      setPreviewURL(URL.createObjectURL(file));
+      try {
+        // Compress before storing — keeps profile pics small without
+        // making the user manually resize their photo
+        const compressedFile = await compressImage(file, 1024, 1024, 0.8);
+        setProfilePic(compressedFile);
+        setPreviewURL(URL.createObjectURL(compressedFile));
+      } catch (err) {
+        console.error('Image compression failed, falling back to original file:', err);
+        setProfilePic(file);
+        setPreviewURL(URL.createObjectURL(file));
+      }
     }
   };
 

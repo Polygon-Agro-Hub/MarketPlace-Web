@@ -780,15 +780,17 @@ const Page: React.FC = () => {
                               placeholder="Enter Expiration Date (MM/YY)"
                               value={cardDetails.expirationDate}
                               onChange={(e) => {
-                                const value = e.target.value.replace(/[^0-9/]/g, "");
-                                let formattedValue = value;
-                                if (value.length === 2 && !value.includes("/") && e.target.value.length > cardDetails.expirationDate.length) {
-                                  formattedValue = value + "/";
-                                }
-                                if (formattedValue.length <= 5) {
-                                  handleCardInputChange("expirationDate", formattedValue);
-                                  setExpirationDateError(validateExpirationDate(formattedValue));
-                                }
+                                // Strip everything except digits, ignore any '/' the user types manually
+                                const digitsOnly = e.target.value.replace(/[^0-9]/g, "").slice(0, 4);
+
+                                // Re-insert the separator ourselves once we have more than 2 digits
+                                const formattedValue =
+                                  digitsOnly.length > 2
+                                    ? `${digitsOnly.slice(0, 2)}/${digitsOnly.slice(2)}`
+                                    : digitsOnly;
+
+                                handleCardInputChange("expirationDate", formattedValue);
+                                setExpirationDateError(validateExpirationDate(formattedValue));
                               }}
                               onBlur={(e) => {
                                 setExpirationDateError(validateExpirationDate(e.target.value));
