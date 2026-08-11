@@ -70,6 +70,7 @@ interface InvoiceData {
   creditPaid?: string | number | null;
   moneyPaid?: string | number | null;
   amountDue: string;
+  isFreeDeliveryCoupon?: boolean;
   familyPackItems: InvoiceItem[];
   additionalItems: InvoiceItem[];
   familyPackTotal: string;
@@ -271,6 +272,7 @@ function getPaymentStatusInfo(
   const remainingAfterCredit = grandTotal - creditPaidNum;
   const isPickup = invoice.deliveryMethod?.toLowerCase().includes("pickup");
   const cashLabel = isPickup ? "Cash on Pickup" : "Cash on Delivery";
+  const isFreeDelivery = !!invoice.isFreeDeliveryCoupon;
 
   const push = (label: string, amount: number, status: "paid" | "pending") => {
     rows.push({ label, amount, status });
@@ -290,7 +292,7 @@ function getPaymentStatusInfo(
         push("Cash On Pickup", remainingAfterCredit, "pending");
       } else {
         push("Cash On Delivery", remainingAfterCredit, "pending");
-        showDeliveryNote = true;
+        showDeliveryNote = !isFreeDelivery;
       }
     }
   } else {
@@ -304,7 +306,7 @@ function getPaymentStatusInfo(
       push("Cash On Pickup", grandTotal, "pending");
     } else {
       push("Cash On Delivery", grandTotal, "pending");
-      showDeliveryNote = true;
+      showDeliveryNote = !isFreeDelivery;
     }
   }
 
@@ -1700,6 +1702,7 @@ function InvoicePageContent() {
           creditPaid: apiInvoice.creditPaid,
           moneyPaid: apiInvoice.moneyPaid,
           amountDue: parseCurrency(apiInvoice.amountDue),
+          isFreeDeliveryCoupon: !!apiInvoice.isFreeDeliveryCoupon,
 
           familyPackItems: Array.isArray(apiInvoice.familyPackItems)
             ? apiInvoice.familyPackItems.map((item: any) => ({
