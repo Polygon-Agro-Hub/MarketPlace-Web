@@ -24,6 +24,7 @@ interface SignupPayload {
   lastName: string;
   phoneCode: string;
   phoneNumber: string;
+  nicNumber: string;
   email: string;
   password: string;
   confirmPassword: string;
