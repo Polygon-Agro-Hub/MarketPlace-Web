@@ -19,6 +19,7 @@ const excludedRoutes = [
   '/unsubscribe',
   '/exclude/summary',
   '/exclude/exclude',
+  '/dash-password-update',
 ];
 
 const publicRoutes = [

@@ -1634,3 +1634,50 @@ export const updateCreditBalance = async (
     }
   }
 };
+
+interface UpdatePasswordByNicPayload {
+  nicNumber: string;
+  password: string;
+}
+
+export const updatePasswordByNic = async (
+  payload: UpdatePasswordByNicPayload,
+): Promise<{ message: string }> => {
+  try {
+    const response = await axios.put(
+      "/auth/update-password-by-nic",
+      payload,
+      {
+        headers: { "Content-Type": "application/json" },
+      },
+    );
+
+    if (
+      response.status >= 200 &&
+      response.status < 300 &&
+      response.data.status
+    ) {
+      return {
+        message: response.data?.message || "Password updated successfully!",
+      };
+    } else {
+      throw new Error(response.data?.message || "Failed to update password");
+    }
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(
+        error.response.data?.message ||
+        error.response.data?.error ||
+        `Password update failed with status ${error.response.status}`,
+      );
+    } else if (error.request) {
+      throw new Error(
+        "No response received from server. Please check your network connection.",
+      );
+    } else {
+      throw new Error(
+        error.message || "An error occurred while updating password",
+      );
+    }
+  }
+};
