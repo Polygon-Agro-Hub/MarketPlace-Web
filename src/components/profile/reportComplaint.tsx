@@ -1,5 +1,5 @@
-
 'use client';
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { FaCloudUploadAlt, FaTimes, FaAngleDown } from 'react-icons/fa';
@@ -244,7 +244,58 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
     setIsDragging(false);
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const compressImage = (file: File, maxWidth = 1600, maxHeight = 1600, quality = 0.8): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+
+        let { width, height } = img;
+        if (width > maxWidth || height > maxHeight) {
+          const ratio = Math.min(maxWidth / width, maxHeight / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Could not get canvas context'));
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const outputType = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              reject(new Error('Canvas toBlob failed'));
+              return;
+            }
+            resolve(new File([blob], file.name, { type: outputType, lastModified: Date.now() }));
+          },
+          outputType,
+          quality,
+        );
+      };
+
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error('Failed to load image for compression'));
+      };
+
+      img.src = objectUrl;
+    });
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const filesArray = Array.from(e.target.files);
       const validImages: File[] = [];
@@ -272,13 +323,12 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
         }
       });
 
-      // Check total images limit before adding
       const totalImages = existingImages.length + images.length + validImages.length;
 
-      // Show error messages with proper priority
       if (totalImages > 6) {
         setErrorMessage('You can upload a maximum of 6 images.');
         setShowErrorPopup(true);
+        e.target.value = '';
         return;
       }
 
@@ -293,17 +343,25 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
         setShowErrorPopup(true);
       }
 
-      // Add valid images even if there were duplicates/invalid files
       if (validImages.length > 0) {
-        setImages((prev) => [...prev, ...validImages]);
+        // Compress each valid image before adding it to state — falls back
+        // to the original file if compression fails for any single image
+        const compressedImages = await Promise.all(
+          validImages.map((file) =>
+            compressImage(file).catch((err) => {
+              console.error('Image compression failed, using original:', err);
+              return file;
+            }),
+          ),
+        );
+        setImages((prev) => [...prev, ...compressedImages]);
       }
 
-      // Clear the input so the same file can trigger onChange again
       e.target.value = '';
     }
   };
 
-  const handleDrop = (e: React.DragEvent<HTMLLabelElement>) => {
+  const handleDrop = async (e: React.DragEvent<HTMLLabelElement>) => {
     e.preventDefault();
     setIsDragging(false);
 
@@ -331,10 +389,8 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
         }
       });
 
-      // Check total images limit before adding
       const totalImages = existingImages.length + images.length + validImages.length;
 
-      // Show error messages with proper priority
       if (totalImages > 6) {
         setErrorMessage('You can upload a maximum of 6 images.');
         setShowErrorPopup(true);
@@ -352,9 +408,16 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
         setShowErrorPopup(true);
       }
 
-      // Add valid images even if there were duplicates/invalid files
       if (validImages.length > 0) {
-        setImages((prev) => [...prev, ...validImages]);
+        const compressedImages = await Promise.all(
+          validImages.map((file) =>
+            compressImage(file).catch((err) => {
+              console.error('Image compression failed, using original:', err);
+              return file;
+            }),
+          ),
+        );
+        setImages((prev) => [...prev, ...compressedImages]);
       }
     }
   };

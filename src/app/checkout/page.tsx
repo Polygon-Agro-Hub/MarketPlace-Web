@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useLayoutEffect, useRef } from "react";
 import TopNavigation from "@/components/top-navigation/TopNavigation";
 import CustomDropdown from "../../components/home/CustomDropdown";
 import Swal from "sweetalert2";
@@ -9,16 +9,23 @@ import { setFormData, resetFormData } from "../../store/slices/checkoutSlice";
 import { useRouter } from "next/navigation";
 import SuccessPopup from "@/components/toast-messages/success-message-with-button";
 import ErrorPopup from "@/components/toast-messages/error-message";
-import { getLastOrderAddress } from "@/services/retail-service";
+import { getRecentOrderAddress, getSavedAddresses, SavedAddress } from "@/services/retail-service";
 import { selectCartForOrder } from "../../store/slices/cartItemsSlice";
 import { getPickupCenters, PickupCenter } from "@/services/cart-service";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import summary from "../../../public/summary.png";
 import { getCities, City } from "@/services/cart-service";
+import { getAllCities, CityResult } from "@/services/auth-service";
 import GeoLocationModal from "@/components/delivery-map/GeoLocationModal";
-import { LocateFixed } from "lucide-react";
 import { updateCartInfo } from "@/store/slices/authSlice";
+import packageBasketImg from "../../../public/pp1.png";
+import reviewCalendarImg from "../../../public/pp2.png";
+import packageVeggiesImg from "../../../public/pp3.png";
+import cardPaymentImg from "../../../public/pp4.png";
+import { ChevronDown, XCircle, LocateFixed, AlertTriangle, X, Info } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCircleInfo } from "@fortawesome/free-solid-svg-icons";
 
 const OpenStreetMap = dynamic(
   () => import("@/components/open-map/OpenStreetMap"),
@@ -55,6 +62,7 @@ interface FormData {
   geoLatitude: number | null; // Add this
   geoLongitude: number | null; // Add this
   companycenterId?: any; // Add this to store companycenterId for later use
+  saveAs: string;
 }
 
 interface FormErrors {
@@ -77,9 +85,10 @@ interface FormErrors {
   street: string;
   cityName: string;
   scheduleType: string;
-  geoLatitude: string; // Add this
-  geoLongitude: string; // Add this
-  companycenterId?: any; // Add this to store companycenterId for later use
+  geoLatitude: string;
+  geoLongitude: string;
+  companycenterId?: any;
+  saveAs: string; // Add this
 }
 
 const initialFormState: FormData = {
@@ -105,6 +114,7 @@ const initialFormState: FormData = {
   geoLatitude: null, // Add this
   geoLongitude: null, // Add this
   companycenterId: null,
+  saveAs: "",
 };
 
 const initioalError = {
@@ -129,6 +139,7 @@ const initioalError = {
   scheduleType: "",
   geoLatitude: "",
   geoLongitude: "",
+  saveAs: "",
 }
 
 // Field label mapping for dynamic validation messages
@@ -183,10 +194,7 @@ const Page: React.FC = () => {
   const [showErrorPopup, setShowErrorPopup] = useState(false);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [searchParamsLoaded, setSearchParamsLoaded] = useState(false);
-  const [selectedPickupCenter, setSelectedPickupCenter] = useState<{
-    id: number;
-    name: string;
-  } | null>(null);
+  const [selectedPickupCenter, setSelectedPickupCenter] = useState<PickupCenter | null>(null);
   const [pickupCenters, setPickupCenters] = useState<PickupCenter[]>([]);
   const [loadingCenters, setLoadingCenters] = useState(false);
   const [mapCenter, setMapCenter] = useState<[number, number]>([
@@ -197,13 +205,99 @@ const Page: React.FC = () => {
   const [loadingCities, setLoadingCities] = useState(false);
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
   const [deliveryCharge, setDeliveryCharge] = useState<number>(0); // Default charge
-  const [hasPreviousAddress, setHasPreviousAddress] = useState(true);
   const [isGeoModalOpen, setIsGeoModalOpen] = useState(false);
   const [companycenterId, setCompanycenterId] = useState<number | null>(null);
   const [viewingSavedLocation, setViewingSavedLocation] = useState(false);
   const [isViewOnly, setIsViewOnly] = useState(false);
   const memoizedPickupCenters = useMemo(() => pickupCenters, [pickupCenters]);
   const authCart = useSelector((state: RootState) => state.auth.cart);
+  const [addressMode, setAddressMode] = useState<"recent" | "previous" | "new">("recent");
+  const [hasRecentAddress, setHasRecentAddress] = useState(false);
+  const [hasPreviousAddress, setHasPreviousAddress] = useState(false);
+  const [addressOptionsResolving, setAddressOptionsResolving] = useState(true);
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+  const [selectedAddressKey, setSelectedAddressKey] = useState<string | null>(null);
+  const [loadingSavedAddresses, setLoadingSavedAddresses] = useState(false);
+  const [recentAddressInfo, setRecentAddressInfo] = useState<{ saveAs: string; isSavedAddress: boolean } | null>(null);
+  const [cityAvailabilityMap, setCityAvailabilityMap] = useState<Map<string, boolean>>(new Map());
+  const [cityNotAvailable, setCityNotAvailable] = useState(false);
+  const [citySearchTerm, setCitySearchTerm] = useState("");
+  const [isCityDropdownOpen, setIsCityDropdownOpen] = useState(false);
+  const cityDropdownRef = useRef<HTMLDivElement>(null);
+
+  const [showPackagePopup, setShowPackagePopup] = useState(false);
+  const [packageHandlingOption, setPackageHandlingOption] = useState<"review" | "finalize">("review");
+  const cartPackages = useSelector((state: RootState) => state.cartItems.packages);
+  const userNearestCity = useSelector(
+    (state: RootState) => state.auth.user?.nearesCity,
+  ) as string | null | undefined;
+  console.log("userNearestCity in checkout page:", userNearestCity);
+  const [isNewAddressCityLocked, setIsNewAddressCityLocked] = useState(false);
+  console.log("cartPackages in checkout page:", cartPackages);
+  const hasPackages = cartPackages.length > 0;
+
+  const isReadOnly =
+    formData.deliveryMethod === "home" &&
+    (addressMode === "recent" || (addressMode === "previous" && !!selectedAddressKey));
+
+  const isCityFieldLocked =
+    isReadOnly ||
+    (formData.deliveryMethod === "home" && addressMode === "new" && !hasRecentAddress);
+
+  const hideDeliveryInfoSection =
+    formData.deliveryMethod === "home" &&
+    addressMode === "previous" &&
+    !!selectedAddressKey;
+
+  const firstCardRef = useRef<HTMLButtonElement>(null);
+  const [twoRowHeight, setTwoRowHeight] = useState<number | null>(null);
+
+  const [allCityResults, setAllCityResults] = useState<CityResult[]>([]);
+
+  useEffect(() => {
+    const fetchCityAvailability = async () => {
+      try {
+        const results: CityResult[] = await getAllCities();
+        setAllCityResults(results);
+
+        const map = new Map<string, boolean>();
+        results.forEach((c) => map.set(c.city.trim().toLowerCase(), c.isAvailable));
+        setCityAvailabilityMap(map);
+      } catch (error) {
+        console.error("Failed to fetch city availability:", error);
+      }
+    };
+    fetchCityAvailability();
+  }, []);
+
+  useEffect(() => {
+    if (
+      formData.deliveryMethod === "home" &&
+      addressMode === "new" &&
+      userNearestCity &&
+      allCityResults.length > 0 &&
+      cities.length > 0 &&              // ✅ wait for pricing data too
+      !formData.cityName
+    ) {
+      handleCitySelect(userNearestCity);
+      setCitySearchTerm(userNearestCity);
+    }
+  }, [
+    addressMode,
+    formData.deliveryMethod,
+    userNearestCity,
+    allCityResults,
+    cities,                              // ✅ add to deps so it re-checks once cities arrives
+    formData.cityName,
+  ]);
+
+  useLayoutEffect(() => {
+    if (firstCardRef.current) {
+      const cardHeight = firstCardRef.current.offsetHeight;
+      const gap = 12; // matches gap-3 (0.75rem = 12px)
+      setTwoRowHeight(cardHeight * 2 + gap);
+    }
+  }, [savedAddresses, addressMode]);
 
   useEffect(() => {
     // Only run on client side
@@ -227,14 +321,26 @@ const Page: React.FC = () => {
     setSearchParamsLoaded(true);
   }, []);
 
+  // useEffect(() => {
+  //   // Reset delivery charge when delivery method changes
+  //   if (formData.deliveryMethod === "pickup") {
+  //     setDeliveryCharge(0);
+  //   } else if (formData.deliveryMethod === "home" && !selectedCity) {
+  //     setDeliveryCharge(0); // Default home delivery charge
+  //   }
+  // }, [formData.deliveryMethod, selectedCity]);
+
   useEffect(() => {
-    // Reset delivery charge when delivery method changes
-    if (formData.deliveryMethod === "pickup") {
-      setDeliveryCharge(0);
-    } else if (formData.deliveryMethod === "home" && !selectedCity) {
-      setDeliveryCharge(0); // Default home delivery charge
-    }
-  }, [formData.deliveryMethod, selectedCity]);
+    const handleClickOutside = (e: MouseEvent) => {
+      if (cityDropdownRef.current && !cityDropdownRef.current.contains(e.target as Node)) {
+        setIsCityDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+
 
   useEffect(() => {
     const baseTotal = cartData?.grandTotal || 0;
@@ -246,6 +352,7 @@ const Page: React.FC = () => {
     dispatch(updateCartInfo({
       price: parseFloat(finalTotal.toFixed(2)),
       count: authCart.count,
+      creditBalance: authCart.creditBalance,
     }));
   }, [deliveryCharge, formData.deliveryMethod]);
 
@@ -296,6 +403,10 @@ const Page: React.FC = () => {
   ]);
 
   useEffect(() => {
+    setCitySearchTerm(selectedCity?.city || "");
+  }, [selectedCity]);
+
+  useEffect(() => {
     const fetchCities = async () => {
       setLoadingCities(true);
       try {
@@ -316,11 +427,175 @@ const Page: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // Set default to saved address if delivery method is home on initial load
+    const fetchCityAvailability = async () => {
+      try {
+        const results: CityResult[] = await getAllCities();
+        const map = new Map<string, boolean>();
+        results.forEach((c) => map.set(c.city.trim().toLowerCase(), c.isAvailable));
+        setCityAvailabilityMap(map);
+      } catch (error) {
+        console.error("Failed to fetch city availability:", error);
+      }
+    };
+
+    fetchCityAvailability();
+  }, []);
+
+  const isCityAvailable = (cityName: string): boolean => {
+    if (!cityName) return true;
+    if (cityAvailabilityMap.size === 0) return true; // don't block while loading or on fetch failure
+    return cityAvailabilityMap.get(cityName.trim().toLowerCase()) ?? true;
+  };
+
+  useEffect(() => {
     if (formData.deliveryMethod === "home" && searchParamsLoaded) {
-      handleAddressOptionChange("previous");
+      initializeAddressOptions();
     }
   }, [formData.deliveryMethod, searchParamsLoaded, cities]);
+
+  const filteredCityOptions = useMemo(() => {
+    if (!citySearchTerm.trim()) return allCityResults;
+    const term = citySearchTerm.trim().toLowerCase();
+    return allCityResults.filter((c) => c.city.toLowerCase().includes(term));
+  }, [citySearchTerm, allCityResults]);
+
+  const handleCitySearchChange = (value: string) => {
+    setCitySearchTerm(value);
+    setIsCityDropdownOpen(true);
+
+    if (!value.trim()) {
+      setSelectedCity(null);
+      setFormDataLocal((prev) => ({ ...prev, cityName: "" }));
+      setDeliveryCharge(0);
+      setCityNotAvailable(false);
+    }
+  };
+
+  const handleCityArrowClick = () => {
+    if (isCityFieldLocked) return;
+    setIsCityDropdownOpen((prev) => !prev);
+  };
+
+  const handleCityClear = () => {
+    setCitySearchTerm("");
+    setSelectedCity(null);
+    setFormDataLocal((prev) => ({ ...prev, cityName: "" }));
+    setDeliveryCharge(0);
+    setCityNotAvailable(false);
+    setErrors((prev) => ({ ...prev, cityName: "" }));
+    setIsCityDropdownOpen(true);
+  };
+
+  const handleCityOptionSelect = (city: CityResult) => {
+    handleCitySelect(city.city);
+    setCitySearchTerm(city.city);
+    setIsCityDropdownOpen(false);
+  };
+
+  const initializeAddressOptions = async () => {
+    setAddressOptionsResolving(true);
+    setIsLoadingAddress(true);
+    setLoadingSavedAddresses(true);
+    setErrors(initioalError);
+
+    try {
+      // Fire both requests in parallel — each one's existence is independent info,
+      // not a fallback signal for the other.
+      const [recentResult, savedResult] = await Promise.allSettled([
+        getRecentOrderAddress(token),
+        getSavedAddresses(token),
+      ]);
+
+      // --- Saved addresses: always populate this, regardless of recent's outcome ---
+      let savedList: SavedAddress[] = [];
+      if (savedResult.status === "fulfilled" && savedResult.value?.status && savedResult.value?.hasAddress) {
+        savedList = savedResult.value.result;
+        setHasPreviousAddress(true);
+        setSavedAddresses(savedList);
+      } else {
+        setHasPreviousAddress(false);
+        setSavedAddresses([]);
+      }
+
+      // --- Recent address: decide default mode + prefill ---
+      const recentOk =
+        recentResult.status === "fulfilled" &&
+        recentResult.value?.status &&
+        recentResult.value?.hasAddress;
+
+      if (recentOk) {
+        setHasRecentAddress(true);
+        setAddressMode("recent");
+        prefillFromRecent(recentResult.value.result);
+      } else {
+        setHasRecentAddress(false);
+
+        if (savedList.length > 0) {
+          setAddressMode("previous");
+          selectSavedAddress(savedList[0]);
+        } else {
+          setAddressMode("new");
+          setSelectedCity(null);
+          setFormDataLocal((prev) => ({
+            ...initialFormState,
+            deliveryMethod: prev.deliveryMethod,
+          }));
+          setDeliveryCharge(0);
+        }
+      }
+    } catch (error: any) {
+      console.error("Failed to initialize address options:", error);
+      setHasRecentAddress(false);
+      setHasPreviousAddress(false);
+      setAddressMode("new");
+    } finally {
+      setIsLoadingAddress(false);
+      setLoadingSavedAddresses(false);
+      setAddressOptionsResolving(false);
+    }
+  };
+
+  const prefillFromRecent = (data: any) => {
+    const cityData = cities.find(
+      (city) => city.city.toLowerCase() === (data.city || "").toLowerCase(),
+    );
+    if (cityData) {
+      setSelectedCity(cityData);
+      const charge = parseFloat(cityData.charge);
+      setDeliveryCharge(charge);
+      setCompanycenterId(cityData.companycenterId);
+    }
+    setCityNotAvailable(!isCityAvailable(data.city || ""));
+
+    setRecentAddressInfo({
+      saveAs: data.saveAs || "",
+      isSavedAddress: !!data.isSavedAddress,
+    });
+
+    setFormDataLocal((prev) => ({
+      ...prev,
+      buildingType: data.buildingType || "Apartment",
+      title: data.title ? data.title.replace(/\./g, "") : "",
+      fullName: data.fullName || "",
+      phone1: data.phone1 || "",
+      phone2: data.phone2 || "",
+      phoneCode1: data.phonecode1 || "+94",
+      phoneCode2: data.phonecode2 || "+94",
+      scheduleType: "One Time",
+      houseNo: data.houseNo || "",
+      street: data.streetName || "",
+      cityName: data.city || "",
+      buildingNo: data.buildingNo || "",
+      buildingName: data.buildingName || "",
+      flatNumber: data.unitNo || "",
+      floorNumber: data.floorNo || "",
+      geoLatitude: data.latitude ? parseFloat(data.latitude) : null,
+      geoLongitude: data.longitude ? parseFloat(data.longitude) : null,
+      // Only send saveAs downstream when this recent address is actually a saved one
+      saveAs: data.isSavedAddress ? (data.saveAs || "") : "",
+    }));
+  };
+
 
   // 5. Create city dropdown options
   const cityOptions = cities.map((city) => ({
@@ -344,100 +619,102 @@ const Page: React.FC = () => {
     }));
   };
 
-  const handleAddressOptionChange = async (value: string) => {
-    if (value === "previous") {
-      setUsePreviousAddress(true);
-      setFetching(true);
-      setIsLoadingAddress(true); // Start loading
-      setErrors(initioalError)
-
+  const handleAddressOptionChange = async (value: "recent" | "previous" | "new") => {
+    if (value === "recent") {
+      setAddressMode("recent");
+      setIsLoadingAddress(true);
+      setErrors(initioalError);
       try {
-        const response = await getLastOrderAddress(token);
-
-        // Check if response has hasAddress field
-        if (response && response.hasAddress === false) {
-          // No previous address found - hide the saved address option
-          setHasPreviousAddress(false);
-          setUsePreviousAddress(false);
-          // Switch to new address mode
-          setFormDataLocal((prev) => ({
-            ...initialFormState,
-            deliveryMethod: prev.deliveryMethod,
-          }));
-          setSelectedCity(null);
-          setDeliveryCharge(0);
-        } else if (response && response.status) {
-          // Previous address found - show the saved address option
-          setHasPreviousAddress(true);
-          const data = response.result;
-
-          const cityData = cities.find(
-            (city) => city.city.toLowerCase() === data.city.toLowerCase(),
-          );
-          if (cityData) {
-            setSelectedCity(cityData);
-            // Set delivery charge for previous address city
-            const charge = parseFloat(cityData.charge);
-            setDeliveryCharge(charge);
-            setCompanycenterId(cityData.companycenterId);
-          }
-
-          // Update form data based on building type
-          setFormDataLocal((prev) => ({
-            ...prev,
-            buildingType: data.buildingType || "Apartment",
-            title: data.title ? data.title.replace(/\./g, '') : "",
-            fullName: data.fullName || "",
-            phone1: data.phone1 || "",
-            phone2: data.phone2 || "",
-            phoneCode1: data.phonecode1 || "+94",
-            phoneCode2: data.phonecode2 || "+94",
-            scheduleType: "One Time", // default
-            // Common address fields
-            houseNo: data.houseNo || "",
-            street: data.streetName || "",
-            cityName: data.city || "",
-            // Apartment-specific fields (will be empty for House type)
-            buildingNo: data.buildingNo || "",
-            buildingName: data.buildingName || "",
-            flatNumber: data.unitNo || "",
-            floorNumber: data.floorNo || "",
-            // Geo location coordinates
-            geoLatitude: data.latitude ? parseFloat(data.latitude) : null,
-            geoLongitude: data.longitude ? parseFloat(data.longitude) : null,
-          }));
+        const response = await getRecentOrderAddress(token);
+        if (response && response.status && response.hasAddress) {
+          prefillFromRecent(response.result);
         }
       } catch (error: any) {
-        console.error("Failed to fetch last order address:", error);
-        // On error, assume no previous address and hide the option
-        setHasPreviousAddress(false);
-        setUsePreviousAddress(false);
-        setFormDataLocal((prev) => ({
-          ...initialFormState,
-          deliveryMethod: prev.deliveryMethod,
-        }));
-        setSelectedCity(null);
-        setDeliveryCharge(0);
+        console.error("Failed to fetch recent order address:", error);
       } finally {
-        setFetching(false);
-        setIsLoadingAddress(false); // Stop loading
+        setIsLoadingAddress(false);
+      }
+    } else if (value === "previous") {
+      setAddressMode("previous");
+      setRecentAddressInfo(null);
+      if (savedAddresses.length > 0 && !selectedAddressKey) {
+        selectSavedAddress(savedAddresses[0]);
       }
     } else {
-      setUsePreviousAddress(false);
-      setIsLoadingAddress(true); // Start loading for new address
+      setAddressMode("new");
+      setRecentAddressInfo(null);
+      setSelectedAddressKey(null);
       setSelectedCity(null);
-      // Reset only the form fields, keep the delivery method
+      setCityNotAvailable(false);
       setFormDataLocal((prev) => ({
         ...initialFormState,
-        deliveryMethod: prev.deliveryMethod, // Preserve the current delivery method
+        deliveryMethod: prev.deliveryMethod,
       }));
-      // Reset delivery charge to default
       setDeliveryCharge(0);
-      // Simulate brief loading for UI consistency
-      setTimeout(() => {
-        setIsLoadingAddress(false); // Stop loading
-      }, 300);
     }
+  };
+
+
+
+  const selectSavedAddress = (addr: SavedAddress) => {
+    setSelectedAddressKey(addr.addressKey);
+
+    const cityData = cities.find(
+      (city) => city.city.toLowerCase() === (addr.city || "").toLowerCase(),
+    );
+    if (cityData) {
+      setSelectedCity(cityData);
+      const charge = parseFloat(cityData.charge);
+      setDeliveryCharge(charge);
+      setCompanycenterId(cityData.companycenterId);
+    }
+
+    if (cityData) {
+      setSelectedCity(cityData);
+      const charge = parseFloat(cityData.charge);
+      setDeliveryCharge(charge);
+      setCompanycenterId(cityData.companycenterId);
+    }
+    setCityNotAvailable(!isCityAvailable(addr.city || ""));
+
+
+    setFormDataLocal((prev) => ({
+      ...prev,
+      buildingType: addr.buildingType || "Apartment",
+      title: addr.title ? addr.title.replace(/\./g, "") : "",
+      fullName: addr.fullName || "",
+      phone1: addr.phone1 || "",
+      phone2: addr.phone2 || "",
+      phoneCode1: addr.phonecode1 || "+94",
+      phoneCode2: addr.phonecode2 || "+94",
+      scheduleType: "One Time",
+      houseNo: addr.houseNo || "",
+      street: addr.streetName || "",
+      cityName: addr.city || "",
+      buildingNo: addr.buildingNo || "",
+      buildingName: addr.buildingName || "",
+      flatNumber: addr.unitNo || "",
+      floorNumber: addr.floorNo || "",
+      geoLatitude: addr.latitude ? parseFloat(addr.latitude as any) : null,
+      geoLongitude: addr.longitude ? parseFloat(addr.longitude as any) : null,
+      saveAs: addr.saveAs || "", // Add this
+    }));
+
+    setErrors((prev) => ({
+      ...prev,
+      title: "",
+      fullName: "",
+      phone1: "",
+      houseNo: "",
+      street: "",
+      cityName: "",
+      buildingName: "",
+      buildingNo: "",
+      flatNumber: "",
+      floorNumber: "",
+      geoLatitude: "",
+      geoLongitude: "",
+    }));
   };
 
   useEffect(() => {
@@ -469,13 +746,9 @@ const Page: React.FC = () => {
 
     if (selectedCenter) {
       const centerIdAsNumber = parseInt(centerId, 10);
-      setSelectedPickupCenter({ id: centerIdAsNumber, name: centerName });
+      setSelectedPickupCenter(selectedCenter);
       setFormDataLocal((prev) => ({ ...prev, centerId: centerIdAsNumber }));
-
-      // Clear centerId error when center is selected
       setErrors((prev) => ({ ...prev, centerId: "" }));
-
-      // Update map center and zoom to selected pickup center
       setMapCenter([selectedCenter.latitude, selectedCenter.longitude]);
       setMapZoom(15);
     }
@@ -504,7 +777,27 @@ const Page: React.FC = () => {
     return `${year}-${month}-${day}`;
   };
 
+  const readOnlyFields: (keyof FormData)[] = [
+    "title",
+    "fullName",
+    "phone1",
+    "phone2",
+    "phoneCode1",
+    "phoneCode2",
+    "buildingType",
+    "buildingNo",
+    "buildingName",
+    "flatNumber",
+    "floorNumber",
+    "houseNo",
+    "street",
+    "cityName",
+    "geoLatitude",
+    "geoLongitude",
+  ];
+
   const handleFieldChange = (field: keyof FormData, value: string | number) => {
+    if (isReadOnly && readOnlyFields.includes(field)) return;
     // Update the form state
     setFormDataLocal((prev) => ({ ...prev, [field]: value }));
 
@@ -538,16 +831,17 @@ const Page: React.FC = () => {
         scheduleType: "",
         geoLatitude: "",
         geoLongitude: "",
+        saveAs: "",
       });
 
       if (value === "home") {
         setUsePreviousAddress(true);
-        setSelectedPickupCenter(null); // Clear pickup center selection
-        // Trigger fetch of previous address
-        handleAddressOptionChange("previous");
+        setSelectedPickupCenter(null);
+        handleAddressOptionChange("recent");
       } else if (value === "pickup") {
         setUsePreviousAddress(false);
         setSelectedCity(null); // Clear city selection
+        setCityNotAvailable(false);
         setDeliveryCharge(0); // Reset delivery charge
         const basicInfo = {
           title: formData.title,
@@ -630,8 +924,12 @@ const Page: React.FC = () => {
       if (error) return false;
     }
 
-    // Additional check: For home delivery, ensure selectedCity is not null
     if (isHomeDelivery && !selectedCity) {
+      return false;
+    }
+
+    // New: block submit if the chosen city isn't deliverable yet
+    if (isHomeDelivery && cityNotAvailable) {
       return false;
     }
 
@@ -644,27 +942,43 @@ const Page: React.FC = () => {
     setIsFormValidState(isFormValid());
   }, [formData, errors]);
 
-  // Updated validateField function - replace the existing one
-  const handleCitySelect = (cityId: string, cityName: string) => {
-    const selectedCityData = cities.find(
-      (city) => city.id.toString() === cityId,
+  const handleCitySelect = (cityName: string) => {
+    // Find the city in the full availability list (auth-service) — source of truth for availability
+    const cityResult = allCityResults.find(
+      (city) => city.city.trim().toLowerCase() === cityName.trim().toLowerCase(),
     );
 
-    if (selectedCityData) {
-      setSelectedCity(selectedCityData);
+    if (!cityResult) return; // shouldn't happen if called from the dropdown list itself
+
+    // Try to find matching pricing/center data from the cart-service list (only present for available cities)
+    const matchedCity = cities.find(
+      (city) => city.city.trim().toLowerCase() === cityName.trim().toLowerCase(),
+    );
+
+    if (matchedCity) {
+      // City has pricing/center data — fully available for delivery
+      setSelectedCity(matchedCity);
       setFormDataLocal((prev) => ({
         ...prev,
-        cityName: selectedCityData.city,
+        cityName: matchedCity.city,
       }));
 
-      // Set delivery charge based on selected city
-      const charge = parseFloat(selectedCityData.charge);
-      setDeliveryCharge(charge);
-      setCompanycenterId(selectedCityData.companycenterId); // Store companycenterId for later use
-
-      // Clear any existing cityName error
-      setErrors((prev) => ({ ...prev, cityName: "" }));
+      const charge = parseFloat(matchedCity.charge);
+      setDeliveryCharge(isNaN(charge) ? 0 : charge);
+      setCompanycenterId(matchedCity.companycenterId);
+    } else {
+      // City exists but has no pricing/center info — not deliverable yet
+      setSelectedCity(null);
+      setFormDataLocal((prev) => ({
+        ...prev,
+        cityName: cityResult.city,
+      }));
+      setDeliveryCharge(0);
+      setCompanycenterId(null);
     }
+
+    setCityNotAvailable(!isCityAvailable(cityResult.city));
+    setErrors((prev) => ({ ...prev, cityName: "" }));
   };
 
   const validateField = (
@@ -808,12 +1122,20 @@ const Page: React.FC = () => {
       return;
     }
 
+    if (hasPackages) {
+      setShowPackagePopup(true);
+      return;
+    }
+
+    await proceedToPayment();
+  };
+
+  const proceedToPayment = async () => {
     try {
       setIsLoading(true);
 
       let dataToSubmit: FormData = {
         ...initialFormState,
-        // Always include shared fields
         deliveryMethod: formData.deliveryMethod,
         title: formData.title,
         fullName: formData.fullName,
@@ -824,10 +1146,10 @@ const Page: React.FC = () => {
         deliveryDate: formData.deliveryDate,
         timeSlot: formData.timeSlot,
         scheduleType: formData.scheduleType,
-        // Include geo location coordinates
         geoLatitude: formData.geoLatitude,
         geoLongitude: formData.geoLongitude,
-        companycenterId: companycenterId, // Include companycenterId for later use
+        companycenterId: companycenterId,
+        saveAs: formData.deliveryMethod === "home" ? (formData.saveAs || "") : "", // Add this
       };
 
       if (formData.deliveryMethod === "home") {
@@ -842,7 +1164,6 @@ const Page: React.FC = () => {
             houseNo: formData.houseNo,
             street: formData.street,
             cityName: formData.cityName,
-            // Geo location already included above
           };
         } else if (formData.buildingType === "House") {
           dataToSubmit = {
@@ -851,7 +1172,6 @@ const Page: React.FC = () => {
             houseNo: formData.houseNo,
             street: formData.street,
             cityName: formData.cityName,
-            // Geo location already included above
           };
         }
       } else if (formData.deliveryMethod === "pickup") {
@@ -862,7 +1182,10 @@ const Page: React.FC = () => {
       }
 
       dispatch(resetFormData());
-      dispatch(setFormData(dataToSubmit));
+      dispatch(setFormData({
+        ...dataToSubmit,
+        isFinalizeImdt: hasPackages && packageHandlingOption === "finalize" ? 1 : 0,
+      } as any));
       localStorage.setItem("deliveryCharge", deliveryCharge.toString());
 
       await new Promise((resolve) => setTimeout(resolve, 2500));
@@ -880,6 +1203,11 @@ const Page: React.FC = () => {
     }
   };
 
+  const handlePackagePopupContinue = async () => {
+    setShowPackagePopup(false);
+    await proceedToPayment();
+  };
+
   const formatPrice = (price: number): string => {
     // Convert to fixed decimal first, then add commas
     const fixedPrice = Number(price).toFixed(2);
@@ -893,11 +1221,6 @@ const Page: React.FC = () => {
 
   const countries: any[] = [
     { code: "LK", dialCode: "+94", name: "Sri Lanka" },
-    { code: "VN", dialCode: "+84", name: "Vietnam" },
-    { code: "KH", dialCode: "+855", name: "Cambodia" },
-    { code: "BD", dialCode: "+880", name: "Bangladesh" },
-    { code: "IN", dialCode: "+91", name: "India" },
-    { code: "NL", dialCode: "+31", name: "Netherlands" },
   ];
 
   const getFlagUrl = (countryCode: string): string => {
@@ -927,7 +1250,152 @@ const Page: React.FC = () => {
         description="Something happen, Please try again!"
       />
       <form onSubmit={handleSubmit}>
-        <div className="px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5 ">
+        <div className="px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5 pt-10 sm:pt-12">
+          {showPackagePopup && (
+            <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-3 sm:p-4">
+              <div className="bg-white rounded-2xl w-full max-w-2xl sm:max-w-3xl max-h-[90vh] overflow-y-auto p-4 sm:p-6 relative">
+                {/* Close button */}
+                <button
+                  type="button"
+                  onClick={() => setShowPackagePopup(false)}
+                  className="absolute top-3 right-3 sm:top-4 sm:right-4 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors cursor-pointer"
+                  aria-label="Close"
+                >
+                  <X size={16} className="text-gray-600 sm:hidden" />
+                  <X size={18} className="text-gray-600 hidden sm:block" />
+                </button>
+
+                {/* Header */}
+                <div className="flex items-center gap-2.5 sm:gap-4 mb-3 sm:mb-5 pr-8">
+                  <div className="flex-shrink-0 w-14 h-14 sm:w-20 sm:h-20 relative">
+                    <Image src={packageBasketImg} alt="Package items" fill className="object-contain" />
+                  </div>
+                  <h2 className="text-[15px] sm:text-xl font-bold text-[#252525] leading-snug">
+                    How would you like us to handle your order&apos;s
+                    <br />
+                    package items?
+                  </h2>
+                </div>
+
+                {/* Option 1: Review and confirm */}
+                <button
+                  type="button"
+                  onClick={() => setPackageHandlingOption("review")}
+                  style={{
+                    background: packageHandlingOption === "review"
+                      ? "linear-gradient(180deg, #F7F2FF 0%, #F6F0FF 100%)"
+                      : "#FFFFFF",
+                    border: `1px solid ${packageHandlingOption === "review" ? "#B186EF" : "#E5E7EE"}`,
+                    boxShadow: "0px 4px 10px 5px #F8F2FF",
+                  }}
+                  className="w-full text-left rounded-xl p-3 sm:p-4 mb-3 sm:mb-4 transition-colors cursor-pointer"
+                >
+                  <div className="flex items-start gap-2 sm:gap-3">
+                    <span
+                      className={`mt-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${packageHandlingOption === "review" ? "border-[#3E206D]" : "border-gray-300"
+                        }`}
+                    >
+                      {packageHandlingOption === "review" && (
+                        <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-[#3E206D]" />
+                      )}
+                    </span>
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 relative flex-shrink-0">
+                      <Image src={reviewCalendarImg} alt="Review and confirm" fill className="object-contain" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p
+                        className="font-bold text-[15px] sm:text-[18px] mb-1"
+                        style={{ color: packageHandlingOption === "review" ? "#47108E" : "#2A272E" }}
+                      >
+                        Review and confirm before delivery
+                      </p>
+                      <p className="text-[12.5px] sm:text-[14px] text-gray-600 leading-snug">
+                        Two days before your delivery or pickup, you&apos;ll receive an in-app notification
+                        with the exact produce and quantities. Confirm your order between 8:00 AM and 6:00 PM
+                        to finalize it for dispatch or pickup.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Orange warning box */}
+                  {/* Orange warning box */}
+                  {/* Orange warning box */}
+                  <div className="mt-3 flex items-stretch gap-2 sm:gap-3">
+                    <div className="flex items-start gap-2 sm:gap-3 bg-[#FFF9F5] border border-orange-200 rounded-lg p-2.5 sm:p-3 flex-1">
+                      <AlertTriangle size={16} className="text-[#EE7719] flex-shrink-0 mt-0.5 sm:hidden" />
+                      <AlertTriangle size={18} className="text-[#EE7719] flex-shrink-0 mt-0.5 hidden sm:block" />
+                      <p className="text-[12px] sm:text-[14px] text-[#EE7719] leading-snug flex-1">
+                        This facility is available on a first-come, first-served basis and is limited to a
+                        certain number of customers. If we do not receive your confirmation on time and all
+                        slots for your preferred delivery date are filled, we will be unable to process your
+                        order. You may check again later for any available slots.
+                      </p>
+                    </div>
+                    {/* Veggie image — matches the orange box's full height */}
+                    <div className="flex-shrink-0 w-16 sm:w-28 relative">
+                      <Image src={packageVeggiesImg} alt="" fill className="object-contain drop-shadow-md" />
+                    </div>
+                  </div>
+                </button>
+
+                {/* Option 2: Finalize immediately */}
+                <button
+                  type="button"
+                  onClick={() => setPackageHandlingOption("finalize")}
+                  style={{
+                    background: packageHandlingOption === "finalize"
+                      ? "linear-gradient(180deg, #F7F2FF 0%, #F6F0FF 100%)"
+                      : "#FFFFFF",
+                    border: `1px solid ${packageHandlingOption === "finalize" ? "#B186EF" : "#E5E7EE"}`,
+                    boxShadow: "0px 4px 10px 5px #F8F2FF",
+                  }}
+                  className="w-full text-left rounded-xl p-3 sm:p-4 mb-4 sm:mb-5 transition-colors cursor-pointer"
+                >
+                  <div className="flex items-start gap-2 sm:gap-3">
+                    <span
+                      className={`mt-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${packageHandlingOption === "finalize" ? "border-[#3E206D]" : "border-gray-300"
+                        }`}
+                    >
+                      {packageHandlingOption === "finalize" && (
+                        <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-[#3E206D]" />
+                      )}
+                    </span>
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 relative flex-shrink-0">
+                      <Image src={cardPaymentImg} alt="Finalize immediately" fill className="object-contain" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1">
+                        <p
+                          className="font-bold text-[15px] sm:text-[18px]"
+                          style={{ color: packageHandlingOption === "finalize" ? "#47108E" : "#2A272E" }}
+                        >
+                          Finalize Immediately
+                        </p>
+                        <span className="text-[10px] sm:text-[11px] font-medium text-blue-700 bg-blue-100 px-1.5 sm:px-2 py-0.5 rounded-full whitespace-nowrap">
+                          Card Payment Required
+                        </span>
+                      </div>
+                      <p className="text-[12.5px] sm:text-[14px] text-gray-600 leading-snug">
+                        Want to secure your delivery slot now? Confirm your order right away and we&apos;ll
+                        prepare it using the standard package items assigned for your delivery date. Please
+                        note that once confirmed, this order cannot be changed or canceled.
+                      </p>
+                    </div>
+                  </div>
+                </button>
+
+                {/* Continue button */}
+                <button
+                  type="button"
+                  onClick={handlePackagePopupContinue}
+                  disabled={isLoading}
+                  className="w-full font-semibold text-[14px] sm:text-base rounded-xl py-3 sm:py-3.5 bg-[#3E206D] text-white hover:bg-[#2f1854] transition cursor-pointer disabled:opacity-70"
+                >
+                  {isLoading ? "Processing..." : "Continue to Payment"}
+                </button>
+              </div>
+            </div>
+          )}
           <TopNavigation NavArray={NavArray} />
 
           <div className="flex flex-col lg:flex-row lg:items-start gap-4 sm:gap-6 items-start mt-6 ">
@@ -950,67 +1418,148 @@ const Page: React.FC = () => {
                   />
                 </div>
 
-                {formData.deliveryMethod === "home" && (
-                  <div className="flex flex-col md:flex-row ">
-                    <div className="flex md:gap-8 gap-2 flex-nowrap ">
-                      {/* Only show "Your Saved Address" option if hasPreviousAddress is true */}
+                {formData.deliveryMethod === "home" && addressOptionsResolving && (
+                  <div className="flex items-center gap-2 text-sm text-gray-500 py-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
+                    Checking saved addresses...
+                  </div>
+                )}
+
+                {formData.deliveryMethod === "home" && !addressOptionsResolving && (
+                  <div className="flex flex-col md:flex-row w-full md:w-auto md:items-center ">
+                    <div className="flex flex-wrap gap-x-4 sm:gap-x-6 md:gap-x-8 gap-y-2 md:items-center">
+                      {hasRecentAddress && (
+                        <label className="flex items-center whitespace-nowrap text-sm md:text-base cursor-pointer">
+                          <input
+                            type="radio"
+                            name="addressMode"
+                            value="recent"
+                            checked={addressMode === "recent"}
+                            onChange={() => handleAddressOptionChange("recent")}
+                            className="mr-2 accent-[#3E206D] cursor-pointer"
+                          />
+                          Recent Address
+                        </label>
+                      )}
+
                       {hasPreviousAddress && (
-                        <label className="flex items-center text-nowrap text-sm md:text-base cursor-pointer">
+                        <label className="flex items-center whitespace-nowrap text-sm md:text-base cursor-pointer">
                           <input
                             type="radio"
                             name="addressMode"
                             value="previous"
-                            checked={usePreviousAddress}
-                            onChange={() =>
-                              handleAddressOptionChange("previous")
-                            }
+                            checked={addressMode === "previous"}
+                            onChange={() => handleAddressOptionChange("previous")}
                             className="mr-2 accent-[#3E206D] cursor-pointer"
                           />
-                          Your Saved Address
+                          Saved Address
                         </label>
                       )}
 
-                      <label className="flex items-center text-nowrap text-sm md:text-base cursor-pointer">
+                      <label className="flex items-center whitespace-nowrap text-sm md:text-base cursor-pointer">
                         <input
                           type="radio"
                           name="addressMode"
                           value="new"
-                          checked={!usePreviousAddress}
+                          checked={addressMode === "new"}
                           onChange={() => handleAddressOptionChange("new")}
-                          className="mr-2 accent-[#3E206D] cursor-pointer "
+                          className="mr-2 accent-[#3E206D] cursor-pointer"
                         />
-                        Enter New Address
+                        New Address
                       </label>
                     </div>
                   </div>
                 )}
+
+                {formData.deliveryMethod === "home" && !addressOptionsResolving && addressMode === "previous" && (
+                  <div className="mb-6 w-full">
+                    <h3 className="font-bold text-base mb-3 mt-2 text-[#252525]">Saved Addresses</h3>
+
+                    {loadingSavedAddresses ? (
+                      <div className="flex justify-center items-center py-8 bg-[#FAF5FD] rounded-xl">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#DBD0F4]"></div>
+                      </div>
+                    ) : (
+                      <div className="bg-[#FAF5FD] border border-[#DBD0F4] rounded-xl p-3 w-full overflow-hidden">
+                        <div
+                          className="grid grid-cols-1 md:grid-cols-2 gap-3 overflow-y-auto pr-1 w-full"
+                          style={
+                            savedAddresses.length > 2 && twoRowHeight
+                              ? { maxHeight: `${twoRowHeight}px` }
+                              : undefined
+                          }
+                        >
+                          {savedAddresses.map((addr, index) => {
+                            const isSelected = selectedAddressKey === addr.addressKey;
+
+                            const summary =
+                              addr.buildingType === "Apartment"
+                                ? [
+                                  addr.buildingNo,
+                                  addr.buildingName,
+                                  addr.unitNo,
+                                  addr.floorNo,
+                                  addr.houseNo,
+                                  addr.streetName,
+                                  addr.city,
+                                ]
+                                  .filter((part) => part && part.toString().trim())
+                                  .join(", ")
+                                : [addr.houseNo, addr.streetName, addr.city]
+                                  .filter((part) => part && part.toString().trim())
+                                  .join(", ");
+
+                            return (
+                              <button
+                                type="button"
+                                key={addr.addressKey}
+                                ref={index === 0 ? firstCardRef : undefined}
+                                onClick={() => selectSavedAddress(addr)}
+                                style={{
+                                  backgroundColor: "#FFFFFF",
+                                  border: isSelected ? "2px solid #3E206D" : "1px solid #DBDADD",
+                                  boxShadow: "2px 2px 4px 0px rgba(0, 0, 0, 0.10)",
+                                }}
+                                className="min-w-0 w-full text-left p-4 rounded-lg transition-colors box-border cursor-pointer"
+                              >
+                                <div className="flex items-center gap-2 mb-1.5 min-w-0">
+                                  <span
+                                    className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${isSelected ? "border-[#3E206D]" : "border-gray-300"
+                                      }`}
+                                  >
+                                    {isSelected && <span className="w-2 h-2 rounded-full bg-[#3E206D]" />}
+                                  </span>
+                                  <p className="font-semibold text-[#252525] truncate">{addr.saveAs || addr.buildingType}</p>
+                                </div>
+                                <p className="text-sm text-gray-500 leading-snug pl-6 break-words">{summary}</p>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
               </div>
-              <div className="border-t border-gray-300 my-6"></div>
 
               {formData.deliveryMethod === "pickup" && (
                 <div className="w-full mb-6">
                   <h2 className="text-xl font-bold mb-6 mt-8 text-[#252525]">
-                    Find your nearest center
+                    Find your nearest centre
                   </h2>
-
-                  {/* Center Selection Dropdown - ABOVE the map */}
-                  {/* Center Selection Dropdown - ABOVE the map */}
-                  <div className="mb-4 relative z-50">
-                    <label className="block font-semibold mb-2 text-[#2E2E2E]">
-                      Select Pickup Center
+                  <div className="mb-4 relative">
+                    <label className="block font-semibold mb-2 text-[#2E2E2E] bg-white">
+                      Select Pickup Centre
                     </label>
                     {loadingCenters ? (
                       <div className="w-full h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] rounded-lg flex items-center justify-center">
-                        <span className="text-sm text-gray-500">
-                          Loading centers...
-                        </span>
+                        <span className="text-sm text-gray-500">Loading centers...</span>
                       </div>
                     ) : (
                       <CustomDropdown
                         options={pickupCenterOptions}
-                        selectedValue={
-                          selectedPickupCenter?.id?.toString() || ""
-                        }
+                        selectedValue={selectedPickupCenter?.id?.toString() || ""}
                         onSelect={(value) => {
                           const selectedCenter = pickupCenters.find(
                             (center) => center.value === value,
@@ -1025,74 +1574,120 @@ const Page: React.FC = () => {
                       />
                     )}
                     {errors.centerId && (
-                      <p className="text-red-600 text-sm mt-1">
-                        {errors.centerId}
-                      </p>
+                      <p className="text-red-600 text-sm mt-1">{errors.centerId}</p>
                     )}
                   </div>
 
+                  {selectedPickupCenter && (
+                    <div
+                      className="mb-6 rounded-[10px] py-6 px-4 text-center bg-white box-border"
+                      style={{
+                        border: "1px dashed #3E206D",
+                        boxShadow: "0px 2px 5px 0px rgba(0, 0, 0, 0.10)",
+                      }}
+                    >
+                      <h3 className="font-bold text-lg  mb-2">
+                        {selectedPickupCenter.name}
+                      </h3>
+                      <p className="text-gray-400 font-semibold text-sm mb-1">Address :</p>
+                      <p className="text-base">
+                        {[
+                          { label: "City", value: selectedPickupCenter.city },
+                          { label: "District", value: selectedPickupCenter.district },
+                          { label: "Province", value: selectedPickupCenter.province },
+                        ]
+                          .filter((item) => item.value)
+                          .map((item, index, arr) => (
+                            <React.Fragment key={item.label}>
+                              <span className="text-[#8492A3]">{item.label} : </span>
+                              <span className="text-[#272727]">{item.value}</span>
+                              {index < arr.length - 1 && (
+                                <span className="text-[#414347]">, </span>
+                              )}
+                            </React.Fragment>
+                          ))}
+                      </p>
+                    </div>
+                  )}
                   {/* Map Component - BELOW the dropdown */}
-                  <div className="mb-6 relative z-10">
+                  <div className="mb-6 relative z-0">
                     <OpenStreetMap
                       center={mapCenter}
                       zoom={mapZoom}
                       height="300px"
                       onCenterSelect={handleCenterSelect}
-                      pickupCenters={memoizedPickupCenters} // Use memoized version
+                      pickupCenters={memoizedPickupCenters}
                       selectedCenterId={selectedPickupCenter?.id?.toString()}
                     />
                   </div>
                 </div>
               )}
 
-              <h2 className="text-xl font-bold mb-6 mt-8 text-[#252525]">
-                {formData.deliveryMethod === "pickup"
-                  ? "Pickup Person Information"
-                  : "Delivery Information"}
-              </h2>
+              {!hideDeliveryInfoSection && (
+                <>
 
-              <div className="flex flex-row md:gap-4 gap-2 mb-6">
-                {/* Title dropdown */}
-                <div className="w-1/4 md:w-1/9 cursor-pointer">
-                  <label
-                    htmlFor="title"
-                    className="block font-semibold mb-1 text-[#2E2E2E]"
-                  >
-                    Title *
-                  </label>
-                  <div className="w-full">
-                    <div
-                      className={`rounded-lg ${errors.title ? "border-2 border-red-500" : ""}`}
-                    >
-                      <CustomDropdown
-                        options={[
-                          { value: "Mr", label: "Mr" },
-                          { value: "Ms", label: "Ms" },
-                          { value: "Mrs", label: "Mrs" },
-                          { value: "Rev", label: "Rev" },
-                        ]}
-                        selectedValue={formData.title}
-                        onSelect={(value) => handleFieldChange("title", value)}
-                        placeholder="Title"
-                      />
-                    </div>
-                    {errors.title && (
-                      <p className="text-red-600 text-sm mt-1">
-                        {errors.title}
-                      </p>
+                  <h2 className="text-xl font-bold mb-6 mt-8 text-[#252525]">
+                    {formData.deliveryMethod === "pickup"
+                      ? "Pickup Person Information"
+                      : "Delivery Information"}
+                  </h2>
+
+                  {formData.deliveryMethod === "home" &&
+                    addressMode === "recent" &&
+                    recentAddressInfo?.isSavedAddress && (
+                      <div className="mb-6">
+                        <label className="block font-semibold mb-1 text-[#2E2E2E]">
+                          Saved As
+                        </label>
+                        <div className="w-full h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] rounded-lg px-4 flex items-center text-base text-[#2E2E2E]">
+                          {recentAddressInfo.saveAs}
+                        </div>
+                      </div>
                     )}
-                  </div>
-                </div>
 
-                {/* Full name input */}
-                <div className="w-3/4 md:w-8/9">
-                  <label
-                    htmlFor="fullName"
-                    className="block font-semibold mb-1 text-[#2E2E2E]"
-                  >
-                    Full name *
-                  </label>
-                  {/* <input
+                  <div className="flex flex-row md:gap-4 gap-2 mb-6">
+                    {/* Title dropdown */}
+                    <div className="w-1/4 md:w-1/9 cursor-pointer">
+                      <label
+                        htmlFor="title"
+                        className="block font-semibold mb-1 text-[#2E2E2E]"
+                      >
+                        Title *
+                      </label>
+                      <div className="w-full">
+                        <div
+                          className={`rounded-lg ${errors.title ? "border-2 border-red-500" : ""}`}
+                        >
+                          <CustomDropdown
+                            options={[
+                              { value: "Mr", label: "Mr" },
+                              { value: "Ms", label: "Ms" },
+                              { value: "Mrs", label: "Mrs" },
+                              { value: "Rev", label: "Rev" },
+                            ]}
+                            selectedValue={formData.title}
+                            onSelect={(value) => handleFieldChange("title", value)}
+                            placeholder="Title"
+                            disabled={isReadOnly}
+                          />
+                        </div>
+                        {errors.title && (
+                          <p className="text-red-600 text-sm mt-1">
+                            {errors.title}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Full name input */}
+                    <div className="w-3/4 md:w-8/9">
+                      <label
+                        htmlFor="fullName"
+                        className="block font-semibold mb-1 text-[#2E2E2E]"
+                      >
+                        Full name *
+                      </label>
+                      {/* <input
                     type="text"
                     className="w-full border-2 border-[#F2F4F7] bg-[#F9FAFB] h-[39px] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-3 text-base capitalize"
                     placeholder="Enter your full name"
@@ -1104,459 +1699,552 @@ const Page: React.FC = () => {
                       handleFieldChange("fullName", capitalizedValue);
                     }}
                   /> */}
-                  <input
-                    type="text"
-                    className="w-full border-2 border-[#F2F4F7] bg-[#F9FAFB] h-[39px] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-3 text-base capitalize"
-                    placeholder="Enter your full name"
-                    value={formData.fullName}
-                    onChange={(e) => {
-                      // Remove leading spaces, numbers, and special characters
-                      const value = e.target.value
-                        .replace(/^\s+/, '')           // Remove leading spaces
-                        .replace(/[0-9]/g, '')         // Remove all numbers
-                        .replace(/[^a-zA-Z\s]/g, '');  // Remove special characters, keep only letters and spaces
-
-                      const capitalizedValue = capitalizeFirstLetter(value);
-                      handleFieldChange("fullName", capitalizedValue);
-                    }}
-                    onKeyDown={(e) => {
-                      // Prevent space at beginning, numbers, and special characters
-                      const isNumber = /[0-9]/.test(e.key);
-                      const isSpecialChar = /[^a-zA-Z\s]/.test(e.key) && e.key.length === 1;
-                      if ((e.key === ' ' && e.currentTarget.selectionStart === 0) || isNumber || isSpecialChar) {
-                        e.preventDefault();
-                      }
-                    }}
-                    onPaste={(e) => {
-                      // Handle paste events
-                      e.preventDefault();
-                      const pastedText = e.clipboardData.getData('text');
-                      const cleanedText = pastedText
-                        .replace(/^\s+/, '')           // Remove leading spaces
-                        .replace(/[0-9]/g, '')         // Remove all numbers
-                        .replace(/[^a-zA-Z\s]/g, '')   // Remove special characters
-                        .replace(/\s+/g, ' ');         // Replace multiple spaces with single space
-
-                      const capitalizedValue = capitalizeFirstLetter(cleanedText);
-                      handleFieldChange("fullName", capitalizedValue);
-                    }}
-                  />
-                  {errors.fullName && (
-                    <p className="text-red-600 text-sm mt-1">
-                      {errors.fullName}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex md:flex-row flex-col md:gap-4 gap-4 mb-6">
-                <div className="md:w-1/2 w-full">
-                  <label className="block font-semibold mb-1 text-[#2E2E2E]">
-                    Phone Number 1 *
-                  </label>
-                  <div className="flex gap-2">
-                    <div className="w-28">
-                      <PhoneCustomDropdown
-                        options={countryOptions}
-                        selectedValue={formData.phoneCode1}
-                        onSelect={(value: any) =>
-                          handleFieldChange("phoneCode1", value)
-                        }
-                        placeholder="+94"
-                      />
-                    </div>
-                    <div className="w-full">
                       <input
                         type="text"
-                        inputMode="numeric"
-                        className="w-full h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2"
-                        value={formData.phone1}
+                        className={`w-full border-2 border-[#F2F4F7] bg-[#F9FAFB] h-[39px] focus:outline-none rounded-lg px-4 py-3 text-base capitalize ${isReadOnly ? "cursor-default" : "focus:ring-2 focus:ring-purple-600"
+                          }`}
+                        value={formData.fullName}
                         onChange={(e) => {
-                          const value = e.target.value.replace(/\D/g, ''); // allow only digits
-                          handleFieldChange("phone1", value);
+                          // Remove leading spaces, numbers, and special characters
+                          const value = e.target.value
+                            .replace(/^\s+/, '')           // Remove leading spaces
+                            .replace(/[0-9]/g, '')         // Remove all numbers
+                            .replace(/[^a-zA-Z\s]/g, '');  // Remove special characters, keep only letters and spaces
+
+                          const capitalizedValue = capitalizeFirstLetter(value);
+                          handleFieldChange("fullName", capitalizedValue);
                         }}
-                        placeholder="7XXXXXXXX"
-                        maxLength={9}
-                      />
-                      {errors.phone1 && (
-                        <p className="text-red-600 text-sm mt-1">
-                          {errors.phone1}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="md:w-1/2 w-full">
-                  <label className="block font-semibold mb-1 text-[#2E2E2E]">
-                    Phone Number 2
-                  </label>
-                  <div className="flex gap-2">
-                    <div className="w-28">
-                      <PhoneCustomDropdown
-                        options={countryOptions}
-                        selectedValue={formData.phoneCode2}
-                        onSelect={(value: any) =>
-                          handleFieldChange("phoneCode2", value)
-                        }
-                        placeholder="+94"
-                      />
-                    </div>
-                    <div className="w-full">
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        className={`w-full h-[39px] border-2 ${duplicatePhoneError ? "border-red-500" : "border-[#F2F4F7]"} bg-[#F9FAFB] focus:outline-none focus:ring-2 focus:ring-purple-600 rounded-lg px-4 py-2`}
-                        value={formData.phone2}
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/\D/g, ''); // allow only digits
-                          handleFieldChange("phone2", value);
-                        }}
-                        placeholder="7XXXXXXXX"
-                        maxLength={9}
-                      />
-                      {errors.phone2 && (
-                        <p className="text-red-600 text-sm mt-1">
-                          {errors.phone2}
-                        </p>
-                      )}
-                      {duplicatePhoneError && !errors.phone2 && (
-                        <p className="text-red-600 text-sm mt-1">
-                          {duplicatePhoneError}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {formData.deliveryMethod === "home" && (
-                <>
-                  {/* Loading indicator for address fetching */}
-                  {isLoadingAddress && (
-                    <div className="flex justify-center items-center py-12">
-                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
-                      <span className="ml-3 text-gray-600 text-lg">Loading address...</span>
-                    </div>
-                  )}
-
-                  {!isLoadingAddress && (
-                    <div className="flex flex-wrap -mx-2">
-                      {/* Building Type */}
-                      <div className="w-full md:w-1/2 px-2 mb-4">
-                        <label className="block text-[#2E2E2E] font-semibold mb-1">
-                          Building type *
-                        </label>
-                        <CustomDropdown
-                          options={[
-                            { value: "Apartment", label: "Apartment" },
-                            { value: "House", label: "House" },
-                          ]}
-                          selectedValue={formData.buildingType}
-                          onSelect={(value) =>
-                            handleFieldChange("buildingType", value)
+                        onKeyDown={(e) => {
+                          // Prevent space at beginning, numbers, and special characters
+                          const isNumber = /[0-9]/.test(e.key);
+                          const isSpecialChar = /[^a-zA-Z\s]/.test(e.key) && e.key.length === 1;
+                          if ((e.key === ' ' && e.currentTarget.selectionStart === 0) || isNumber || isSpecialChar) {
+                            e.preventDefault();
                           }
-                          placeholder="Building type"
-                        />
-                        {errors.buildingType && (
-                          <p className="text-red-600 text-sm mt-1">
-                            {errors.buildingType}
-                          </p>
-                        )}
-                      </div>
+                        }}
+                        onPaste={(e) => {
+                          // Handle paste events
+                          e.preventDefault();
+                          const pastedText = e.clipboardData.getData('text');
+                          const cleanedText = pastedText
+                            .replace(/^\s+/, '')           // Remove leading spaces
+                            .replace(/[0-9]/g, '')         // Remove all numbers
+                            .replace(/[^a-zA-Z\s]/g, '')   // Remove special characters
+                            .replace(/\s+/g, ' ');         // Replace multiple spaces with single space
 
-                      {/* Apartment or Building No */}
-                      {formData.buildingType === "Apartment" && (
-                        <div className="w-full md:w-1/2 px-2 mb-4">
-                          <label className="block font-semibold text-[#2E2E2E] mb-1">
-                            Apartment or Building No *
-                          </label>
+                          const capitalizedValue = capitalizeFirstLetter(cleanedText);
+                          handleFieldChange("fullName", capitalizedValue);
+                        }}
+                        readOnly={isReadOnly}
+
+                      />
+                      {errors.fullName && (
+                        <p className="text-red-600 text-sm mt-1">
+                          {errors.fullName}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex md:flex-row flex-col md:gap-4 gap-4 mb-6">
+                    <div className="md:w-1/2 w-full">
+                      <label className="block font-semibold mb-1 text-[#2E2E2E]">
+                        Phone Number 1 *
+                      </label>
+                      <div className="flex gap-2">
+                        <div className="w-16 h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] rounded-lg flex items-center justify-center font-medium text-[#2E2E2E]">
+                          +94
+                        </div>
+                        <div className="w-full">
                           <input
-                            value={formData.buildingNo}
-                            onChange={(e) => {
-                              const value = e.target.value.replace(/^\s+/, ''); // Remove leading spaces
-                              handleFieldChange("buildingNo", value);
-                            }}
-                            onKeyDown={(e) => {
-                              // Prevent space at beginning
-                              if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
-                                e.preventDefault();
-                              }
-                            }}
                             type="text"
-                            placeholder="Enter House / Building No"
-                            className="w-full px-4 py-2 h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] rounded-lg  placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                            inputMode="numeric"
+                            className={`w-full h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] focus:outline-none rounded-lg px-4 py-2 ${isReadOnly ? "cursor-default" : "focus:ring-2 focus:ring-purple-600"
+                              }`}
+                            value={formData.phone1}
+                            onChange={(e) => {
+                              const value = e.target.value.replace(/\D/g, '');
+                              handleFieldChange("phone1", value);
+                            }}
+                            placeholder="7XXXXXXXX"
+                            maxLength={9}
+                            readOnly={isReadOnly}
                           />
-                          {errors.buildingNo && (
-                            <p className="text-red-600 text-sm mt-1">
-                              {errors.buildingNo}
-                            </p>
+                          {errors.phone1 && (
+                            <p className="text-red-600 text-sm mt-1">{errors.phone1}</p>
                           )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="md:w-1/2 w-full">
+                      <label className="block font-semibold mb-1 text-[#2E2E2E]">
+                        Phone Number 2
+                      </label>
+                      <div className="flex gap-2">
+                        <div className="w-16 h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] rounded-lg flex items-center justify-center font-medium text-[#2E2E2E]">
+                          +94
+                        </div>
+                        <div className="w-full">
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            className={`w-full h-[39px] border-2 ${duplicatePhoneError ? "border-red-500" : "border-[#F2F4F7]"} bg-[#F9FAFB] focus:outline-none rounded-lg px-4 py-2 ${isReadOnly ? "cursor-default" : "focus:ring-2 focus:ring-purple-600"
+                              }`}
+                            value={formData.phone2}
+                            onChange={(e) => {
+                              const value = e.target.value.replace(/\D/g, '');
+                              handleFieldChange("phone2", value);
+                            }}
+                            placeholder="7XXXXXXXX"
+                            maxLength={9}
+                            readOnly={isReadOnly}
+                          />
+                          {errors.phone2 && (
+                            <p className="text-red-600 text-sm mt-1">{errors.phone2}</p>
+                          )}
+                          {duplicatePhoneError && !errors.phone2 && (
+                            <p className="text-red-600 text-sm mt-1">{duplicatePhoneError}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {formData.deliveryMethod === "home" && (
+                    <>
+                      {/* Loading indicator for address fetching */}
+                      {isLoadingAddress && (
+                        <div className="flex justify-center items-center py-12">
+                          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+                          <span className="ml-3 text-gray-600 text-lg">Loading address...</span>
                         </div>
                       )}
 
-                      {/* Apartment or Building Name */}
-                      {formData.buildingType === "Apartment" && (
-                        <div className="w-full md:w-1/2 px-2 mb-4">
-                          <label className="block font-semibold text-[#2E2E2E] mb-1">
-                            Apartment or Building Name *
-                          </label>
-                          <input
-                            value={formData.buildingName}
-                            onChange={(e) => {
-                              const value = e.target.value.replace(/^\s+/, ''); // Remove leading spaces
-                              handleFieldChange("buildingName", value);
-                            }}
-                            onKeyDown={(e) => {
-                              // Prevent space at beginning
-                              if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
-                                e.preventDefault();
+                      {!isLoadingAddress && (
+                        <div className="flex flex-wrap -mx-2">
+                          {/* Building Type */}
+                          <div className="w-full md:w-1/2 px-2 mb-4">
+                            <label className="block text-[#2E2E2E] font-semibold mb-1">
+                              Building type *
+                            </label>
+                            <CustomDropdown
+                              options={[
+                                { value: "Apartment", label: "Apartment" },
+                                { value: "House", label: "House" },
+                              ]}
+                              selectedValue={formData.buildingType}
+                              onSelect={(value) =>
+                                handleFieldChange("buildingType", value)
                               }
-                            }}
-                            type="text"
-                            placeholder="Enter building name"
-                            className="w-full px-4 py-2 border-2 h-[39px] border-[#F2F4F7] bg-[#F9FAFB] rounded-lg  placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
-                          />
-                          {errors.buildingName && (
-                            <p className="text-red-600 text-sm mt-1">
-                              {errors.buildingName}
-                            </p>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Flat / Unit Number */}
-                      {formData.buildingType === "Apartment" && (
-                        <div className="w-full md:w-1/2 px-2 mb-4">
-                          <label className="block font-semibold text-[#2E2E2E] mb-1">
-                            Flat / Unit Number *
-                          </label>
-                          <input
-                            value={formData.flatNumber}
-                            onChange={(e) => {
-                              const value = e.target.value.replace(/^\s+/, ''); // Remove leading spaces
-                              handleFieldChange("flatNumber", value);
-                            }}
-                            onKeyDown={(e) => {
-                              // Prevent space at beginning
-                              if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
-                                e.preventDefault();
-                              }
-                            }}
-                            type="text"
-                            placeholder="Enter flat number"
-                            className="w-full px-4 py-2 border-2 h-[39px] border-[#F2F4F7] bg-[#F9FAFB] rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
-                          />
-                          {errors.flatNumber && (
-                            <p className="text-red-600 text-sm mt-1">
-                              {errors.flatNumber}
-                            </p>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Floor Number */}
-                      {formData.buildingType === "Apartment" && (
-                        <div className="w-full md:w-1/2 px-2 mb-4">
-                          <label className="block font-semibold text-[#2E2E2E] mb-1">
-                            Floor Number *
-                          </label>
-                          <input
-                            value={formData.floorNumber}
-                            onChange={(e) => {
-                              const value = e.target.value.replace(/^\s+/, ''); // Remove leading spaces
-                              handleFieldChange("floorNumber", value);
-                            }}
-                            onKeyDown={(e) => {
-                              // Prevent space at beginning
-                              if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
-                                e.preventDefault();
-                              }
-                            }}
-                            type="text"
-                            placeholder="Enter floor number"
-                            className="w-full px-4 py-2 border-2 h-[39px] border-[#F2F4F7] bg-[#F9FAFB] rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
-                          />
-                          {errors.floorNumber && (
-                            <p className="text-red-600 text-sm mt-1">
-                              {errors.floorNumber}
-                            </p>
-                          )}
-                        </div>
-                      )}
-
-                      {/* House Number */}
-                      <div className="w-full md:w-1/2 px-2 mb-4">
-                        <label className="block font-semibold text-[#2E2E2E] mb-1">
-                          House Number *
-                        </label>
-                        <input
-                          value={formData.houseNo}
-                          onChange={(e) => {
-                            const value = e.target.value.replace(/^\s+/, ''); // Remove leading spaces
-                            handleFieldChange("houseNo", value);
-                          }}
-                          onKeyDown={(e) => {
-                            // Prevent space at beginning
-                            if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
-                              e.preventDefault();
-                            }
-                          }}
-                          type="text"
-                          placeholder="Enter house number"
-                          className="w-full px-4 py-2 border-2 h-[39px] border-[#F2F4F7] bg-[#F9FAFB] rounded-lg  placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
-                        />
-                        {errors.houseNo && (
-                          <p className="text-red-600 text-sm mt-1">
-                            {errors.houseNo}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Street Name */}
-                      <div className="w-full md:w-1/2 px-2 mb-4">
-                        <label className="block font-semibold text-[#2E2E2E] mb-1">
-                          Street Name *
-                        </label>
-                        <input
-                          value={formData.street}
-                          onChange={(e) => {
-                            const value = e.target.value.replace(/^\s+/, ''); // Remove leading spaces
-                            const capitalizedValue = capitalizeFirstLetter(value);
-                            handleFieldChange("street", capitalizedValue);
-                          }}
-                          onKeyDown={(e) => {
-                            // Prevent space at beginning
-                            if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
-                              e.preventDefault();
-                            }
-                          }}
-                          type="text"
-                          placeholder="Enter Street Name"
-                          className="w-full px-4 py-2 border-2 h-[39px] border-[#F2F4F7] bg-[#F9FAFB] rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600 capitalize"
-                        />
-                        {errors.street && (
-                          <p className="text-red-600 text-sm mt-1">
-                            {errors.street}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* City */}
-                      <div className="w-full md:w-1/2 px-2 mb-4">
-                        <label className="block font-semibold text-[#2E2E2E] mb-1">
-                          Nearest City *
-                        </label>
-                        {loadingCities ? (
-                          <div className="w-full h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] rounded-lg flex items-center justify-center">
-                            <span className="text-sm text-gray-500">
-                              Loading cities...
-                            </span>
-                          </div>
-                        ) : (
-                          <CustomDropdown
-                            options={cityOptions}
-                            selectedValue={selectedCity?.id?.toString() || ""}
-                            onSelect={(value) => {
-                              const selectedCityData = cities.find(
-                                (city) => city.id.toString() === value,
-                              );
-                              if (selectedCityData) {
-                                handleCitySelect(value, selectedCityData.city);
-                              }
-                            }}
-                            placeholder="Select nearest city"
-                            searchable={true}
-                            searchPlaceholder="Type to search cities..."
-                          />
-                        )}
-                        {errors.cityName && (
-                          <p className="text-red-600 text-sm mt-1">
-                            {errors.cityName}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="w-full md:w-1/2 px-2 mb-4">
-                        <label className="block font-semibold text-[#2E2E2E] mb-1">
-                          Geo Location *
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setViewingSavedLocation(false);
-                            setIsGeoModalOpen(true);
-                          }}
-                          className="w-full h-[39px] border-2 border-[#F2F4F7] bg-[#E6D9F5] rounded-lg flex items-center justify-center gap-2 text-[#3E206D] font-medium hover:bg-[#d9c9ed] transition-colors cursor-pointer"
-                        >
-                          <LocateFixed size={20} />
-                          {formData.geoLatitude && formData.geoLongitude
-                            ? "Reattach My Geo Location"
-                            : "Attach My Geo Location"}
-                        </button>
-
-                        {(errors.geoLatitude || errors.geoLongitude) && (
-                          <p className="text-red-600 text-sm mt-1">
-                            {errors.geoLatitude || errors.geoLongitude}
-                          </p>
-                        )}
-
-                        {/* Show current attached location */}
-                        {formData.geoLatitude && formData.geoLongitude && (
-                          <div className="mt-2 space-y-1">
-                            <p className="text-xs text-green-600">
-                              Location attached
-                              {/* : {formData.geoLatitude.toFixed(6)},{" "} */}
-                              {/* {formData.geoLongitude.toFixed(6)} */}
-                            </p>
-
-                            {/* View Here link - only show if this is from saved address */}
-                            {formData.geoLatitude && formData.geoLongitude && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setViewingSavedLocation(true);
-                                  setIsGeoModalOpen(true);
-                                  setIsViewOnly(true);
-                                }}
-                                className="flex items-center gap-1 text-red-600 hover:text-red-700 transition-colors text-sm font-medium group cursor-pointer"
-                              >
-                                <LocateFixed
-                                  size={16}
-                                  className="group-hover:scale-110 transition-transform"
-                                />
-                                <span className="underline">View here</span>
-                              </button>
+                              placeholder="Building type"
+                              disabled={isReadOnly}
+                            />
+                            {errors.buildingType && (
+                              <p className="text-red-600 text-sm mt-1">
+                                {errors.buildingType}
+                              </p>
                             )}
                           </div>
-                        )}
-                      </div>
-                      {/* Geo Location Modal */}
-                      <GeoLocationModal
-                        isOpen={isGeoModalOpen}
-                        onClose={() => {
-                          setIsGeoModalOpen(false);
-                          setViewingSavedLocation(false);
-                          setIsViewOnly(false);
-                        }}
-                        onLocationSelect={handleLocationSelect}
-                        initialCenter={
-                          viewingSavedLocation &&
-                            formData.geoLatitude &&
-                            formData.geoLongitude
-                            ? [formData.geoLatitude, formData.geoLongitude]
-                            : mapCenter
-                        }
-                        savedLocation={
-                          viewingSavedLocation &&
-                            formData.geoLatitude &&
-                            formData.geoLongitude
-                            ? [formData.geoLatitude, formData.geoLongitude]
-                            : null
-                        }
-                        viewOnly={isViewOnly}
-                      />
-                    </div>
+
+                          {/* Apartment or Building No */}
+                          {formData.buildingType === "Apartment" && (
+                            <div className="w-full md:w-1/2 px-2 mb-4">
+                              <label className="block font-semibold text-[#2E2E2E] mb-1">
+                                Apartment or Building No *
+                              </label>
+                              <input
+                                value={formData.buildingNo}
+                                onChange={(e) => {
+                                  const value = e.target.value.replace(/^\s+/, ''); // Remove leading spaces
+                                  handleFieldChange("buildingNo", value);
+                                }}
+                                onKeyDown={(e) => {
+                                  // Prevent space at beginning
+                                  if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
+                                    e.preventDefault();
+                                  }
+                                }}
+                                type="text"
+                                placeholder="Enter House / Building No"
+                                disabled={isReadOnly}
+                                className={`w-full px-4 py-2 h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] rounded-lg placeholder-gray-400 focus:outline-none ${isReadOnly ? "cursor-default" : "focus:ring-2 focus:ring-purple-600"
+                                  }`}
+                              />
+                              {errors.buildingNo && (
+                                <p className="text-red-600 text-sm mt-1">
+                                  {errors.buildingNo}
+                                </p>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Apartment or Building Name */}
+                          {formData.buildingType === "Apartment" && (
+                            <div className="w-full md:w-1/2 px-2 mb-4">
+                              <label className="block font-semibold text-[#2E2E2E] mb-1">
+                                Apartment or Building Name *
+                              </label>
+                              <input
+                                value={formData.buildingName}
+                                onChange={(e) => {
+                                  const value = e.target.value.replace(/^\s+/, '');
+                                  handleFieldChange("buildingName", value);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
+                                    e.preventDefault();
+                                  }
+                                }}
+                                type="text"
+                                placeholder="Enter building name"
+                                className={`w-full px-4 py-2 border-2 h-[39px] border-[#F2F4F7] bg-[#F9FAFB] rounded-lg placeholder-gray-400 focus:outline-none ${isReadOnly ? "cursor-default" : "focus:ring-2 focus:ring-purple-600"
+                                  }`}
+                                readOnly={isReadOnly}
+                              />
+                              {errors.buildingName && (
+                                <p className="text-red-600 text-sm mt-1">
+                                  {errors.buildingName}
+                                </p>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Flat / Unit Number */}
+                          {formData.buildingType === "Apartment" && (
+                            <div className="w-full md:w-1/2 px-2 mb-4">
+                              <label className="block font-semibold text-[#2E2E2E] mb-1">
+                                Flat / Unit Number *
+                              </label>
+                              <input
+                                value={formData.flatNumber}
+                                onChange={(e) => {
+                                  const value = e.target.value.replace(/^\s+/, ''); // Remove leading spaces
+                                  handleFieldChange("flatNumber", value);
+                                }}
+                                onKeyDown={(e) => {
+                                  // Prevent space at beginning
+                                  if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
+                                    e.preventDefault();
+                                  }
+                                }}
+                                type="text"
+                                placeholder="Enter flat number"
+                                readOnly={isReadOnly}
+                                className={`w-full px-4 py-2 border-2 h-[39px] border-[#F2F4F7] bg-[#F9FAFB] rounded-lg placeholder-gray-400 focus:outline-none ${isReadOnly ? "cursor-default" : "focus:ring-2 focus:ring-purple-600"
+                                  }`}
+                              />
+                              {errors.flatNumber && (
+                                <p className="text-red-600 text-sm mt-1">
+                                  {errors.flatNumber}
+                                </p>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Floor Number */}
+                          {formData.buildingType === "Apartment" && (
+                            <div className="w-full md:w-1/2 px-2 mb-4">
+                              <label className="block font-semibold text-[#2E2E2E] mb-1">
+                                Floor Number *
+                              </label>
+                              <input
+                                value={formData.floorNumber}
+                                onChange={(e) => {
+                                  const value = e.target.value.replace(/^\s+/, ''); // Remove leading spaces
+                                  handleFieldChange("floorNumber", value);
+                                }}
+                                onKeyDown={(e) => {
+                                  // Prevent space at beginning
+                                  if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
+                                    e.preventDefault();
+                                  }
+                                }}
+                                type="text"
+                                placeholder="Enter floor number"
+                                readOnly={isReadOnly}
+                                className={`w-full px-4 py-2 border-2 h-[39px] border-[#F2F4F7] bg-[#F9FAFB] rounded-lg placeholder-gray-400 focus:outline-none ${isReadOnly ? "cursor-default" : "focus:ring-2 focus:ring-purple-600"
+                                  }`}
+                              />
+                              {errors.floorNumber && (
+                                <p className="text-red-600 text-sm mt-1">
+                                  {errors.floorNumber}
+                                </p>
+                              )}
+                            </div>
+                          )}
+
+                          {/* House Number */}
+                          <div className="w-full md:w-1/2 px-2 mb-4">
+                            <label className="block font-semibold text-[#2E2E2E] mb-1">
+                              House Number *
+                            </label>
+                            <input
+                              value={formData.houseNo}
+                              onChange={(e) => {
+                                const value = e.target.value.replace(/^\s+/, ''); // Remove leading spaces
+                                handleFieldChange("houseNo", value);
+                              }}
+                              onKeyDown={(e) => {
+                                // Prevent space at beginning
+                                if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
+                                  e.preventDefault();
+                                }
+                              }}
+                              type="text"
+                              placeholder="Enter house number"
+                              readOnly={isReadOnly}
+                              className={`w-full px-4 py-2 border-2 h-[39px] border-[#F2F4F7] bg-[#F9FAFB] rounded-lg placeholder-gray-400 focus:outline-none ${isReadOnly ? "cursor-default" : "focus:ring-2 focus:ring-purple-600"
+                                }`}
+                            />
+                            {errors.houseNo && (
+                              <p className="text-red-600 text-sm mt-1">
+                                {errors.houseNo}
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Street Name */}
+                          <div className="w-full md:w-1/2 px-2 mb-4">
+                            <label className="block font-semibold text-[#2E2E2E] mb-1">
+                              Street Name *
+                            </label>
+                            <input
+                              value={formData.street}
+                              onChange={(e) => {
+                                const value = e.target.value.replace(/^\s+/, ''); // Remove leading spaces
+                                const capitalizedValue = capitalizeFirstLetter(value);
+                                handleFieldChange("street", capitalizedValue);
+                              }}
+                              onKeyDown={(e) => {
+                                // Prevent space at beginning
+                                if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
+                                  e.preventDefault();
+                                }
+                              }}
+                              type="text"
+                              placeholder="Enter Street Name"
+                              readOnly={isReadOnly}
+                              className={`w-full px-4 py-2 border-2 h-[39px] border-[#F2F4F7] bg-[#F9FAFB] rounded-lg placeholder-gray-400 focus:outline-none capitalize ${isReadOnly ? "cursor-default" : "focus:ring-2 focus:ring-purple-600"
+                                }`}
+                            />
+                            {errors.street && (
+                              <p className="text-red-600 text-sm mt-1">
+                                {errors.street}
+                              </p>
+                            )}
+                          </div>
+
+                          {/* City */}
+                          <div className="w-full md:w-1/2 px-2 mb-4" ref={cityDropdownRef}>
+                            <style
+                              dangerouslySetInnerHTML={{
+                                __html: `
+        .city-scroll::-webkit-scrollbar {
+          width: 8px;
+        }
+        .city-scroll::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .city-scroll::-webkit-scrollbar-thumb {
+          background-color: #DBDADD;
+          border-radius: 9999px;
+          cursor: pointer;
+        }
+        .city-scroll::-webkit-scrollbar-thumb:hover {
+          background-color: #B186EF;
+          cursor: pointer;
+        }
+      `,
+                              }}
+                            />
+                            <label className="block font-semibold text-[#2E2E2E] mb-1">
+                              Nearest City *
+                            </label>
+
+                            {loadingCities ? (
+                              <div className="w-full h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] rounded-lg flex items-center justify-center">
+                                <span className="text-sm text-gray-500">Loading cities...</span>
+                              </div>
+                            ) : (
+                              <div className="relative">
+                                <div
+                                  className={`flex items-center gap-2 h-[39px] px-4 border-2 rounded-lg bg-[#F9FAFB] ${errors.cityName ? "border-red-500" : "border-[#F2F4F7]"
+                                    } ${isCityFieldLocked ? "cursor-not-allowed" : ""}`}
+                                  title={isCityFieldLocked ? "This field is locked for new address entries" : undefined}
+                                >
+                                  <input
+                                    type="text"
+                                    value={citySearchTerm}
+                                    onChange={(e) => handleCitySearchChange(e.target.value)}
+                                    onFocus={() => {
+                                      if (!isCityFieldLocked) setIsCityDropdownOpen(true);
+                                    }}
+                                    placeholder="Search nearest city"
+                                    disabled={isCityFieldLocked}
+                                    className={`flex-1 bg-transparent text-base outline-none border-none placeholder-gray-400 ${isCityFieldLocked ? "cursor-not-allowed text-gray-500" : ""
+                                      }`}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => (citySearchTerm ? handleCityClear() : handleCityArrowClick())}
+                                    disabled={isCityFieldLocked}
+                                    className={`flex-shrink-0 text-gray-400 transition-colors ${isCityFieldLocked
+                                      ? "cursor-not-allowed"
+                                      : "hover:text-[#3E206D] cursor-pointer"
+                                      }`}
+                                    aria-label={citySearchTerm ? "Clear" : "Show all cities"}
+                                  >
+                                    {citySearchTerm && !isCityFieldLocked ? (
+                                      <XCircle size={16} />
+                                    ) : (
+                                      <ChevronDown
+                                        size={16}
+                                        className={`transition-transform duration-200 ${isCityDropdownOpen ? "rotate-180" : ""}`}
+                                      />
+                                    )}
+                                  </button>
+                                </div>
+
+                                {isCityDropdownOpen && !isCityFieldLocked && (
+                                  <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg">
+                                    {filteredCityOptions.length === 0 ? (
+                                      <div className="py-3 px-4 text-sm font-[300] text-[#4C5160] bg-[#F2F2F6] rounded-lg">
+                                        City Not Found
+                                      </div>
+                                    ) : (
+                                      <ul className="city-scroll max-h-52 overflow-y-auto py-1">
+                                        {filteredCityOptions.map((city) => {
+                                          const available = isCityAvailable(city.city);
+                                          return (
+                                            <li key={city.id}>
+                                              <button
+                                                type="button"
+                                                onClick={() => handleCityOptionSelect(city)}
+                                                className="w-full cursor-pointer text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center justify-between group transition-colors"
+                                              >
+                                                <span className="font-medium text-gray-800">{city.city}</span>
+                                                {available ? (
+                                                  <span className="text-xs text-[#229777] font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    Available
+                                                  </span>
+                                                ) : (
+                                                  <span className="text-xs text-orange-400 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    Coming Soon
+                                                  </span>
+                                                )}
+                                              </button>
+                                            </li>
+                                          );
+                                        })}
+                                      </ul>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {errors.cityName && (
+                              <p className="text-red-600 text-sm mt-1">{errors.cityName}</p>
+                            )}
+
+                            {!errors.cityName && cityNotAvailable && formData.cityName && (
+                              <div className="mt-2 flex items-start gap-2 rounded-lg border border-[#FFDCB5] bg-[#FEF6ED] px-3 py-2.5">
+                                <FontAwesomeIcon icon={faCircleInfo} className="w-4 h-4 text-[#EC6821] flex-shrink-0 mt-2.5" />
+                                <p className="text-[12px] md:text-[13px] text-[#EC6821] leading-snug">
+                                  Delivery not available in {formData.cityName} yet, but we're working on it and coming to your area soon!
+                                </p>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="w-full md:w-1/2 px-2 mb-4">
+                            <label className="block font-semibold text-[#2E2E2E] mb-1">
+                              Geo Location *
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (isReadOnly) return;
+                                setViewingSavedLocation(false);
+                                setIsGeoModalOpen(true);
+                              }}
+                              disabled={isReadOnly}
+                              className={`w-full h-[39px] border-2 border-[#F2F4F7] rounded-lg flex items-center justify-center gap-2 font-medium transition-colors ${isReadOnly
+                                ? "bg-[#E6D9F5] text-[#3E206D] opacity-70 cursor-not-allowed"
+                                : "bg-[#E6D9F5] text-[#3E206D] hover:bg-[#d9c9ed] cursor-pointer"
+                                }`}
+                            >
+                              <LocateFixed size={20} />
+                              {formData.geoLatitude && formData.geoLongitude
+                                ? "Reattach My Geo Location"
+                                : "Attach My Geo Location"}
+                            </button>
+
+                            {(errors.geoLatitude || errors.geoLongitude) && (
+                              <p className="text-red-600 text-sm mt-1">
+                                {errors.geoLatitude || errors.geoLongitude}
+                              </p>
+                            )}
+
+                            {/* Show current attached location */}
+                            {formData.geoLatitude && formData.geoLongitude && (
+                              <div className="mt-2 space-y-1">
+                                <p className="text-xs text-green-600">
+                                  Location attached
+                                  {/* : {formData.geoLatitude.toFixed(6)},{" "} */}
+                                  {/* {formData.geoLongitude.toFixed(6)} */}
+                                </p>
+
+                                {/* View Here link - only show if this is from saved address */}
+                                {formData.geoLatitude && formData.geoLongitude && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setViewingSavedLocation(true);
+                                      setIsGeoModalOpen(true);
+                                      setIsViewOnly(true);
+                                    }}
+                                    className="flex items-center gap-1 text-red-600 hover:text-red-700 transition-colors text-sm font-medium group cursor-pointer"
+                                  >
+                                    <LocateFixed
+                                      size={16}
+                                      className="group-hover:scale-110 transition-transform"
+                                    />
+                                    <span className="underline">View here</span>
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          {/* Geo Location Modal */}
+                          <GeoLocationModal
+                            isOpen={isGeoModalOpen}
+                            onClose={() => {
+                              setIsGeoModalOpen(false);
+                              setViewingSavedLocation(false);
+                              setIsViewOnly(false);
+                            }}
+                            onLocationSelect={handleLocationSelect}
+                            initialCenter={
+                              viewingSavedLocation &&
+                                formData.geoLatitude &&
+                                formData.geoLongitude
+                                ? [formData.geoLatitude, formData.geoLongitude]
+                                : mapCenter
+                            }
+                            savedLocation={
+                              viewingSavedLocation &&
+                                formData.geoLatitude &&
+                                formData.geoLongitude
+                                ? [formData.geoLatitude, formData.geoLongitude]
+                                : null
+                            }
+                            viewOnly={isViewOnly}
+                          />
+                        </div>
+                      )}
+                    </>
                   )}
                 </>
               )}
@@ -1750,8 +2438,9 @@ const Page: React.FC = () => {
                   </label>
                   <CustomDropdown
                     options={[
-                      { value: "Within 8AM - 2PM", label: "Within 8AM - 2PM" },
-                      { value: "Within 2PM - 8PM", label: "Within 2PM - 8PM" },
+                      { value: "08:00 AM - 12:00 PM", label: "08:00 AM - 12:00 PM" },
+                      { value: "12:00 PM - 04:00 PM", label: "12:00 PM - 04:00 PM" },
+                      { value: "04:00 PM - 09:00 PM", label: "04:00 PM - 09:00 PM" },
                     ]}
                     selectedValue={formData.timeSlot}
                     onSelect={(value) => handleFieldChange("timeSlot", value)}
@@ -1802,8 +2491,8 @@ const Page: React.FC = () => {
 
                 <div className="flex justify-between text-sm mb-2">
                   <p className="text-gray-600">Discount</p>
-                  <p className="text-gray-600">
-                    Rs. {formatPrice(cartData?.discountAmount || 0)}
+                  <p className="text-[#BE2A45]">
+                    - Rs. {formatPrice(cartData?.discountAmount || 0)}
                   </p>
                 </div>
 
@@ -1833,8 +2522,8 @@ const Page: React.FC = () => {
                     type="submit"
                     disabled={!isFormValidState || isLoading}
                     className={`w-full font-semibold rounded-xl py-3.5 transition cursor-pointer ${!isFormValidState || isLoading
-                        ? "bg-[#EBEEF2] text-[#B1BAC3] cursor-not-allowed"
-                        : "bg-[#3E206D] text-white hover:bg-[#2f1854] cursor-pointer"
+                      ? "bg-[#EBEEF2] text-[#B1BAC3] cursor-not-allowed"
+                      : "bg-[#3E206D] text-white hover:bg-[#2f1854] cursor-pointer"
                       }`}
                   >
                     {isLoading ? "Processing..." : "Continue to Payment"}
@@ -1863,6 +2552,7 @@ const PhoneCustomDropdown: React.FC<any> = ({
   onSelect,
   placeholder,
   className = "",
+  disabled = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const selectedOption = options.find(
@@ -1874,8 +2564,14 @@ const PhoneCustomDropdown: React.FC<any> = ({
       {/* Display Button */}
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className={`h-10 w-full border rounded-md px-4 py-2 focus:outline-none focus:ring-1 cursor-pointer border-gray-300 focus:ring-purple-500 focus:border-purple-500 ${className} ${selectedValue ? "text-black" : "text-gray-500"} flex items-center justify-between bg-white`}
+        onClick={() => {
+          if (disabled) return;
+          setIsOpen(!isOpen);
+        }}
+        disabled={disabled}
+        className={`h-10 w-full border rounded-md px-4 py-2 focus:outline-none focus:ring-1 border-gray-300 focus:ring-purple-500 focus:border-purple-500 ${className} ${selectedValue ? "text-black" : "text-gray-500"
+          } flex items-center justify-between ${disabled ? "bg-gray-100 cursor-not-allowed opacity-70" : "bg-white cursor-pointer"
+          }`}
       >
         <div className="flex items-center gap-2 flex-1">
           {selectedOption?.flag && (
@@ -1905,8 +2601,11 @@ const PhoneCustomDropdown: React.FC<any> = ({
       </button>
 
       {/* Dropdown Options */}
-      {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
+      {isOpen && !disabled && (
+        <div
+          className="absolute z-[9999] w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-hidden"
+          role="listbox"
+        >
           {options.map((option: any) => (
             <button
               key={option.value}
@@ -1915,7 +2614,7 @@ const PhoneCustomDropdown: React.FC<any> = ({
                 onSelect(option.value);
                 setIsOpen(false);
               }}
-              className={`w-full text-left px-3 py-3 hover:bg-gray-100 flex items-center gap-2 transition-colors ${selectedValue === option.value
+              className={`w-full text-left px-3 py-3 hover:bg-gray-100 flex items-center gap-2 transition-colors cursor-pointer ${selectedValue === option.value
                 ? "bg-purple-50 text-purple-700 border-l-4 border-purple-700"
                 : "text-gray-900"
                 }`}
@@ -1936,7 +2635,7 @@ const PhoneCustomDropdown: React.FC<any> = ({
       )}
 
       {/* Click outside to close */}
-      {isOpen && (
+      {isOpen && !disabled && (
         <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
       )}
     </div>

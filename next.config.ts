@@ -48,6 +48,19 @@ export default nextConfig;
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  async rewrites() {
+    return [
+      {
+        source: "/api/shoutout/send",
+        destination: "https://api.getshoutout.com/otpservice/send",
+      },
+      {
+        source: "/api/shoutout/verify",
+        destination: "https://api.getshoutout.com/otpservice/verify",
+      },
+    ];
+  },
+
   async redirects() {
     return [
       {

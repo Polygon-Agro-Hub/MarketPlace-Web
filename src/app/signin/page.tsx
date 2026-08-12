@@ -115,8 +115,10 @@ const Page = () => {
           localStorage.removeItem("rememberedPassword");
         }
 
-        // Updated routing logic based on firstTimeUser and buyerType
-        if (data.userData.buyerType === "Retail") {
+        if (data.userData.firstTimeUser === 1 && data.userData.isDashUser === 1 && data.userData.isPswUpdateed === 0) {
+          // First-time dash user must set a new password first
+          router.push("/dash-password-update");
+        } else if (data.userData.buyerType === "Retail") {
           // For retail users, check if it's their first time
           if (data.userData.firstTimeUser === 0) {
             router.push("/exclude/exclude"); // First-time retail user goes to exclude page
@@ -215,18 +217,16 @@ const Page = () => {
             <div className="flex mb-6 space-x-2">
               <button
                 onClick={() => setUserType("Retail")}
-                className={`flex-1 px-2 sm:px-4 py-2 border rounded-md flex items-center justify-start space-x-1 sm:space-x-2 text-xs sm:text-sm cursor-pointer ${
-                  userType === "Retail"
+                className={`flex-1 px-2 sm:px-4 py-2 border rounded-md flex items-center justify-start space-x-1 sm:space-x-2 text-xs sm:text-sm cursor-pointer ${userType === "Retail"
                     ? "bg-purple-100 text-purple-800 border-purple-500"
                     : "bg-white text-gray-800 border-gray-300"
-                }`}
+                  }`}
               >
                 <span
-                  className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                    userType === "Retail"
+                  className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${userType === "Retail"
                       ? "border-purple-800"
                       : "border-gray-400"
-                  }`}
+                    }`}
                 >
                   {userType === "Retail" && (
                     <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-purple-800 rounded-full" />
@@ -239,18 +239,16 @@ const Page = () => {
 
               <button
                 onClick={() => setUserType("Wholesale")}
-                className={`flex-1 px-2 sm:px-4 py-2 border rounded-md flex items-center justify-start space-x-1 sm:space-x-2 text-xs sm:text-sm cursor-pointer ${
-                  userType === "Wholesale"
+                className={`flex-1 px-2 sm:px-4 py-2 border rounded-md flex items-center justify-start space-x-1 sm:space-x-2 text-xs sm:text-sm cursor-pointer ${userType === "Wholesale"
                     ? "bg-purple-100 text-purple-800 border-purple-500"
                     : "bg-white text-gray-800 border-gray-300"
-                }`}
+                  }`}
               >
                 <span
-                  className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                    userType === "Wholesale"
+                  className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${userType === "Wholesale"
                       ? "border-purple-800"
                       : "border-gray-400"
-                  }`}
+                    }`}
                 >
                   {userType === "Wholesale" && (
                     <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-purple-800 rounded-full" />
@@ -279,9 +277,8 @@ const Page = () => {
                   type="text"
                   name="email"
                   placeholder="Email / Phone Number (e.g. +947XXXXXXXX)"
-                  className={`w-full px-10 py-2 border rounded-md text-xs sm:text-base ${
-                    emailError ? "border-red-500" : "border-gray-300"
-                  }`}
+                  className={`w-full px-10 py-2 border rounded-md text-xs sm:text-base ${emailError ? "border-red-500" : "border-gray-300"
+                    }`}
                   value={email}
                   onChange={(e) => {
                     // Automatically trim leading spaces
@@ -302,9 +299,8 @@ const Page = () => {
                   type={showPassword ? "text" : "password"}
                   name="password"
                   placeholder="Password"
-                  className={`w-full px-10 py-2 border rounded-md text-xs sm:text-base ${
-                    passwordError ? "border-red-500" : "border-gray-300"
-                  }`}
+                  className={`w-full px-10 py-2 border rounded-md text-xs sm:text-base ${passwordError ? "border-red-500" : "border-gray-300"
+                    }`}
                   value={password}
                   onChange={(e) => {
                     // Automatically trim leading spaces

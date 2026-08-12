@@ -141,6 +141,14 @@ const Page = () => {
         }
         setIsModalOpen(true);
       } else {
+        if (countryCode !== "+94") {
+          setModalMessage(
+            'SMS OTP is available only for Sri Lankan phone numbers (+94). For overseas phone numbers, please use the "Via Email" option to receive your OTP.'
+          );
+          setIsError(true);
+          setIsModalOpen(true);
+          return;
+        }
         const error = validatePhoneNumber(phoneNumber);
         if (error) { setPhoneError(error); return; }
         const cleanedPhone = phoneNumber.replace(/\s+/g, "");
@@ -335,107 +343,106 @@ const Page = () => {
             </p>
 
             {/* Email input */}
-{resetMethod === "email" && (
-  <div className="mb-6">
-    <div className="w-full md:w-[80%] md:mx-auto">
-      <input
-        type="email"
-        value={email}
-        onChange={handleEmailChange}
-        placeholder="Enter Email Address"
-        className={`
+            {resetMethod === "email" && (
+              <div className="mb-6">
+                <div className="w-full md:w-[80%] md:mx-auto">
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={handleEmailChange}
+                    placeholder="Enter Email Address"
+                    className={`
           w-full px-3 py-2.5 rounded-xl border text-sm
           md:px-4 md:py-3 md:rounded-md md:text-base
           focus:outline-none focus:ring-2 focus:ring-purple-600 transition
           ${emailError ? "border-red-500" : "border-gray-300"}
         `}
-        disabled={isSendingEmail}
-      />
-      {emailError && (
-        <p className="text-red-500 text-xs md:text-sm mt-1 text-left">{emailError}</p>
-      )}
-    </div>
-  </div>
-)}
-
-{/* Phone input */}
-{resetMethod === "sms" && (
-  <div className="mb-6">
-    <div className="w-full md:w-[80%] md:mx-auto">
-      <div className="flex gap-2 sm:space-x-2">
-        {/* Country Code Dropdown */}
-        <div className="relative w-[30%] sm:w-2/5 md:w-1/3 flex-shrink-0" ref={dropdownRef}>
-          <button
-            type="button"
-            onClick={() => setIsCountryDropdownOpen(!isCountryDropdownOpen)}
-            className={`w-full h-full px-2 py-2.5 md:py-3 border rounded-xl md:rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600 flex items-center justify-between bg-white cursor-pointer text-sm md:text-base ${
-              phoneError ? "border-red-500" : "border-gray-300"
-            }`}
-          >
-            <span className="truncate flex items-center gap-1">
-              {selectedCountry && (
-                <>
-                  <img
-                    src={getFlagUrl(selectedCountry.code)}
-                    alt={selectedCountry.name}
-                    className="inline-block w-5 h-3.5 md:w-6 md:h-4"
+                    disabled={isSendingEmail}
                   />
-                  <span className="text-xs md:text-sm font-medium">{selectedCountry.dialCode}</span>
-                </>
-              )}
-            </span>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className={`h-3 w-3 md:h-4 md:w-4 ml-1 transition-transform flex-shrink-0 ${isCountryDropdownOpen ? "rotate-180" : ""}`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
+                  {emailError && (
+                    <p className="text-red-500 text-xs md:text-sm mt-1 text-left">{emailError}</p>
+                  )}
+                </div>
+              </div>
+            )}
 
-          {isCountryDropdownOpen && (
-            <div className="absolute z-10 mt-1 left-0 md:w-30 sm:w-22 max-h-60 overflow-auto bg-white border border-gray-300 rounded-xl md:rounded-md shadow-lg">
-              {countries.map((country) => (
-                <button
-                  key={country.code}
-                  type="button"
-                  onClick={() => selectCountry(country.dialCode)}
-                  className="w-full text-left px-3 py-2.5 hover:bg-gray-100 flex items-center gap-2 cursor-pointer text-sm"
-                >
-                  <img src={getFlagUrl(country.code)} alt={country.name} className="w-5 h-3.5 md:w-6 md:h-4 flex-shrink-0" />
-                  <span className="font-medium flex-shrink-0">{country.dialCode}</span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+            {/* Phone input */}
+            {resetMethod === "sms" && (
+              <div className="mb-6">
+                <div className="w-full md:w-[80%] md:mx-auto">
+                  <div className="flex gap-2 sm:space-x-2">
+                    {/* Country Code Dropdown */}
+                    <div className="relative w-[30%] sm:w-2/5 md:w-1/3 flex-shrink-0" ref={dropdownRef}>
+                      <button
+                        type="button"
+                        onClick={() => setIsCountryDropdownOpen(!isCountryDropdownOpen)}
+                        className={`w-full h-full px-2 py-2.5 md:py-3 border rounded-xl md:rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600 flex items-center justify-between bg-white cursor-pointer text-sm md:text-base ${phoneError ? "border-red-500" : "border-gray-300"
+                          }`}
+                      >
+                        <span className="truncate flex items-center gap-1">
+                          {selectedCountry && (
+                            <>
+                              <img
+                                src={getFlagUrl(selectedCountry.code)}
+                                alt={selectedCountry.name}
+                                className="inline-block w-5 h-3.5 md:w-6 md:h-4"
+                              />
+                              <span className="text-xs md:text-sm font-medium">{selectedCountry.dialCode}</span>
+                            </>
+                          )}
+                        </span>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className={`h-3 w-3 md:h-4 md:w-4 ml-1 transition-transform flex-shrink-0 ${isCountryDropdownOpen ? "rotate-180" : ""}`}
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
 
-        {/* Phone Number Input */}
-        <div className="flex-1">
-          <input
-            type="tel"
-            value={phoneNumber}
-            onChange={handlePhoneChange}
-            placeholder="7XXXXXXXX"
-            maxLength={9}
-            className={`
+                      {isCountryDropdownOpen && (
+                        <div className="absolute z-10 mt-1 left-0 md:w-30 sm:w-22 max-h-60 overflow-auto bg-white border border-gray-300 rounded-xl md:rounded-md shadow-lg">
+                          {countries.map((country) => (
+                            <button
+                              key={country.code}
+                              type="button"
+                              onClick={() => selectCountry(country.dialCode)}
+                              className="w-full text-left px-3 py-2.5 hover:bg-gray-100 flex items-center gap-2 cursor-pointer text-sm"
+                            >
+                              <img src={getFlagUrl(country.code)} alt={country.name} className="w-5 h-3.5 md:w-6 md:h-4 flex-shrink-0" />
+                              <span className="font-medium flex-shrink-0">{country.dialCode}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Phone Number Input */}
+                    <div className="flex-1">
+                      <input
+                        type="tel"
+                        value={phoneNumber}
+                        onChange={handlePhoneChange}
+                        placeholder="7XXXXXXXX"
+                        maxLength={9}
+                        className={`
               w-full px-3 py-2.5 rounded-xl border text-sm
               md:px-4 md:py-3 md:rounded-md md:text-base
               focus:outline-none focus:ring-2 focus:ring-purple-600 transition
               ${phoneError ? "border-red-500" : "border-gray-300"}
             `}
-            required
-          />
-        </div>
-      </div>
-      {phoneError && (
-        <p className="text-red-500 text-xs md:text-sm mt-1 text-left">{phoneError}</p>
-      )}
-    </div>
-  </div>
-)}
+                        required
+                      />
+                    </div>
+                  </div>
+                  {phoneError && (
+                    <p className="text-red-500 text-xs md:text-sm mt-1 text-left">{phoneError}</p>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Submit button */}
             <button
@@ -443,11 +450,10 @@ const Page = () => {
               className={`
                 w-full py-3 rounded-xl text-sm font-semibold transition-colors mb-4
                 md:w-[80%] md:rounded-xl md:text-base
-                ${
-                  (resetMethod === "email" && (isSendingEmail || isResendDisabled)) ||
+                ${(resetMethod === "email" && (isSendingEmail || isResendDisabled)) ||
                   (resetMethod === "sms" && isSendingOTP)
-                    ? "bg-[#CEBAF4] text-[#3E206D] cursor-not-allowed"
-                    : "bg-[#3E206D] hover:bg-purple-900 text-white cursor-pointer"
+                  ? "bg-[#CEBAF4] text-[#3E206D] cursor-not-allowed"
+                  : "bg-[#3E206D] hover:bg-purple-900 text-white cursor-pointer"
                 }
               `}
               disabled={
@@ -470,9 +476,8 @@ const Page = () => {
                 <button
                   onClick={handleResendEmail}
                   disabled={isResendDisabled || isSendingEmail}
-                  className={`text-[#094EE8] hover:text-blue-800 underline text-sm md:text-base ${
-                    isResendDisabled || isSendingEmail ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
-                  }`}
+                  className={`text-[#094EE8] hover:text-blue-800 underline text-sm md:text-base ${isResendDisabled || isSendingEmail ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+                    }`}
                 >
                   {isSendingEmail ? "Sending..." : "Resend again"}
                 </button>

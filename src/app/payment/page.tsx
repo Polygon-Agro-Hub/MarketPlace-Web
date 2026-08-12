@@ -1,4 +1,3 @@
-// app/checkout/payment/page.tsx
 "use client";
 
 import React, { useState, useEffect, MouseEvent } from "react";
@@ -7,6 +6,7 @@ import { useRouter } from "next/navigation";
 import TopNavigation from "@/components/top-navigation/TopNavigation";
 import Visa from "../../../public/images/Visa.png";
 import MasterCard from "../../../public/images/Mastercard.png";
+import unavailableWarningIcon from "../../../public/unavailable-warning.png";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/store";
 import {
@@ -15,10 +15,17 @@ import {
   OrderPayload,
   formatValidationErrors,
   validateCoupon,
+  getCashPaymentLimit,
 } from "@/services/cart-service";
 import summary from "../../../public/summary.png";
 import { updateCartInfo } from "@/store/slices/authSlice";
 import { getCartInfo } from "@/services/auth-service";
+import { WalletMinimal, ReceiptText } from "lucide-react";
+import creditWalletImage from "../../../public/credit-wallet.png";
+import cardPaymentIcon from "../../../public/pay-now-illustration.png";
+import cashPaymentIcon from "../../../public/cashicon.png";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faLock } from "@fortawesome/free-solid-svg-icons";
 
 const Page: React.FC = () => {
   const router = useRouter();
@@ -39,12 +46,6 @@ const Page: React.FC = () => {
   // Local state
   const [paymentMethod, setPaymentMethod] = useState<"card" | "cash">("card");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [cardDetails, setCardDetails] = useState({
-    cardNumber: "",
-    nameOnCard: "",
-    expirationDate: "",
-    cvv: "",
-  });
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [showErrorPopup, setShowErrorPopup] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -60,6 +61,37 @@ const Page: React.FC = () => {
   const [isError, setIsError] = useState(false);
   const [modalMessage, setModalMessage] = useState("");
   const [orderSubmitted, setOrderSubmitted] = useState(false);
+  const isFinalizeImdt = checkoutDetails?.isFinalizeImdt === 1;
+  const [showUnavailableModal, setShowUnavailableModal] = useState(false);
+  const [cashPaymentLimit, setCashPaymentLimit] = useState<number>(2000); // sensible default while loading
+  const [cardDetails, setCardDetails] = useState({
+    cardNumber: "",
+    nameOnCard: "",
+    expirationDate: "",
+    cvv: "",
+  });
+  const [expirationDateError, setExpirationDateError] = useState("");
+  const [cardNumberError, setCardNumberError] = useState("");
+  const [cvvError, setCvvError] = useState("");
+
+  useEffect(() => {
+    if (!token) return;
+
+    const fetchCashLimit = async () => {
+      try {
+        const res = await getCashPaymentLimit(token);
+        if (res.status) {
+          setCashPaymentLimit(res.data.cashPaymentLimit);
+        }
+      } catch (error) {
+        console.error("Error fetching cash payment limit:", error);
+        // fall back silently — cashPaymentLimit stays at default 2000
+      }
+    };
+
+    fetchCashLimit();
+  }, [token]);
+
 
   const getHomeUrl = () => {
     return user?.buyerType === "Wholesale" ? "/wholesale/home" : "/";
@@ -72,9 +104,51 @@ const Page: React.FC = () => {
     }
   }, []);
 
+  const validateExpirationDate = (value: string): string => {
+    if (!value) return "";
+    if (!/^\d{2}\/\d{2}$/.test(value)) return "";
+
+    const [monthStr, yearStr] = value.split("/");
+    const month = parseInt(monthStr, 10);
+    const year = parseInt(yearStr, 10);
+
+    if (month < 1 || month > 12) {
+      return "Please enter a valid month (01-12).";
+    }
+
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1; // 1-12
+    const currentYear = now.getFullYear() % 100; // last two digits
+
+    if (year < currentYear || (year === currentYear && month < currentMonth)) {
+      return "This card has expired. Please enter a valid expiration date.";
+    }
+
+    return "";
+  };
+
+  const validateCardNumber = (formattedValue: string): string => {
+    const digitsOnly = formattedValue.replace(/\s/g, "");
+    if (!digitsOnly) return "";
+    if (digitsOnly.length !== 16) {
+      return "Card number must be exactly 16 digits.";
+    }
+    return "";
+  };
+
+  const validateCvv = (value: string): string => {
+    if (!value) return "";
+    if (!/^\d{3}$/.test(value)) {
+      return "CVV must be exactly 3 digits.";
+    }
+    return "";
+  };
+
+
   const handleCardInputChange = (field: string, value: string) => {
     setCardDetails((prev) => ({ ...prev, [field]: value }));
   };
+
 
   const prepareOrderPayload = (): OrderPayload => {
     const calculatedSummary = cartItems.calculatedSummary;
@@ -97,6 +171,13 @@ const Page: React.FC = () => {
     const finalGrandTotal = isCouponApplied
       ? originalGrandTotal - couponDiscountAmount + effectiveDeliveryCharge
       : originalGrandTotal + effectiveDeliveryCharge;
+
+    const creditAppliedAmount = useCredit ? Math.min(creditBalance, finalGrandTotal) : 0;
+    const remainingAmount = finalGrandTotal - creditAppliedAmount;
+
+    // If credit fully covers the order, there's no actual cash/card transaction —
+    // always report it as "card" regardless of what was selected earlier.
+    const effectivePaymentMethod = isFullyCoveredByCredit ? "card" : paymentMethod;
 
     let finalCheckoutDetails: any = {
       deliveryMethod: checkoutDetails.deliveryMethod || "home",
@@ -125,6 +206,7 @@ const Page: React.FC = () => {
       geoLatitude: checkoutDetails.geoLatitude || null,
       geoLongitude: checkoutDetails.geoLongitude || null,
       companycenterId: checkoutDetails.companycenterId || null,
+      saveAs: checkoutDetails.deliveryMethod === "home" ? (checkoutDetails.saveAs || "") : "",
     };
 
     if (checkoutDetails.deliveryMethod === "home") {
@@ -147,10 +229,15 @@ const Page: React.FC = () => {
     return {
       cartId: cartItems.cartId || 0,
       checkoutDetails: finalCheckoutDetails,
-      paymentMethod,
+      paymentMethod: effectivePaymentMethod, // never "cash" when credit fully covers the order
       discountAmount: Number(discountAmount) || 0,
       grandTotal: Number(finalGrandTotal) || 0,
       orderApp: "marketplace",
+      deliveryCharge: effectiveDeliveryCharge,
+      isCreditApplied: useCredit,
+      creditPaid: Number(creditAppliedAmount) || 0,
+      moneyPaid: Number(remainingAmount) || 0,
+      isFinalizeImdt: checkoutDetails.isFinalizeImdt === 1 ? 1 : 0,
     };
   };
 
@@ -265,7 +352,7 @@ const Page: React.FC = () => {
         throw new Error(cartValidation.error);
       }
 
-      if (paymentMethod === "card") {
+      if (!isFullyCoveredByCredit && paymentMethod === "card") {
         const { cardNumber, nameOnCard, expirationDate, cvv } = cardDetails;
         if (!cardNumber || !nameOnCard || !expirationDate || !cvv) {
           throw new Error("Please fill in all card details.");
@@ -303,6 +390,12 @@ const Page: React.FC = () => {
       }
     } catch (error: any) {
       console.error("Error submitting order:", error);
+
+      if (error.code === "ITEMS_UNAVAILABLE") {
+        setShowUnavailableModal(true);
+        return; // don't fall through to the generic error modal
+      }
+
       const errorMsg = error.message || "Order submission failed. Please try again.";
       setIsError(true);
       setModalMessage(errorMsg);
@@ -334,10 +427,13 @@ const Page: React.FC = () => {
     const calculatedSummary = cartItems.calculatedSummary;
     const originalGrandTotal = calculatedSummary?.finalTotal || 0;
     const shouldShowDeliveryCharge = checkoutDetails.deliveryMethod === "home";
+    const shouldApplyDeliveryCharge = checkoutDetails.deliveryMethod === "home";
+
     const isFreeDeliveryCoupon =
       isCouponApplied &&
       (couponType === "Free Delivery" || couponType === "Free Delivary");
-    const effectiveDeliveryCharge = shouldShowDeliveryCharge
+
+    const effectiveDeliveryCharge = shouldApplyDeliveryCharge
       ? isFreeDeliveryCoupon
         ? 0
         : deliveryCharge
@@ -362,6 +458,23 @@ const Page: React.FC = () => {
 
   const displayValues = getDisplayValues();
 
+  const creditBalance = Number(authCart?.creditBalance) || 0;
+
+  console.log('creditbalance ', creditBalance)
+
+  // Toggle state for "Use My Credit Balance"
+  const [useCredit, setUseCredit] = useState(false);
+  const creditApplied = useCredit ? Math.min(creditBalance, displayValues.grandTotal) : 0;
+  const remainingAfterCredit = displayValues.grandTotal - creditApplied;
+  const isFullyCoveredByCredit = useCredit && remainingAfterCredit === 0;
+  const showCashOption = displayValues.grandTotal <= cashPaymentLimit && !isFinalizeImdt;
+
+  useEffect(() => {
+    if (!showCashOption && paymentMethod === "cash") {
+      setPaymentMethod("card");
+    }
+  }, [showCashOption]);
+
   useEffect(() => {
     dispatch(
       updateCartInfo({
@@ -370,6 +483,20 @@ const Page: React.FC = () => {
       })
     );
   }, [displayValues.grandTotal, isCouponApplied, couponDiscount, deliveryCharge]);
+
+  const canConfirmOrder = (): boolean => {
+    if (isSubmitting || orderSubmitted) return false;
+    if (isFullyCoveredByCredit) return true; // credit alone covers everything
+
+    if (paymentMethod === "card") {
+      const { cardNumber, nameOnCard, expirationDate, cvv } = cardDetails;
+      const fieldsFilled = Boolean(cardNumber && nameOnCard && expirationDate && cvv);
+      const noValidationErrors = !cardNumberError && !expirationDateError && !cvvError;
+      return fieldsFilled && noValidationErrors;
+    }
+    return paymentMethod === "cash" && showCashOption;
+  };
+
 
   return (
     <div className="px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5">
@@ -400,6 +527,7 @@ const Page: React.FC = () => {
                 </div>
               </div>
             )}
+
             <h2 className="text-xl font-bold mb-2 text-gray-900">
               {isError ? "Error" : "Thank you for ordering!"}
             </h2>
@@ -416,14 +544,44 @@ const Page: React.FC = () => {
                 <button
                   onClick={handleViewInvoice}
                   disabled={!orderId}
-                  className={`px-6 py-2 rounded-lg transition cursor-pointer font-medium ${
-                    !orderId ? "bg-gray-400 text-gray-600 cursor-not-allowed" : "bg-[#3E206D] text-white hover:bg-[#3E206D]"
-                  }`}
+                  className={`px-6 py-2 rounded-lg transition cursor-pointer font-medium ${!orderId ? "bg-gray-400 text-gray-600 cursor-not-allowed" : "bg-[#3E206D] text-white hover:bg-[#3E206D]"
+                    }`}
                 >
                   View Invoice
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {showUnavailableModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white p-8 rounded-2xl text-center w-[90%] max-w-md shadow-xl">
+            <div className="flex justify-center mb-4">
+              <Image
+                src={unavailableWarningIcon}
+                alt="Warning"
+                width={64}
+                height={64}
+                className="object-contain"
+              />
+            </div>
+            <h2 className="text-xl font-bold mb-2 text-gray-900">
+              Some Items No Longer Available!
+            </h2>
+            <p className="text-gray-500 mb-6">
+              Sorry, a package / a product in your cart is no longer available to order. Please go to your cart and update it before continuing.
+            </p>
+            <button
+              onClick={() => {
+                setShowUnavailableModal(false);
+                router.push("/cart");
+              }}
+              className="w-full px-6 py-3 bg-[#3E206D] text-white rounded-xl font-semibold hover:bg-[#2f1854] transition cursor-pointer"
+            >
+              Go Back to Cart
+            </button>
           </div>
         </div>
       )}
@@ -435,135 +593,313 @@ const Page: React.FC = () => {
         {/* Left Column - Payment Methods */}
         <div className="w-full lg:w-2/3">
           <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 md:p-8">
-            <h1 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">
-              Select Payment Method
-            </h1>
+            {creditBalance > 0 && (
+              <div className="mb-5 p-4 sm:p-5 bg-white">
+                <div className="flex justify-between items-center mb-4 flex-wrap gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-16 h-16 flex items-center justify-center flex-shrink-0">
+                      <Image
+                        src={creditWalletImage}
+                        alt="Credit balance"
+                        width={64}
+                        height={64}
+                        className="object-contain"
+                      />
+                    </div>
+                    <div>
+                      <p className="text-[#252525] font-bold">Pay using your Credit Balance</p>
+                      <p className="text-sm text-gray-500">Apply credit to reduce payment.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setUseCredit((prev) => !prev)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition cursor-pointer ${useCredit ? "bg-[#34C759]" : "bg-gray-300"
+                        }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${useCredit ? "translate-x-6" : "translate-x-1"
+                          }`}
+                      />
+                    </button>
+                    <span className="text-sm font-semibold text-[#1B7331]">Use My Credit Balance</span>
+                  </div>
+                </div>
 
-            {/* Credit/Debit Card */}
-            <div className="mb-5 border border-gray-200 rounded-xl overflow-hidden">
-              <div
-                className="p-4 flex justify-between items-center cursor-pointer bg-white hover:bg-gray-50 transition"
-                onClick={() => setPaymentMethod("card")}
-              >
-                <div className="flex items-center">
-                  <div
-                    className={`w-5 h-5 rounded-full ${
-                      paymentMethod === "card"
-                        ? "bg-[#3E206D] border-2 border-[#3E206D] ring-2 ring-purple-100"
-                        : "border border-gray-400"
+                <div
+                  className={`grid grid-cols-2 gap-4 rounded-[10px] border p-4 ${useCredit
+                    ? "bg-[#F6FCF5] border-[#AEC9AB]"
+                    : "bg-gray-50 border-gray-200"
                     }`}
-                  />
-                  <span className="ml-3 text-base font-medium">Credit / Debit Card</span>
-                </div>
-                <div className="flex space-x-2">
-                  <Image src={Visa} alt="Visa" className="w-auto h-6 object-cover" />
-                  <Image src={MasterCard} alt="MasterCard" className="w-auto h-6 object-cover" />
-                </div>
-              </div>
-
-              {paymentMethod === "card" && (
-                <div className="p-5 border-t border-gray-200 bg-gray-50/30">
-                  <div className="space-y-4">
-                    <input
-                      type="text"
-                      placeholder="Enter Card Number"
-                      value={cardDetails.cardNumber}
-                      onChange={(e) => {
-                        const value = e.target.value.replace(/[^0-9]/g, "");
-                        const formattedValue = value.replace(/(\d{4})(?=\d)/g, "$1 ");
-                        if (value.length <= 16) handleCardInputChange("cardNumber", formattedValue);
-                      }}
-                      maxLength={19}
-                      className="w-full p-3 border border-gray-200 rounded-lg bg-white text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Enter Name on Card"
-                      value={cardDetails.nameOnCard}
-                      onChange={(e) => {
-                        let value = e.target.value;
-                        if (value.startsWith(" ")) value = value.trimStart();
-                        value = value.replace(/[^a-zA-Z\s]/g, "");
-                        value = value.replace(/\b\w/g, (char) => char.toUpperCase());
-                        handleCardInputChange("nameOnCard", value);
-                      }}
-                      className="w-full p-3 border border-gray-200 rounded-lg bg-white text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
-                    />
-                    <div className="flex gap-4">
-                      <input
-                        type="text"
-                        placeholder="Enter Expiration Date (MM/YY)"
-                        value={cardDetails.expirationDate}
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/[^0-9/]/g, "");
-                          let formattedValue = value;
-                          if (value.length === 2 && !value.includes("/") && e.target.value.length > cardDetails.expirationDate.length) {
-                            formattedValue = value + "/";
-                          }
-                          if (formattedValue.length <= 5) handleCardInputChange("expirationDate", formattedValue);
-                        }}
-                        maxLength={5}
-                        className="w-2/3 p-3 border border-gray-200 rounded-lg bg-white text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
-                      />
-                      <input
-                        type="text"
-                        placeholder="Enter CVV"
-                        value={cardDetails.cvv}
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/[^0-9]/g, "");
-                          if (value.length <= 3) handleCardInputChange("cvv", value);
-                        }}
-                        maxLength={3}
-                        className="w-1/3 p-3 border border-gray-200 rounded-lg bg-white text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
-                      />
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center flex-shrink-0">
+                      <WalletMinimal className="w-6 h-6" style={{ color: "#27AA48" }} />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Credit Applied</p>
+                      <p className={`font-semibold ${useCredit ? "text-[#27AA48]" : "text-[#27AA48]"}`}>
+                        {useCredit ? `- Rs. ${formatPrice(creditApplied)}` : "0.00"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 border-l border-gray-200 pl-4">
+                    <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center flex-shrink-0">
+                      <ReceiptText className="w-6 h-6 text-[#354052]" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Remaining to Pay</p>
+                      <p className="font-semibold text-gray-900">Rs. {formatPrice(remainingAfterCredit)}</p>
                     </div>
                   </div>
                 </div>
-              )}
-            </div>
 
-            {/* Pay by Cash */}
-            <div className="border border-gray-200 rounded-xl overflow-hidden">
-              <div
-                className="p-4 flex justify-between items-center cursor-pointer bg-white hover:bg-gray-50 transition"
-                onClick={() => setPaymentMethod("cash")}
-              >
-                <div className="flex items-center">
-                  <div
-                    className={`w-5 h-5 rounded-full ${
-                      paymentMethod === "cash"
-                        ? "bg-[#3E206D] border-2 border-[#3E206D] ring-2 ring-purple-100"
-                        : "border border-gray-400"
-                    }`}
-                  />
-                  <span className="ml-3 text-base font-medium">Pay by Cash</span>
-                </div>
+                {useCredit && remainingAfterCredit > 0 && (
+                  <div className="mt-4">
+                    <p className="font-bold text-sm text-[#252525]">Choose a payment method for the remaining amount.</p>
+                    <p className="text-sm text-gray-500 mt-1">
+                      You need to pay{" "}
+                      <span className="font-semibold text-[#3E206D]">Rs. {formatPrice(remainingAfterCredit)}</span> to
+                      complete your order.
+                    </p>
+                  </div>
+                )}
+                {isFullyCoveredByCredit && (
+                  <>
+                    <div className="border-t border-gray-200 my-4" />
+                    <div className="flex items-center gap-3 bg-[#F5FBF5] border border-[#6DD087] rounded-[10px] p-4">
+                      <div className="w-7 h-7 rounded-full bg-[#1C8732] flex items-center justify-center flex-shrink-0">
+                        <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none">
+                          <path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[#252525]">
+                          {creditBalance > displayValues.grandTotal
+                            ? "Your Credit Balance is more than enough to pay for this order."
+                            : "Your Credit Balance is enough to pay for this order."}
+                        </p>
+                        <p className="text-xs text-[#5A6B5D]">
+                          {creditBalance - creditApplied > 0 ? (
+                            <>
+                              You will save{" "}
+                              <span className="font-semibold text-[#1C8732]">
+                                Rs. {formatPrice(
+                                  Math.max(0, (Number(creditBalance) || 0) - (Number(creditApplied) || 0))
+                                )}
+                              </span>{" "}
+                              in your credit balance.
+                            </>
+                          ) : (
+                            "No additional payment is required."
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
+            )}
 
-              {paymentMethod === "cash" && (
-                <div className="p-5 border-t border-gray-200 bg-gray-50/30">
-                  <div className="text-gray-700 space-y-3">
-                    <div className="flex gap-2">
-                      <span className="flex-shrink-0">-</span>
-                      <span>You may pay in cash to our courier upon receiving your parcel at the doorstep.</span>
+            {creditBalance > 0 && !isFullyCoveredByCredit && (
+              <div className="border-t border-[#CBCFD5] my-5 sm:my-6" />
+            )}
+
+            {!isFullyCoveredByCredit && (
+              <>
+                <h1 className="text-medium sm:text-lg font-semibold mb-4 sm:mb-6">
+                  Select Payment Method
+                </h1>
+
+                {/* Credit/Debit Card */}
+                <div className="mb-5 border border-gray-200 rounded-xl overflow-hidden">
+                  <div
+                    className="p-4 flex justify-between items-center cursor-pointer bg-white hover:bg-gray-50 transition"
+                    onClick={() => setPaymentMethod("card")}
+                  >
+                    <div className="flex items-center">
+                      <div
+                        className={`w-5 h-5 rounded-full ${paymentMethod === "card"
+                          ? "bg-[#3E206D] border-2 border-[#3E206D] ring-2 ring-purple-100"
+                          : "border border-gray-400"
+                          }`}
+                      />
+                      <span className="ml-3 text-base font-medium">Credit / Debit Card</span>
                     </div>
-                    <div className="flex gap-2">
-                      <span className="flex-shrink-0">-</span>
-                      <span>Before agreeing to receive the parcel, check if your delivery status has been updated to "Out of Delivery".</span>
-                    </div>
-                    <div className="flex gap-2">
-                      <span className="flex-shrink-0">-</span>
-                      <span>Before receiving, confirm that the airway bill shows that the parcel from Polygon Holdings.</span>
-                    </div>
-                    <div className="flex gap-2">
-                      <span className="flex-shrink-0">-</span>
-                      <span>Before you make the payment to the courier, confirm your order number, sender information, and tracking number on the parcel.</span>
+                    <div className="flex space-x-2">
+                      <Image src={Visa} alt="Visa" className="w-auto h-6 object-cover" />
+                      <Image src={MasterCard} alt="MasterCard" className="w-auto h-6 object-cover" />
                     </div>
                   </div>
+
+                  {paymentMethod === "card" && (
+                    <div className="p-5 border-t border-gray-200 bg-gray-50/30">
+                      <div className="space-y-4">
+                        <div>
+                          <input
+                            type="text"
+                            placeholder="Enter Card Number"
+                            value={cardDetails.cardNumber}
+                            onChange={(e) => {
+                              const value = e.target.value.replace(/[^0-9]/g, "");
+                              const formattedValue = value.replace(/(\d{4})(?=\d)/g, "$1 ");
+                              if (value.length <= 16) {
+                                handleCardInputChange("cardNumber", formattedValue);
+                                setCardNumberError(validateCardNumber(formattedValue));
+                              }
+                            }}
+                            onBlur={(e) => {
+                              setCardNumberError(validateCardNumber(e.target.value));
+                            }}
+                            maxLength={19}
+                            className={`w-full p-3 border rounded-lg bg-white text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200 ${cardNumberError ? "border-red-400" : "border-gray-200"
+                              }`}
+                          />
+                          {cardNumberError && (
+                            <p className="text-red-600 text-xs mt-1">{cardNumberError}</p>
+                          )}
+                        </div>
+                        <input
+                          type="text"
+                          placeholder="Enter Name on Card"
+                          value={cardDetails.nameOnCard}
+                          onChange={(e) => {
+                            let value = e.target.value;
+                            if (value.startsWith(" ")) value = value.trimStart();
+                            value = value.replace(/[^a-zA-Z\s]/g, "");
+                            value = value.replace(/\b\w/g, (char) => char.toUpperCase());
+                            handleCardInputChange("nameOnCard", value);
+                          }}
+                          className="w-full p-3 border border-gray-200 rounded-lg bg-white text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
+                        />
+                        <div className="flex gap-4">
+                          <div className="w-2/3">
+                            <input
+                              type="text"
+                              placeholder="Enter Expiration Date (MM/YY)"
+                              value={cardDetails.expirationDate}
+                              onChange={(e) => {
+                                // Strip everything except digits, ignore any '/' the user types manually
+                                const digitsOnly = e.target.value.replace(/[^0-9]/g, "").slice(0, 4);
+
+                                // Re-insert the separator ourselves once we have more than 2 digits
+                                const formattedValue =
+                                  digitsOnly.length > 2
+                                    ? `${digitsOnly.slice(0, 2)}/${digitsOnly.slice(2)}`
+                                    : digitsOnly;
+
+                                handleCardInputChange("expirationDate", formattedValue);
+                                setExpirationDateError(validateExpirationDate(formattedValue));
+                              }}
+                              onBlur={(e) => {
+                                setExpirationDateError(validateExpirationDate(e.target.value));
+                              }}
+                              maxLength={5}
+                              className={`w-full p-3 border rounded-lg bg-white text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200 ${expirationDateError ? "border-red-400" : "border-gray-200"
+                                }`}
+                            />
+                            {expirationDateError && (
+                              <p className="text-red-600 text-xs mt-1">{expirationDateError}</p>
+                            )}
+                          </div>
+                          <div className="w-1/3">
+                            <input
+                              type="text"
+                              placeholder="Enter CVV"
+                              value={cardDetails.cvv}
+                              onChange={(e) => {
+                                const value = e.target.value.replace(/[^0-9]/g, "");
+                                if (value.length <= 3) {
+                                  handleCardInputChange("cvv", value);
+                                  setCvvError(validateCvv(value));
+                                }
+                              }}
+                              onBlur={(e) => {
+                                setCvvError(validateCvv(e.target.value));
+                              }}
+                              maxLength={3}
+                              className={`w-full p-3 border rounded-lg bg-white text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200 ${cvvError ? "border-red-400" : "border-gray-200"
+                                }`}
+                            />
+                            {cvvError && (
+                              <p className="text-red-600 text-xs mt-1">{cvvError}</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+
+                {/* Pay by Cash */}
+                <div className="border border-gray-200 rounded-xl overflow-hidden">
+                  <div
+                    className={`p-4 flex items-center transition ${showCashOption ? "cursor-pointer bg-white hover:bg-gray-50" : "bg-gray-50 cursor-not-allowed"
+                      }`}
+                    onClick={() => showCashOption && setPaymentMethod("cash")}
+                  >
+                    <div className="flex items-center">
+                      <div
+                        className={`w-5 h-5 rounded-full ${paymentMethod === "cash" && showCashOption
+                          ? "bg-[#3E206D] border-2 border-[#3E206D] ring-2 ring-purple-100"
+                          : "border border-gray-400"
+                          }`}
+                      />
+                      <span className={`ml-3 text-base font-medium ${!showCashOption ? "text-gray-400" : ""}`}>
+                        Pay by Cash
+                      </span>
+                      {!showCashOption && (
+                        <span className="ml-3 text-xs font-medium text-red-500 bg-red-50 px-2 py-1 rounded-md">
+                          Not Available
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {!showCashOption && (
+                    <div className="px-4 pb-4">
+                      <div className="flex items-start gap-2 bg-[#F5F8FD] border border-[#E1E8F8] rounded-lg p-3 text-sm text-[#41519E]">
+                        <svg className="w-4 h-4 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none">
+                          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" />
+                          <path d="M12 8v.01M12 11v5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                        </svg>
+                        <span>
+                          {isFinalizeImdt
+                            ? "Pay by cash is not available for immediate package finalization."
+                            : `Pay By Cash is available only for orders equal to or less than Rs. ${formatPrice(cashPaymentLimit)}`}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {paymentMethod === "cash" && showCashOption && (
+                    <div className="p-5 border-t border-gray-200 bg-gray-50/30">
+                      <div className="text-gray-700 space-y-3">
+                        <div className="flex gap-2">
+                          <span className="flex-shrink-0">-</span>
+                          <span>You may pay in cash to our courier upon receiving your parcel at the doorstep.</span>
+                        </div>
+                        <div className="flex gap-2">
+                          <span className="flex-shrink-0">-</span>
+                          <span>Before agreeing to receive the parcel, check if your delivery status has been updated to "Out of Delivery".</span>
+                        </div>
+                        <div className="flex gap-2">
+                          <span className="flex-shrink-0">-</span>
+                          <span>Before receiving, confirm that the airway bill shows that the parcel from Polygon Holdings.</span>
+                        </div>
+                        <div className="flex gap-2">
+                          <span className="flex-shrink-0">-</span>
+                          <span>Before you make the payment to the courier, confirm your order number, sender information, and tracking number on the parcel.</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </div>
+
         </div>
 
         {/* Right Column - Order Summary */}
@@ -599,13 +935,12 @@ const Page: React.FC = () => {
                 <button
                   onClick={handleApplyCoupon}
                   disabled={!couponCode.trim() || isCouponApplied || couponValidationLoading}
-                  className={`px-5 py-2 rounded-lg text-sm font-medium transition cursor-pointer  ${
-                    isCouponApplied
-                      ? "bg-[#3E206D] text-white cursor-not-allowed"
-                      : couponValidationLoading
+                  className={`px-5 py-2 rounded-lg text-sm font-medium transition cursor-pointer  ${isCouponApplied
+                    ? "bg-[#3E206D] text-white cursor-not-allowed"
+                    : couponValidationLoading
                       ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                       : "bg-[#3E206D] text-white hover:bg-[#2f1854]"
-                  }`}
+                    }`}
                 >
                   {couponValidationLoading ? "Verifying..." : isCouponApplied ? "Applied" : "Apply"}
                 </button>
@@ -624,7 +959,7 @@ const Page: React.FC = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Discount</span>
-                <span className="font-medium text-gray-700">Rs. {formatPrice(displayValues.discountAmount)}</span>
+                <span className="font-medium text-[#BE2A45]">- Rs. {formatPrice(displayValues.discountAmount)}</span>
               </div>
               {isCouponApplied && (
                 <div className="flex justify-between">
@@ -651,21 +986,101 @@ const Page: React.FC = () => {
             <div className="border-t border-gray-200 my-4" />
 
             {/* Grand Total */}
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex justify-between items-center mb-3">
               <span className="font-semibold text-lg">Grand Total</span>
               <span className="font-bold text-xl text-[#3E206D]">Rs. {formatPrice(displayValues.grandTotal)}</span>
             </div>
 
             {/* Confirm Order Button */}
+            {/* Credit Applied - only show if there's a credit balance */}
+            {creditBalance > 0 && (
+              <div className="flex justify-between items-center text-sm mb-3">
+                <span className="text-[#1C8732]">Credit Applied</span>
+                <span className="font-medium text-[#1C8732]">
+                  {useCredit ? `- Rs. ${formatPrice(creditApplied)}` : "- Rs. 0.00"}
+                </span>
+              </div>
+            )}
+
+            {/* Remaining Amount - only show if there's a credit balance */}
+            {creditBalance > 0 && (
+              <div className="flex justify-between items-center border border-[#E8E5F7] bg-[#F5F3FD] rounded-lg px-3 py-2 mb-3">
+                <span className="text-sm text-[#3E206D]">Remaining Amount</span>
+                <span className="font-semibold text-[#3E206D]">Rs. {formatPrice(remainingAfterCredit)}</span>
+              </div>
+            )}
+
+            {creditBalance > 0 && remainingAfterCredit > 0 && (
+              <>
+                {paymentMethod === "cash" && showCashOption ? (
+                  <div className="border border-[#E8E5F7] bg-[#F5F3FD] rounded-lg p-3 mb-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-[#3E206D]">
+                        You pay on {checkoutDetails.deliveryMethod === "pickup" ? "Pickup" : "Delivery"}
+                      </span>
+                      <span className="font-bold text-[#3E206D]">Rs. {formatPrice(remainingAfterCredit)}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <Image
+                        src={cashPaymentIcon}
+                        alt="Cash payment"
+                        width={20}
+                        height={20}
+                        className="object-contain flex-shrink-0"
+                      />
+                      <p className="text-xs text-[#47484C]">
+                        Pay the remaining amount in cash when your order is{" "}
+                        {checkoutDetails.deliveryMethod === "pickup" ? "picked up." : "delivered."}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="border border-[#E8E5F7] bg-[#F5F3FD] rounded-lg p-3 mb-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-[#3E206D]">Card Payment</span>
+                      <span className="font-bold text-[#3E206D]">Rs. {formatPrice(remainingAfterCredit)}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <Image
+                        src={cardPaymentIcon}
+                        alt="Card payment"
+                        width={20}
+                        height={20}
+                        className="object-contain flex-shrink-0"
+                      />
+                      <p className="text-xs text-[#47484C]">You can pay this remaining amount with your card.</p>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+            {!useCredit && <div className="mb-6" />}
+
+            {/* Confirm Order Button */}
             <button
               onClick={handleSubmitOrder}
-              disabled={isSubmitting || orderSubmitted}
-              className={`w-full py-3.5 rounded-xl font-semibold text-white transition cursor-pointer ${
-                isSubmitting || orderSubmitted ? "bg-gray-400 cursor-not-allowed" : "bg-[#3E206D] hover:bg-[#2f1854]"
-              }`}
+              disabled={!canConfirmOrder()}
+              className={`w-full py-3.5 rounded-xl font-semibold text-white transition ${canConfirmOrder() ? "bg-[#3E206D] hover:bg-[#2f1854] cursor-pointer" : "bg-gray-400 cursor-not-allowed"
+                }`}
             >
               {orderSubmitted ? "Order Submitted" : isSubmitting ? "Processing Order..." : "Confirm Order"}
             </button>
+
+            <p
+              className="flex items-center justify-center gap-1 mt-3"
+              style={{
+                fontFamily: "Inter, sans-serif",
+                fontWeight: 400,
+                fontStyle: "normal",
+                fontSize: "14px",
+                lineHeight: "100%",
+                letterSpacing: "0%",
+                color: "#676767",
+              }}
+            >
+              <FontAwesomeIcon icon={faLock} className="w-4 h-4" />
+              Your payment is secure and encrypted.
+            </p>
           </div>
         </div>
       </div>

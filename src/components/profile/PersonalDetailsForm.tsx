@@ -13,6 +13,10 @@ import ErrorPopup from '@/components/toast-messages/error-message';
 import Loader from '@/components/loader-spinner/Loader';
 import { fetchProfile, updateProfile, updatePassword } from '@/services/auth-service';
 import { updateUser } from '@/store/slices/authSlice';
+import PhoneCodeDropdown, {
+  validatePhoneNumber,
+  getMaxPhoneLength,
+} from '@/components/registration-components/PhoneCodeDropdown';
 
 const schema = yup.object().shape({
   title: yup.string().required('Title is required'),
@@ -70,13 +74,23 @@ const schema = yup.object().shape({
     .string()
     .transform((value) => value?.trim())
     .required('Phone Number is required')
-    .matches(/^7[0-9]{8}$/, 'Please enter a valid Phone Number (format: +947XXXXXXXX)'),
+    .test('valid-phone', function (value) {
+      if (!value) return true; // required() already handles the empty case
+      const { countryCode } = this.parent;
+      const error = validatePhoneNumber(countryCode, value);
+      return error ? this.createError({ message: error }) : true;
+    }),
   phoneNumber2: yup.string().when('$buyerType', {
     is: 'Wholesale',
     then: (schema) => schema
       .transform((value) => value?.trim())
       .required('Phone Number is required')
-      .matches(/^7[0-9]{8}$/, 'Please enter a valid Phone Number (format: +947XXXXXXXX)'),
+      .test('valid-phone2', function (value) {
+        if (!value) return true;
+        const { countryCode2 } = this.parent;
+        const error = validatePhoneNumber(countryCode2, value);
+        return error ? this.createError({ message: error }) : true;
+      }),
     otherwise: (schema) => schema.notRequired(),
   }),
   companyName: yup.string().when('$buyerType', {
@@ -96,7 +110,12 @@ const schema = yup.object().shape({
     then: (schema) => schema
       .transform((value) => value?.trim())
       .required('Company Phone Number is required')
-      .matches(/^7[0-9]{8}$/, 'Please enter a valid Company Phone Number (format: +947XXXXXXXX)'),
+      .test('valid-company-phone', function (value) {
+        if (!value) return true;
+        const { companyPhoneCode } = this.parent;
+        const error = validatePhoneNumber(companyPhoneCode, value);
+        return error ? this.createError({ message: error }) : true;
+      }),
     otherwise: (schema) => schema.notRequired(),
   }),
   currentPassword: yup.string()
@@ -286,10 +305,12 @@ const PersonalDetailsForm = () => {
     watch,
     setValue,
     getValues,
-    trigger,           // ← add this
+    trigger,
     formState: { errors },
   } = useForm<FormData>({
     resolver: yupResolver(schema, { context: { buyerType } }) as any,
+    mode: 'onChange',
+    reValidateMode: 'onChange',
     defaultValues: {
       title: '',
       countryCode: '',
@@ -333,7 +354,6 @@ const PersonalDetailsForm = () => {
 
   useEffect(() => {
     if (!currentPassword?.trim() && !newPassword?.trim() && !confirmPassword?.trim()) {
-      // All password fields are empty — clear their errors
       trigger(['currentPassword', 'newPassword', 'confirmPassword']);
     }
   }, [currentPassword, newPassword, confirmPassword, trigger]);
@@ -398,15 +418,10 @@ const PersonalDetailsForm = () => {
     return cleaned;
   };
 
-  const handlePhoneInput = (value: string): string => {
-
+  const handlePhoneInput = (value: string, phoneCode: string): string => {
     const cleaned = value.replace(/[^0-9]/g, '');
-
-    if (cleaned.length > 0 && !cleaned.startsWith('7')) {
-      return '7' + cleaned.slice(0, 8);
-    }
-
-    return cleaned.slice(0, 9);
+    const maxLen = getMaxPhoneLength(phoneCode);
+    return cleaned.slice(0, maxLen);
   };
 
   const handleGeneralInput = (value: string): string => {
@@ -419,7 +434,65 @@ const PersonalDetailsForm = () => {
     return value.replace(/\s/g, '');
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const compressImage = (file: File, maxWidth = 1024, maxHeight = 1024, quality = 0.8): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+
+        let { width, height } = img;
+
+        // Scale down proportionally if larger than max dimensions
+        if (width > maxWidth || height > maxHeight) {
+          const ratio = Math.min(maxWidth / width, maxHeight / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Could not get canvas context'));
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Preserve original mime type (png stays lossless-ish, jpeg gets quality compression)
+        const outputType = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              reject(new Error('Canvas toBlob failed'));
+              return;
+            }
+            const compressedFile = new File([blob], file.name, {
+              type: outputType,
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          },
+          outputType,
+          quality,
+        );
+      };
+
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error('Failed to load image for compression'));
+      };
+
+      img.src = objectUrl;
+    });
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const allowedTypes = ['image/png', 'image/jpeg'];
@@ -445,8 +518,17 @@ const PersonalDetailsForm = () => {
         return;
       }
 
-      setProfilePic(file);
-      setPreviewURL(URL.createObjectURL(file));
+      try {
+        // Compress before storing — keeps profile pics small without
+        // making the user manually resize their photo
+        const compressedFile = await compressImage(file, 1024, 1024, 0.8);
+        setProfilePic(compressedFile);
+        setPreviewURL(URL.createObjectURL(compressedFile));
+      } catch (err) {
+        console.error('Image compression failed, falling back to original file:', err);
+        setProfilePic(file);
+        setPreviewURL(URL.createObjectURL(file));
+      }
     }
   };
 
@@ -646,24 +728,24 @@ const PersonalDetailsForm = () => {
     }, 500);
   };
 
-  const countries = [
-    { code: "LK", dialCode: "+94", name: "Sri Lanka" },
-    { code: "VN", dialCode: "+84", name: "Vietnam" },
-    { code: "KH", dialCode: "+855", name: "Cambodia" },
-    { code: "BD", dialCode: "+880", name: "Bangladesh" },
-    { code: "IN", dialCode: "+91", name: "India" },
-    { code: "NL", dialCode: "+31", name: "Netherlands" },
-  ];
+  // const countries = [
+  //   { code: "LK", dialCode: "+94", name: "Sri Lanka" },
+  //   { code: "VN", dialCode: "+84", name: "Vietnam" },
+  //   { code: "KH", dialCode: "+855", name: "Cambodia" },
+  //   { code: "BD", dialCode: "+880", name: "Bangladesh" },
+  //   { code: "IN", dialCode: "+91", name: "India" },
+  //   { code: "NL", dialCode: "+31", name: "Netherlands" },
+  // ];
 
-  const phoneCodeOptions = countries.map(country => ({
-    value: country.dialCode,
-    label: country.dialCode,
-    countryCode: country.code
-  }));
+  // const phoneCodeOptions = countries.map(country => ({
+  //   value: country.dialCode,
+  //   label: country.dialCode,
+  //   countryCode: country.code
+  // }));
 
-  const getFlagUrl = (countryCode: string): string => {
-    return `https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png`;
-  };
+  // const getFlagUrl = (countryCode: string): string => {
+  //   return `https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png`;
+  // };
 
   const titleOptions = [
     { value: 'Mr', label: 'Mr' },
@@ -719,7 +801,7 @@ const PersonalDetailsForm = () => {
             <p className="text-[12px] md:text-[16px] text-gray-500">PNG, JPEG under 15MB</p>
           </div>
           <label
-            className="px-4 py-1 rounded-lg cursor-pointer text-sm hover:bg-gray-100 mt-2 md:mt-0"
+            className="px-4 py-2 rounded-lg shadow-md cursor-pointer text-sm hover:bg-gray-100 mt-2 md:mt-0"
             style={{ border: '1px solid #393939', color: '#393939' }}
           >
             Upload new picture
@@ -836,28 +918,27 @@ const PersonalDetailsForm = () => {
           <div className="md:w-[56%]">
             <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">Phone Number</label>
             <div className="flex gap-4">
-              <div className="relative max-w-[30%] md:max-w-[18%]">
-                <CustomDropdown
-                  register={register}
-                  name="countryCode"
-                  value={countryCodeValue}
-                  errors={errors}
-                  options={phoneCodeOptions}
-                  placeholder="Select Code"
-                  onChange={(value) => setValue('countryCode', value, { shouldValidate: true })}
+              <div className="relative max-w-[40%] md:max-w-[26%]">
+                <PhoneCodeDropdown
+                  selectedValue={countryCodeValue}
+                  onSelect={(value) => {
+                    setValue('countryCode', value, { shouldValidate: true });
+                    trigger('phoneNumber');
+                  }}
                 />
+                <p className="text-red-500 text-xs">{errors.countryCode?.message}</p>
               </div>
-              <div className="w-[70%]">
+              <div className="w-[60%] md:w-[70%]">
                 <input
                   {...register('phoneNumber')}
                   onChange={(e) => {
-                    const formattedValue = handlePhoneInput(e.target.value);
+                    const formattedValue = handlePhoneInput(e.target.value, countryCodeValue);
                     e.target.value = formattedValue;
                     setValue('phoneNumber', formattedValue, { shouldValidate: true });
                   }}
                   className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm"
-                  placeholder="7XXXXXXXX"
-                  maxLength={9}
+                  placeholder="Phone number"
+                  maxLength={getMaxPhoneLength(countryCodeValue)}
                 />
               </div>
             </div>
@@ -896,28 +977,27 @@ const PersonalDetailsForm = () => {
               <div className="md:w-[56%]">
                 <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">Company Phone Number</label>
                 <div className="flex gap-4">
-                  <div className="relative w-[30%] md:w-[18%]">
-                    <CustomDropdown
-                      register={register}
-                      name="companyPhoneCode"
-                      value={companyPhoneCodeValue as any}
-                      errors={errors}
-                      options={phoneCodeOptions}
-                      placeholder="Select Code"
-                      onChange={(value) => setValue('companyPhoneCode', value, { shouldValidate: true })}
+                  <div className="relative w-[40%] md:w-[26%]">
+                    <PhoneCodeDropdown
+                      selectedValue={companyPhoneCodeValue as string}
+                      onSelect={(value) => {
+                        setValue('companyPhoneCode', value, { shouldValidate: true });
+                        trigger('companyPhone');
+                      }}
                     />
+                    <p className="text-red-500 text-xs">{errors.companyPhoneCode?.message}</p>
                   </div>
-                  <div className="w-[70%]">
+                  <div className="w-[60%] md:w-[70%]">
                     <input
                       {...register('companyPhone')}
                       onChange={(e) => {
-                        const formattedValue = handlePhoneInput(e.target.value);
+                        const formattedValue = handlePhoneInput(e.target.value, companyPhoneCodeValue as string);
                         e.target.value = formattedValue;
                         setValue('companyPhone', formattedValue, { shouldValidate: true });
                       }}
                       className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm"
-                      placeholder="7XXXXXXXX"
-                      maxLength={9}
+                      placeholder="e.g. 712345678"
+                      maxLength={getMaxPhoneLength(companyPhoneCodeValue as string)}
                     />
                   </div>
                 </div>
@@ -945,10 +1025,12 @@ const PersonalDetailsForm = () => {
                 const trimmedValue = handlePasswordInput(e.target.value);
                 e.target.value = trimmedValue;
                 setValue('currentPassword', trimmedValue, { shouldValidate: true });
+                trigger(['currentPassword', 'newPassword', 'confirmPassword']); // ← add this
               }}
               onBlur={(e) => {
                 const trimmedValue = e.target.value.trim();
                 setValue('currentPassword', trimmedValue, { shouldValidate: true });
+                trigger(['currentPassword', 'newPassword', 'confirmPassword']); // ← add this
               }}
               className="w-full focus:outline-none text-xs sm:text-sm"
               placeholder="Enter current password"
@@ -972,10 +1054,12 @@ const PersonalDetailsForm = () => {
                   const trimmedValue = handlePasswordInput(e.target.value);
                   e.target.value = trimmedValue;
                   setValue('newPassword', trimmedValue, { shouldValidate: true });
+                  trigger(['currentPassword', 'newPassword', 'confirmPassword']); // ← add this
                 }}
                 onBlur={(e) => {
                   const trimmedValue = e.target.value.trim();
                   setValue('newPassword', trimmedValue, { shouldValidate: true });
+                  trigger(['currentPassword', 'newPassword', 'confirmPassword']); // ← add this
                 }}
                 className="w-full focus:outline-none text-xs sm:text-sm"
                 placeholder="Enter new password"
@@ -1009,10 +1093,12 @@ const PersonalDetailsForm = () => {
                   const trimmedValue = handlePasswordInput(e.target.value);
                   e.target.value = trimmedValue;
                   setValue('confirmPassword', trimmedValue, { shouldValidate: true });
+                  trigger(['currentPassword', 'newPassword', 'confirmPassword']); // ← add this
                 }}
                 onBlur={(e) => {
                   const trimmedValue = e.target.value.trim();
                   setValue('confirmPassword', trimmedValue, { shouldValidate: true });
+                  trigger(['currentPassword', 'newPassword', 'confirmPassword']); // ← add this
                 }}
                 className="w-full focus:outline-none text-xs sm:text-sm"
                 placeholder="Confirm new password"

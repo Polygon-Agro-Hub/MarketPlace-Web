@@ -11,12 +11,13 @@ interface CartItem {
   price: number;
   normalPrice: number;
   discountedPrice: number | null;
-  startValue: number; // Added from API response
-  changeby: number; // Added from API response
+  startValue: number;
+  changeby: number;
   image: string;
   varietyNameEnglish: string;
   category: string;
   createdAt: string;
+  isEnable?: number;
 }
 
 interface Cart {
@@ -44,6 +45,8 @@ interface CartPackage {
   image: string;
   description: string;
   items: PackageItem[];
+  status?: string;
+  isValid?: number;
 }
 
 interface CartSummary {
@@ -65,6 +68,7 @@ interface CartData {
     isCoupon: number;
     couponValue: string;
     createdAt: string;
+    creditBalance?: number;
   }; // Remove | null since it's always present
   packages: CartPackage[];
   additionalItems: {
@@ -99,8 +103,8 @@ export const getUserCart = async (token: string | null): Promise<CartData> => {
       }
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          "Failed to fetch cart data",
+        error.response.data?.error ||
+        "Failed to fetch cart data",
       );
     } else if (error.request) {
       throw new Error("No response from server. Please try again.");
@@ -193,8 +197,8 @@ export const bulkRemoveCartProducts = async (
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          `Server error: ${error.response.status}`,
+        error.response.data?.error ||
+        `Server error: ${error.response.status}`,
       );
     } else if (error.request) {
       throw new Error("No response from server. Please check your connection.");
@@ -236,8 +240,8 @@ export const updateCartPackageQuantity = async (
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          "Failed to update package quantity",
+        error.response.data?.error ||
+        "Failed to update package quantity",
       );
     } else if (error.request) {
       throw new Error("No response from server. Please try again.");
@@ -273,8 +277,8 @@ export const removeCartProduct = async (
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          "Failed to remove product from cart",
+        error.response.data?.error ||
+        "Failed to remove product from cart",
       );
     } else if (error.request) {
       throw new Error("No response from server. Please try again.");
@@ -310,8 +314,8 @@ export const removeCartPackage = async (
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          "Failed to remove package from cart",
+        error.response.data?.error ||
+        "Failed to remove package from cart",
       );
     } else if (error.request) {
       throw new Error("No response from server. Please try again.");
@@ -349,11 +353,17 @@ export interface OrderPayload {
     couponType?: string;
     geoLatitude?: number | null;
     geoLongitude?: number | null;
+    saveAs?: string; // Add this
   };
   paymentMethod: "card" | "cash";
   discountAmount: number;
   grandTotal: number;
   orderApp: string;
+  deliveryCharge?: number;
+  isCreditApplied?: boolean;
+  creditPaid: number;
+  moneyPaid: number;
+  isFinalizeImdt?: number;
 }
 
 export const submitOrderToBackend = async (
@@ -379,6 +389,15 @@ export const submitOrderToBackend = async (
         "Order service error:",
         error.response?.data || error.message,
       );
+
+      // Preserve the machine-readable code so the caller can branch on it
+      const responseData = error.response?.data;
+      if (responseData?.code === "ITEMS_UNAVAILABLE") {
+        const codedError: any = new Error(responseData.error || "Some Items No Longer Available!");
+        codedError.code = "ITEMS_UNAVAILABLE";
+        throw codedError;
+      }
+
       const errorMessage =
         error.response?.data?.error ||
         error.response?.data?.message ||
@@ -580,6 +599,8 @@ export interface PickupCenter {
   latitude: number;
   city: string;
   district: string;
+  province?: string;
+  country?: string;
   label: string;
   value: string;
 }
@@ -664,5 +685,39 @@ export const getCities = async (): Promise<CityResponse> => {
     return response.data;
   } catch (error: any) {
     throw new Error(error.response?.data?.message || "Failed to fetch cities");
+  }
+};
+
+export interface CashPaymentLimitResponse {
+  status: boolean;
+  message: string;
+  data: {
+    totalCompletedOrdersAmount: number;
+    cashPaymentLimit: number;
+  };
+}
+
+export const getCashPaymentLimit = async (
+  token: string | null,
+): Promise<CashPaymentLimitResponse> => {
+  if (!token) {
+    throw new Error("Authentication required");
+  }
+
+  try {
+    const response = await axios.get<CashPaymentLimitResponse>(
+      "/cart/cash-payment-limit",
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+    return response.data;
+  } catch (error: any) {
+    console.error("Error fetching cash payment limit:", error);
+    throw new Error(
+      error.response?.data?.message || "Failed to fetch cash payment limit",
+    );
   }
 };
