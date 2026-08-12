@@ -25,6 +25,7 @@ type FormErrors = {
     firstName?: string;
     lastName?: string;
     phoneNumber?: string;
+    nicNumber?: string;
     email?: string;
     password?: string;
     confirmPassword?: string;
@@ -161,6 +162,7 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
         lastName: "",
         phoneCode: "+94",
         phoneNumber: "",
+        nicNumber: "",
         email: "",
         password: "",
         confirmPassword: "",
@@ -172,7 +174,6 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
         city: selectedCity?.city || "",
         cityId: selectedCity?.id || null,
     });
-
     // const countries: PhoneCode[] = [
     //     { code: "LK", dialCode: "+94", name: "Sri Lanka" },
     //     { code: "VN", dialCode: "+84", name: "Vietnam" },
@@ -192,77 +193,6 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
     //     flag: getFlagUrl(country.code),
     //     countryName: country.name,
     // }));
-
-    const handleChange = (
-        e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-    ) => {
-        const { name, value, type } = e.target;
-        const checked =
-            type === "checkbox" ? (e.target as HTMLInputElement).checked : undefined;
-
-        let processedValue = value;
-
-        // Block leading spaces for all input fields
-        if (type !== "checkbox" && value.startsWith(" ")) {
-            return;
-        }
-
-        // Special handling for firstName and lastName
-        if (name === "firstName" || name === "lastName") {
-            // Block numbers and special characters, allow only letters and spaces
-            const letterOnlyValue = value.replace(/[^A-Za-z\s]/g, "");
-
-            // Capitalize first letter of each word
-            processedValue = letterOnlyValue
-                .split(" ")
-                .map(
-                    (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
-                )
-                .join(" ");
-        }
-
-        if (name === "phoneNumber") {
-            checkPhoneLive("phoneNumber", formData.phoneCode, processedValue);
-        }
-
-        if (name === "companyPhoneNumber") {
-            checkPhoneLive("companyPhoneNumber", formData.companyPhoneCode, processedValue);
-        }
-
-        // Special handling for company name - block leading spaces but allow other characters
-        if (name === "companyName") {
-            if (value.startsWith(" ")) {
-                return;
-            }
-            processedValue = value;
-        }
-
-        setFormData((prev) => ({
-            ...prev,
-            [name]: type === "checkbox" ? checked : processedValue,
-        }));
-
-        if (errors[name as keyof FormErrors]) {
-            setErrors((prev) => {
-                const newErrors = { ...prev };
-                delete newErrors[name as keyof FormErrors];
-                return newErrors;
-            });
-        }
-
-        if (name === "password") {
-            checkPasswordLive(processedValue);
-        }
-
-        if (name === "email") {
-            checkEmailLive(processedValue);
-        }
-    };
-
-    const checkPasswordLive = (password: string) => {
-        const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{6,}$/;
-        setIsPasswordValid(passwordRegex.test(password));
-    };
 
     const checkPhoneLive = (
         fieldName: "phoneNumber" | "companyPhoneNumber",
@@ -286,6 +216,43 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
                 newErrors[fieldName] = error;
             } else {
                 delete newErrors[fieldName];
+            }
+            return newErrors;
+        });
+    };
+
+    const checkNicLive = (nic: string) => {
+        // While typing we can't know if the user is building toward
+        // 9-digits+V or 12-digits, so just clear any stale error.
+        if (!nic) {
+            setErrors((prev) => {
+                const newErrors = { ...prev };
+                delete newErrors.nicNumber;
+                return newErrors;
+            });
+            return;
+        }
+
+        setErrors((prev) => {
+            const newErrors = { ...prev };
+            delete newErrors.nicNumber;
+            return newErrors;
+        });
+    };
+
+    const checkNicOnBlur = (nic: string) => {
+        if (!nic) return; // required-field check stays in validateForm on submit
+
+        const isValid = /^(\d{9}V|\d{12})$/.test(nic);
+
+        setErrors((prev) => {
+            const newErrors = { ...prev };
+            if (!isValid) {
+                newErrors.nicNumber = nic.includes("V")
+                    ? "NIC must be 9 digits followed by V"
+                    : "NIC must be exactly 12 digits";
+            } else {
+                delete newErrors.nicNumber;
             }
             return newErrors;
         });
@@ -339,6 +306,91 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
         }
     };
 
+    const handleChange = (
+        e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+    ) => {
+        const { name, value, type } = e.target;
+        const checked =
+            type === "checkbox" ? (e.target as HTMLInputElement).checked : undefined;
+
+        let processedValue = value;
+
+        if (type !== "checkbox" && value.startsWith(" ")) {
+            return;
+        }
+
+        if (name === "firstName" || name === "lastName") {
+            const letterOnlyValue = value.replace(/[^A-Za-z\s]/g, "");
+            processedValue = letterOnlyValue
+                .split(" ")
+                .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                .join(" ");
+        }
+
+        if (name === "nicNumber") {
+            const raw = value.toUpperCase().replace(/[^0-9V]/g, "");
+            const hasV = raw.includes("V");
+            let digits = raw.replace(/V/g, "");
+
+            if (hasV) {
+                digits = digits.slice(0, 9);
+                processedValue = digits + "V";
+            } else {
+                digits = digits.slice(0, 12);
+                processedValue = digits;
+            }
+            // ⬅️ checkNicLive(processedValue) REMOVED from here
+        }
+
+        if (name === "companyName") {
+            if (value.startsWith(" ")) {
+                return;
+            }
+            processedValue = value;
+        }
+
+        setFormData((prev) => ({
+            ...prev,
+            [name]: type === "checkbox" ? checked : processedValue,
+        }));
+
+        // Generic "clear stale error for this field" block runs first now
+        if (errors[name as keyof FormErrors]) {
+            setErrors((prev) => {
+                const newErrors = { ...prev };
+                delete newErrors[name as keyof FormErrors];
+                return newErrors;
+            });
+        }
+
+        // ✅ Live checks now run AFTER the generic clear, so they can't be wiped
+        if (name === "password") {
+            checkPasswordLive(processedValue);
+        }
+
+        if (name === "email") {
+            checkEmailLive(processedValue);
+        }
+
+        if (name === "nicNumber") {
+            checkNicLive(processedValue);
+        }
+
+        if (name === "phoneNumber") {
+            checkPhoneLive("phoneNumber", formData.phoneCode, processedValue);
+        }
+
+        if (name === "companyPhoneNumber") {
+            checkPhoneLive("companyPhoneNumber", formData.companyPhoneCode, processedValue);
+        }
+    };
+
+    const checkPasswordLive = (password: string) => {
+        const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{6,}$/;
+        setIsPasswordValid(passwordRegex.test(password));
+    };
+
+
     const validateForm = (): boolean => {
         const newErrors: FormErrors = {};
 
@@ -364,7 +416,11 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
         if (phoneError) {
             newErrors.phoneNumber = phoneError;
         }
-
+        if (!formData.nicNumber) {
+            newErrors.nicNumber = "NIC number is required";
+        } else if (!/^(\d{9}V|\d{12})$/.test(formData.nicNumber)) {
+            newErrors.nicNumber = "Enter a valid NIC (9 digits + V, or 12 digits)";
+        }
 
         if (!formData.email) {
             newErrors.email = "Email is required";
@@ -813,35 +869,24 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
                                                 value={formData.phoneNumber}
                                                 onChange={handleChange}
                                                 onKeyPress={(e) => {
-                                                    // Allow only digits
                                                     if (!/[\d]/.test(e.key) && e.key !== "Backspace") {
                                                         e.preventDefault();
                                                     }
                                                 }}
                                                 onPaste={(e) => {
-                                                    // Allow paste but filter out non-digits
                                                     e.preventDefault();
                                                     const pastedText = e.clipboardData.getData("text");
                                                     const filteredText = pastedText.replace(/[^\d]/g, "");
-
                                                     handleChange({
-                                                        target: {
-                                                            name: "phoneNumber",
-                                                            value: filteredText,
-                                                        },
+                                                        target: { name: "phoneNumber", value: filteredText },
                                                     } as React.ChangeEvent<HTMLInputElement>);
                                                 }}
                                                 placeholder="Phone number"
-                                                className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass(
-                                                    "phoneNumber",
-                                                )}`}
+                                                className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass("phoneNumber")}`}
                                                 maxLength={getMaxPhoneLength(formData.phoneCode)}
                                             />
-
                                             {errors.phoneNumber && (
-                                                <p className="mt-1 text-sm text-red-600">
-                                                    {errors.phoneNumber}
-                                                </p>
+                                                <p className="mt-1 text-sm text-red-600">{errors.phoneNumber}</p>
                                             )}
                                         </div>
                                     </div>
@@ -849,24 +894,16 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
                                     <div className="w-full md:w-1/2">
                                         <input
                                             type="text"
-                                            name="email"
-                                            value={formData.email}
+                                            name="nicNumber"
+                                            value={formData.nicNumber}
                                             onChange={handleChange}
-                                            onKeyPress={(e) => {
-                                                // Block leading space
-                                                if (e.key === " " && formData.email.length === 0) {
-                                                    e.preventDefault();
-                                                }
-                                            }}
-                                            placeholder="Email"
-                                            className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass(
-                                                "email",
-                                            )}`}
+                                            onBlur={(e) => checkNicOnBlur(e.target.value)}
+                                            placeholder="NIC Number"
+                                            className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass("nicNumber")}`}
+                                            maxLength={12}
                                         />
-                                        {errors.email && (
-                                            <p className="mt-1 text-sm text-red-600">
-                                                {errors.email}
-                                            </p>
+                                        {errors.nicNumber && (
+                                            <p className="mt-1 text-sm text-red-600">{errors.nicNumber}</p>
                                         )}
                                     </div>
                                 </div>
@@ -881,6 +918,26 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
                                         </p>
                                     </div>
                                 )}
+
+                                <div className="w-full">
+                                    <input
+                                        type="text"
+                                        name="email"
+                                        value={formData.email}
+                                        onChange={handleChange}
+                                        onKeyPress={(e) => {
+                                            if (e.key === " " && formData.email.length === 0) {
+                                                e.preventDefault();
+                                            }
+                                        }}
+                                        placeholder="Email"
+                                        className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass("email")}`}
+                                    />
+                                    {errors.email && (
+                                        <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+                                    )}
+                                </div>
+
 
                                 <div className="flex flex-col md:flex-row md:space-x-3 space-y-4 md:space-y-0">
                                     <div className="w-full md:w-1/2 relative">

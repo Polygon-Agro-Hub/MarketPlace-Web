@@ -1,5 +1,4 @@
 import axios from "@/lib/axios";
-import { environment } from "@/environment/environment";
 
 interface LoginPayload {
   email: string;
@@ -24,6 +23,7 @@ interface SignupPayload {
   lastName: string;
   phoneCode: string;
   phoneNumber: string;
+  nicNumber: string;
   email: string;
   password: string;
   confirmPassword: string;
@@ -477,6 +477,28 @@ type OTPServiceResponse = {
   error?: string;
 };
 
+async function postJson(path: string, body: unknown): Promise<any> {
+  const response = await fetch(path, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  const data = (await response.json().catch(() => ({}))) as {
+    message?: string;
+    error?: string;
+    referenceId?: string;
+  };
+
+  if (!response.ok) {
+    throw new Error(data?.message || data?.error || `Request failed (${response.status})`);
+  }
+
+  return data;
+}
+
 export const sendOTP = async (
   phoneNumber: string,
   countryCode: string,
@@ -516,12 +538,7 @@ export const sendOTP = async (
     }
 
     // Step 2: Send OTP
-    const apiUrl = "https://api.getshoutout.com/otpservice/send";
-    const headers = {
-      Authorization: `Apikey ${environment.SHOUTOUT_API_KEY}`,
-      "Content-Type": "application/json",
-    };
-
+    const apiUrl = "/api/shoutout/send";
     const body = {
       source,
       transport: "sms",
@@ -531,10 +548,10 @@ export const sendOTP = async (
       destination: fullPhoneNumber,
     };
 
-    const response = await axios.post(apiUrl, body, { headers });
+    const response = await postJson(apiUrl, body);
 
-    if (response.data.referenceId) {
-      return { referenceId: response.data.referenceId };
+    if (response.referenceId) {
+      return { referenceId: response.referenceId };
     }
 
     throw new Error("Failed to send OTP: No reference ID received");
@@ -631,11 +648,7 @@ export const sendOTPInSignup = async (
       source = "PolygonAgro",
     } = options || {};
 
-    const apiUrl = "https://api.getshoutout.com/otpservice/send";
-    const headers = {
-      Authorization: `Apikey ${environment.SHOUTOUT_API_KEY}`,
-      "Content-Type": "application/json",
-    };
+    const apiUrl = "/api/shoutout/send";
     const body = {
       source,
       transport: "sms",
@@ -644,12 +657,12 @@ export const sendOTPInSignup = async (
     };
 
     console.log("📤 Calling ShoutOut with body:", body);
-    const response = await axios.post(apiUrl, body, { headers });
-    console.log("✅ ShoutOut response:", response.data);
+    const response = await postJson(apiUrl, body);
+    console.log("✅ ShoutOut response:", response);
 
-    if (response.data.referenceId) {
-      console.log("✅ SMS OTP sent. referenceId:", response.data.referenceId);
-      return { referenceId: response.data.referenceId };
+    if (response.referenceId) {
+      console.log("✅ SMS OTP sent. referenceId:", response.referenceId);
+      return { referenceId: response.referenceId };
     }
     throw new Error("Failed to send OTP: No reference ID received");
   } catch (error: any) {
@@ -720,17 +733,13 @@ export const verifyOTP = async (code: string, referenceId: string) => {
   // ── ShoutOut SMS path ─────────────────────────────────────────────────────
   console.log("🔀 routing to: SMS verify (ShoutOut)");
   try {
-    const url = "https://api.getshoutout.com/otpservice/verify";
-    const headers = {
-      Authorization: `Apikey ${environment.SHOUTOUT_API_KEY}`,
-      "Content-Type": "application/json",
-    };
+    const url = "/api/shoutout/verify";
     const body = { code, referenceId };
     console.log("📤 Calling ShoutOut verify with:", body);
 
-    const response = await axios.post(url, body, { headers });
-    console.log("✅ ShoutOut verify response:", response.data);
-    return response.data;
+    const response = await postJson(url, body);
+    console.log("✅ ShoutOut verify response:", response);
+    return response;
   } catch (error) {
     console.error("❌ ShoutOut verify error:", error);
     throw error;
@@ -1629,6 +1638,53 @@ export const updateCreditBalance = async (
     } else {
       throw new Error(
         error.message || "An error occurred while updating credit balance",
+      );
+    }
+  }
+};
+
+interface UpdatePasswordByNicPayload {
+  nicNumber: string;
+  password: string;
+}
+
+export const updatePasswordByNic = async (
+  payload: UpdatePasswordByNicPayload,
+): Promise<{ message: string }> => {
+  try {
+    const response = await axios.put(
+      "/auth/update-password-by-nic",
+      payload,
+      {
+        headers: { "Content-Type": "application/json" },
+      },
+    );
+
+    if (
+      response.status >= 200 &&
+      response.status < 300 &&
+      response.data.status
+    ) {
+      return {
+        message: response.data?.message || "Password updated successfully!",
+      };
+    } else {
+      throw new Error(response.data?.message || "Failed to update password");
+    }
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(
+        error.response.data?.message ||
+        error.response.data?.error ||
+        `Password update failed with status ${error.response.status}`,
+      );
+    } else if (error.request) {
+      throw new Error(
+        "No response received from server. Please check your network connection.",
+      );
+    } else {
+      throw new Error(
+        error.message || "An error occurred while updating password",
       );
     }
   }
