@@ -138,7 +138,7 @@ const Page: React.FC = () => {
   const router = useRouter();
   const authCart = useSelector((state: RootState) => state.auth.cart);
 
-  // Check for mobile view
+
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
