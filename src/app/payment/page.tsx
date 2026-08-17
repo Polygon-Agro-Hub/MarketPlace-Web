@@ -460,8 +460,6 @@ const Page: React.FC = () => {
 
   const creditBalance = Number(authCart?.creditBalance) || 0;
 
-  console.log('creditbalance ', creditBalance)
-
   // Toggle state for "Use My Credit Balance"
   const [useCredit, setUseCredit] = useState(false);
   const creditApplied = useCredit ? Math.min(creditBalance, displayValues.grandTotal) : 0;

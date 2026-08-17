@@ -30,7 +30,6 @@ const Page = () => {
   };
 
   const creditBalance = cartState.creditBalance ?? 0;
-  console.log("Credit Balance:", creditBalance);
   const amountToPay = Math.abs(creditBalance);
 
   const [cardNumber, setCardNumber] = useState("");
@@ -186,11 +185,7 @@ const Page = () => {
         creditBalance: amountToPay,
       });
 
-      // creditBalance is negative (e.g. -1750), amountToPay is its absolute value.
-      // Adding them together clears the negative balance (should land on 0).
       const updatedCreditBalance = creditBalance + amountToPay;
-
-      console.log("Updated Credit Balance:", updatedCreditBalance);
 
       dispatch(setCreditBalanceInStore(updatedCreditBalance));
 

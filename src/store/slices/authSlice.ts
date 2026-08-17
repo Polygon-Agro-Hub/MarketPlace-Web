@@ -55,8 +55,6 @@ const authSlice = createSlice({
       state.tokenExpiration = action.payload.tokenExpiration || null;
     },
     updateCartInfo: (state, action: PayloadAction<CartInfo>) => {
-      console.log('updateCartInfo payload:', action.payload);
-      console.log('creditBalance before:', state.cart.creditBalance);
       state.cart = {
         ...state.cart,
         price: action.payload.price ?? state.cart.price ?? 0,
@@ -67,7 +65,6 @@ const authSlice = createSlice({
           ? action.payload.creditBalance
           : state.cart.creditBalance,
       };
-      console.log('creditBalance after:', state.cart.creditBalance);
     },
     updateCreditBalance: (state, action: PayloadAction<number>) => {
       if (state.cart) {

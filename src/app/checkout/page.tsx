@@ -231,9 +231,7 @@ const Page: React.FC = () => {
   const userNearestCity = useSelector(
     (state: RootState) => state.auth.user?.nearesCity,
   ) as string | null | undefined;
-  console.log("userNearestCity in checkout page:", userNearestCity);
   const [isNewAddressCityLocked, setIsNewAddressCityLocked] = useState(false);
-  console.log("cartPackages in checkout page:", cartPackages);
   const hasPackages = cartPackages.length > 0;
 
   const isReadOnly =
