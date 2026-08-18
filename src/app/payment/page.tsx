@@ -856,7 +856,7 @@ const Page: React.FC = () => {
                   </div>
 
                   {!showCashOption && (
-                    <div className="px-4 pb-4">
+                    <div className="px-2 pb-4">
                       <div className="flex items-start gap-2 bg-[#F5F8FD] border border-[#E1E8F8] rounded-lg p-3 text-sm text-[#41519E]">
                         <svg className="w-4 h-4 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none">
                           <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" />
