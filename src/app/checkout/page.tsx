@@ -231,9 +231,7 @@ const Page: React.FC = () => {
   const userNearestCity = useSelector(
     (state: RootState) => state.auth.user?.nearesCity,
   ) as string | null | undefined;
-  console.log("userNearestCity in checkout page:", userNearestCity);
   const [isNewAddressCityLocked, setIsNewAddressCityLocked] = useState(false);
-  console.log("cartPackages in checkout page:", cartPackages);
   const hasPackages = cartPackages.length > 0;
 
   const isReadOnly =
@@ -270,15 +268,27 @@ const Page: React.FC = () => {
     fetchCityAvailability();
   }, []);
 
+  const hasAutoFilledNearestCity = useRef(false);
+
+  // Reset the flag whenever we leave "new" mode, so the next time the user
+  // switches back to "new" it can auto-fill again from scratch.
+  useEffect(() => {
+    if (addressMode !== "new") {
+      hasAutoFilledNearestCity.current = false;
+    }
+  }, [addressMode]);
+
   useEffect(() => {
     if (
       formData.deliveryMethod === "home" &&
       addressMode === "new" &&
       userNearestCity &&
       allCityResults.length > 0 &&
-      cities.length > 0 &&              // ✅ wait for pricing data too
-      !formData.cityName
+      cities.length > 0 &&
+      !formData.cityName &&
+      !hasAutoFilledNearestCity.current
     ) {
+      hasAutoFilledNearestCity.current = true;
       handleCitySelect(userNearestCity);
       setCitySearchTerm(userNearestCity);
     }
@@ -287,7 +297,7 @@ const Page: React.FC = () => {
     formData.deliveryMethod,
     userNearestCity,
     allCityResults,
-    cities,                              // ✅ add to deps so it re-checks once cities arrives
+    cities,
     formData.cityName,
   ]);
 
@@ -759,17 +769,23 @@ const Page: React.FC = () => {
     label: center.label,
   }));
 
-  const getMinDate = (): string => {
-    const today = new Date();
+  const getMinDeliveryDate = (): Date => {
+    const now = new Date();
+    const isAfterCutoff = now.getHours() >= 18; // 6:00 PM cutoff
+    const extraDays = isAfterCutoff ? 4 : 3;
 
-    // Create a new date object and add 3 days
     const minDate = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      today.getDate() + 3,
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() + extraDays,
     );
+    minDate.setHours(0, 0, 0, 0);
+    return minDate;
+  };
 
-    // Ensure we get the correct local date without timezone issues
+  const getMinDate = (): string => {
+    const minDate = getMinDeliveryDate();
+
     const year = minDate.getFullYear();
     const month = String(minDate.getMonth() + 1).padStart(2, "0");
     const day = String(minDate.getDate()).padStart(2, "0");
@@ -1031,16 +1047,9 @@ const Page: React.FC = () => {
         if (!value) return `${fieldLabels.deliveryDate} is required.`;
 
         const selectedDate = new Date(value.toString());
-        const today = new Date();
-        const minDate = new Date(
-          today.getFullYear(),
-          today.getMonth(),
-          today.getDate() + 3,
-        );
+        const minDate = getMinDeliveryDate();
 
         selectedDate.setHours(0, 0, 0, 0);
-        minDate.setHours(0, 0, 0, 0);
-        today.setHours(0, 0, 0, 0);
 
         if (selectedDate < minDate) {
           return "Please select a date at least 3 days from today.";
@@ -2337,15 +2346,8 @@ const Page: React.FC = () => {
                         // Additional client-side validation
                         if (selectedValue) {
                           const selectedDate = new Date(selectedValue);
-                          const today = new Date();
-                          const minDate = new Date(
-                            today.getFullYear(),
-                            today.getMonth(),
-                            today.getDate() + 3,
-                          );
-
+                          const minDate = getMinDeliveryDate();
                           selectedDate.setHours(0, 0, 0, 0);
-                          minDate.setHours(0, 0, 0, 0);
 
                           if (selectedDate >= minDate) {
                             handleFieldChange("deliveryDate", selectedValue);

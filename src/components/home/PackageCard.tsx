@@ -27,6 +27,7 @@ interface PackageProps {
   packageDetails?: PackageItem[];
   onPackageClick: (packageId: number) => void;
   onClosePopup: () => void;
+  onAddToCartStart?: () => void;  
   onAddToCartSuccess?: (message: string) => void;
   onAddToCartError?: (message: string) => void;
   isLoadingDetails: boolean;
@@ -42,6 +43,7 @@ const PackageCard: React.FC<PackageProps> = ({
   packageDetails,
   onPackageClick,
   onClosePopup,
+  onAddToCartStart,
   onAddToCartSuccess,
   onAddToCartError,
   isLoadingDetails,
@@ -67,6 +69,7 @@ const PackageCard: React.FC<PackageProps> = ({
       return;
     }
 
+    onAddToCartStart?.();    
     try {
       const res = await packageAddToCart(packageItem.id, token);
 

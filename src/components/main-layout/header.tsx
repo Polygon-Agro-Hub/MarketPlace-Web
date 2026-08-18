@@ -461,7 +461,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
               <Image
                 src={glogo}
                 alt="My Farm Logo"
-                className="h-10 w-auto object-contain"
+                className="h-12 w-auto object-contain"
               />
             </Link>
           </div>

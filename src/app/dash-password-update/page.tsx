@@ -18,6 +18,7 @@ type FormErrors = {
 
 export default function SetPasswordForm() {
     const router = useRouter();
+    const [showNic, setShowNic] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -162,7 +163,7 @@ export default function SetPasswordForm() {
                 // NIC doesn't exist in the system - highlight the NIC field
                 setErrors((prev) => ({
                     ...prev,
-                    nicNumber: "This NIC is not registered in the system.",
+                    nicNumber: "This NIC is not registered. Please check the NIC and try again.",
                 }));
             }
 
@@ -191,11 +192,6 @@ export default function SetPasswordForm() {
                         description={errorMessage}
                     />
 
-                    {/* Left side - Form. Everything (logo, heading, paragraph, inputs) is
-                        centered both vertically and horizontally as one block. The row
-                        stretches to match the right panel's height (see aspect-ratio below),
-                        and this flex-col + justify-center keeps the content centered in
-                        whatever height that ends up being. */}
                     <div className="w-full lg:w-1/2 min-h-screen lg:min-h-0 px-6 py-10 sm:px-10 sm:py-12 flex flex-col items-center justify-center text-center">
                         <div className="w-full max-w-sm">
                             <div className="flex justify-center mb-6">
@@ -226,19 +222,34 @@ export default function SetPasswordForm() {
                             )}
 
                             <form onSubmit={handleSubmit} className="space-y-4 text-left">
-                                <div className="w-full">
-                                    <input
-                                        type="text"
-                                        name="nicNumber"
-                                        value={formData.nicNumber}
-                                        onChange={handleChange}
-                                        onBlur={(e) => checkNicOnBlur(e.target.value)}
-                                        placeholder="Your NIC Number"
-                                        maxLength={12}
-                                        className={`h-11 w-full border rounded-md px-4 py-2 focus:outline-none focus:ring-1 ${getInputClass(
-                                            "nicNumber",
-                                        )}`}
-                                    />
+                                <div className="w-full relative">
+                                    <div className="relative">
+                                        <input
+                                            type={showNic ? "text" : "password"}
+                                            name="nicNumber"
+                                            value={formData.nicNumber}
+                                            onChange={handleChange}
+                                            onBlur={(e) => checkNicOnBlur(e.target.value)}
+                                            placeholder="Your NIC Number"
+                                            maxLength={12}
+                                            autoComplete="off"
+                                            className={`h-11 w-full border rounded-md px-4 py-2 pr-10 focus:outline-none focus:ring-1 ${getInputClass(
+                                                "nicNumber",
+                                            )}`}
+                                        />
+                                        <button
+                                            type="button"
+                                            className="absolute top-1/2 right-3 transform -translate-y-1/2 cursor-pointer"
+                                            onClick={() => setShowNic(!showNic)}
+                                            tabIndex={-1}
+                                        >
+                                            {showNic ? (
+                                                <EyeOff size={20} className="text-[#3E206D]" />
+                                            ) : (
+                                                <Eye size={20} className="text-[#3E206D]" />
+                                            )}
+                                        </button>
+                                    </div>
                                     {errors.nicNumber && (
                                         <p className="mt-1 text-sm text-red-600">
                                             {errors.nicNumber}
@@ -345,11 +356,6 @@ export default function SetPasswordForm() {
                         </div>
                     </div>
 
-                    {/* Right side - Image panel. Locked to the source image's real
-                        aspect ratio (750x956) so it renders edge-to-edge with zero
-                        cropping and zero letterbox gaps, no matter the screen size.
-                        The left column stretches to match this height automatically
-                        (default flex cross-axis stretch) and stays vertically centered. */}
                     <div className="hidden lg:block lg:w-1/2 lg:aspect-[750/956] lg:self-start lg:shrink-0 relative overflow-hidden">
                         <Image
                             src={SecurityImg}

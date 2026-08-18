@@ -63,17 +63,15 @@ const PackageSlider: React.FC<packagesProps> = ({ productData, onShowConfirmModa
     const modalRef = useRef<HTMLDivElement>(null);
     const [showLoading, setShowLoading] = useState(false);
 
-    // Update the handlePackageAddToCartSuccess function
-    const handlePackageAddToCartSuccess = (message: string) => {
+    const handlePackageAddToCartStart = () => {
         setShowLoading(true);
+    };
 
-        // Show loading for 1.5 seconds before showing success
-        setTimeout(() => {
-            setShowLoading(false);
-            setSuccessMessage(message);
-            setShowSuccess(true);
-            handleClosePopup();
-        }, 1500);
+    const handlePackageAddToCartSuccess = (message: string) => {
+        setShowLoading(false);
+        setSuccessMessage(message);
+        setShowSuccess(true);
+        handleClosePopup();
     };
 
     const PurpleLoadingPopup = ({ isVisible }: { isVisible: boolean }) => {
@@ -114,10 +112,10 @@ const PackageSlider: React.FC<packagesProps> = ({ productData, onShowConfirmModa
     };
 
     const handlePackageAddToCartError = (message: string) => {
+        setShowLoading(false);   // NEW — make sure spinner clears on error too
         setErrorMessage(message);
         setShowError(true);
     };
-
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (isMobile && selectedPackageId && modalRef.current) {
@@ -232,6 +230,7 @@ const PackageSlider: React.FC<packagesProps> = ({ productData, onShowConfirmModa
                                     packageDetails={selectedPackageId === packageItem.id ? packageDetails : undefined}
                                     onPackageClick={handlePackageClick}
                                     onClosePopup={handleClosePopup}
+                                    onAddToCartStart={handlePackageAddToCartStart}
                                     onAddToCartSuccess={handlePackageAddToCartSuccess}
                                     onAddToCartError={handlePackageAddToCartError}
                                     isLoadingDetails={isLoadingDetails && selectedPackageId === packageItem.id}
@@ -256,6 +255,7 @@ const PackageSlider: React.FC<packagesProps> = ({ productData, onShowConfirmModa
                                 packageDetails={packageDetails}
                                 onPackageClick={handlePackageClick}
                                 onClosePopup={handleClosePopup}
+                                onAddToCartStart={handlePackageAddToCartStart}
                                 onAddToCartSuccess={handlePackageAddToCartSuccess}
                                 onAddToCartError={handlePackageAddToCartError}
                                 isLoadingDetails={isLoadingDetails}
@@ -313,6 +313,7 @@ const PackageSlider: React.FC<packagesProps> = ({ productData, onShowConfirmModa
                                         packageDetails={selectedPackageId === packageItem.id ? packageDetails : undefined}
                                         onPackageClick={handlePackageClick}
                                         onClosePopup={handleClosePopup}
+                                        onAddToCartStart={handlePackageAddToCartStart}
                                         onAddToCartSuccess={handlePackageAddToCartSuccess}
                                         onAddToCartError={handlePackageAddToCartError}
                                         isLoadingDetails={isLoadingDetails && selectedPackageId === packageItem.id}
@@ -340,6 +341,7 @@ const PackageSlider: React.FC<packagesProps> = ({ productData, onShowConfirmModa
                             packageDetails={packageDetails}
                             onPackageClick={handlePackageClick}
                             onClosePopup={handleClosePopup}
+                            onAddToCartStart={handlePackageAddToCartStart}
                             onAddToCartSuccess={handlePackageAddToCartSuccess}
                             onAddToCartError={handlePackageAddToCartError}
                             isLoadingDetails={isLoadingDetails}

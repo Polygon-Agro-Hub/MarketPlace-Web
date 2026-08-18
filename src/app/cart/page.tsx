@@ -138,7 +138,7 @@ const Page: React.FC = () => {
   const router = useRouter();
   const authCart = useSelector((state: RootState) => state.auth.cart);
 
-  // Check for mobile view
+
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
@@ -466,7 +466,6 @@ const Page: React.FC = () => {
 
       try {
         const cartInfo = await getCartInfo(token);
-        console.log("Fetched cart info after product removal:", cartInfo);
         dispatch(updateCartInfo(cartInfo));
       } catch (cartError) {
         console.error("Error fetching cart info:", cartError);
