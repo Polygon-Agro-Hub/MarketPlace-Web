@@ -1922,7 +1922,7 @@ const Page: React.FC = () => {
                   <span className="font-bold text-gray-900">
                     Rs. {formatPrice(dynamicSummary.savedAmount)}
                   </span>{" "}
-                  with GoViMart than the market price.
+                  with Polygon than the market price.
                 </p>
               </div>
             )}
