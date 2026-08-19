@@ -855,21 +855,6 @@ const Page: React.FC = () => {
                     </div>
                   </div>
 
-                  {!showCashOption && (
-                    <div className="px-2 pb-4">
-                      <div className="flex items-start gap-2 bg-[#F5F8FD] border border-[#E1E8F8] rounded-lg p-3 text-sm text-[#41519E]">
-                        <svg className="w-4 h-4 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none">
-                          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" />
-                          <path d="M12 8v.01M12 11v5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                        </svg>
-                        <span>
-                          {isFinalizeImdt
-                            ? "Pay by cash is not available for immediate package finalization."
-                            : `Pay By Cash is available only for orders equal to or less than Rs. ${formatPrice(cashPaymentLimit)}`}
-                        </span>
-                      </div>
-                    </div>
-                  )}
 
                   {paymentMethod === "cash" && showCashOption && (
                     <div className="p-5 border-t border-gray-200 bg-gray-50/30">
@@ -896,7 +881,23 @@ const Page: React.FC = () => {
                 </div>
               </>
             )}
+            {!showCashOption && (
+              <div className=" pb-4 mt-4">
+                <div className="flex items-start gap-2 bg-[#F5F8FD] border border-[#E1E8F8] rounded-lg p-3 text-sm text-[#41519E]">
+                  <svg className="w-4 h-4 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" />
+                    <path d="M12 8v.01M12 11v5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                  <span>
+                    {isFinalizeImdt
+                      ? "Pay by cash is not available for immediate package finalization."
+                      : `Pay By Cash is available only for orders equal to or less than Rs. ${formatPrice(cashPaymentLimit)}`}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
+
 
         </div>
 
