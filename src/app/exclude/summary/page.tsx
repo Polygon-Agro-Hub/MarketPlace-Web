@@ -193,7 +193,18 @@ export default function ExcludedItems() {
       if (isDashUser === 1 && isPswUpdateed === 0) {
         // Dash user who hasn't set a password yet
         router.push("/dash-password-update");
-      } else if (isMarketPlaceUser === 1 && isDashUser === 0) {
+      }
+      else if (isDashUser === 1 && isPswUpdateed === 1) {
+        // Dash user who has already set a password — route by buyer type
+        if (buyerType === "Retail") {
+          router.push("/");
+        } else if (buyerType === "Wholesale") {
+          router.push("/wholesale/home");
+        } else {
+          router.push("/signin");
+        }
+      }
+      else if (isMarketPlaceUser === 1 && isDashUser === 0) {
         // Marketplace user (not a dash user) — route by buyer type
         if (buyerType === "Retail") {
           router.push("/");

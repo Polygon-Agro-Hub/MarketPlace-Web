@@ -514,6 +514,7 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
                 formData.email,
                 formData.phoneNumber,
                 formData.phoneCode,
+                formData.nicNumber,
             );
 
             const res = await sendOTPInSignup(
@@ -536,7 +537,6 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
         } catch (err: any) {
             let errorMessage = "An error occurred. Please try again.";
 
-            // Handle specific verification errors
             if (err.message) {
                 errorMessage = err.message;
             } else if (err.type === "email_exists") {
@@ -545,6 +545,9 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
             } else if (err.type === "phone_exists") {
                 errorMessage =
                     "This phone number is already registered. Please use a different phone number or try logging in.";
+            } else if (err.type === "nic_exists") {
+                errorMessage =
+                    "This NIC is already registered. Please use a different NIC or try logging in.";
             } else {
                 errorMessage =
                     err.message || "Failed to process request. Please try again.";
