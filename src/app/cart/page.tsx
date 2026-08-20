@@ -534,45 +534,87 @@ const Page: React.FC = () => {
   };
 
   const confirmRemovePackage = async (packageId: number) => {
-    const itemKey = `package-${packageId}`;
+  const itemKey = `package-${packageId}`;
+  if (removingItems.has(itemKey)) return;
 
-    if (removingItems.has(itemKey)) return;
+  try {
+    setRemovingItems((prev) => new Set(prev).add(itemKey));
+
+    await removeCartPackage(packageId, token);
+    dispatch(removePackage(packageId));
+
+    const updatedCartData = await getUserCart(token);
+
+    const mergedAdditionalItems = updatedCartData.additionalItems?.map(
+      (itemGroup: AdditionalItems) => ({
+        ...itemGroup,
+        Items: itemGroup.Items.map((item: CartItem) => {
+          const pendingUpdate = pendingUpdates.find((u) => u.productId === item.id);
+          return pendingUpdate ? { ...item, quantity: pendingUpdate.newQuantity } : item;
+        }),
+      }),
+    );
+
+    dispatch(
+      setCartData({
+        cart: updatedCartData.cart,
+        packages: updatedCartData.packages,
+        additionalItems: mergedAdditionalItems ?? updatedCartData.additionalItems,
+        summary: updatedCartData.summary,
+      }),
+    );
+
+    setUnitSelection((prev) => {
+      const updated = { ...prev };
+      updatedCartData.additionalItems?.forEach((itemGroup: AdditionalItems) => {
+        itemGroup.Items.forEach((item: CartItem) => {
+          if (!updated[item.id]) {
+            updated[item.id] = item.unit.toLowerCase() === "kg" ? "kg" : "g";
+          }
+        });
+      });
+      return updated;
+    });
+
+    // 🔧 compute the real total client-side instead of trusting the server's stale price/count
+    const freshSummary = computeSummaryFrom(
+      updatedCartData.packages,
+      mergedAdditionalItems ?? updatedCartData.additionalItems,
+      unitSelection,
+    );
+
+    dispatch(
+      updateCartInfo({
+        price: parseFloat(freshSummary.finalTotal.toFixed(2)),
+        count: freshSummary.totalItems,
+        creditBalance: updatedCartData.cart?.creditBalance ?? authCart.creditBalance,
+      }),
+    );
 
     try {
-      setRemovingItems((prev) => new Set(prev).add(itemKey));
-
-      await removeCartPackage(packageId, token);
-
-      dispatch(removePackage(packageId));
-
-      const updatedCartData = await getUserCart(token);
-
+      const cartInfo = await getCartInfo(token);
+      // only take creditBalance from the backend — price/count stay client-computed
       dispatch(
-        setCartData({
-          cart: updatedCartData.cart,
-          packages: updatedCartData.packages,
-          additionalItems: updatedCartData.additionalItems,
-          summary: updatedCartData.summary,
+        updateCartInfo({
+          price: parseFloat(freshSummary.finalTotal.toFixed(2)),
+          count: freshSummary.totalItems,
+          creditBalance: cartInfo?.creditBalance ?? updatedCartData.cart?.creditBalance,
         }),
       );
-
-      try {
-        const cartInfo = await getCartInfo(token);
-        dispatch(updateCartInfo(cartInfo));
-      } catch (cartError) {
-        console.error("Error fetching cart info:", cartError);
-      }
-    } catch (error: any) {
-      console.error("Error removing package:", error);
-      alert("Failed to remove package. Please try again.");
-    } finally {
-      setRemovingItems((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(itemKey);
-        return newSet;
-      });
+    } catch (cartError) {
+      console.error("Error fetching cart info:", cartError);
     }
-  };
+  } catch (error: any) {
+    console.error("Error removing package:", error);
+    alert("Failed to remove package. Please try again.");
+  } finally {
+    setRemovingItems((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(itemKey);
+      return newSet;
+    });
+  }
+};
 
   const getAllProductIds = (): number[] => {
     const productIds: number[] = [];
@@ -1922,7 +1964,7 @@ const Page: React.FC = () => {
                   <span className="font-bold text-gray-900">
                     Rs. {formatPrice(dynamicSummary.savedAmount)}
                   </span>{" "}
-                  with GoViMart than the market price.
+                  with Polygon than the market price.
                 </p>
               </div>
             )}

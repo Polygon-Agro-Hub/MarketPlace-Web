@@ -27,7 +27,7 @@ export const metadata: Metadata = {
 
   title: {
     default:
-      "GoviMart | Fresh Vegetables, Fruits & Groceries – Home Delivery Sri Lanka",
+      "Polygon",
     template: "%s | GoviMart Sri Lanka",
   },
 
