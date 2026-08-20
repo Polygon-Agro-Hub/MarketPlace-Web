@@ -457,12 +457,21 @@ const Page: React.FC = () => {
     return cityAvailabilityMap.get(cityName.trim().toLowerCase()) ?? true;
   };
 
+  const hasInitializedAddressOptions = useRef(false);
+
   useEffect(() => {
-    if (formData.deliveryMethod === "home" && searchParamsLoaded) {
+    if (
+      formData.deliveryMethod === "home" &&
+      searchParamsLoaded &&
+      !loadingCities &&                          // cities fetch attempt has completed
+      !hasInitializedAddressOptions.current
+    ) {
+      hasInitializedAddressOptions.current = true;
       initializeAddressOptions();
     }
-  }, [formData.deliveryMethod, searchParamsLoaded, cities]);
+  }, [formData.deliveryMethod, searchParamsLoaded, loadingCities]);
 
+  
   const filteredCityOptions = useMemo(() => {
     if (!citySearchTerm.trim()) return allCityResults;
     const term = citySearchTerm.trim().toLowerCase();
