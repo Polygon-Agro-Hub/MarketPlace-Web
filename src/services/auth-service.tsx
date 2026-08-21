@@ -368,6 +368,7 @@ export const verifyUserDetails = async (
   email: string,
   phoneNumber: string,
   phoneCode: string,
+  nicNumber: string,
 ) => {
   try {
     const response = await axios.post(
@@ -376,6 +377,7 @@ export const verifyUserDetails = async (
         email,
         phoneNumber,
         phoneCode,
+        nicNumber,
       },
       {
         headers: {

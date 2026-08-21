@@ -1559,6 +1559,7 @@ const BillingDetailsForm = () => {
                 errors={errors}
                 options={buildingTypeOptions}
                 placeholder="Select Building Type"
+                disabled={!!selectedAddressId}
               />
             </div>
 
