@@ -200,9 +200,8 @@ const ViewMyList = ({ setSelectedMenu }: ViewMyListProps) => {
         <div className="border border-[#CFCFCF] rounded-2xl bg-white overflow-hidden h-full flex flex-col">
           {/* Card header */}
           <div
-            className={`flex flex-col sm:flex-row sm:items-start sm:justify-between px-4 py-3 ${
-              isInclude ? "bg-[#F0FDF4]" : "bg-[#FFF5F5]"
-            }`}
+            className={`flex flex-col sm:flex-row sm:items-start sm:justify-between px-4 py-3 ${isInclude ? "bg-[#F0FDF4]" : "bg-[#FFF5F5]"
+              }`}
           >
             <div className="flex items-start gap-2">
               {isInclude ? (

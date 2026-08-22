@@ -26,6 +26,7 @@ import cardPaymentIcon from "../../../public/pay-now-illustration.png";
 import cashPaymentIcon from "../../../public/cashicon.png";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faLock } from "@fortawesome/free-solid-svg-icons";
+import Loader from "@/components/loader-spinner/Loader";
 
 const Page: React.FC = () => {
   const router = useRouter();
@@ -35,7 +36,6 @@ const Page: React.FC = () => {
     { name: "Payment", path: "/payment", status: true },
   ];
 
-  // Redux state selectors
   const cartItems = useSelector((state: RootState) => state.cartItems);
   const checkoutDetails = useSelector((state: RootState) => state.checkout);
   const token = useSelector((state: RootState) => state.auth?.token) || null;
@@ -117,8 +117,8 @@ const Page: React.FC = () => {
     }
 
     const now = new Date();
-    const currentMonth = now.getMonth() + 1; // 1-12
-    const currentYear = now.getFullYear() % 100; // last two digits
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear() % 100;
 
     if (year < currentYear || (year === currentYear && month < currentMonth)) {
       return "This card has expired. Please enter a valid expiration date.";
@@ -175,8 +175,6 @@ const Page: React.FC = () => {
     const creditAppliedAmount = useCredit ? Math.min(creditBalance, finalGrandTotal) : 0;
     const remainingAmount = finalGrandTotal - creditAppliedAmount;
 
-    // If credit fully covers the order, there's no actual cash/card transaction —
-    // always report it as "card" regardless of what was selected earlier.
     const effectivePaymentMethod = isFullyCoveredByCredit ? "card" : paymentMethod;
 
     let finalCheckoutDetails: any = {
@@ -229,7 +227,7 @@ const Page: React.FC = () => {
     return {
       cartId: cartItems.cartId || 0,
       checkoutDetails: finalCheckoutDetails,
-      paymentMethod: effectivePaymentMethod, // never "cash" when credit fully covers the order
+      paymentMethod: effectivePaymentMethod,
       discountAmount: Number(discountAmount) || 0,
       grandTotal: Number(finalGrandTotal) || 0,
       orderApp: "marketplace",
@@ -498,6 +496,7 @@ const Page: React.FC = () => {
 
   return (
     <div className="px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5">
+      <Loader isVisible={isSubmitting} />
       {/* Modal - same as original */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
@@ -778,10 +777,7 @@ const Page: React.FC = () => {
                               placeholder="Enter Expiration Date (MM/YY)"
                               value={cardDetails.expirationDate}
                               onChange={(e) => {
-                                // Strip everything except digits, ignore any '/' the user types manually
                                 const digitsOnly = e.target.value.replace(/[^0-9]/g, "").slice(0, 4);
-
-                                // Re-insert the separator ourselves once we have more than 2 digits
                                 const formattedValue =
                                   digitsOnly.length > 2
                                     ? `${digitsOnly.slice(0, 2)}/${digitsOnly.slice(2)}`
@@ -901,7 +897,6 @@ const Page: React.FC = () => {
 
         </div>
 
-        {/* Right Column - Order Summary */}
         <div className="w-full lg:w-1/3">
           <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 shadow-sm">
             <h2 className="font-semibold text-lg mb-4">Your Order</h2>
@@ -1059,12 +1054,39 @@ const Page: React.FC = () => {
             <button
               onClick={handleSubmitOrder}
               disabled={!canConfirmOrder()}
-              className={`w-full py-3.5 rounded-xl font-semibold text-white transition ${canConfirmOrder() ? "bg-[#3E206D] hover:bg-[#2f1854] cursor-pointer" : "bg-gray-400 cursor-not-allowed"
+              className={`w-full py-3.5 rounded-xl font-semibold text-white transition flex items-center justify-center gap-2 ${canConfirmOrder() ? "bg-[#3E206D] hover:bg-[#2f1854] cursor-pointer" : "bg-gray-400 cursor-not-allowed"
                 }`}
             >
-              {orderSubmitted ? "Order Submitted" : isSubmitting ? "Processing Order..." : "Confirm Order"}
+              {isSubmitting ? (
+                <>
+                  <svg
+                    className="animate-spin h-5 w-5 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  Processing Order...
+                </>
+              ) : orderSubmitted ? (
+                "Order Submitted"
+              ) : (
+                "Confirm Order"
+              )}
             </button>
-
             <p
               className="flex items-center justify-center gap-1 mt-3"
               style={{

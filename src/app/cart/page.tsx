@@ -17,9 +17,7 @@ import {
   updateProductQuantity,
   removeProduct,
   removePackage,
-  applyCoupon,
   selectCartSummary,
-  selectCartForOrder,
 } from "@/store/slices/cartItemsSlice";
 import { useRouter } from "next/navigation";
 import empty from "../../../public/empty.jpg";
@@ -211,7 +209,6 @@ const Page: React.FC = () => {
         setLoading(true);
         const response = await getUserCart(token);
 
-        // Silently drop disabled products — track their IDs for backend cleanup
         const disabledProductIds: number[] = [];
         const filteredAdditionalItems = (response.additionalItems || [])
           .map((itemGroup: AdditionalItems) => {
@@ -237,14 +234,12 @@ const Page: React.FC = () => {
         dispatch(
           setCartData({
             cart: response.cart,
-            packages: response.packages, // keep invalid packages — they're shown, not removed
+            packages: response.packages, 
             additionalItems: filteredAdditionalItems,
             summary: response.summary,
           }),
         );
 
-        // ── Determine validity from the FRESH fetched data, not from `cartData`
-        // (the Redux selector in this closure hasn't picked up setCartData yet). ──
         const hasValidPackages =
           response.packages &&
           response.packages.some((pkg: CartPackage) => pkg.status !== "Disabled");
@@ -266,7 +261,6 @@ const Page: React.FC = () => {
         setUnitSelection(initialUnitSelection);
         setError(null);
 
-        // Fire-and-forget: sync backend cart with what the user actually sees.
         if (disabledProductIds.length > 0) {
           bulkRemoveCartProducts(disabledProductIds, token).catch((err) =>
             console.error("Silent cleanup of disabled products failed:", err),
@@ -367,7 +361,6 @@ const Page: React.FC = () => {
       unitSelection[productId] ||
       (currentItem.unit.toLowerCase() as "kg" | "g");
 
-    // quantity in Redux is already in selectedUnit (handleUnitChange keeps it in sync)
     const currentQuantity = currentItem.quantity;
 
     let changeBy: number;
@@ -378,14 +371,12 @@ const Page: React.FC = () => {
         : Infinity;
 
     if (selectedUnit === "g") {
-      // changeby, startValue, maxQuantity all come in kg from API — convert to grams
       changeBy = parseFloat((currentItem.changeby * 1000).toFixed(3));
       startValue = parseFloat((currentItem.startValue * 1000).toFixed(3));
       if (maxQuantity !== Infinity) {
         maxQuantity = parseFloat((maxQuantity * 1000).toFixed(3));
       }
     } else {
-      // selectedUnit === "kg" — all API values already in kg, no conversion needed
       changeBy = currentItem.changeby || 1;
       startValue = currentItem.startValue || 1;
     }
@@ -473,12 +464,10 @@ const Page: React.FC = () => {
 
       const updatedCartData = await getUserCart(token);
 
-      // ── Merge pending quantity changes back into the fresh server data ──
       const mergedAdditionalItems = updatedCartData.additionalItems?.map(
         (itemGroup: AdditionalItems) => ({
           ...itemGroup,
           Items: itemGroup.Items.map((item: CartItem) => {
-            // If this item has a pending (unsaved) quantity update, restore it
             const pendingUpdate = pendingUpdates.find(
               (u) => u.productId === item.id,
             );
@@ -499,13 +488,10 @@ const Page: React.FC = () => {
         }),
       );
 
-      // ── Re-apply the unit selections for items that had pending updates ──
-      // (server returns items in their original unit, so we keep our local unit state)
       setUnitSelection((prev) => {
         const updated = { ...prev };
         updatedCartData.additionalItems?.forEach((itemGroup: AdditionalItems) => {
           itemGroup.Items.forEach((item: CartItem) => {
-            // Only set unit from server if we don't already have a local override
             if (!updated[item.id]) {
               updated[item.id] =
                 item.unit.toLowerCase() === "kg" ? "kg" : "g";
@@ -576,7 +562,6 @@ const Page: React.FC = () => {
       return updated;
     });
 
-    // 🔧 compute the real total client-side instead of trusting the server's stale price/count
     const freshSummary = computeSummaryFrom(
       updatedCartData.packages,
       mergedAdditionalItems ?? updatedCartData.additionalItems,
@@ -593,7 +578,6 @@ const Page: React.FC = () => {
 
     try {
       const cartInfo = await getCartInfo(token);
-      // only take creditBalance from the backend — price/count stay client-computed
       dispatch(
         updateCartInfo({
           price: parseFloat(freshSummary.finalTotal.toFixed(2)),
@@ -869,9 +853,6 @@ const Page: React.FC = () => {
         }),
       );
 
-      // Compute the authoritative totals from the fresh data (respects isValid filtering),
-      // rather than trusting getCartInfo() alone — it may not apply the same package/product
-      // validity rules the cart page does.
       const freshSummary = computeSummaryFrom(
         updatedCartData.packages,
         updatedCartData.additionalItems,
@@ -888,8 +869,6 @@ const Page: React.FC = () => {
 
       try {
         const cartInfo = await getCartInfo(token);
-        // Only take creditBalance (or other fields) from this endpoint if you trust it more
-        // than the computed values for those specific fields. Price/count already set above.
         dispatch(updateCartInfo({
           price: parseFloat(freshSummary.finalTotal.toFixed(2)),
           count: freshSummary.totalItems,

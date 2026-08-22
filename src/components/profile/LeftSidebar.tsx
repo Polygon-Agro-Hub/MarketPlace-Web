@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import {
   FaAngleLeft,
   FaUser,
-  FaAddressCard,
   FaExclamationTriangle,
   FaTasks,
 } from "react-icons/fa";
@@ -12,14 +11,12 @@ import { FaLocationDot } from "react-icons/fa6";
 import { useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
 
-// Define the props interface
 interface LeftSidebarProps {
   selectedMenu: string;
   setSelectedMenu: React.Dispatch<React.SetStateAction<string>>;
   onComplaintIconClick: (isOpen: boolean) => void;
 }
 
-// Define RootState interface (adjust according to your store structure)
 interface RootState {
   auth: {
     user: {
@@ -38,7 +35,6 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const [isDesktop, setIsDesktop] = useState(false);
   const router = useRouter();
 
-  // Get buyer type from Redux store
   const buyerType = useSelector(
     (state: RootState) => state.auth.user?.buyerType,
   );
@@ -184,12 +180,11 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                 <div className="flex flex-col w-full cursor-pointer">
                   <div
                     onClick={handleExcludeClick}
-                    className={`flex items-center justify-center md:justify-start gap-4 px-2 py-2 rounded-md ${
-                      isActive("ExcludedItemList") &&
-                      !["ViewMyList", "AddMoreItems"].includes(selectedMenu)
+                    className={`flex items-center justify-center md:justify-start gap-4 px-2 py-2 rounded-md ${isActive("ExcludedItemList") &&
+                        !["ViewMyList", "AddMoreItems"].includes(selectedMenu)
                         ? "bg-[#D2D2D2]"
                         : "bg-transparent"
-                    }`}
+                      }`}
                   >
                     <div
                       className="w-[44px] h-[42px] cursor-pointer border border-[#D4D8DC] rounded-[10px] flex items-center justify-center bg-white"
@@ -210,23 +205,20 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
                   {excludeSubmenuOpen && (
                     <div
-                      className={`flex flex-col ${
-                        isDesktop
+                      className={`flex flex-col ${isDesktop
                           ? "mt-2 w-full"
                           : "absolute left-[70px] top-[1px] w-[200px] shadow-lg z-10 bg-[#DDDDDD] justify-center rounded-md"
-                      }`}
+                        }`}
                     >
                       <div
                         onClick={() => handleSubMenuClick("ViewMyList")}
-                        className={`cursor-pointer text-[15px] px-2 w-full flex items-center ${
-                          isDesktop
+                        className={`cursor-pointer text-[15px] px-2 w-full flex items-center ${isDesktop
                             ? "py-2 justify-start"
                             : "justify-center h-[51px]"
-                        } ${
-                          isActive("ViewMyList")
+                          } ${isActive("ViewMyList")
                             ? "bg-[#D2D2D2] font-[700] text-[#111]"
                             : "text-[#233242] font-[500]"
-                        }`}
+                          }`}
                         style={{
                           whiteSpace: "nowrap",
                         }}
@@ -239,15 +231,13 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                       </div>
                       <div
                         onClick={() => handleSubMenuClick("AddMoreItems")}
-                        className={`cursor-pointer text-[15px] px-2 w-full flex items-center ${
-                          isDesktop
+                        className={`cursor-pointer text-[15px] px-2 w-full flex items-center ${isDesktop
                             ? "py-2 justify-start"
                             : "justify-center h-[47px] border-t border-[#C1C1C1]"
-                        } ${
-                          isActive("AddMoreItems")
+                          } ${isActive("AddMoreItems")
                             ? "bg-[#D2D2D2] font-[700] text-[#111]"
                             : "text-[#233242] font-[500]"
-                        }`}
+                          }`}
                         style={{
                           whiteSpace: "nowrap",
                           overflow: "hidden",
@@ -275,14 +265,13 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
               <div className="flex flex-col w-full cursor-pointer">
                 <div
                   onClick={handleComplaintClick}
-                  className={`flex items-center justify-center md:justify-start gap-4 px-2 py-2 rounded-md ${
-                    isActive("complaints") &&
-                    !["reportComplaint", "ComplaintHistory"].includes(
-                      selectedMenu,
-                    )
+                  className={`flex items-center justify-center md:justify-start gap-4 px-2 py-2 rounded-md ${isActive("complaints") &&
+                      !["reportComplaint", "ComplaintHistory"].includes(
+                        selectedMenu,
+                      )
                       ? "bg-[#D2D2D2]"
                       : "bg-transparent"
-                  }`}
+                    }`}
                 >
                   <div
                     className="w-[44px] h-[42px] cursor-pointer border border-[#D4D8DC] rounded-[10px] flex items-center justify-center bg-white"
@@ -303,23 +292,20 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
                 {complaintSubmenuOpen && (
                   <div
-                    className={`flex flex-col ${
-                      isDesktop
+                    className={`flex flex-col ${isDesktop
                         ? "mt-2 w-full"
                         : "absolute left-[70px] top-[1px] w-[200px] shadow-lg z-10 bg-[#DDDDDD] justify-center rounded-md"
-                    }`}
+                      }`}
                   >
                     <div
                       onClick={() => handleSubMenuClick("reportComplaint")}
-                      className={`cursor-pointer text-[15px] px-2 w-full flex items-center ${
-                        isDesktop
+                      className={`cursor-pointer text-[15px] px-2 w-full flex items-center ${isDesktop
                           ? "py-2 justify-start"
                           : "justify-center h-[51px]"
-                      } ${
-                        isActive("reportComplaint")
+                        } ${isActive("reportComplaint")
                           ? "bg-[#D2D2D2] font-[700] text-[#111]"
                           : "text-[#233242] font-[500]"
-                      }`}
+                        }`}
                       style={{
                         whiteSpace: "nowrap",
                         overflow: "hidden",
@@ -334,15 +320,13 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                     </div>
                     <div
                       onClick={() => handleSubMenuClick("ComplaintHistory")}
-                      className={`cursor-pointer text-[15px] px-2 w-full flex items-center ${
-                        isDesktop
+                      className={`cursor-pointer text-[15px] px-2 w-full flex items-center ${isDesktop
                           ? "py-2 justify-start"
                           : "justify-center h-[47px] border-t border-[#C1C1C1]"
-                      } ${
-                        isActive("ComplaintHistory")
+                        } ${isActive("ComplaintHistory")
                           ? "bg-[#D2D2D2] font-[700] text-[#111]"
                           : "text-[#233242] font-[500]"
-                      }`}
+                        }`}
                       style={{
                         whiteSpace: "nowrap",
                         overflow: "hidden",

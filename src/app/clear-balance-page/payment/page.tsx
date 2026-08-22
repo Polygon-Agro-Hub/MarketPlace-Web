@@ -66,7 +66,6 @@ const Page = () => {
     return `${digitsOnly.slice(0, 2)}/${digitsOnly.slice(2)}`;
   };
 
-  // ---- Real-time field validators ----
 
   const validateCardNumberValue = (rawValue: string): string | undefined => {
     const digits = rawValue.replace(/\s/g, "");
@@ -108,8 +107,6 @@ const Page = () => {
     return undefined;
   };
 
-  // ---- Input change handlers (filter + real-time validate) ----
-
   const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatCardNumberInput(e.target.value);
     setCardNumber(formatted);
@@ -120,7 +117,6 @@ const Page = () => {
   };
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Only letters and spaces allowed — strip digits/special characters as typed
     const lettersOnly = e.target.value.replace(/[^a-zA-Z\s]/g, "");
     setNameOnCard(lettersOnly);
     setFieldErrors((prev) => ({
@@ -133,8 +129,6 @@ const Page = () => {
     const formatted = formatExpiryInput(e.target.value);
     setExpiry(formatted);
 
-    // Only run full validation once a complete MM/YY has been entered,
-    // otherwise clear any stale error while the user is still typing.
     if (formatted.length === 5) {
       setFieldErrors((prev) => ({
         ...prev,

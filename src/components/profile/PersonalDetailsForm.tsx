@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useForm, SubmitHandler, UseFormRegister, FieldErrors } from 'react-hook-form';
+import { useForm, UseFormRegister, FieldErrors } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { FaUserCircle, FaAngleDown } from 'react-icons/fa';
@@ -142,7 +142,7 @@ const schema = yup.object().shape({
       return true;
     })
     .test('password-requirements', 'Password must contain a minimum of 6 characters with 1 Uppercase, Numbers & Special Characters', function (value) {
-      if (!value) return true; // Allow empty (not required)
+      if (!value) return true;
 
       const hasMinLength = value.length >= 6;
       const hasUppercase = /[A-Z]/.test(value);
@@ -176,7 +176,6 @@ const schema = yup.object().shape({
 
 type FormData = yup.InferType<typeof schema>;
 
-// Custom Dropdown Component
 interface CustomDropdownProps {
   register: UseFormRegister<FormData>;
   name: keyof FormData;
@@ -252,7 +251,6 @@ const CustomDropdown = ({ register, name, value, errors, options, placeholder, o
   );
 };
 
-// Cancel Success Popup Component
 interface CancelSuccessPopupProps {
   isVisible: boolean;
   onClose: () => void;
@@ -300,7 +298,6 @@ const PersonalDetailsForm = () => {
 
   const {
     register,
-    handleSubmit,
     reset,
     watch,
     setValue,
@@ -347,7 +344,6 @@ const PersonalDetailsForm = () => {
 
     const filledCount = [hasCurrentPassword, hasNewPassword, hasConfirmPassword].filter(Boolean).length;
 
-    // Only disable if SOME but not ALL fields are filled
     return filledCount > 0 && filledCount < 3;
   };
 
@@ -403,7 +399,6 @@ const PersonalDetailsForm = () => {
   }, [token, reset]);
 
   const handlePasswordInput = (value: string): string => {
-    // Block leading spaces - users cannot enter space before first character
     return value.trimStart();
   };
 
@@ -728,24 +723,6 @@ const PersonalDetailsForm = () => {
     }, 500);
   };
 
-  // const countries = [
-  //   { code: "LK", dialCode: "+94", name: "Sri Lanka" },
-  //   { code: "VN", dialCode: "+84", name: "Vietnam" },
-  //   { code: "KH", dialCode: "+855", name: "Cambodia" },
-  //   { code: "BD", dialCode: "+880", name: "Bangladesh" },
-  //   { code: "IN", dialCode: "+91", name: "India" },
-  //   { code: "NL", dialCode: "+31", name: "Netherlands" },
-  // ];
-
-  // const phoneCodeOptions = countries.map(country => ({
-  //   value: country.dialCode,
-  //   label: country.dialCode,
-  //   countryCode: country.code
-  // }));
-
-  // const getFlagUrl = (countryCode: string): string => {
-  //   return `https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png`;
-  // };
 
   const titleOptions = [
     { value: 'Mr', label: 'Mr' },

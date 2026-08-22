@@ -160,7 +160,6 @@ export default function SetPasswordForm() {
                 err?.message || "Something went wrong. Please try again.";
 
             if (message.toLowerCase().includes("not registered")) {
-                // NIC doesn't exist in the system - highlight the NIC field
                 setErrors((prev) => ({
                     ...prev,
                     nicNumber: "This NIC is not registered. Please check the NIC and try again.",
