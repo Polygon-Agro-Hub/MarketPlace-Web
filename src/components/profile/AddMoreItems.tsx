@@ -81,7 +81,6 @@ const UpdatePreferences = ({ setSelectedMenu }: UpdatePreferencesProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
 
-  // Fetch
   useEffect(() => {
     const fetchItems = async () => {
       if (!authToken) {
@@ -549,10 +548,9 @@ const UpdatePreferences = ({ setSelectedMenu }: UpdatePreferencesProps) => {
                 onClick={handleSave}
                 disabled={!hasChanges || saving}
                 className={`w-full max-w-xl p-3 px-2.5 rounded-lg mt-6 text-[16px] font-semibold text-sm text-white transition-opacity
-                  ${
-                    hasChanges && !saving
-                      ? "bg-[#3E206D] cursor-pointer"
-                      : "bg-[#3E206D] opacity-50 cursor-not-allowed"
+                  ${hasChanges && !saving
+                    ? "bg-[#3E206D] cursor-pointer"
+                    : "bg-[#3E206D] opacity-50 cursor-not-allowed"
                   }`}
                 aria-label="Save preferences"
               >

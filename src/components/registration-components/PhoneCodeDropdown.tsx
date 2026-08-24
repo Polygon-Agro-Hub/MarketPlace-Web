@@ -47,10 +47,7 @@ export const getMaxPhoneLength = (phoneCode: string): number => {
     return rule ? Math.max(...rule.lengths) : 9;
 };
 
-/**
- * Returns an error message if invalid, or null if the phone number is valid
- * for the given dial code.
- */
+
 export const validatePhoneNumber = (
     phoneCode: string,
     phoneNumber: string,
@@ -62,7 +59,6 @@ export const validatePhoneNumber = (
     }
 
     if (!rule) {
-        // Fallback for any dial code without a specific rule
         return /^\d{7,15}$/.test(phoneNumber)
             ? null
             : "Please enter a valid phone number";
@@ -82,19 +78,12 @@ export const validatePhoneNumber = (
     return null;
 };
 
-/**
- * Real-time validator for use while the user is still typing.
- * Checks the starting digit immediately (regardless of how many digits
- * have been entered so far), and only checks length once the user has
- * typed as many digits as the longest valid option for that country.
- * Returns null while input is incomplete but not yet definitively wrong.
- */
 export const validatePhoneNumberLive = (
     phoneCode: string,
     phoneNumber: string,
 ): string | null => {
     if (!phoneNumber) {
-        return null; // don't show an error before the user starts typing
+        return null;
     }
 
     const rule = phoneValidationRules[phoneCode];
@@ -103,7 +92,6 @@ export const validatePhoneNumberLive = (
         return /^\d*$/.test(phoneNumber) ? null : "Please enter a valid phone number";
     }
 
-    // Wrong starting digit is invalid no matter how many digits typed so far
     if (
         rule.startDigits.length > 0 &&
         !rule.startDigits.includes(phoneNumber[0])
@@ -113,7 +101,6 @@ export const validatePhoneNumberLive = (
 
     const maxLen = Math.max(...rule.lengths);
 
-    // Only flag length once they've typed as many digits as the longest valid option
     if (phoneNumber.length >= maxLen && !rule.lengths.includes(phoneNumber.length)) {
         return `Phone number must be ${rule.lengths.join(" or ")} digits (e.g. ${rule.example})`;
     }

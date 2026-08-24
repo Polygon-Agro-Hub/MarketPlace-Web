@@ -9,6 +9,10 @@ interface UserData {
   image: string | null;
   creditBalance: number;
   nearesCity: string | null;
+  isDashUser: number;
+  firstTimeUser: number;
+  isPswUpdateed: number;
+  isMarketPlaceUser: number;
 }
 
 interface AuthState {

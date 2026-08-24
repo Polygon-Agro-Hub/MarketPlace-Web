@@ -2,11 +2,7 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
 import {
-    MapPin,
-    Phone,
     ChevronDown,
-    CheckCircle,
-    AlertCircle,
     Loader2,
     XCircle,
 } from "lucide-react";
@@ -39,9 +35,6 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [showCityRequiredError, setShowCityRequiredError] = useState(false);
 
-
-
-    // Close dropdown on outside click
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -52,14 +45,11 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-    // ── Load all cities A-Z when arrow is clicked ──────────────────────────────
     const handleArrowClick = useCallback(async () => {
         if (isDropdownOpen) {
             setIsDropdownOpen(false);
             return;
         }
-
-        // If we've already loaded them, just open
         if (allCities.length > 0) {
             setResults(allCities);
             setIsDropdownOpen(true);
@@ -82,7 +72,6 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
         }
     }, [isDropdownOpen, allCities]);
 
-    // ── Debounced backend search while typing ──────────────────────────────────
     const handleSearch = useCallback(
         (value: string) => {
             setSearchTerm(value);
@@ -92,7 +81,6 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
 
             if (debounceRef.current) clearTimeout(debounceRef.current);
 
-            // Empty input → show all cities A-Z
             if (!value.trim()) {
                 setResults(allCities);
                 setIsDropdownOpen(allCities.length > 0);
@@ -154,7 +142,6 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
     const canConfirm = selectedCity !== null && selectedCity.isAvailable;
     const isConfirmDisabled = status === "unavailable" || status === "not-found";
     const showSpinner = isSearching || isLoadingAll;
-    // What to display inside the list
     const displayList = results;
 
     return (
@@ -197,16 +184,13 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
                             </span>
                         </div>
 
-                        {/* ── City Selector Card ── */}
                         <div className="border border-[#8639FF] rounded-xl p-4 mb-4" ref={dropdownRef}>
 
-                            {/* Label */}
                             <div className="flex items-center gap-2 mb-3">
                                 <FontAwesomeIcon icon={faLocationDot} style={{ fontSize: 16 }} className="text-[#4A4A4A]" />
                                 <span className="text-sm font-semibold text-[#3E206D]">Select Your City</span>
                             </div>
 
-                            {/* Input row */}
                             <div className="flex items-center gap-2" style={{ border: "1px solid #B8C2D5", borderRadius: "6px", padding: "0 8px" }}>
                                 <input
                                     ref={inputRef}
@@ -223,7 +207,6 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
                                     className="flex-1 py-1.5 text-sm text-gray-700 placeholder-gray-400 bg-transparent border-none outline-none"
                                 />
 
-                                {/* Right icon: spinner / clear X / chevron */}
                                 <button
                                     type="button"
                                     onClick={() => (searchTerm ? handleClear() : handleArrowClick())}
@@ -243,8 +226,6 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
                                 </button>
                             </div>
 
-                            {/* ── Dropdown list ── */}
-                            {/* ── Dropdown list ── */}
                             {isDropdownOpen && (
                                 <div
                                     className={

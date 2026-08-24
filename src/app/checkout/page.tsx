@@ -176,7 +176,6 @@ const Page: React.FC = () => {
 
   const [errors, setErrors] = useState<FormErrors>(initioalError);
 
-  // Add this new state for duplicate phone error
   const [duplicatePhoneError, setDuplicatePhoneError] = useState("");
 
   const token = useSelector((state: RootState) => state.auth.token) as | string | null;
@@ -270,8 +269,6 @@ const Page: React.FC = () => {
 
   const hasAutoFilledNearestCity = useRef(false);
 
-  // Reset the flag whenever we leave "new" mode, so the next time the user
-  // switches back to "new" it can auto-fill again from scratch.
   useEffect(() => {
     if (addressMode !== "new") {
       hasAutoFilledNearestCity.current = false;
@@ -331,14 +328,6 @@ const Page: React.FC = () => {
     setSearchParamsLoaded(true);
   }, []);
 
-  // useEffect(() => {
-  //   // Reset delivery charge when delivery method changes
-  //   if (formData.deliveryMethod === "pickup") {
-  //     setDeliveryCharge(0);
-  //   } else if (formData.deliveryMethod === "home" && !selectedCity) {
-  //     setDeliveryCharge(0); // Default home delivery charge
-  //   }
-  // }, [formData.deliveryMethod, selectedCity]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -457,11 +446,20 @@ const Page: React.FC = () => {
     return cityAvailabilityMap.get(cityName.trim().toLowerCase()) ?? true;
   };
 
+  const hasInitializedAddressOptions = useRef(false);
+
   useEffect(() => {
-    if (formData.deliveryMethod === "home" && searchParamsLoaded) {
+    if (
+      formData.deliveryMethod === "home" &&
+      searchParamsLoaded &&
+      !loadingCities &&                          // cities fetch attempt has completed
+      !hasInitializedAddressOptions.current
+    ) {
+      hasInitializedAddressOptions.current = true;
       initializeAddressOptions();
     }
-  }, [formData.deliveryMethod, searchParamsLoaded, cities]);
+  }, [formData.deliveryMethod, searchParamsLoaded, loadingCities]);
+
 
   const filteredCityOptions = useMemo(() => {
     if (!citySearchTerm.trim()) return allCityResults;
@@ -509,8 +507,6 @@ const Page: React.FC = () => {
     setErrors(initioalError);
 
     try {
-      // Fire both requests in parallel — each one's existence is independent info,
-      // not a fallback signal for the other.
       const [recentResult, savedResult] = await Promise.allSettled([
         getRecentOrderAddress(token),
         getSavedAddresses(token),
@@ -601,7 +597,6 @@ const Page: React.FC = () => {
       floorNumber: data.floorNo || "",
       geoLatitude: data.latitude ? parseFloat(data.latitude) : null,
       geoLongitude: data.longitude ? parseFloat(data.longitude) : null,
-      // Only send saveAs downstream when this recent address is actually a saved one
       saveAs: data.isSavedAddress ? (data.saveAs || "") : "",
     }));
   };

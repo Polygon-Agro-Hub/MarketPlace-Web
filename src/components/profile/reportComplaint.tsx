@@ -10,7 +10,6 @@ import Loader from '@/components/loader-spinner/Loader';
 import { submitComplaint, fetchComplaintCategories, Category } from '@/services/auth-service';
 import { UseFormRegister } from 'react-hook-form';
 
-// Interface for Complaint data structure
 interface Complaint {
   id?: number;
   complaintCategoryId: number;
@@ -18,17 +17,14 @@ interface Complaint {
   images: { id?: number; url: string }[];
 }
 
-// Props interface for the component
 interface ReportComplaintFormProps {
   complaint?: Complaint;
 }
 
-// Form data type for CustomDropdown
 type FormData = {
   categoryId: string;
 };
 
-// Custom Dropdown Component
 interface CustomDropdownProps {
   register?: UseFormRegister<FormData>;
   name: keyof FormData;
@@ -45,7 +41,6 @@ const CustomDropdown = ({ register, name, value, onChange, options, disabled, wi
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Handle clicking outside to close dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -57,7 +52,6 @@ const CustomDropdown = ({ register, name, value, onChange, options, disabled, wi
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Auto-focus search input when dropdown opens
   useEffect(() => {
     if (isOpen && withSearch && searchInputRef.current) {
       setTimeout(() => {
@@ -66,14 +60,12 @@ const CustomDropdown = ({ register, name, value, onChange, options, disabled, wi
     }
   }, [isOpen, withSearch]);
 
-  // Handle option selection
   const handleSelect = (selectedValue: string) => {
     onChange(selectedValue);
     setIsOpen(false);
     setSearchTerm('');
   };
 
-  // Filter options based on search term
   const filteredOptions = withSearch && searchTerm
     ? options.filter(option =>
       option.label.toLowerCase().includes(searchTerm.toLowerCase())
@@ -82,10 +74,8 @@ const CustomDropdown = ({ register, name, value, onChange, options, disabled, wi
 
   return (
     <div className="relative cursor-pointer" ref={dropdownRef}>
-      {/* Hidden input for React Hook Form if register is provided */}
       {register && <input type="hidden" {...register(name)} value={value} />}
 
-      {/* Dropdown Trigger */}
       <div
         className={`appearance-none border border-[#CECECE] cursor-pointer rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px] pr-8 flex items-center justify-between ${disabled ? 'opacity-50 cursor-not-allowed' : ''
           }`}
@@ -97,7 +87,6 @@ const CustomDropdown = ({ register, name, value, onChange, options, disabled, wi
         <FaAngleDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none" />
       </div>
 
-      {/* Dropdown Options */}
       {isOpen && (
         <div className="absolute z-10 w-full bg-white border border-[#CECECE] rounded-lg mt-1 shadow-lg max-h-[300px] overflow-hidden">
           {/* Search Bar */}
@@ -139,7 +128,6 @@ const CustomDropdown = ({ register, name, value, onChange, options, disabled, wi
   );
 };
 
-// Cancel Success Popup component
 interface CancelSuccessPopupProps {
   isVisible: boolean;
   onClose: () => void;
@@ -182,16 +170,13 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
   const [isLoading, setIsLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
 
-  // Redux auth state
   const { token, user } = useSelector((state: RootState) => state.auth);
   const userId = user?.id;
 
-  // Category options
   const categoryOptions = categories.map((cat) => ({
     value: cat.id.toString(),
     label: cat.categoryEnglish
   }));
-  // Fetch categories from backend
   useEffect(() => {
     const loadCategories = async () => {
       setIsLoading(true);
@@ -212,7 +197,6 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
     loadCategories();
   }, []);
 
-  // Populate form with existing complaint data
   useEffect(() => {
     if (complaint && categories.length > 0) {
       const selectedCategory = categories.find((cat) => cat.id === complaint.complaintCategoryId);

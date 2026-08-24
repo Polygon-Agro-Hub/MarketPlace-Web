@@ -28,6 +28,7 @@ interface Item {
 export default function ExcludedItems() {
   const router = useRouter();
   const authToken = useSelector((state: RootState) => state.auth.token) || null;
+  const user = useSelector((state: RootState) => state.auth.user);
 
   const [includeItems, setIncludeItems] = useState<Item[]>([]);
   const [selectedIncludeItems, setSelectedIncludeItems] = useState<string[]>(
@@ -181,7 +182,41 @@ export default function ExcludedItems() {
         setError(statusResponse.message || "Failed to update user status.");
         return;
       }
-      router.push("/signin");
+
+      const {
+        isDashUser,
+        isPswUpdateed,
+        isMarketPlaceUser,
+        buyerType,
+      } = user || {};
+
+      if (isDashUser === 1 && isPswUpdateed === 0) {
+        // Dash user who hasn't set a password yet
+        router.push("/dash-password-update");
+      }
+      else if (isDashUser === 1 && isPswUpdateed === 1) {
+        // Dash user who has already set a password — route by buyer type
+        if (buyerType === "Retail") {
+          router.push("/");
+        } else if (buyerType === "Wholesale") {
+          router.push("/wholesale/home");
+        } else {
+          router.push("/signin");
+        }
+      }
+      else if (isMarketPlaceUser === 1 && isDashUser === 0) {
+        // Marketplace user (not a dash user) — route by buyer type
+        if (buyerType === "Retail") {
+          router.push("/");
+        } else if (buyerType === "Wholesale") {
+          router.push("/wholesale/home");
+        } else {
+          router.push("/signin");
+        }
+      } else {
+        // Fallback — original behavior
+        router.push("/signin");
+      }
     } catch (err: any) {
       setError(err.message || "An unexpected error occurred.");
     } finally {
@@ -206,11 +241,10 @@ export default function ExcludedItems() {
 
     return (
       <div
-        className={`flex-1 rounded-2xl border-2 overflow-hidden flex flex-col ${
-          isInclude
-            ? "border-[#E8F5E9] bg-[#F9FFF9]"
-            : "border-[#FEE2E2] bg-[#FFF9F9]"
-        }`}
+        className={`flex-1 rounded-2xl border-2 overflow-hidden flex flex-col ${isInclude
+          ? "border-[#E8F5E9] bg-[#F9FFF9]"
+          : "border-[#FEE2E2] bg-[#FFF9F9]"
+          }`}
       >
         {/* Panel header */}
         <div

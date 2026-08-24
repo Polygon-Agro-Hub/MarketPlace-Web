@@ -115,7 +115,7 @@ const Page = () => {
           localStorage.removeItem("rememberedPassword");
         }
 
-        if (data.userData.firstTimeUser === 1 && data.userData.isDashUser === 1 && data.userData.isPswUpdateed === 0) {
+        if (data.userData.firstTimeUser === 0 && data.userData.isDashUser === 1 && data.userData.isPswUpdateed === 0) {
           // First-time dash user must set a new password first
           router.push("/dash-password-update");
         } else if (data.userData.buyerType === "Retail") {
