@@ -1,26 +1,4 @@
-// services/retail-service.tsx
-import axios from '@/lib/axios';
-
-// interface CheckoutFormData {
-//   fullName: string;
-//   title: string;
-//   phone1: string;
-//   phone2: string;
-//   buildingNumber: string;
-//   buildingName: string;
-//   buildingType: string;
-//   flatNumber: string;
-//   floorNumber: string;
-//   houseNumber: string;
-//   streetName: string;
-//   cityName: string;
-//   deliveryDate: string;
-//   phoneCode1: string;
-//   phoneCode2: string;
-//   scheduleType: string;
-//   centerId: number;
-//   timeSlot: string;
-// }
+import axios from "@/lib/axios";
 
 interface fetchedFormData {
   deliveryMethod: string;
@@ -41,37 +19,54 @@ interface fetchedFormData {
   streetName: string;
   city: string;
   scheduleType: string;
-
 }
 
-export const getLastOrderAddress = async (token: string | null) => {
+export interface SavedAddress {
+  id: number;
+  addressKey: string; // e.g. "apartment_12" or "house_5"
+  buildingType: "Apartment" | "House";
+  saveAs: string; // "Home", "Office", "Girlfriend's House", etc.
+  title: string;
+  fullName: string;
+  phonecode1: string;
+  phone1: string;
+  phonecode2: string;
+  phone2: string;
+  longitude: number | null;
+  latitude: number | null;
+  buildingNo: string | null;
+  buildingName: string | null;
+  unitNo: string | null;
+  floorNo: string | null;
+  houseNo: string | null;
+  streetName: string | null;
+  city: string | null;
+}
+
+export const getRecentOrderAddress = async (token: string | null) => {
   try {
-    const response = await axios.get('/retail-order/fetch-check-out-data', {
+    const response = await axios.get("/retail-order/fetch-recent-order-address", {
       headers: {
         Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
-    }); // Make sure this matches your backend route
-    console.log('last address',response.data)
+    });
     return response.data;
   } catch (error: any) {
-    throw error.response?.data || { message: 'Failed to fetch form data.' };
+    throw error.response?.data || { message: "Failed to fetch recent order address." };
   }
 };
 
-
-
-// export const updateForm = async (formData: CheckoutFormData, token: string | null) => {
-//   try {
-//     console.log(formData);
-//     const response = await axios.put('/retail-order/post-check-out-data', formData, {
-//       headers: {
-//         Authorization: `Bearer ${token}`,
-//         'Content-Type': 'application/json',
-//       },
-//     });
-//     return response.data;
-//   } catch (error: any) {
-//     throw error.response?.data || { message: 'Something went wrong while updating the form.' };
-//   }
-// };
+export const getSavedAddresses = async (token: string | null) => {
+  try {
+    const response = await axios.get("/retail-order/fetch-saved-addresses", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+    return response.data;
+  } catch (error: any) {
+    throw error.response?.data || { message: "Failed to fetch saved addresses." };
+  }
+};

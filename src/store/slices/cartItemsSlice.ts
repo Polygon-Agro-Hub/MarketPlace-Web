@@ -17,6 +17,7 @@ interface CartItem {
   category: string;
   createdAt: string;
   maxQuantity?: number;
+  isEnable?: number;
 }
 
 interface PackageItem {
@@ -35,6 +36,8 @@ interface CartPackage {
   image: string;
   description: string;
   items: PackageItem[];
+  status?: string;
+  isValid?: number;
 }
 
 interface AdditionalItems {
@@ -49,6 +52,7 @@ interface CartSummary {
   packageTotal: number;
   productTotal: number;
   couponDiscount: number;
+  savedAmount?: number;   // add this
   grandTotal?: number;
   totalDiscount?: number;
   finalTotal?: number;
@@ -105,23 +109,25 @@ const calculateDiscount = (baseDiscount: number, unit: 'kg' | 'g', quantity: num
   return parseFloat((baseDiscount * quantityInKg).toFixed(3));
 };
 
-// Updated calculateSummary function with 3 decimal precision
 const calculateSummary = (
   packages: CartPackage[],
   additionalItems: AdditionalItems[],
   couponDiscount: number = 0
 ) => {
-  // Calculate package total
-  const packageTotal = parseFloat(packages.reduce((sum, pkg) => sum + (pkg.price * pkg.quantity), 0).toFixed(3));
+  // Exclude disabled packages from every total — they're displayed but never counted.
+  // Matches the "status" field the API actually sends (not "isValid").
+  const validPackages = packages.filter(pkg => pkg.status !== "Disabled");
 
-  // Calculate product total and discount
+  const packageTotal = parseFloat(
+    validPackages.reduce((sum, pkg) => sum + (pkg.price * pkg.quantity), 0).toFixed(3)
+  );
+
   let productTotal = 0;
   let productDiscount = 0;
   let totalProducts = 0;
 
   additionalItems.forEach(group => {
     group.Items.forEach(item => {
-      // Use normalPrice instead of price for calculations
       const itemPrice = calculatePrice(item.normalPrice, item.unit, item.quantity);
       const itemDiscount = calculateDiscount(item.discount, item.unit, item.quantity);
 
@@ -131,14 +137,15 @@ const calculateSummary = (
     });
   });
 
-  // Apply 3 decimal precision to all calculations
   productTotal = parseFloat(productTotal.toFixed(3));
   productDiscount = parseFloat(productDiscount.toFixed(3));
 
   const grandTotal = parseFloat((packageTotal + productTotal).toFixed(3));
   const totalDiscount = parseFloat((productDiscount + couponDiscount).toFixed(3));
   const finalTotal = parseFloat((grandTotal - totalDiscount).toFixed(3));
-  const totalItems = packages.length + totalProducts;
+
+  const totalPackageItems = validPackages.reduce((sum, pkg) => sum + pkg.quantity, 0);
+  const totalItems = totalPackageItems + totalProducts;
 
   return {
     packageTotal,
@@ -148,11 +155,10 @@ const calculateSummary = (
     finalTotal,
     totalItems,
     couponDiscount,
-    totalPackages: packages.length,
+    totalPackages: validPackages.length,
     totalProducts,
   };
 };
-
 
 const cartItemsSlice = createSlice({
   name: 'cartItems',

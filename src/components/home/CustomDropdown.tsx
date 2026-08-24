@@ -14,6 +14,7 @@ interface CustomDropdownProps {
   placeholder?: string;
   searchable?: boolean;
   searchPlaceholder?: string;
+  disabled?: boolean;
 }
 
 export default function CustomDropdown({
@@ -22,7 +23,8 @@ export default function CustomDropdown({
   onSelect,
   placeholder = "Select an option",
   searchable = false,
-  searchPlaceholder = "Type to search..."
+  searchPlaceholder = "Type to search...",
+  disabled = false,
 }: CustomDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -30,10 +32,10 @@ export default function CustomDropdown({
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Filter options based on search term
-  const filteredOptions = searchable 
+  const filteredOptions = searchable
     ? options.filter(option =>
-        option.label.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+      option.label.toLowerCase().includes(searchTerm.toLowerCase())
+    )
     : options;
 
   useEffect(() => {
@@ -57,13 +59,24 @@ export default function CustomDropdown({
     }
   }, [isOpen, searchable]);
 
+  // Close dropdown automatically if it becomes disabled while open
+  // (e.g. user switches to "Recent Address" mode mid-interaction)
+  useEffect(() => {
+    if (disabled && isOpen) {
+      setIsOpen(false);
+      setSearchTerm('');
+    }
+  }, [disabled, isOpen]);
+
   const handleSelect = (value: string) => {
+    if (disabled) return;
     onSelect(value);
     setIsOpen(false);
     setSearchTerm('');
   };
 
   const handleToggle = () => {
+    if (disabled) return;
     setIsOpen(!isOpen);
     if (!isOpen) {
       setSearchTerm('');
@@ -76,14 +89,20 @@ export default function CustomDropdown({
     <div className="relative w-full cursor-pointer" ref={dropdownRef}>
       <button
         type="button"
-        className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#ad46ff] cursor-pointer"
+        disabled={disabled}
+        className={`w-full flex items-center justify-between px-4 py-2 text-sm font-medium border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#ad46ff] ${disabled
+            ? 'text-gray-400 border-gray-200 bg-[#F9FAFB] cursor-not-allowed'
+            : 'text-gray-700 border-gray-300 hover:bg-gray-50 cursor-pointer'
+          }`}
         onClick={handleToggle}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
+        aria-disabled={disabled}
       >
         <span>{selectedOption ? selectedOption.label : placeholder}</span>
         <svg
-          className={`w-5 h-5 ml-2 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+          className={`w-5 h-5 ml-2 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''} ${disabled ? 'text-gray-300' : ''
+            }`}
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 20 20"
           fill="currentColor"
@@ -97,9 +116,9 @@ export default function CustomDropdown({
         </svg>
       </button>
 
-      {isOpen && (
-        <div 
-          className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-hidden"
+      {isOpen && !disabled && (
+        <div
+          className="absolute z-40 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-hidden"
           role="listbox"
         >
           {/* Search Input - only show if searchable */}
@@ -122,9 +141,8 @@ export default function CustomDropdown({
               filteredOptions.map((option) => (
                 <li
                   key={option.value}
-                  className={`px-4 py-2 cursor-pointer hover:bg-indigo-100 ${
-                    selectedValue === option.value ? 'bg-indigo-50 text-indigo-700' : 'text-gray-900'
-                  }`}
+                  className={`px-4 py-2 cursor-pointer hover:bg-indigo-100 ${selectedValue === option.value ? 'bg-indigo-50 text-indigo-700' : 'text-gray-900'
+                    }`}
                   onClick={() => handleSelect(option.value)}
                   role="option"
                   aria-selected={selectedValue === option.value}

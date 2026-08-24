@@ -63,17 +63,15 @@ const PackageSlider: React.FC<packagesProps> = ({ productData, onShowConfirmModa
     const modalRef = useRef<HTMLDivElement>(null);
     const [showLoading, setShowLoading] = useState(false);
 
-    // Update the handlePackageAddToCartSuccess function
-    const handlePackageAddToCartSuccess = (message: string) => {
+    const handlePackageAddToCartStart = () => {
         setShowLoading(true);
+    };
 
-        // Show loading for 1.5 seconds before showing success
-        setTimeout(() => {
-            setShowLoading(false);
-            setSuccessMessage(message);
-            setShowSuccess(true);
-            handleClosePopup();
-        }, 1500);
+    const handlePackageAddToCartSuccess = (message: string) => {
+        setShowLoading(false);
+        setSuccessMessage(message);
+        setShowSuccess(true);
+        handleClosePopup();
     };
 
     const PurpleLoadingPopup = ({ isVisible }: { isVisible: boolean }) => {
@@ -97,7 +95,6 @@ const PackageSlider: React.FC<packagesProps> = ({ productData, onShowConfirmModa
 
         try {
             const res = await getPackageDetails(packageId);
-            console.log('pkg details', res)
             setPackageDetails(res.packageItems);
         } catch (error: any) {
             setErrorDetails(error.message || 'Failed to load package details');
@@ -115,10 +112,10 @@ const PackageSlider: React.FC<packagesProps> = ({ productData, onShowConfirmModa
     };
 
     const handlePackageAddToCartError = (message: string) => {
+        setShowLoading(false);   // NEW — make sure spinner clears on error too
         setErrorMessage(message);
         setShowError(true);
     };
-
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (isMobile && selectedPackageId && modalRef.current) {
@@ -222,21 +219,26 @@ const PackageSlider: React.FC<packagesProps> = ({ productData, onShowConfirmModa
 
                 <div className="w-full flex justify-center px-4">
                     {productData.map((packageItem) => (
-                        <div key={packageItem.id} className="w-full max-w-sm">
-                            <PackageCard
-                                packageItem={packageItem}
-                                isSelected={selectedPackageId === packageItem.id && !isMobile}
-                                packageDetails={selectedPackageId === packageItem.id ? packageDetails : undefined}
-                                onPackageClick={handlePackageClick}
-                                onClosePopup={handleClosePopup}
-                                onAddToCartSuccess={handlePackageAddToCartSuccess}
-                                onAddToCartError={handlePackageAddToCartError}
-                                isLoadingDetails={isLoadingDetails && selectedPackageId === packageItem.id}
-                                errorDetails={selectedPackageId === packageItem.id ? errorDetails : undefined}
-                                onShowConfirmModal={onShowConfirmModal}
-                                onShowLoginPopup={onShowLoginPopup}
-                                isSingleCardMobile={isMobile && productData.length === 1}
-                            />
+                        <div
+                            key={packageItem.id}
+                            className="px-3 sm:px-4 md:px-6 py-3 mx-auto flex justify-center items-center"
+                        >
+                            <div className="w-full max-w-[300px] mx-auto">
+                                <PackageCard
+                                    packageItem={packageItem}
+                                    isSelected={selectedPackageId === packageItem.id && !isMobile}
+                                    packageDetails={selectedPackageId === packageItem.id ? packageDetails : undefined}
+                                    onPackageClick={handlePackageClick}
+                                    onClosePopup={handleClosePopup}
+                                    onAddToCartStart={handlePackageAddToCartStart}
+                                    onAddToCartSuccess={handlePackageAddToCartSuccess}
+                                    onAddToCartError={handlePackageAddToCartError}
+                                    isLoadingDetails={isLoadingDetails && selectedPackageId === packageItem.id}
+                                    errorDetails={selectedPackageId === packageItem.id ? errorDetails : undefined}
+                                    onShowConfirmModal={onShowConfirmModal}
+                                    onShowLoginPopup={onShowLoginPopup}
+                                />
+                            </div>
                         </div>
                     ))}
                 </div>
@@ -253,6 +255,7 @@ const PackageSlider: React.FC<packagesProps> = ({ productData, onShowConfirmModa
                                 packageDetails={packageDetails}
                                 onPackageClick={handlePackageClick}
                                 onClosePopup={handleClosePopup}
+                                onAddToCartStart={handlePackageAddToCartStart}
                                 onAddToCartSuccess={handlePackageAddToCartSuccess}
                                 onAddToCartError={handlePackageAddToCartError}
                                 isLoadingDetails={isLoadingDetails}
@@ -303,13 +306,14 @@ const PackageSlider: React.FC<packagesProps> = ({ productData, onShowConfirmModa
                                 key={packageItem.id}
                                 className="px-3 sm:px-4 md:px-6 py-3 mx-auto flex justify-center items-center"
                             >
-                                <div className="">
+                                <div className="w-full max-w-[300px] mx-auto">
                                     <PackageCard
                                         packageItem={packageItem}
                                         isSelected={selectedPackageId === packageItem.id && !isMobile}
                                         packageDetails={selectedPackageId === packageItem.id ? packageDetails : undefined}
                                         onPackageClick={handlePackageClick}
                                         onClosePopup={handleClosePopup}
+                                        onAddToCartStart={handlePackageAddToCartStart}
                                         onAddToCartSuccess={handlePackageAddToCartSuccess}
                                         onAddToCartError={handlePackageAddToCartError}
                                         isLoadingDetails={isLoadingDetails && selectedPackageId === packageItem.id}
@@ -337,6 +341,7 @@ const PackageSlider: React.FC<packagesProps> = ({ productData, onShowConfirmModa
                             packageDetails={packageDetails}
                             onPackageClick={handlePackageClick}
                             onClosePopup={handleClosePopup}
+                            onAddToCartStart={handlePackageAddToCartStart}
                             onAddToCartSuccess={handlePackageAddToCartSuccess}
                             onAddToCartError={handlePackageAddToCartError}
                             isLoadingDetails={isLoadingDetails}

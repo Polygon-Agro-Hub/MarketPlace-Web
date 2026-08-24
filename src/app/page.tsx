@@ -1,19 +1,24 @@
-'use client';
-import { useSelector, useDispatch } from 'react-redux';
-import { RootState } from '@/store';
-import { setSearchTerm, setPackageResults, resetAndSearch, clearSearch } from '@/store/slices/searchSlice';
-import { useEffect, useState, Suspense } from 'react';
-import Loading from '@/components/loadings/loading';
+"use client";
+import { useSelector, useDispatch } from "react-redux";
+import { RootState } from "@/store";
+import {
+  setSearchTerm,
+  setPackageResults,
+  resetAndSearch,
+  clearSearch,
+} from "@/store/slices/searchSlice";
+import { useEffect, useState, Suspense } from "react";
+import Loading from "@/components/loadings/loading";
 import PackageSlider from "@/components/home/PackageSlider";
 import CategoryFilter from "@/components/type-filters/CategoryFilter";
 import { getAllProduct } from "@/services/product-service";
-import TopBanner from '@/components/home/TopBanner';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons';
-import { X } from 'lucide-react';
-import { useRef } from 'react';
-import animationData from '../../public/noResults.json';
+import TopBanner from "@/components/home/TopBanner";
+import { useRouter, useSearchParams } from "next/navigation";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
+import { X } from "lucide-react";
+import { useRef } from "react";
+import animationData from "../../public/noResults.json";
 
 interface Package {
   id: number;
@@ -24,14 +29,14 @@ interface Package {
 
 // Separate component to handle search params
 function SearchParamsHandler({
-  onSearchFromUrl
+  onSearchFromUrl,
 }: {
-  onSearchFromUrl: (search: string | null) => void
+  onSearchFromUrl: (search: string | null) => void;
 }) {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    const searchFromUrl = searchParams.get('search');
+    const searchFromUrl = searchParams.get("search");
     onSearchFromUrl(searchFromUrl);
   }, [searchParams, onSearchFromUrl]);
 
@@ -47,26 +52,33 @@ function HomeContent() {
   // Redux state
   const dispatch = useDispatch();
   const searchTerm = useSelector((state: RootState) => state.search.searchTerm);
-  const isSearchActive = useSelector((state: RootState) => state.search.isSearchActive);
+  const isSearchActive = useSelector(
+    (state: RootState) => state.search.isSearchActive,
+  );
   const user = useSelector((state: RootState) => state.auth.user) || null;
   const cart = useSelector((state: RootState) => state.checkout) || null;
   const cartState = useSelector((state: RootState) => state.cart);
   const cartItemsState = useSelector((state: RootState) => state.cartItems);
   const authState = useSelector((state: RootState) => state.auth);
-  const hasPackageResults = useSelector((state: RootState) => state.search.hasPackageResults);
-  const hasCategoryResults = useSelector((state: RootState) => state.search.hasCategoryResults);
+  const hasPackageResults = useSelector(
+    (state: RootState) => state.search.hasPackageResults,
+  );
+  const hasCategoryResults = useSelector(
+    (state: RootState) => state.search.hasCategoryResults,
+  );
 
   // Local state
   const [data, setData] = useState<{ message: string } | null>(null);
   const [productData, setProductData] = useState<Package[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState('fruits');
-  const [localSearchInput, setLocalSearchInput] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState("fruits");
+  const [localSearchInput, setLocalSearchInput] = useState("");
 
   // Modal state
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
-  const [selectedPackageForCart, setSelectedPackageForCart] = useState<any>(null);
+  const [selectedPackageForCart, setSelectedPackageForCart] =
+    useState<any>(null);
   const [showLoginPopup, setShowLoginPopup] = useState(false);
 
   const router = useRouter();
@@ -75,23 +87,15 @@ function HomeContent() {
     setLocalSearchInput(searchTerm);
   }, [searchTerm]);
 
-  useEffect(() => {
-    console.log("Cart:", cart);
-  }, []);
-
   // Handle search from URL parameters
   const handleSearchFromUrl = (searchFromUrl: string | null) => {
     if (searchFromUrl && searchFromUrl.trim()) {
-      console.log('Home: Found search in URL:', searchFromUrl);
-
       // Only update Redux state if it's different and execute search immediately
       if (searchFromUrl.trim() !== searchTerm) {
-        console.log('Home: Setting search term from URL:', searchFromUrl.trim());
         dispatch(resetAndSearch(searchFromUrl.trim()));
       }
 
       // Always execute search with URL parameter to ensure it's not undefined
-      console.log('Home: Executing immediate search with URL param:', searchFromUrl.trim());
       fetchAllPackages(searchFromUrl.trim());
 
       // Clean URL after search is processed
@@ -106,29 +110,15 @@ function HomeContent() {
     if (searchTerm && searchTerm.trim()) {
       // Handle regular search term changes with debouncing
       const timeoutId = setTimeout(() => {
-        console.log('Home: Executing debounced search for:', searchTerm.trim());
         fetchAllPackages(searchTerm.trim());
       }, 300);
 
       return () => clearTimeout(timeoutId);
-    } else if (searchTerm === '' || !searchTerm) {
+    } else if (searchTerm === "" || !searchTerm) {
       // Handle empty search - fetch all products
-      console.log('Home: No search term, fetching all packages');
       fetchAllPackages(); // This will call API with undefined, which should get all products
     }
   }, [searchTerm]);
-
-  useEffect(() => {
-    console.log(`Category changed to: ${selectedCategory}`);
-  }, [selectedCategory]);
-
-  useEffect(() => {
-    console.log('=== REDUX STATE UPDATE ===');
-    console.log('Auth State:', authState);
-    console.log('Search Term:', searchTerm);
-    console.log('Search Active:', isSearchActive);
-    console.log('==========================');
-  }, [cartState, cartItemsState, authState, searchTerm, isSearchActive]);
 
   // Mobile search handlers
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -138,21 +128,19 @@ function HomeContent() {
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmedSearch = localSearchInput.trim();
-    console.log('Mobile search submitted:', trimmedSearch);
     dispatch(setSearchTerm(trimmedSearch));
   };
 
   const handleSearchKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       handleSearchSubmit(e as any);
     }
   };
 
   // Reset search function
   const handleResetSearch = () => {
-    setLocalSearchInput('');
+    setLocalSearchInput("");
     dispatch(clearSearch());
-    console.log('Search reset');
   };
 
   // Update the useEffect for initial data fetch
@@ -177,24 +165,20 @@ function HomeContent() {
     try {
       // IMPORTANT: Handle undefined/empty search properly
       const searchParam = search && search.trim() ? search.trim() : undefined;
-      console.log('Home: Calling API with search param:', searchParam);
-
-      const response = await getAllProduct(searchParam) as any;
+      const response = (await getAllProduct(searchParam)) as any;
 
       if (response && response.product) {
-        console.log('Home: API response received:', response.product.length, 'products');
         setProductData(response.product);
         dispatch(setPackageResults(response.product.length > 0));
         setError(null);
       } else {
-        console.log('Home: No products in API response');
         setProductData([]);
-        setError('No products found');
+        setError("No products found");
         dispatch(setPackageResults(false));
       }
     } catch (error) {
-      console.error('Home: Error fetching packages:', error);
-      setError('Failed to fetch packages');
+      console.error("Home: Error fetching packages:", error);
+      setError("Failed to fetch packages");
       setProductData([]);
       dispatch(setPackageResults(false));
     }
@@ -217,12 +201,12 @@ function HomeContent() {
 
   const handleLoginClick = () => {
     setShowLoginPopup(false);
-    router.push('/signin');
+    router.push("/signin");
   };
 
   const handleRegisterClick = () => {
     setShowLoginPopup(false);
-    router.push('/signup');
+    router.push("/signup");
   };
 
   const NoSearchResults = () => {
@@ -236,14 +220,14 @@ function HomeContent() {
         try {
           if (isLoadedRef.current || !animationContainer.current) return;
 
-          animationContainer.current.innerHTML = '';
+          animationContainer.current.innerHTML = "";
           isLoadedRef.current = true;
 
-          const lottie = await import('lottie-web');
+          const lottie = await import("lottie-web");
 
           animationInstance = lottie.default.loadAnimation({
             container: animationContainer.current,
-            renderer: 'svg',
+            renderer: "svg",
             loop: true,
             autoplay: true,
             animationData: animationData,
@@ -251,7 +235,8 @@ function HomeContent() {
 
           setTimeout(() => {
             if (animationContainer.current) {
-              const svgElements = animationContainer.current.querySelectorAll('svg');
+              const svgElements =
+                animationContainer.current.querySelectorAll("svg");
               if (svgElements.length > 1) {
                 for (let i = 1; i < svgElements.length; i++) {
                   svgElements[i].remove();
@@ -260,7 +245,7 @@ function HomeContent() {
             }
           }, 100);
         } catch (error) {
-          console.error('Error loading Lottie animation:', error);
+          console.error("Error loading Lottie animation:", error);
           isLoadedRef.current = false;
         }
       };
@@ -272,7 +257,7 @@ function HomeContent() {
           animationInstance.destroy();
         }
         if (animationContainer.current) {
-          animationContainer.current.innerHTML = '';
+          animationContainer.current.innerHTML = "";
         }
         isLoadedRef.current = false;
       };
@@ -286,9 +271,9 @@ function HomeContent() {
               ref={animationContainer}
               className="w-full h-full"
               style={{
-                maxWidth: '200px',
-                maxHeight: '200px',
-                overflow: 'hidden'
+                maxWidth: "200px",
+                maxHeight: "200px",
+                overflow: "hidden",
               }}
             />
           </div>
@@ -320,18 +305,30 @@ function HomeContent() {
             onClick={() => setShowLoginPopup(false)}
             className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 cursor-pointer"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
 
           <div className="text-center mb-6">
             <h2 className="text-xl font-bold text-[#000000] mb-4">
-              Welcome, Guest! <span className='text-3xl'>👋</span>
+              Welcome, Guest! <span className="text-3xl">👋</span>
             </h2>
             <p className="text-[#8492A3] text-base leading-relaxed">
-              We're excited to have you here!<br />
-              To unlock the best experience,<br />
+              We're excited to have you here!
+              <br />
+              To unlock the best experience,
+              <br />
               please log in or create a new account.
             </p>
           </div>
@@ -397,7 +394,9 @@ function HomeContent() {
           </div>
         )}
 
-        <div className={`w-full px-4 sm:hidden ${isSearchActive ? 'mt-4' : 'mt-4'}`}>
+        <div
+          className={`w-full px-4 sm:hidden ${isSearchActive ? "mt-4" : "mt-4"}`}
+        >
           <div className="flex-1 max-w-xl mx-auto">
             <div className="relative shadow-lg">
               <div className="h-10 bg-gray-200 rounded-[10px] animate-pulse"></div>
@@ -405,7 +404,9 @@ function HomeContent() {
           </div>
         </div>
 
-        <div className={`flex-1 ${isSearchActive ? 'mt-6' : 'mt-6'} px-4 sm:px-6 lg:px-8`}>
+        <div
+          className={`flex-1 ${isSearchActive ? "mt-6" : "mt-6"} px-4 sm:px-6 lg:px-8`}
+        >
           <div className="space-y-8">
             <div className="w-full">
               <div className="flex justify-center mb-8">
@@ -422,7 +423,10 @@ function HomeContent() {
 
                 <div className="flex justify-center space-x-8 overflow-hidden px-16">
                   {[...Array(3)].map((_, index) => (
-                    <div key={index} className="bg-white rounded-3xl border-2 border-gray-200 overflow-hidden animate-pulse flex-shrink-0 w-80 h-96 shadow-sm">
+                    <div
+                      key={index}
+                      className="bg-white rounded-3xl border-2 border-gray-200 overflow-hidden animate-pulse flex-shrink-0 w-80 h-96 shadow-sm"
+                    >
                       <div className="p-8 text-center h-full flex flex-col justify-center">
                         <div className="w-32 h-32 bg-gray-200 rounded-2xl mx-auto mb-8 animate-pulse relative">
                           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer rounded-2xl"></div>
@@ -443,7 +447,10 @@ function HomeContent() {
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 mb-8">
                 {[...Array(4)].map((_, index) => (
-                  <div key={index} className="bg-white rounded-2xl shadow-md overflow-hidden animate-pulse">
+                  <div
+                    key={index}
+                    className="bg-white rounded-2xl shadow-md overflow-hidden animate-pulse"
+                  >
                     <div className="aspect-square bg-gray-200 relative">
                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer"></div>
                       <div className="absolute bottom-4 right-4 w-8 h-8 bg-gray-300 rounded-full"></div>
@@ -458,7 +465,10 @@ function HomeContent() {
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
                 {[...Array(4)].map((_, index) => (
-                  <div key={index} className="bg-white rounded-2xl shadow-md overflow-hidden animate-pulse relative">
+                  <div
+                    key={index}
+                    className="bg-white rounded-2xl shadow-md overflow-hidden animate-pulse relative"
+                  >
                     {index % 2 === 0 && (
                       <div className="absolute top-2 left-2 z-10">
                         <div className="w-8 h-12 bg-gray-300 rounded-r-full animate-pulse"></div>
@@ -498,46 +508,52 @@ function HomeContent() {
             </div>
           )}
 
-          <div className={`w-full px-4 sm:hidden ${isSearchActive ? 'mt-4' : 'mt-4'}`}>
-            <div className="flex-1 max-w-xl mx-auto">
+          <div
+            className={`w-full px-4 sm:hidden ${isSearchActive ? "mt-4" : "mt-4"}`}
+          >
+            <div className="flex-1 max-w-xl mx-auto mt-6">
               <form onSubmit={handleSearchSubmit}>
-                <div className="relative shadow-lg">
-                  <input
-                    type="text"
-                    placeholder="Search for Product"
-                    value={localSearchInput}
-                    onChange={handleSearchChange}
-                    onKeyPress={handleSearchKeyPress}
-                    className="italic w-full py-2 px-4 rounded-[10px] text-[#3E206D] focus:outline-none bg-[#EFE4FF]"
-                  />
-                  {isSearchActive && searchTerm ? (
-                    <button
-                      type="button"
-                      onClick={handleResetSearch}
-                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-[#3E206D] transition-colors"
-                    >
-                      <X size={16} color='#3E206D' className='cursor-pointer' />
-                    </button>
-                  ) : (
-                    <button
-                      type="submit"
-                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-[#3E206D]"
-                    >
-                      <FontAwesomeIcon icon={faMagnifyingGlass} color='#3E206D' className='cursor-pointer' />
-                    </button>
-                  )}
-                </div>
+                <div className="relative">
+  <input
+    type="text"
+    placeholder="Search for Product"
+    value={localSearchInput}
+    onChange={handleSearchChange}
+    onKeyPress={handleSearchKeyPress}
+    className="italic w-full py-2 px-4 rounded-[10px] text-[#3E206D] focus:outline-none bg-[#EFE4FF] border-0 ring-0 focus:ring-0"
+  />
+  {isSearchActive && searchTerm ? (
+    <button
+      type="button"
+      onClick={handleResetSearch}
+      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-[#3E206D] transition-colors"
+    >
+      <X size={16} color="#3E206D" className="cursor-pointer" />
+    </button>
+  ) : (
+    <button
+      type="submit"
+      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-[#3E206D]"
+    >
+      <FontAwesomeIcon
+        icon={faMagnifyingGlass}
+        color="#3E206D"
+        className="cursor-pointer"
+      />
+    </button>
+  )}
+</div>
               </form>
             </div>
           </div>
 
-          <div className={`flex-1 ${isSearchActive ? 'mt-6' : 'mt-0'}`}>
+          <div className={`flex-1 ${isSearchActive ? "mt-6" : "mt-0"}`}>
             {isSearchActive && !hasPackageResults && !hasCategoryResults ? (
               <NoSearchResults />
             ) : (
               <div className="space-y-6">
-                {(!isSearchActive || hasPackageResults) && (
-                  error ? (
+                {(!isSearchActive || hasPackageResults) &&
+                  (error ? (
                     <div className="text-red-500 text-center py-4">{error}</div>
                   ) : (
                     <div className="w-full px-4 sm:px-3 lg:px-8">
@@ -547,8 +563,7 @@ function HomeContent() {
                         onShowLoginPopup={handleShowLoginPopup}
                       />
                     </div>
-                  )
-                )}
+                  ))}
 
                 {(!isSearchActive || hasCategoryResults) && (
                   <div className="w-full px-4 sm:px-6 lg:px-8">
@@ -566,7 +581,9 @@ function HomeContent() {
                   Confirm Add to Cart
                 </h3>
                 <p className="text-gray-600 mb-6">
-                  Are you sure you want to add "{selectedPackageForCart.packageItem.displayName}" to your cart?
+                  Are you sure you want to add "
+                  {selectedPackageForCart.packageItem.displayName}" to your
+                  cart?
                 </p>
                 <div className="flex justify-end space-x-3">
                   <button

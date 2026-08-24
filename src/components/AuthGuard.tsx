@@ -42,7 +42,6 @@ export default function AuthGuard({
 
     // Handle token expiration for protected routes only
     if (isAuthenticated && isTokenExpired()) {
-      console.log('Token expired, logging out...');
       dispatch(logout());
       
       // Clear any stored credentials

@@ -1,36 +1,34 @@
-
-'use client';
-import React, { useState, useEffect } from 'react';
-import { Plus, Minus, Trash, ShoppingCart, X } from 'lucide-react';
-import TopNavigation from '@/components/top-navigation/TopNavigation';
+"use client";
+import React, { useState, useEffect, useRef } from "react";
+import { Plus, Minus, Trash, ShoppingCart, X, ChevronLeft, ChevronRight, Trophy } from "lucide-react";
+import TopNavigation from "@/components/top-navigation/TopNavigation";
 import {
   getUserCart,
   updateCartProductQuantity,
   removeCartProduct,
   removeCartPackage,
-  bulkRemoveCartProducts
-} from '@/services/cart-service';
-import { useSelector } from 'react-redux';
-import { RootState } from '@/store';
-import { useDispatch } from 'react-redux';
+  bulkRemoveCartProducts,
+} from "@/services/cart-service";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store";
+import { useDispatch } from "react-redux";
 import {
   setCartData,
   updateProductQuantity,
   removeProduct,
   removePackage,
-  applyCoupon,
   selectCartSummary,
-  selectCartForOrder
-} from '@/store/slices/cartItemsSlice';
-import { useRouter } from 'next/navigation';
-import empty from '../../../public/empty.jpg'
-import pickup from '../../../public/IP.png'
-import delivery from '../../../public/HMI.png'
-import summary from '../../../public/summary.png'
-import Image from 'next/image'
-import { updateCartInfo } from '@/store/slices/authSlice';
-import { getCartInfo } from '@/services/auth-service';
-
+} from "@/store/slices/cartItemsSlice";
+import { useRouter } from "next/navigation";
+import empty from "../../../public/empty.jpg";
+import pickup from "../../../public/IP.png";
+import delivery from "../../../public/HMI.png";
+import summary from "../../../public/summary.png";
+import Image from "next/image";
+import { updateCartInfo } from "@/store/slices/authSlice";
+import { getCartInfo } from "@/services/auth-service";
+import SuccessPopup from "@/components/toast-messages/success-message";
+import invalidPackageIcon from "../../../public/invalid-package.png";
 
 interface PackageItem {
   name: string;
@@ -48,26 +46,28 @@ interface CartPackage {
   image: string;
   description: string;
   items: PackageItem[];
+  status?: string;
+  isValid?: number;
 }
 
 interface CartItem {
   id: number;
   cartItemId: number;
   name: string;
-  unit: 'kg' | 'g';
+  unit: "kg" | "g";
   quantity: number;
   discount: number;
   price: number;
   normalPrice: number;
   discountedPrice: number | null;
-  startValue: number; // Added from API response
-  changeby: number;   // Added from API response
+  startValue: number;
+  changeby: number;
   image: string;
   varietyNameEnglish: string;
   category: string;
   createdAt: string;
   maxQuantity?: number;
-
+  isEnable?: number;
 }
 
 interface AdditionalItems {
@@ -76,82 +76,131 @@ interface AdditionalItems {
   Items: CartItem[];
 }
 
-// Update the showConfirmModal interface
 interface ConfirmModal {
-  type: 'product' | 'package' | 'bulk';
+  type: "product" | "package" | "bulk";
   id: number;
   selectedIds?: number[];
 }
 
 const Page: React.FC = () => {
   const NavArray = [
-    { name: 'Cart', path: '/cart', status: true },
-    { name: 'Checkout', path: '/checkout', status: false },
-    { name: 'Payment', path: '/payment', status: false },
+    { name: "Cart", path: "/cart", status: true },
+    { name: "Checkout", path: "/checkout", status: false },
+    { name: "Payment", path: "/payment", status: false },
   ];
 
-  const token = useSelector((state: RootState) => state.auth.token) as string | null;
+  const token = useSelector((state: RootState) => state.auth.token) as
+    | string
+    | null;
   const cartData = useSelector((state: RootState) => state.cartItems);
   const calculatedSummary = useSelector(selectCartSummary);
 
-
-  const [unitSelection, setUnitSelection] = useState<Record<number, 'kg' | 'g'>>({});
-  const [pendingUpdates, setPendingUpdates] = useState<{ productId: number; newQuantity: number }[]>([]);
+  const [unitSelection, setUnitSelection] = useState<
+    Record<number, "kg" | "g">
+  >({});
+  const [pendingUpdates, setPendingUpdates] = useState<
+    { productId: number; newQuantity: number; unit?: string }[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [couponCode, setCouponCode] = useState('');
+  const [couponCode, setCouponCode] = useState("");
   const [couponLoading, setCouponLoading] = useState(false);
-  const [couponMessage, setCouponMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [couponMessage, setCouponMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
-  const [removingItems, setRemovingItems] = useState<Set<string>>(new Set()); // Track items being removed
-  const [showConfirmModal, setShowConfirmModal] = useState<ConfirmModal | null>(null);
-  const [selectedProducts, setSelectedProducts] = useState<Set<number>>(new Set());
+  const [removingItems, setRemovingItems] = useState<Set<string>>(new Set());
+  const [showConfirmModal, setShowConfirmModal] = useState<ConfirmModal | null>(
+    null,
+  );
+  const [selectedProducts, setSelectedProducts] = useState<Set<number>>(
+    new Set(),
+  );
   const [selectAll, setSelectAll] = useState(false);
   const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
   const [showDeliveryModal, setShowDeliveryModal] = useState(false);
-  const [selectedDeliveryMethod, setSelectedDeliveryMethod] = useState<'pickup' | 'delivery' | null>(null);
-  const [tooltipStates, setTooltipStates] = useState<Record<number, 'min' | 'max' | boolean>>({});
-  const buyerType = useSelector((state: RootState) => state.auth.user?.buyerType);
-
-
+  const [selectedDeliveryMethod, setSelectedDeliveryMethod] = useState<
+    "pickup" | "delivery" | null
+  >(null);
+  const [tooltipStates, setTooltipStates] = useState<
+    Record<number, "min" | "max" | boolean>
+  >({});
+  const buyerType = useSelector(
+    (state: RootState) => state.auth.user?.buyerType,
+  );
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [successPopupKey, setSuccessPopupKey] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
   const dispatch = useDispatch();
   const router = useRouter();
+  const authCart = useSelector((state: RootState) => state.auth.cart);
 
-  const calculateDiscount = (baseDiscount: number, unit: 'kg' | 'g', quantity: number): number => {
-    const quantityInKg = unit === 'g' ? quantity / 1000 : quantity;
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  const calculateDiscount = (
+    baseDiscount: number,
+    unit: "kg" | "g",
+    quantity: number,
+  ): number => {
+    const quantityInKg = unit === "g" ? quantity / 1000 : quantity;
     return parseFloat((baseDiscount * quantityInKg).toFixed(3));
   };
 
-  const calculatePrice = (basePrice: number, unit: 'kg' | 'g', quantity: number): number => {
-    const quantityInKg = unit === 'g' ? quantity / 1000 : quantity;
+  const calculatePrice = (
+    basePrice: number,
+    unit: "kg" | "g",
+    quantity: number,
+  ): number => {
+    const quantityInKg = unit === "g" ? quantity / 1000 : quantity;
     return parseFloat((basePrice * quantityInKg).toFixed(3));
   };
 
-
   const getDisplayDiscount = (item: CartItem): number => {
-    const selectedUnit = unitSelection[item.id] || item.unit.toLowerCase() as ('kg' | 'g');
+    const selectedUnit =
+      unitSelection[item.id] || (item.unit.toLowerCase() as "kg" | "g");
     return calculateDiscount(item.discount, selectedUnit, item.quantity);
   };
 
-  // Updated getDisplayPrice function  
   const getDisplayPrice = (item: CartItem): number => {
-    const selectedUnit = unitSelection[item.id] || item.unit.toLowerCase() as ('kg' | 'g');
-    // Use normalPrice instead of price for calculations
+    const selectedUnit =
+      unitSelection[item.id] || (item.unit.toLowerCase() as "kg" | "g");
     return calculatePrice(item.normalPrice, selectedUnit, item.quantity);
   };
 
-  // Helper function to check if cart is empty
   const isCartEmpty = (): boolean => {
-    // Check if no cart exists
     if (!cartData.cart) return true;
-
-    // Check if no items in both packages and additional items
     const hasPackages = cartData.packages && cartData.packages.length > 0;
-    const hasAdditionalItems = cartData.additionalItems &&
+    const hasAdditionalItems =
+      cartData.additionalItems &&
       cartData.additionalItems.length > 0 &&
-      cartData.additionalItems.some(group => group.Items && group.Items.length > 0);
-
+      cartData.additionalItems.some(
+        (group) => group.Items && group.Items.length > 0,
+      );
     return !hasPackages && !hasAdditionalItems;
+  };
+
+  const hasNoValidItems = (): boolean => {
+    if (!cartData.cart) return true;
+    const hasValidPackages =
+      cartData.packages && cartData.packages.some((pkg) => pkg.status !== "Disabled");
+    const hasAdditionalItems =
+      cartData.additionalItems &&
+      cartData.additionalItems.length > 0 &&
+      cartData.additionalItems.some(
+        (group) => group.Items && group.Items.length > 0,
+      );
+    return !hasValidPackages && !hasAdditionalItems;
   };
 
   useEffect(() => {
@@ -160,27 +209,63 @@ const Page: React.FC = () => {
         setLoading(true);
         const response = await getUserCart(token);
 
-        dispatch(setCartData({
-          cart: response.cart,
-          packages: response.packages,
-          additionalItems: response.additionalItems,
-          summary: response.summary,
-        }));
-
-        // Initialize unit selection for all items
-        const initialUnitSelection: Record<number, 'kg' | 'g'> = {};
-        if (response.additionalItems) {
-          response.additionalItems.forEach((itemGroup: AdditionalItems) => {
-            itemGroup.Items.forEach((item: CartItem) => {
-              // Normalize the unit from API (handle both "Kg" and "kg", "G" and "g")
-              const normalizedUnit = item.unit.toLowerCase() === 'kg' ? 'kg' : 'g';
-              initialUnitSelection[item.id] = normalizedUnit;
+        const disabledProductIds: number[] = [];
+        const filteredAdditionalItems = (response.additionalItems || [])
+          .map((itemGroup: AdditionalItems) => {
+            const enabledItems = itemGroup.Items.filter((item: CartItem) => {
+              if (item.isEnable === 0) {
+                disabledProductIds.push(item.id);
+                return false;
+              }
+              return true;
             });
-          });
-        }
-        setUnitSelection(initialUnitSelection);
+            return { ...itemGroup, Items: enabledItems };
+          })
+          .filter((itemGroup) => itemGroup.Items.length > 0);
 
+        const initialUnitSelection: Record<number, "kg" | "g"> = {};
+        filteredAdditionalItems.forEach((itemGroup: AdditionalItems) => {
+          itemGroup.Items.forEach((item: CartItem) => {
+            const normalizedUnit = item.unit.toLowerCase() === "kg" ? "kg" : "g";
+            initialUnitSelection[item.id] = normalizedUnit;
+          });
+        });
+
+        dispatch(
+          setCartData({
+            cart: response.cart,
+            packages: response.packages, 
+            additionalItems: filteredAdditionalItems,
+            summary: response.summary,
+          }),
+        );
+
+        const hasValidPackages =
+          response.packages &&
+          response.packages.some((pkg: CartPackage) => pkg.status !== "Disabled");
+        const hasAdditionalItems =
+          filteredAdditionalItems.length > 0 &&
+          filteredAdditionalItems.some(
+            (group: AdditionalItems) => group.Items && group.Items.length > 0,
+          );
+        const cartHasOnlyInvalidItems = !hasValidPackages && !hasAdditionalItems;
+
+        dispatch(
+          updateCartInfo({
+            price: cartHasOnlyInvalidItems ? 0 : authCart.price,
+            count: cartHasOnlyInvalidItems ? 0 : authCart.count,
+            creditBalance: response.cart?.creditBalance ?? 0,
+          }),
+        );
+
+        setUnitSelection(initialUnitSelection);
         setError(null);
+
+        if (disabledProductIds.length > 0) {
+          bulkRemoveCartProducts(disabledProductIds, token).catch((err) =>
+            console.error("Silent cleanup of disabled products failed:", err),
+          );
+        }
       } catch (err: any) {
         setError(err.message);
       } finally {
@@ -188,31 +273,47 @@ const Page: React.FC = () => {
       }
     };
 
-    if (token) {
-      fetchCartData();
-    }
+    if (token) fetchCartData();
   }, [token, dispatch]);
 
+  const hasInvalidPackage = (): boolean => {
+    return Boolean(
+      cartData.packages && cartData.packages.some((pkg) => pkg.status === "Disabled"),
+    );
+  };
 
+  const calculateSavedAmount = (): number => {
+    let totalSaved = 0;
 
-  // Updated formatPrice function to handle decimal precision
+    if (cartData.additionalItems) {
+      cartData.additionalItems.forEach((itemGroup) => {
+        itemGroup.Items.forEach((item) => {
+          const comPrice = ((item as any).comPrice as number) || 0;
+          const discountedPrice = item.discountedPrice ?? item.normalPrice;
+          const selectedUnit = unitSelection[item.id] || item.unit;
+
+          const qtyInKg = selectedUnit === "g" ? item.quantity / 1000 : item.quantity;
+
+          const diff = (comPrice - discountedPrice) * qtyInKg;
+          totalSaved += diff > 0 ? diff : 0;
+        });
+      });
+    }
+
+    return parseFloat(totalSaved.toFixed(2));
+  };
+
   const formatPrice = (price: number): string => {
-    // Ensure proper decimal precision before formatting
     const fixedPrice = parseFloat(price.toFixed(2));
-    const [integerPart, decimalPart] = fixedPrice.toFixed(2).split('.');
-
-    // Add commas to integer part
-    const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-
+    const [integerPart, decimalPart] = fixedPrice.toFixed(2).split(".");
+    const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     return `${formattedInteger}.${decimalPart}`;
   };
 
-
-  // Updated handleUnitChange function
-  const handleUnitChange = (itemId: number, newUnit: 'kg' | 'g') => {
+  const handleUnitChange = (itemId: number, newUnit: "kg" | "g") => {
     let currentItem: CartItem | null = null;
     for (const itemGroup of cartData.additionalItems) {
-      const item = itemGroup.Items.find(item => item.id === itemId);
+      const item = itemGroup.Items.find((item) => item.id === itemId);
       if (item) {
         currentItem = item;
         break;
@@ -221,50 +322,33 @@ const Page: React.FC = () => {
 
     if (!currentItem) return;
 
-    const currentUnit = unitSelection[itemId] || currentItem.unit.toLowerCase() as ('kg' | 'g');
+    const currentUnit =
+      unitSelection[itemId] || (currentItem.unit.toLowerCase() as "kg" | "g");
 
-    // Only proceed if the unit is actually changing
-    if (currentUnit === newUnit) {
-      return;
-    }
+    if (currentUnit === newUnit) return;
 
     let newQuantity = currentItem.quantity;
 
-    // Convert quantity based on unit change
-    if (currentUnit === 'kg' && newUnit === 'g') {
-      // Convert kg to g: multiply by 1000
+    if (currentUnit === "kg" && newUnit === "g") {
       newQuantity = parseFloat((currentItem.quantity * 1000).toFixed(3));
-    } else if (currentUnit === 'g' && newUnit === 'kg') {
-      // Convert g to kg: divide by 1000
+    } else if (currentUnit === "g" && newUnit === "kg") {
       newQuantity = parseFloat((currentItem.quantity / 1000).toFixed(3));
     }
 
-    // Update unit selection FIRST
-    setUnitSelection(prev => ({
-      ...prev,
-      [itemId]: newUnit,
-    }));
-
-    // Then update quantity in Redux store
+    setUnitSelection((prev) => ({ ...prev, [itemId]: newUnit }));
     dispatch(updateProductQuantity({ productId: itemId, newQuantity }));
 
-    // Store pending update for API call with converted quantity
-    setPendingUpdates(prev => {
-      // Remove any existing pending update for this item first
-      const filtered = prev.filter(update => update.productId !== itemId);
-      // Add new pending update with converted quantity
+    setPendingUpdates((prev) => {
+      const filtered = prev.filter((update) => update.productId !== itemId);
       return [...filtered, { productId: itemId, newQuantity }];
     });
   };
 
-
-  // Updated handleProductQuantityChange function
   const handleProductQuantityChange = (productId: number, delta: number) => {
     let currentItem: CartItem | null = null;
 
-    // Find the current item to get changeby value
     for (const itemGroup of cartData.additionalItems) {
-      const item = itemGroup.Items.find(item => item.id === productId);
+      const item = itemGroup.Items.find((item) => item.id === productId);
       if (item) {
         currentItem = item;
         break;
@@ -273,101 +357,99 @@ const Page: React.FC = () => {
 
     if (!currentItem) return;
 
+    const selectedUnit =
+      unitSelection[productId] ||
+      (currentItem.unit.toLowerCase() as "kg" | "g");
+
     const currentQuantity = currentItem.quantity;
-    const selectedUnit = unitSelection[productId] || currentItem.unit.toLowerCase() as ('kg' | 'g');
-    const originalUnit = currentItem.unit.toLowerCase() as ('kg' | 'g');
 
-    // Get base changeby and startValue from the item
-    let changeBy = currentItem.changeby || 1;
-    let startValue = currentItem.startValue || 1;
+    let changeBy: number;
+    let startValue: number;
+    let maxQuantity =
+      currentItem.maxQuantity !== undefined && currentItem.maxQuantity !== null
+        ? currentItem.maxQuantity
+        : Infinity;
 
-    // Only convert changeby and startValue if the selected unit differs from original unit
-    if (selectedUnit !== originalUnit) {
-      if (selectedUnit === 'g' && originalUnit === 'kg') {
-        // If displaying in grams but item is originally stored in kg, convert to grams
-        changeBy = parseFloat((changeBy * 1000).toFixed(3));
-        startValue = parseFloat((startValue * 1000).toFixed(3));
-      } else if (selectedUnit === 'kg' && originalUnit === 'g') {
-        // If displaying in kg but item is originally stored in grams, convert to kg
-        changeBy = parseFloat((changeBy / 1000).toFixed(3));
-        startValue = parseFloat((startValue / 1000).toFixed(3));
-      }
-    }
-
-    // Get maxQuantity and convert if needed
-    let maxQuantity = currentItem.maxQuantity || Infinity;
-    if (selectedUnit !== originalUnit) {
-      if (selectedUnit === 'g' && originalUnit === 'kg') {
+    if (selectedUnit === "g") {
+      changeBy = parseFloat((currentItem.changeby * 1000).toFixed(3));
+      startValue = parseFloat((currentItem.startValue * 1000).toFixed(3));
+      if (maxQuantity !== Infinity) {
         maxQuantity = parseFloat((maxQuantity * 1000).toFixed(3));
-      } else if (selectedUnit === 'kg' && originalUnit === 'g') {
-        maxQuantity = parseFloat((maxQuantity / 1000).toFixed(3));
       }
+    } else {
+      changeBy = currentItem.changeby || 1;
+      startValue = currentItem.startValue || 1;
     }
 
-    // Calculate new quantity using changeby value with 3 decimal precision
     let newQuantity: number;
+
     if (delta > 0) {
-      // Increment by changeby value
-      const potentialNewQuantity = parseFloat((currentQuantity + (changeBy * delta)).toFixed(3));
+      const potentialNewQuantity = parseFloat(
+        (currentQuantity + changeBy * delta).toFixed(3),
+      );
 
       if (potentialNewQuantity > maxQuantity) {
-        // Show MAX tooltip when trying to go above maximum
-        setTooltipStates(prev => ({ ...prev, [productId]: 'max' }));
-
-        // Hide tooltip after 2 seconds
+        setTooltipStates((prev) => ({ ...prev, [productId]: "max" }));
         setTimeout(() => {
-          setTooltipStates(prev => ({ ...prev, [productId]: false }));
+          setTooltipStates((prev) => ({ ...prev, [productId]: false }));
         }, 2000);
-
-        return; // Don't update quantity
+        return;
       }
 
       newQuantity = potentialNewQuantity;
     } else {
-      // Check if decrement would go below startValue
-      const potentialNewQuantity = parseFloat((currentQuantity + (changeBy * delta)).toFixed(3));
+      const potentialNewQuantity = parseFloat(
+        (currentQuantity + changeBy * delta).toFixed(3),
+      );
 
       if (potentialNewQuantity < startValue) {
-        // Show MIN tooltip when trying to go below minimum
-        setTooltipStates(prev => ({ ...prev, [productId]: 'min' }));
-
-        // Hide tooltip after 2 seconds
+        setTooltipStates((prev) => ({ ...prev, [productId]: "min" }));
         setTimeout(() => {
-          setTooltipStates(prev => ({ ...prev, [productId]: false }));
+          setTooltipStates((prev) => ({ ...prev, [productId]: false }));
         }, 2000);
-
-        return; // Don't update quantity
+        return;
       }
 
       newQuantity = potentialNewQuantity;
     }
 
-    // Update Redux store
     dispatch(updateProductQuantity({ productId, newQuantity }));
 
-    // Store pending update for API call
-    setPendingUpdates(prev => {
-      const existing = prev.find(update => update.productId === productId);
+    const updatedItems = cartData.additionalItems.flatMap(g => g.Items).map(item =>
+      item.id === productId ? { ...item, quantity: newQuantity } : item
+    );
+    const updatedPackageTotal =
+      cartData.packages?.reduce((sum, pkg) => sum + pkg.price * pkg.quantity, 0) ?? 0;
+    const updatedProductTotal = updatedItems.reduce((item_acc, item) => {
+      const unit = unitSelection[item.id] || item.unit;
+      const price = calculatePrice(item.normalPrice, unit, item.quantity);
+      const discount = calculateDiscount(item.discount, unit, item.quantity);
+      return item_acc + (price - discount);
+    }, 0);
+
+    dispatch(updateCartInfo({
+      price: parseFloat((updatedPackageTotal + updatedProductTotal).toFixed(2)),
+      count: authCart.count,
+    }));
+
+    setPendingUpdates((prev) => {
+      const existing = prev.find((update) => update.productId === productId);
       if (existing) {
-        return prev.map(update =>
-          update.productId === productId ? { ...update, newQuantity } : update
+        return prev.map((update) =>
+          update.productId === productId ? { ...update, newQuantity } : update,
         );
       }
       return [...prev, { productId, newQuantity }];
     });
   };
 
-
-  // Show confirmation modal for product removal
   const handleRemoveProduct = async (productId: number) => {
     const itemKey = `product-${productId}`;
 
-    // Prevent multiple simultaneous removals
     if (removingItems.has(itemKey)) return;
 
     try {
-      setRemovingItems(prev => new Set(prev).add(itemKey));
-
+      setRemovingItems((prev) => new Set(prev).add(itemKey));
 
       await removeCartProduct(productId, token);
 
@@ -375,29 +457,57 @@ const Page: React.FC = () => {
 
       try {
         const cartInfo = await getCartInfo(token);
-        console.log("Updated cart info:", cartInfo);
         dispatch(updateCartInfo(cartInfo));
       } catch (cartError) {
-        console.error('Error fetching cart info:', cartError);
-        // Don't fail the whole operation if cart info fetch fails
+        console.error("Error fetching cart info:", cartError);
       }
 
-      // Optionally refresh cart data to ensure consistency
       const updatedCartData = await getUserCart(token);
-      dispatch(setCartData({
-        cart: updatedCartData.cart,
-        packages: updatedCartData.packages,
-        additionalItems: updatedCartData.additionalItems,
-        summary: updatedCartData.summary,
-      }));
 
+      const mergedAdditionalItems = updatedCartData.additionalItems?.map(
+        (itemGroup: AdditionalItems) => ({
+          ...itemGroup,
+          Items: itemGroup.Items.map((item: CartItem) => {
+            const pendingUpdate = pendingUpdates.find(
+              (u) => u.productId === item.id,
+            );
+            if (pendingUpdate) {
+              return { ...item, quantity: pendingUpdate.newQuantity };
+            }
+            return item;
+          }),
+        }),
+      );
+
+      dispatch(
+        setCartData({
+          cart: updatedCartData.cart,
+          packages: updatedCartData.packages,
+          additionalItems: mergedAdditionalItems ?? updatedCartData.additionalItems,
+          summary: updatedCartData.summary,
+        }),
+      );
+
+      setUnitSelection((prev) => {
+        const updated = { ...prev };
+        updatedCartData.additionalItems?.forEach((itemGroup: AdditionalItems) => {
+          itemGroup.Items.forEach((item: CartItem) => {
+            if (!updated[item.id]) {
+              updated[item.id] =
+                item.unit.toLowerCase() === "kg" ? "kg" : "g";
+            }
+          });
+        });
+        return updated;
+      });
+
+      setSuccessPopupKey((prev) => prev + 1);
+      setShowSuccessPopup(true);
     } catch (error: any) {
-      console.error('Error removing product:', error);
-      // Show error message to user
-      alert('Failed to remove item. Please try again.');
+      console.error("Error removing product:", error);
+      alert("Failed to remove item. Please try again.");
     } finally {
-      // Remove from removing set
-      setRemovingItems(prev => {
+      setRemovingItems((prev) => {
         const newSet = new Set(prev);
         newSet.delete(itemKey);
         return newSet;
@@ -405,75 +515,103 @@ const Page: React.FC = () => {
     }
   };
 
-  // Show confirmation modal for package removal
   const handleRemovePackage = (packageId: number) => {
-    setShowConfirmModal({ type: 'package', id: packageId });
+    setShowConfirmModal({ type: "package", id: packageId });
   };
 
-  // Actual package removal after confirmation
   const confirmRemovePackage = async (packageId: number) => {
-    const itemKey = `package-${packageId}`;
+  const itemKey = `package-${packageId}`;
+  if (removingItems.has(itemKey)) return;
 
-    // Prevent multiple simultaneous removals
-    if (removingItems.has(itemKey)) return;
+  try {
+    setRemovingItems((prev) => new Set(prev).add(itemKey));
+
+    await removeCartPackage(packageId, token);
+    dispatch(removePackage(packageId));
+
+    const updatedCartData = await getUserCart(token);
+
+    const mergedAdditionalItems = updatedCartData.additionalItems?.map(
+      (itemGroup: AdditionalItems) => ({
+        ...itemGroup,
+        Items: itemGroup.Items.map((item: CartItem) => {
+          const pendingUpdate = pendingUpdates.find((u) => u.productId === item.id);
+          return pendingUpdate ? { ...item, quantity: pendingUpdate.newQuantity } : item;
+        }),
+      }),
+    );
+
+    dispatch(
+      setCartData({
+        cart: updatedCartData.cart,
+        packages: updatedCartData.packages,
+        additionalItems: mergedAdditionalItems ?? updatedCartData.additionalItems,
+        summary: updatedCartData.summary,
+      }),
+    );
+
+    setUnitSelection((prev) => {
+      const updated = { ...prev };
+      updatedCartData.additionalItems?.forEach((itemGroup: AdditionalItems) => {
+        itemGroup.Items.forEach((item: CartItem) => {
+          if (!updated[item.id]) {
+            updated[item.id] = item.unit.toLowerCase() === "kg" ? "kg" : "g";
+          }
+        });
+      });
+      return updated;
+    });
+
+    const freshSummary = computeSummaryFrom(
+      updatedCartData.packages,
+      mergedAdditionalItems ?? updatedCartData.additionalItems,
+      unitSelection,
+    );
+
+    dispatch(
+      updateCartInfo({
+        price: parseFloat(freshSummary.finalTotal.toFixed(2)),
+        count: freshSummary.totalItems,
+        creditBalance: updatedCartData.cart?.creditBalance ?? authCart.creditBalance,
+      }),
+    );
 
     try {
-      // Add to removing set
-      setRemovingItems(prev => new Set(prev).add(itemKey));
-
-      // Make direct API call
-      await removeCartPackage(packageId, token);
-
-      // Update Redux store after successful API call
-      dispatch(removePackage(packageId));
-
-      // Fetch updated cart info after successful removal
-      try {
-        const cartInfo = await getCartInfo(token);
-        console.log("Updated cart info:", cartInfo);
-        dispatch(updateCartInfo(cartInfo));
-      } catch (cartError) {
-        console.error('Error fetching cart info:', cartError);
-        // Don't fail the whole operation if cart info fetch fails
-      }
-
-      // Optionally refresh cart data to ensure consistency
-      const updatedCartData = await getUserCart(token);
-      dispatch(setCartData({
-        cart: updatedCartData.cart,
-        packages: updatedCartData.packages,
-        additionalItems: updatedCartData.additionalItems,
-        summary: updatedCartData.summary,
-      }));
-
-    } catch (error: any) {
-      console.error('Error removing package:', error);
-      // Show error message to user
-      alert('Failed to remove package. Please try again.');
-    } finally {
-      // Remove from removing set
-      setRemovingItems(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(itemKey);
-        return newSet;
-      });
+      const cartInfo = await getCartInfo(token);
+      dispatch(
+        updateCartInfo({
+          price: parseFloat(freshSummary.finalTotal.toFixed(2)),
+          count: freshSummary.totalItems,
+          creditBalance: cartInfo?.creditBalance ?? updatedCartData.cart?.creditBalance,
+        }),
+      );
+    } catch (cartError) {
+      console.error("Error fetching cart info:", cartError);
     }
-  };
+  } catch (error: any) {
+    console.error("Error removing package:", error);
+    alert("Failed to remove package. Please try again.");
+  } finally {
+    setRemovingItems((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(itemKey);
+      return newSet;
+    });
+  }
+};
 
-  // Add this helper function to get all product IDs
   const getAllProductIds = (): number[] => {
     const productIds: number[] = [];
-    cartData.additionalItems.forEach(itemGroup => {
-      itemGroup.Items.forEach(item => {
+    cartData.additionalItems.forEach((itemGroup) => {
+      itemGroup.Items.forEach((item) => {
         productIds.push(item.id);
       });
     });
     return productIds;
   };
 
-  // Add these handler functions
   const handleSelectProduct = (productId: number) => {
-    setSelectedProducts(prev => {
+    setSelectedProducts((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(productId)) {
         newSet.delete(productId);
@@ -481,9 +619,10 @@ const Page: React.FC = () => {
         newSet.add(productId);
       }
 
-      // Update select all state
       const allProductIds = getAllProductIds();
-      setSelectAll(allProductIds.length > 0 && allProductIds.every(id => newSet.has(id)));
+      setSelectAll(
+        allProductIds.length > 0 && allProductIds.every((id) => newSet.has(id)),
+      );
 
       return newSet;
     });
@@ -493,11 +632,9 @@ const Page: React.FC = () => {
     const allProductIds = getAllProductIds();
 
     if (selectAll) {
-      // Deselect all
       setSelectedProducts(new Set());
       setSelectAll(false);
     } else {
-      // Select all
       setSelectedProducts(new Set(allProductIds));
       setSelectAll(true);
     }
@@ -505,14 +642,14 @@ const Page: React.FC = () => {
 
   const handleBulkDelete = () => {
     if (selectedProducts.size === 0) {
-      alert('Please select products to delete');
+      alert("Please select products to delete");
       return;
     }
 
     setShowConfirmModal({
-      type: 'bulk',
+      type: "bulk",
       id: 0,
-      selectedIds: Array.from(selectedProducts)
+      selectedIds: Array.from(selectedProducts),
     });
   };
 
@@ -520,201 +657,784 @@ const Page: React.FC = () => {
     try {
       setBulkDeleteLoading(true);
 
-      // Debug logs
-      console.log('=== BULK DELETE DEBUG ===');
-      console.log('productIds received:', productIds);
-      console.log('productIds type:', typeof productIds);
-      console.log('productIds is array:', Array.isArray(productIds));
-      console.log('productIds length:', productIds?.length);
-      console.log('productIds content:', JSON.stringify(productIds));
-
-      // Ensure productIds is an array of numbers
       let validProductIds: number[] = [];
 
       if (Array.isArray(productIds)) {
         validProductIds = productIds
-          .map(id => parseInt(String(id), 10))
-          .filter(id => !isNaN(id) && id > 0);
+          .map((id) => parseInt(String(id), 10))
+          .filter((id) => !isNaN(id) && id > 0);
       } else {
-        throw new Error('ProductIds must be an array');
+        throw new Error("ProductIds must be an array");
       }
-
-      console.log('validProductIds after processing:', validProductIds);
 
       if (validProductIds.length === 0) {
-        throw new Error('No valid product IDs to delete');
+        throw new Error("No valid product IDs to delete");
       }
 
-      // Call bulk delete API with validated array
       await bulkRemoveCartProducts(validProductIds, token);
 
-      // Update Redux store
-      validProductIds.forEach(productId => {
+      validProductIds.forEach((productId) => {
         dispatch(removeProduct(productId));
       });
 
-      // Fetch updated cart info after successful removal
       try {
         const cartInfo = await getCartInfo(token);
-        console.log("Updated cart info:", cartInfo);
         dispatch(updateCartInfo(cartInfo));
       } catch (cartError) {
-        console.error('Error fetching cart info:', cartError);
-        // Don't fail the whole operation if cart info fetch fails
+        console.error("Error fetching cart info:", cartError);
       }
 
-      // Refresh cart data to ensure consistency
       const updatedCartData = await getUserCart(token);
-      dispatch(setCartData({
-        cart: updatedCartData.cart,
-        packages: updatedCartData.packages,
-        additionalItems: updatedCartData.additionalItems,
-        summary: updatedCartData.summary,
-      }));
 
-      // Clear selections
+      // ── Merge pending quantity changes back (for items NOT deleted) ──
+      const remainingPendingUpdates = pendingUpdates.filter(
+        (u) => !validProductIds.includes(u.productId),
+      );
+
+      const mergedAdditionalItems = updatedCartData.additionalItems?.map(
+        (itemGroup: AdditionalItems) => ({
+          ...itemGroup,
+          Items: itemGroup.Items.map((item: CartItem) => {
+            const pendingUpdate = remainingPendingUpdates.find(
+              (u) => u.productId === item.id,
+            );
+            if (pendingUpdate) {
+              return { ...item, quantity: pendingUpdate.newQuantity };
+            }
+            return item;
+          }),
+        }),
+      );
+
+      dispatch(
+        setCartData({
+          cart: updatedCartData.cart,
+          packages: updatedCartData.packages,
+          additionalItems: mergedAdditionalItems ?? updatedCartData.additionalItems,
+          summary: updatedCartData.summary,
+        }),
+      );
+
+      // ── Preserve local unit selections for remaining items ──
+      setUnitSelection((prev) => {
+        const updated = { ...prev };
+        // Remove deleted items from unit selection
+        validProductIds.forEach((id) => delete updated[id]);
+        // Keep existing selections for remaining items
+        updatedCartData.additionalItems?.forEach((itemGroup: AdditionalItems) => {
+          itemGroup.Items.forEach((item: CartItem) => {
+            if (!updated[item.id]) {
+              updated[item.id] =
+                item.unit.toLowerCase() === "kg" ? "kg" : "g";
+            }
+          });
+        });
+        return updated;
+      });
+
+      // Also clean up pending updates for deleted items
+      setPendingUpdates((prev) =>
+        prev.filter((u) => !validProductIds.includes(u.productId)),
+      );
+
       setSelectedProducts(new Set());
       setSelectAll(false);
-
-      // // Show success message
-      // alert(`Successfully removed ${validProductIds.length} items from cart`);
-
     } catch (error: any) {
-      console.error('Error bulk deleting products:', error);
-      alert(error.message || 'Failed to remove selected items. Please try again.');
+      console.error("Error bulk deleting products:", error);
+      alert(
+        error.message || "Failed to remove selected items. Please try again.",
+      );
     } finally {
       setBulkDeleteLoading(false);
     }
   };
 
+  const handleRemoveInvalidPackage = async (packageId: number) => {
+    const itemKey = `package-${packageId}`;
+
+    if (removingItems.has(itemKey)) return;
+
+    try {
+      setRemovingItems((prev) => new Set(prev).add(itemKey));
+
+      await removeCartPackage(packageId, token);
+
+      dispatch(removePackage(packageId));
+
+      const updatedCartData = await getUserCart(token);
+
+      dispatch(
+        setCartData({
+          cart: updatedCartData.cart,
+          packages: updatedCartData.packages,
+          additionalItems: updatedCartData.additionalItems,
+          summary: updatedCartData.summary,
+        }),
+      );
+
+      try {
+        const cartInfo = await getCartInfo(token);
+        dispatch(updateCartInfo(cartInfo));
+      } catch (cartError) {
+        console.error("Error fetching cart info:", cartError);
+      }
+
+      setSuccessPopupKey((prev) => prev + 1);
+      setShowSuccessPopup(true);
+    } catch (error: any) {
+      console.error("Error removing invalid package:", error);
+      alert("Failed to remove package. Please try again.");
+    } finally {
+      setRemovingItems((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(itemKey);
+        return newSet;
+      });
+    }
+  };
 
   const handleCheckout = async () => {
-    if (isCartEmpty() || !calculatedSummary || calculatedSummary.totalItems === 0) {
-      alert('Your cart is empty');
+    if (hasInvalidPackage()) {
+      alert("Please remove the invalid package before proceeding to checkout.");
+      return;
+    }
+
+    if (hasNoValidItems()) {
+      dispatch(
+        updateCartInfo({
+          price: 0,
+          count: 0,
+          creditBalance: authCart.creditBalance,
+        }),
+      );
+      return;
+    }
+
+    if (
+      isCartEmpty() ||
+      !calculatedSummary ||
+      calculatedSummary.totalItems === 0
+    ) {
+      alert("Your cart is empty");
       return;
     }
 
     try {
       setCheckoutLoading(true);
 
-      // Process all pending quantity updates only
       for (const update of pendingUpdates) {
-        await updateCartProductQuantity(update.productId, update.newQuantity, token);
+        const unit = unitSelection[update.productId];
+        await updateCartProductQuantity(update.productId, update.newQuantity, token, unit);
       }
 
-      // Clear pending updates
       setPendingUpdates([]);
 
-      // Fetch updated cart data to ensure consistency
       const updatedCartData = await getUserCart(token);
-      dispatch(setCartData({
-        cart: updatedCartData.cart,
-        packages: updatedCartData.packages,
-        additionalItems: updatedCartData.additionalItems,
-        summary: updatedCartData.summary,
-      }));
+
+      const freshUnitSelection: Record<number, "kg" | "g"> = {};
+      if (updatedCartData.additionalItems) {
+        updatedCartData.additionalItems.forEach((itemGroup: AdditionalItems) => {
+          itemGroup.Items.forEach((item: CartItem) => {
+            const normalizedUnit =
+              item.unit.toLowerCase() === "kg" ? "kg" : "g";
+            freshUnitSelection[item.id] = normalizedUnit;
+          });
+        });
+      }
+
+      setUnitSelection(freshUnitSelection);
+
+      dispatch(
+        setCartData({
+          cart: updatedCartData.cart,
+          packages: updatedCartData.packages,
+          additionalItems: updatedCartData.additionalItems,
+          summary: updatedCartData.summary,
+        }),
+      );
+
+      const freshSummary = computeSummaryFrom(
+        updatedCartData.packages,
+        updatedCartData.additionalItems,
+        freshUnitSelection,
+      );
+
+      dispatch(
+        updateCartInfo({
+          price: parseFloat(freshSummary.finalTotal.toFixed(2)),
+          count: freshSummary.totalItems,
+          creditBalance: updatedCartData.cart?.creditBalance ?? authCart.creditBalance,
+        }),
+      );
+
       try {
         const cartInfo = await getCartInfo(token);
-        console.log("Updated cart info:", cartInfo);
-        dispatch(updateCartInfo(cartInfo));
+        dispatch(updateCartInfo({
+          price: parseFloat(freshSummary.finalTotal.toFixed(2)),
+          count: freshSummary.totalItems,
+          creditBalance: cartInfo?.creditBalance ?? updatedCartData.cart?.creditBalance,
+        }));
       } catch (cartError) {
-        console.error('Error fetching cart info:', cartError);
-
+        console.error("Error fetching cart info:", cartError);
       }
-      setShowDeliveryModal(true);
 
+      setShowDeliveryModal(true);
     } catch (error) {
-      console.error('Error during checkout:', error);
-      alert('Something went wrong. Please try again.');
+      console.error("Error during checkout:", error);
+      alert("Something went wrong. Please try again.");
     } finally {
       setCheckoutLoading(false);
     }
   };
 
   const handleContinueShopping = () => {
-    if (buyerType === 'Wholesale') {
-      router.push('/wholesale/home');
+    if (buyerType === "Wholesale") {
+      router.push("/wholesale/home");
     } else {
-      router.push('/');
+      router.push("/");
     }
   };
 
   const handleDeliveryMethodSelect = (method: any) => {
-    console.log('Selected delivery method:', method);
     setSelectedDeliveryMethod(method);
     setShowDeliveryModal(false);
-
-
     router.push(`/checkout?deliveryMethod=${method}`);
   };
 
-  useEffect(() => {
-    console.log('showDeliveryModal state:', showDeliveryModal);
-  }, [showDeliveryModal]);
-
-  // Add this helper function to calculate products total for a specific item group
   const calculateItemGroupTotal = (itemGroup: AdditionalItems): number => {
     return itemGroup.Items.reduce((total, item) => {
       const selectedUnit = unitSelection[item.id] || item.unit;
-      // Use normalPrice instead of price for calculations
-      const itemTotal = calculatePrice(item.normalPrice, selectedUnit, item.quantity);
-      return total + itemTotal;
+      const itemPrice = calculatePrice(item.normalPrice, selectedUnit, item.quantity);
+      const itemDiscount = calculateDiscount(item.discount, selectedUnit, item.quantity);
+      return total + (itemPrice - itemDiscount);
     }, 0);
   };
 
-  useEffect(() => {
-    console.log('showDeliveryModal changed:', showDeliveryModal);
-  }, [showDeliveryModal]);
-
-  // Updated selector for cart summary with proper unit calculations
-  const getUpdatedCartSummary = () => {
+  const computeSummaryFrom = (
+    packages: CartPackage[],
+    additionalItems: AdditionalItems[],
+    unitSel: Record<number, "kg" | "g">,
+  ) => {
     let totalItems = 0;
     let productTotal = 0;
     let totalDiscount = 0;
     let packageTotal = 0;
 
-    // Calculate package totals
-    if (cartData.packages) {
-      cartData.packages.forEach(pkg => {
-        packageTotal += pkg.price * pkg.quantity;
-        totalItems += pkg.quantity;
-      });
-    }
+    (packages || []).forEach((pkg) => {
+      if (pkg.status === "Disabled") return; // never count disabled packages
+      packageTotal += pkg.price * pkg.quantity;
+      totalItems += pkg.quantity;
+    });
 
-    // Calculate product totals with unit conversions using normalPrice
-    if (cartData.additionalItems) {
-      cartData.additionalItems.forEach(itemGroup => {
-        itemGroup.Items.forEach(item => {
-          const selectedUnit = unitSelection[item.id] || item.unit;
-          // Use normalPrice instead of price for calculations
-          const itemPrice = calculatePrice(item.normalPrice, selectedUnit, item.quantity);
-          const itemDiscount = calculateDiscount(item.discount, selectedUnit, item.quantity);
+    (additionalItems || []).forEach((itemGroup) => {
+      itemGroup.Items.forEach((item) => {
+        const selectedUnit = unitSel[item.id] || item.unit;
+        const itemPrice = calculatePrice(item.normalPrice, selectedUnit, item.quantity);
+        const itemDiscount = calculateDiscount(item.discount, selectedUnit, item.quantity);
 
-          productTotal += itemPrice;
-          totalDiscount += itemDiscount;
-          totalItems += 1; // Count each item as 1 regardless of quantity
-        });
+        productTotal += itemPrice;
+        totalDiscount += itemDiscount;
+        totalItems += 1;
       });
-    }
+    });
 
     const grandTotal = packageTotal + productTotal;
     const finalTotal = grandTotal - totalDiscount;
 
-    return {
-      totalItems,
-      packageTotal,
-      productTotal,
-      totalDiscount,
-      grandTotal,
-      finalTotal
-    };
+    return { totalItems, packageTotal, productTotal, totalDiscount, grandTotal, finalTotal };
+  };
+
+  const getUpdatedCartSummary = () => {
+    const base = computeSummaryFrom(cartData.packages, cartData.additionalItems, unitSelection);
+    const savedAmount = calculateSavedAmount();
+    return { ...base, savedAmount };
   };
 
   const dynamicSummary = getUpdatedCartSummary();
 
+  const InvalidPackageCard: React.FC<{
+    pkg: CartPackage;
+    onRemove: (packageId: number) => void;
+    isRemoving: boolean;
+  }> = ({ pkg, onRemove, isRemoving }) => (
+    <div className={`w-full rounded-xl border border-red-300 overflow-hidden bg-[#FDEEF0] ${isRemoving ? "opacity-50" : ""}`}>
+      <div className="flex justify-between items-center px-4 sm:px-6 py-3 border-b border-[#FF0000] bg-[#FDEEF0]">
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm sm:text-base font-medium text-red-600">
+            Your Selected Package :{" "}
+            <span className="font-semibold">{pkg.packageName}</span>{" "}
+            ({pkg.totalItems} Items)
+          </h3>
+          <button
+            onClick={() => onRemove(pkg.id)}
+            disabled={isRemoving}
+            className="text-red-500 hover:scale-105 transition-transform disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed flex-shrink-0"
+            title={isRemoving ? "Removing..." : "Remove package"}
+          >
+            <Trash size={18} fill="red" strokeWidth={2} />
+          </button>
+        </div>
+        <span className="text-sm sm:text-base font-bold text-red-600 whitespace-nowrap">
+          Rs. {pkg.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+        </span>
+      </div>
 
+      <div className="flex items-center gap-4 sm:gap-6 px-4 sm:px-6 py-4 sm:py-5 bg-[#FFF1F1]">
+        <Image
+          src={invalidPackageIcon}
+          alt="Package unavailable"
+          width={145}
+          height={118}
+          className="w-[100px] h-[81px] sm:w-[145px] sm:h-[118px] object-contain flex-shrink-0"
+        />
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-gray-900 text-sm sm:text-base mb-1">
+            This package is no longer valid
+          </p>
+          <p className="text-xs sm:text-sm text-gray-600 mb-3">
+            We're sorry, but this package is currently unavailable. It may have been removed or is no longer offered.
+          </p>
+          <button
+            onClick={handleContinueShopping}
+            className="text-sm font-medium text-[#3E1E6A] bg-[#F2E3FC] border border-[#3E1E6A] rounded-lg px-4 py-2 hover:bg-[#E1D5F5] transition-colors cursor-pointer"
+          >
+            Explore Other Packages
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+  // Mobile Product Card Component
+  const MobileProductCard: React.FC<{
+    item: CartItem;
+    selectedUnit: string;
+    isRemoving: boolean;
+    isSelected: boolean;
+    tooltipStates: Record<number, "min" | "max" | boolean>;
+    unitSelection: Record<number, "kg" | "g">;
+    onSelect: () => void;
+    onUnitChange: (unit: "kg" | "g") => void;
+    onQuantityChange: (delta: number) => void;
+    onRemove: () => void;
+    formatPrice: (price: number) => string;
+    getDisplayPrice: (item: CartItem) => number;
+    getDisplayDiscount: (item: CartItem) => number;
+  }> = ({
+    item,
+    selectedUnit,
+    isRemoving,
+    isSelected,
+    tooltipStates,
+    unitSelection,
+    onSelect,
+    onUnitChange,
+    onQuantityChange,
+    onRemove,
+    formatPrice,
+    getDisplayPrice,
+    getDisplayDiscount,
+  }) => {
+      return (
+        <div className={`bg-white rounded-lg border border-gray-200 p-4 mb-3 ${isSelected ? 'bg-blue-50 border-blue-300' : ''}`}>
+          {/* Top Row - Checkbox, Image, Name, and Delete Button - Vertically Centered */}
+          <div className="flex items-center gap-3 mb-4">
+            {/* Checkbox - Vertically Centered */}
+            <input
+              type="checkbox"
+              className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer flex-shrink-0"
+              checked={isSelected}
+              onChange={onSelect}
+              disabled={isRemoving}
+            />
 
+            {/* Product Image */}
+            <div className="w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-gray-50">
+              <img
+                src={item.image}
+                alt={item.name}
+                className="w-full h-full object-contain"
+                onError={(e) => {
+                  e.currentTarget.src = "/placeholder-image.jpg";
+                }}
+              />
+            </div>
 
+            {/* Product Name and Unit Buttons Container */}
+            <div className="flex-1 min-w-0">
+              <h3 className="font-medium text-gray-900 text-sm mb-2 line-clamp-2">
+                {item.name}
+              </h3>
+
+              {/* Unit Buttons */}
+              <div className="flex gap-2">
+                {(["kg", "g"] as const).map((unit) => (
+                  <button
+                    key={unit}
+                    onClick={() => onUnitChange(unit)}
+                    disabled={isRemoving}
+                    className={`px-3 py-1 text-xs rounded-md border transition-colors cursor-pointer ${selectedUnit === unit
+                      ? "bg-purple-100 text-purple-700 border-purple-300 font-medium"
+                      : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+                      } disabled:opacity-50`}
+                  >
+                    {unit}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Delete Button - Vertically Centered */}
+            <button
+              onClick={onRemove}
+              disabled={isRemoving}
+              className="text-red-500 hover:text-red-700 p-2 flex-shrink-0 disabled:opacity-50 transition-colors"
+              title={isRemoving ? "Removing..." : "Remove item"}
+            >
+              <Trash size={20} fill="red" strokeWidth={2} />
+            </button>
+          </div>
+
+          {/* Quantity Controls */}
+          <div className="flex items-center justify-between mb-4 pt-2 border-t border-gray-100">
+            <span className="text-sm text-gray-600">Quantity</span>
+            <div className="relative flex items-center gap-3 border border-gray-300 rounded-lg px-3 py-2 bg-white">
+              <button
+                onClick={() => onQuantityChange(-1)}
+                disabled={isRemoving}
+                className="hover:bg-gray-100 p-1 rounded-full disabled:opacity-50 transition-colors"
+              >
+                <Minus size={16} />
+              </button>
+
+              {tooltipStates[item.id] && (
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 z-10 whitespace-nowrap">
+                  <div className="bg-[#191D28] text-white text-xs px-2 py-1 rounded shadow-lg">
+                    {tooltipStates[item.id] === "min"
+                      ? `Minimum quantity is ${(() => {
+                        const selectedUnit = unitSelection[item.id] || item.unit;
+                        return selectedUnit === "g"
+                          ? parseFloat((item.startValue * 1000).toFixed(3))
+                          : item.startValue || 1;
+                      })()
+                      } ${unitSelection[item.id] || item.unit}`
+                      : `Maximum quantity is ${(() => {
+                        const selectedUnit = unitSelection[item.id] || item.unit;
+                        const maxValueInKg = item.maxQuantity;
+                        if (!maxValueInKg) return "∞";
+                        return selectedUnit === "g"
+                          ? parseFloat((maxValueInKg * 1000).toFixed(3))
+                          : maxValueInKg;
+                      })()
+                      } ${unitSelection[item.id] || item.unit}`
+                    }
+                  </div>
+                </div>
+              )}
+
+              <span className="text-sm font-medium w-16 text-center">
+                {parseFloat(item.quantity.toFixed(3))}
+              </span>
+
+              <button
+                onClick={() => onQuantityChange(1)}
+                disabled={isRemoving}
+                className="hover:bg-gray-100 p-1 rounded-full disabled:opacity-50 transition-colors"
+              >
+                <Plus size={16} />
+              </button>
+            </div>
+          </div>
+
+          {/* Price Information Grid */}
+          <div className="space-y-2 pt-2 border-t border-gray-100">
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-gray-600">Price</span>
+              <span className="font-medium">Rs. {formatPrice(getDisplayPrice(item))}</span>
+            </div>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-gray-600">Discount</span>
+              <span className="font-medium text-[#3E206D]">Rs. {formatPrice(getDisplayDiscount(item))}</span>
+            </div>
+            <div className="flex justify-between items-center text-base font-bold pt-1">
+              <span>Final Price</span>
+              <span className="text-[#3E206D]">
+                Rs. {formatPrice(getDisplayPrice(item) - getDisplayDiscount(item))}
+              </span>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+  // Horizontal Scroll Component with Indicators
+  const HorizontalScrollWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const [showLeftArrow, setShowLeftArrow] = useState(false);
+    const [showRightArrow, setShowRightArrow] = useState(false);
+
+    const checkScroll = () => {
+      const container = scrollContainerRef.current;
+      if (container) {
+        setShowLeftArrow(container.scrollLeft > 0);
+        setShowRightArrow(
+          container.scrollLeft < container.scrollWidth - container.clientWidth - 10
+        );
+      }
+    };
+
+    useEffect(() => {
+      const container = scrollContainerRef.current;
+      if (container) {
+        checkScroll();
+        container.addEventListener('scroll', checkScroll);
+        window.addEventListener('resize', checkScroll);
+
+        return () => {
+          container.removeEventListener('scroll', checkScroll);
+          window.removeEventListener('resize', checkScroll);
+        };
+      }
+    }, []);
+
+    const scroll = (direction: 'left' | 'right') => {
+      const container = scrollContainerRef.current;
+      if (container) {
+        const scrollAmount = direction === 'left' ? -300 : 300;
+        container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+      }
+    };
+
+    return (
+      <div className="relative">
+        {showLeftArrow && (
+          <button
+            onClick={() => scroll('left')}
+            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 backdrop-blur-sm rounded-full p-2 shadow-lg border border-gray-200 hover:bg-gray-50 transition-all cursor-pointer"
+            aria-label="Scroll left"
+          >
+            <ChevronLeft size={20} className="text-[#3E206D]" />
+          </button>
+        )}
+
+        {showRightArrow && (
+          <button
+            onClick={() => scroll('right')}
+            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 backdrop-blur-sm rounded-full p-2 shadow-lg border border-gray-200 hover:bg-gray-50 transition-all cursor-pointer"
+            aria-label="Scroll right"
+          >
+            <ChevronRight size={20} className="text-[#3E206D]" />
+          </button>
+        )}
+
+        <div
+          ref={scrollContainerRef}
+          className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
+          style={{
+            scrollbarWidth: 'thin',
+            WebkitOverflowScrolling: 'touch',
+          }}
+        >
+          <div className="md:hidden text-center text-xs text-gray-400 mb-2 animate-pulse">
+            ← Swipe to see more →
+          </div>
+          {children}
+        </div>
+      </div>
+    );
+  };
+
+  // Desktop Table Component
+  const TableDesktop = ({ itemGroup }: { itemGroup: AdditionalItems }) => (
+    <div className="bg-white rounded-xl border border-[#CFCFCF] overflow-hidden">
+      <div className="overflow-x-auto">
+        <div className="min-w-[800px]">
+          <table className="w-full">
+            <thead className="border-b border-gray-200 font-bold">
+              <tr>
+                <th className="p-4 text-left w-12">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                    checked={selectAll}
+                    onChange={handleSelectAll}
+                  />
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  ITEM
+                </th>
+                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  UNIT
+                </th>
+                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  QUANTITY
+                </th>
+                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  PRICE
+                </th>
+                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  DISCOUNT
+                </th>
+                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  FINAL PRICE
+                </th>
+                <th className="px-4 py-3 text-center w-12"></th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-100">
+              {itemGroup.Items.map((item) => {
+                const selectedUnit = unitSelection[item.id] || item.unit;
+                const isRemoving = removingItems.has(`product-${item.id}`);
+                const isSelected = selectedProducts.has(item.id);
+
+                return (
+                  <tr
+                    key={item.id}
+                    className={`hover:bg-gray-50 transition-colors ${isRemoving ? "opacity-50" : ""} ${isSelected ? "bg-blue-50" : ""}`}
+                  >
+                    <td className="p-4 align-middle">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer disabled:cursor-not-allowed"
+                        checked={isSelected}
+                        onChange={() => handleSelectProduct(item.id)}
+                        disabled={isRemoving}
+                      />
+                    </td>
+                    <td className="px-4 py-4 align-middle">
+                      <div className="flex items-center gap-3">
+                        <div className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden">
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            className="w-full h-full object-contain"
+                            onError={(e) => {
+                              e.currentTarget.src = "/placeholder-image.jpg";
+                            }}
+                          />
+                        </div>
+                        <span className="text-sm font-medium text-gray-900">
+                          {item.name}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 align-middle">
+                      <div className="flex gap-1 justify-center">
+                        {(["kg", "g"] as const).map((unit) => (
+                          <button
+                            key={unit}
+                            onClick={() => handleUnitChange(item.id, unit)}
+                            disabled={isRemoving}
+                            className={`px-3 py-1 text-sm rounded-md border transition-colors cursor-pointer ${selectedUnit === unit
+                              ? "bg-purple-100 text-purple-700 border-purple-300 font-medium"
+                              : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+                              } disabled:opacity-50 disabled:cursor-not-allowed`}
+                          >
+                            {unit}
+                          </button>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 align-middle">
+                      <div className="relative flex items-center gap-2 border border-gray-300 rounded-lg px-3 py-2 w-32 mx-auto bg-white">
+
+                        {/* Minus button with MIN tooltip */}
+                        <div className="relative">
+                          <button
+                            onClick={() => handleProductQuantityChange(item.id, -1)}
+                            disabled={isRemoving}
+                            className="hover:bg-gray-100 p-1 rounded-full flex items-center justify-center disabled:opacity-50 transition-colors cursor-pointer disabled:cursor-not-allowed"
+                          >
+                            <Minus size={14} />
+                          </button>
+
+                          {tooltipStates[item.id] === "min" && (
+                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 z-10">
+                              <div className="bg-[#191D28] text-white text-xs px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
+                                Minimum quantity is{" "}
+                                {(() => {
+                                  const selectedUnit = unitSelection[item.id] || item.unit;
+                                  const displayValue = selectedUnit === "g"
+                                    ? parseFloat((item.startValue * 1000).toFixed(3))
+                                    : item.startValue || 1;
+                                  return displayValue;
+                                })()}{" "}
+                                {unitSelection[item.id] || item.unit}
+                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-red-600"></div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        <span className="text-sm font-medium flex-1 text-center">
+                          {parseFloat(item.quantity.toFixed(3))}
+                        </span>
+
+                        {/* Plus button with MAX tooltip */}
+                        <div className="relative">
+                          <button
+                            onClick={() => handleProductQuantityChange(item.id, 1)}
+                            disabled={isRemoving}
+                            className="hover:bg-gray-100 p-1 rounded-full flex items-center justify-center disabled:opacity-50 transition-colors cursor-pointer disabled:cursor-not-allowed"
+                          >
+                            <Plus size={14} />
+                          </button>
+
+                          {tooltipStates[item.id] === "max" && (
+                            <div className="absolute bottom-full left-0 mb-2 z-10">
+                              <div className="bg-[#191D28] text-white text-xs px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
+                                Maximum quantity is{" "}
+                                {(() => {
+                                  const selectedUnit = unitSelection[item.id] || item.unit;
+                                  const maxValueInKg = item.maxQuantity;
+                                  if (!maxValueInKg) return "∞";
+                                  const displayValue = selectedUnit === "g"
+                                    ? parseFloat((maxValueInKg * 1000).toFixed(3))
+                                    : maxValueInKg;
+                                  return displayValue;
+                                })()}{" "}
+                                {unitSelection[item.id] || item.unit}
+                                <div className="absolute top-full left-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-red-600"></div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 align-middle text-center">
+                      <span className="text-sm font-bold text-[#212121] whitespace-nowrap">
+                        Rs. {formatPrice(getDisplayPrice(item))}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4 align-middle text-center">
+                      <span className="text-sm font-medium text-[#3E206D] whitespace-nowrap">
+                        Rs. {formatPrice(getDisplayDiscount(item))}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4 align-middle text-center">
+                      <span className="text-sm font-bold text-[#212121] whitespace-nowrap">
+                        Rs. {formatPrice(getDisplayPrice(item) - getDisplayDiscount(item))}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4 align-middle text-center">
+                      <button
+                        onClick={() => handleRemoveProduct(item.id)}
+                        disabled={isRemoving}
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed inline-flex items-center justify-center"
+                        title={isRemoving ? "Removing..." : "Remove item"}
+                      >
+                        <Trash size={20} fill="red" strokeWidth={2} />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
 
   if (loading) {
     return (
@@ -733,83 +1453,96 @@ const Page: React.FC = () => {
     );
   }
 
-  // Empty cart state - improved logic
   if (isCartEmpty()) {
     return (
-      <div className="px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5">
-        <TopNavigation NavArray={NavArray} />
-        <div className="flex flex-col items-center justify-center py-8 px-4">
-          {/* Empty Cart Image/Icon */}
-          <div className="mb-6">
-            <Image
-              src={empty}
-              alt="Empty Cart"
-              width={256}
-              height={256}
-              className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 lg:w-64 lg:h-64 object-contain"
-              priority
-            />
-            <ShoppingCart
-              size={80}
-              className="text-gray-400 hidden"
-            />
-          </div>
+      <>
+        <SuccessPopup
+          key={successPopupKey}
+          isVisible={showSuccessPopup}
+          onClose={() => setShowSuccessPopup(false)}
+          title="Successfully Deleted!"
+        />
+        <div className="px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5">
+          <TopNavigation NavArray={NavArray} />
+          <div className="flex flex-col items-center justify-center py-8 px-4">
+            <div className="mb-6">
+              <Image
+                src={empty}
+                alt="Empty Cart"
+                width={256}
+                height={256}
+                className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 lg:w-64 lg:h-64 object-contain"
+                priority
+              />
+              <ShoppingCart size={80} className="text-gray-400 hidden" />
+            </div>
 
-          {/* Empty Cart Text */}
-          <div className="text-center max-w-md">
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-3">
-              Your Cart is Empty
-            </h2>
-            <p className="text-gray-600 text-base sm:text-lg mb-6">
-              Looks like you haven't added any items to your cart yet.
-              Start shopping to fill it up!
-            </p>
+            <div className="text-center max-w-md">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-3">
+                Your Cart is Empty
+              </h2>
+              <p className="text-gray-600 text-base sm:text-lg mb-6">
+                Looks like you haven't added any items to your cart yet. Start
+                shopping to fill it up!
+              </p>
 
-            {/* Continue Shopping Button */}
-            <button
-              onClick={handleContinueShopping}
-              className="bg-[#3E206D] text-white font-semibold px-8 py-3 rounded-lg text-lg hover:bg-[#2F1A5B] transition-colors shadow-lg cursor-pointer"
-            >
-              Continue Shopping
-            </button>
+              <button
+                onClick={handleContinueShopping}
+                className="bg-[#3E206D] text-white font-semibold px-8 py-3 rounded-lg text-lg hover:bg-[#2F1A5B] transition-colors shadow-lg cursor-pointer"
+              >
+                Continue Shopping
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
     <>
-      {/* Confirmation Modal - Moved to top level */}
+      <SuccessPopup
+        key={successPopupKey}
+        isVisible={showSuccessPopup}
+        onClose={() => {
+          setShowSuccessPopup(false);
+        }}
+        title="Successfully Deleted!"
+      />
+
       {showConfirmModal && (
-        <div className="fixed inset-0 bg-black/40 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-96 text-center">
-            <p className="text-lg font-medium mb-6">
-              {showConfirmModal.type === 'bulk'
-                ? `Are you sure you want to remove ${showConfirmModal.selectedIds?.length === 1 ? '' : showConfirmModal.selectedIds?.length} selected ${showConfirmModal.selectedIds?.length === 1 ? 'product' : 'products'}?`
-                : `Are you sure you want to remove this package?`
-              }
+        <div className="fixed inset-0 bg-black/40 bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-sm md:max-w-md lg:max-w-lg text-center mx-4 md:mx-0">
+            <p className="text-base md:text-lg font-medium mb-4 md:mb-6">
+              {showConfirmModal.type === "bulk"
+                ? `Are you sure you want to remove ${showConfirmModal.selectedIds?.length === 1 ? "" : showConfirmModal.selectedIds?.length} selected ${showConfirmModal.selectedIds?.length === 1 ? "product" : "products"}?`
+                : `Are you sure you want to remove this package?`}
             </p>
-            <div className="flex justify-center gap-4">
+            <div className="flex justify-center gap-3 md:gap-4">
               <button
                 onClick={() => setShowConfirmModal(null)}
-                className="px-6 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors cursor-pointer"
+                className="px-4 md:px-6 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors cursor-pointer"
               >
                 Cancel
               </button>
               <button
-                onClick={() => {
-                  if (showConfirmModal.type === 'bulk') {
+                onClick={async () => {
+                  setSuccessPopupKey((prev) => prev + 1);
+                  setShowSuccessPopup(true);
+                  setShowConfirmModal(null);
+
+                  if (showConfirmModal.type === "bulk") {
                     confirmBulkDelete(showConfirmModal.selectedIds || []);
                   } else {
                     confirmRemovePackage(showConfirmModal.id);
                   }
-                  setShowConfirmModal(null);
                 }}
-                disabled={showConfirmModal.type === 'bulk' && bulkDeleteLoading}
-                className="px-6 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors disabled:opacity-50 cursor-pointer"
+                disabled={showConfirmModal.type === "bulk" && bulkDeleteLoading}
+                className="px-4 md:px-6 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors disabled:opacity-50 cursor-pointer"
               >
-                {showConfirmModal.type === 'bulk' && bulkDeleteLoading ? 'Removing...' : 'Remove'}
+                {showConfirmModal.type === "bulk" && bulkDeleteLoading
+                  ? "Removing..."
+                  : "Remove"}
               </button>
             </div>
           </div>
@@ -819,10 +1552,9 @@ const Page: React.FC = () => {
       {showDeliveryModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
           <div className="bg-[#3E206D] p-8 rounded-2xl shadow-2xl w-full max-w-md relative">
-            {/* Close Button */}
             <button
               onClick={() => setShowDeliveryModal(false)}
-              className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors duration-200 border border-white  p-1 hover:border-gray-300 cursor-pointer"
+              className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors duration-200 border border-white p-1 hover:border-gray-300 cursor-pointer"
             >
               <X size={15} />
             </button>
@@ -831,9 +1563,8 @@ const Page: React.FC = () => {
             </h2>
 
             <div className="grid grid-cols-2 gap-4 mb-6">
-              {/* In-store Pickup Option */}
               <button
-                onClick={() => handleDeliveryMethodSelect('pickup')}
+                onClick={() => handleDeliveryMethodSelect("pickup")}
                 className="bg-white rounded-2xl p-6 flex flex-col items-center justify-center hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer"
               >
                 <div className="mb-4">
@@ -849,9 +1580,8 @@ const Page: React.FC = () => {
                 </div>
               </button>
 
-              {/* Home Delivery Option */}
               <button
-                onClick={() => handleDeliveryMethodSelect('delivery')}
+                onClick={() => handleDeliveryMethodSelect("delivery")}
                 className="bg-white rounded-2xl p-6 flex flex-col items-center justify-center hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer"
               >
                 <div className="mb-4">
@@ -870,274 +1600,221 @@ const Page: React.FC = () => {
           </div>
         </div>
       )}
-      <div className='px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5'>
+
+      <div className="px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5">
         <TopNavigation NavArray={NavArray} />
 
-        <div className='flex flex-col lg:flex-row lg:items-start gap-4 sm:gap-6 items-start'>
-          <div className='w-full lg:w-2/3'>
+        <div className="flex flex-col lg:flex-row lg:items-start gap-4 sm:gap-6 items-start">
+          <div className="w-full lg:w-2/3">
             {cartData.additionalItems.map((itemGroup: AdditionalItems) => (
-              <div key={itemGroup.id} className='my-4 sm:my-6 lg:my-8'>
-                {/* Header section with package name on left, total on right */}
-                <div className='flex justify-between items-start mb-4'>
-                  <div className='flex items-center gap-2'>
-                    <p className='text-[20px] font-normal text-gray-700'>
-                      Your {itemGroup.packageName == 'Selected Items' ? 'Additional Selections' : 'Selected Items'}
+              <div key={itemGroup.id} className="my-4 sm:my-6 lg:my-8">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex items-center gap-2">
+                    <p className="text-[20px] font-normal text-gray-700">
+                      Your{" "}
+                      {itemGroup.packageName == "Selected Items"
+                        ? "Additional Selections"
+                        : "Selected Items"}
                     </p>
                   </div>
 
-                  {/* Total price in right corner */}
-                  <span className='text-lg font-bold text-[#3E206D]'>
+                  <span className="text-lg font-bold text-[#3E206D]">
                     Rs. {formatPrice(calculateItemGroupTotal(itemGroup))}
                   </span>
                 </div>
 
-                {/* Full width horizontal line */}
-                <div className='w-full h-0.5 bg-[#9E8FB5] mb-2'></div>
+                <div className="w-full h-0.5 bg-[#9E8FB5] mb-2"></div>
 
-                {/* Bulk Delete Button - Only show when items are selected */}
                 {selectedProducts.size > 0 && (
-                  <div className='flex justify-end mb-4 '>
+                  <div className="flex justify-end mb-4">
                     <button
                       onClick={handleBulkDelete}
                       disabled={bulkDeleteLoading}
-                      className='flex items-center gap-2 text-[#FF000D] px-4 py-2 rounded-lg transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed'
+                      className="flex items-center gap-2 text-[#FF000D] px-4 py-2 rounded-lg transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                     >
                       <Trash size={20} fill="red" strokeWidth={2} />
-                      <span className='text-sm underline'>
+                      <span className="text-sm underline">
                         Delete Selected Items
                       </span>
                     </button>
                   </div>
                 )}
 
+                {/* Conditional rendering based on screen size */}
+                {isMobile ? (
+                  <>
+                    {/* Mobile Card View */}
+                    {itemGroup.Items.map((item) => {
+                      const selectedUnit = unitSelection[item.id] || item.unit;
+                      const isRemoving = removingItems.has(`product-${item.id}`);
+                      const isSelected = selectedProducts.has(item.id);
 
-                {/* Updated table design to match UI */}
-                <div className="bg-white rounded-xl border border-[#CFCFCF] overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <div className="min-w-[800px]">
-                      <table className="w-full">
-                        <thead className=" border-b border-gray-200 font-bold">
-                          <tr>
-                            <th className="p-4 text-left">
-                              <input
-                                type="checkbox"
-                                className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
-                                checked={selectAll}
-                                onChange={handleSelectAll}
-                              />
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              ITEM
-                            </th>
-                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              UNIT
-                            </th>
-                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              QUANTITY
-                            </th>
-                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              DISCOUNT
-                            </th>
-                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              PRICE
-                            </th>
-                            <th className="px-4 py-3 text-center w-12"></th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-100">
-                          {itemGroup.Items.map((item) => {
-                            const selectedUnit = unitSelection[item.id] || item.unit;
-                            const isRemoving = removingItems.has(`product-${item.id}`);
-                            const isSelected = selectedProducts.has(item.id);
-
-                            return (
-                              <tr key={item.id} className={`hover:bg-gray-50 transition-colors ${isRemoving ? 'opacity-50' : ''} ${isSelected ? 'bg-blue-50' : ''}`}>
-                                <td className="p-4">
-                                  <input
-                                    type="checkbox"
-                                    className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer disabled:cursor-not-allowed"
-                                    checked={isSelected}
-                                    onChange={() => handleSelectProduct(item.id)}
-                                    disabled={isRemoving}
-                                  />
-                                </td>
-                                <td className="px-4 py-4">
-                                  <div className="flex items-center gap-3">
-                                    <div className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden">
-                                      <img
-                                        src={item.image}
-                                        alt={item.name}
-                                        className="w-full h-full object-contain"
-                                        onError={(e) => {
-                                          e.currentTarget.src = '/placeholder-image.jpg'; // Add a fallback image
-                                        }}
-                                      />
-                                    </div>
-                                    <span className="text-sm font-medium text-gray-900">
-                                      {item.name}
-                                    </span>
-                                  </div>
-                                </td>
-                                <td className="px-4 py-4">
-                                  <div className="flex gap-1 justify-center">
-                                    {(['kg', 'g'] as const).map(unit => (
-                                      <button
-                                        key={unit}
-                                        onClick={() => handleUnitChange(item.id, unit)}
-                                        disabled={isRemoving}
-                                        className={`px-3 py-1 text-sm rounded-md border transition-colors cursor-pointer ${selectedUnit === unit
-                                          ? 'bg-purple-100 text-purple-700 border-purple-300 font-medium'
-                                          : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
-                                          } disabled:opacity-50 disabled:cursor-not-allowed`}
-                                      >
-                                        {unit}
-                                      </button>
-                                    ))}
-                                  </div>
-                                </td>
-                                <td className="px-4 py-4 relative">
-                                  <div className='flex items-center gap-2 border border-gray-300 rounded-lg px-3 py-2 w-32 mx-auto bg-white'>
-                                    <div className="relative">
-                                      <button
-                                        onClick={() => handleProductQuantityChange(item.id, -1)}
-                                        disabled={isRemoving}
-                                        className="hover:bg-gray-100 p-1 rounded-full flex items-center justify-center disabled:opacity-50 transition-colors cursor-pointer disabled:cursor-not-allowed"
-                                      >
-                                        <Minus size={14} />
-                                      </button>
-
-                                      {/* Tooltip */}
-                                      {tooltipStates[item.id] && (
-                                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 z-10">
-                                          <div className="bg-[#191D28] text-white text-xs px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
-                                            {tooltipStates[item.id] === 'min' ? (
-                                              <>
-                                                Minimum quantity is {(() => {
-                                                  const selectedUnit = unitSelection[item.id] || item.unit;
-                                                  let startValue = item.startValue || 1;
-
-                                                  if (selectedUnit === 'g' && item.unit === 'kg') {
-                                                    startValue = parseFloat((startValue * 1000).toFixed(3));
-                                                  } else if (selectedUnit === 'kg' && item.unit === 'g') {
-                                                    startValue = parseFloat((startValue / 1000).toFixed(3));
-                                                  }
-
-                                                  return parseFloat(startValue.toFixed(3));
-                                                })()} {unitSelection[item.id] || item.unit}
-                                              </>
-                                            ) : (
-                                              <>
-                                                Maximum quantity is {(() => {
-                                                  const selectedUnit = unitSelection[item.id] || item.unit;
-                                                  let maxValue = item.maxQuantity || Infinity;
-
-                                                  if (maxValue !== Infinity && selectedUnit !== item.unit) {
-                                                    if (selectedUnit === 'g' && item.unit === 'kg') {
-                                                      maxValue = parseFloat((maxValue * 1000).toFixed(3));
-                                                    } else if (selectedUnit === 'kg' && item.unit === 'g') {
-                                                      maxValue = parseFloat((maxValue / 1000).toFixed(3));
-                                                    }
-                                                  }
-
-                                                  return parseFloat(maxValue.toFixed(3));
-                                                })()} {unitSelection[item.id] || item.unit}
-                                              </>
-                                            )}
-
-                                            {/* Tooltip arrow */}
-                                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-red-600"></div>
-                                          </div>
-                                        </div>
-                                      )}
-                                    </div>
-
-                                    <span className="text-sm font-medium flex-1 text-center">
-                                      {parseFloat(item.quantity.toFixed(3))}
-                                    </span>
-
-                                    <button
-                                      onClick={() => handleProductQuantityChange(item.id, 1)}
-                                      disabled={isRemoving}
-                                      className="hover:bg-gray-100 p-1 rounded-full flex items-center justify-center disabled:opacity-50 transition-colors cursor-pointer disabled:cursor-not-allowed"
-                                    >
-                                      <Plus size={14} />
-                                    </button>
-                                  </div>
-                                </td>
-                                <td className="px-4 py-4 text-center">
-                                  <span className="text-sm font-medium text-[#3E206D]">
-                                    Rs.{formatPrice(getDisplayDiscount(item))}
-                                  </span>
-                                </td>
-                                <td className="px-4 py-4 text-center">
-                                  <span className="text-sm font-bold text-[#212121]">
-                                    Rs.{formatPrice(getDisplayPrice(item))}
-                                  </span>
-                                </td>
-                                <td className="px-4 py-4 text-center">
-                                  <button
-                                    onClick={() => handleRemoveProduct(item.id)}
-                                    disabled={isRemoving}
-                                    className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-                                    title={isRemoving ? 'Removing...' : 'Remove item'}
-                                  >
-                                    <Trash size={20} fill="red" strokeWidth={2} />
-                                  </button>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
+                      return (
+                        <MobileProductCard
+                          key={item.id}
+                          item={item}
+                          selectedUnit={selectedUnit}
+                          isRemoving={isRemoving}
+                          isSelected={isSelected}
+                          tooltipStates={tooltipStates}
+                          unitSelection={unitSelection}
+                          onSelect={() => handleSelectProduct(item.id)}
+                          onUnitChange={(unit) => handleUnitChange(item.id, unit)}
+                          onQuantityChange={(delta) => handleProductQuantityChange(item.id, delta)}
+                          onRemove={() => handleRemoveProduct(item.id)}
+                          formatPrice={formatPrice}
+                          getDisplayPrice={getDisplayPrice}
+                          getDisplayDiscount={getDisplayDiscount}
+                        />
+                      );
+                    })}
+                  </>
+                ) : (
+                  <HorizontalScrollWrapper>
+                    <TableDesktop itemGroup={itemGroup} />
+                  </HorizontalScrollWrapper>
+                )}
               </div>
             ))}
 
+            <div className="space-y-4 sm:space-y-6 mt-6 sm:mt-8">
+              {/* Mobile View */}
+              {isMobile && cartData.packages.length > 0 && (
+                <div>
+                  <div className="flex justify-between items-center mb-3 pb-2 border-b border-gray-300">
+                    <h3 className="text-[18px] font-normal text-[#252525]">
+                      Your Selected Packages
+                    </h3>
+                  </div>
 
-            <div className='space-y-4 sm:space-y-6 mt-6 sm:mt-8'>
-              {cartData.packages.map((pkg) => {
+                  <div className="space-y-3">
+                    {cartData.packages.map((pkg, index) => {
+                      if (pkg.status === "Disabled") {
+                        return (
+                          <InvalidPackageCard
+                            key={index}
+                            pkg={pkg}
+                            onRemove={handleRemoveInvalidPackage}
+                            isRemoving={removingItems.has(`package-${pkg.id}`)}
+                          />
+                        );
+                      }
+
+                      const isRemoving = removingItems.has(`package-${pkg.id}`);
+                      return (
+                        <div
+                          key={index}
+                          className={`bg-white border border-gray-200 rounded-xl p-4 shadow-sm ${isRemoving ? "opacity-50" : ""}`}
+                        >
+                          {/* Package Name Row */}
+                          <div className="flex items-start justify-between gap-2 mb-1">
+                            <span className="font-semibold text-[#252525] text-base leading-snug flex-1">
+                              {pkg.packageName}
+                            </span>
+                            <button
+                              onClick={() => handleRemovePackage(pkg.id)}
+                              disabled={isRemoving}
+                              className="text-red-500 hover:scale-105 transition-transform disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed flex-shrink-0"
+                              title={isRemoving ? "Removing..." : "Remove package"}
+                            >
+                              <Trash size={18} fill="red" strokeWidth={2} />
+                            </button>
+                          </div>
+
+                          {/* Items Count */}
+                          <p className="text-sm text-gray-500 mb-3">
+                            {pkg.totalItems} {pkg.totalItems === 1 ? "Item" : "Items"}
+                          </p>
+
+                          {/* Price */}
+                          <div className="flex justify-between items-center mb-3 pb-3 border-b border-gray-100">
+                            <span className="text-sm text-gray-500">Package Price</span>
+                            <span className="font-bold text-[#3E206D]">
+                              Rs. {formatPrice(pkg.price * pkg.quantity)}
+                            </span>
+                          </div>
+
+                          {/* Items List */}
+                          <div className="space-y-2">
+                            <div className="grid grid-cols-2 mb-2">
+                              <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">Items</span>
+                              <span className="text-xs font-medium text-gray-400 uppercase tracking-wide text-right">Quantity</span>
+                            </div>
+                            {pkg.items.map((item, idx) => (
+                              <div key={idx} className="grid grid-cols-2 items-center">
+                                <span className="text-sm text-gray-900 font-medium">{item.name}</span>
+                                <span className="text-sm text-gray-900 font-medium text-right">
+                                  {String(item.quantity).padStart(2, "0")}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Desktop View - unchanged */}
+              {!isMobile && cartData.packages.map((pkg, index) => {
+                if (pkg.status === "Disabled") {
+                  return (
+                    <InvalidPackageCard
+                      key={index}
+                      pkg={pkg}
+                      onRemove={handleRemoveInvalidPackage}
+                      isRemoving={removingItems.has(`package-${pkg.id}`)}
+                    />
+                  );
+                }
                 const isRemoving = removingItems.has(`package-${pkg.id}`);
-
                 return (
-                  <div key={pkg.id} className={`w-full ${isRemoving ? 'opacity-50' : ''}`}>
-                    <div className='flex flex-col sm:flex-row sm:justify-between sm:items-center mb-3 sm:mb-4 pb-2 border-b border-gray-300 gap-2 sm:gap-0'>
-                      <div className='flex items-center gap-3'>
-                        <h3 className='text-[20px] font-normal text-[#252525] leading-relaxed'>
-                          Your Selected Package : <span className='font-semibold'>{pkg.packageName}</span> ({pkg.totalItems} Items)
+                  <div
+                    key={index}
+                    className={`w-full ${isRemoving ? "opacity-50" : ""}`}
+                  >
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-3 sm:mb-4 pb-2 border-b border-gray-300 gap-2 sm:gap-0">
+                      <div className="flex items-start gap-2">
+                        <h3 className="text-[20px] font-normal text-[#252525] leading-relaxed">
+                          Your Selected Package :{" "}
+                          <span className="font-semibold">{pkg.packageName}</span>{" "}
+                          ({pkg.totalItems} Items)
                         </h3>
                         <button
                           onClick={() => handleRemovePackage(pkg.id)}
                           disabled={isRemoving}
-                          className='text-red-500 hover:scale-105 transition-transform disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed'
-                          title={isRemoving ? 'Removing...' : 'Remove package'}
+                          className="text-red-500 hover:scale-105 transition-transform disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed flex-shrink-0 mt-1"
+                          title={isRemoving ? "Removing..." : "Remove package"}
                         >
                           <Trash size={20} fill="red" strokeWidth={2} />
                         </button>
                       </div>
-                      <div className='flex items-center justify-end'>
-                        <span className='text-base sm:text-lg font-bold text-[#3E206D]'>Rs. {formatPrice(pkg.price * pkg.quantity)}</span>
+                      <div className="flex items-center justify-end">
+                        <span className="text-base sm:text-lg font-bold text-[#3E206D]">
+                          Rs. {formatPrice(pkg.price * pkg.quantity)}
+                        </span>
                       </div>
                     </div>
 
-                    <div className='bg-white border border-gray-200 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-sm'>
-                      <div className='grid grid-cols-2 pb-3 sm:pb-4 mb-3 sm:mb-4 border-b border-gray-200'>
-                        <span className='text-xs sm:text-sm font-medium text-gray-500 uppercase tracking-wide'>ITEMS</span>
-                        <span className='text-xs sm:text-sm font-medium text-gray-500 uppercase tracking-wide text-right'>QUANTITY</span>
+                    <div className="bg-white border border-gray-200 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-sm">
+                      <div className="grid grid-cols-2 pb-3 sm:pb-4 mb-3 sm:mb-4 border-b border-gray-200">
+                        <span className="text-xs sm:text-sm font-medium text-gray-500 uppercase tracking-wide">
+                          ITEMS
+                        </span>
+                        <span className="text-xs sm:text-sm font-medium text-gray-500 uppercase tracking-wide text-right">
+                          QUANTITY
+                        </span>
                       </div>
-
-                      <div className='space-y-3 sm:space-y-4'>
+                      <div className="space-y-3 sm:space-y-4">
                         {pkg.items.map((item, index) => (
-                          <div key={index} className='grid grid-cols-2 items-center gap-2'>
-                            <div className='flex items-center gap-2 sm:gap-3 min-w-0'>
-                              <span className='text-sm sm:text-base text-gray-900 font-medium truncate pr-1'>
-                                {item.name}
-                              </span>
-                            </div>
-                            <div className='text-right'>
-                              <span className='text-sm sm:text-base text-gray-900 font-medium'>
-                                {String(item.quantity).padStart(2, '0')}
+                          <div key={index} className="grid grid-cols-2 items-center gap-2">
+                            <span className="text-sm sm:text-base text-gray-900 font-medium truncate pr-1">
+                              {item.name}
+                            </span>
+                            <div className="text-right">
+                              <span className="text-sm sm:text-base text-gray-900 font-medium">
+                                {String(item.quantity).padStart(2, "0")}
                               </span>
                             </div>
                           </div>
@@ -1150,12 +1827,14 @@ const Page: React.FC = () => {
             </div>
           </div>
 
-          <div className='w-full lg:w-1/3 mt-6 lg:mt-0 pt-14'>
-            <div className='border border-[#171717] rounded-lg shadow-md p-4 sm:p-5 md:p-6 md:mx-10 sm:mr-10'>
-              <h2 className='font-semibold text-base sm:text-lg mb-3 sm:mb-4'>Your Order</h2>
+          <div className="w-full lg:w-1/3 mt-2 lg:mt-0 lg:pt-14">
+            <div className="border border-[#171717] rounded-lg shadow-md p-4 sm:p-5 md:p-6 md:mx-10 sm:mr-10">
+              <h2 className="font-semibold text-base sm:text-lg mb-3 sm:mb-4">
+                Your Order
+              </h2>
 
-              <div className='flex justify-between items-center mb-3 sm:mb-4'>
-                <div className='flex items-center gap-2 sm:gap-3'>
+              <div className="flex justify-between items-center mb-3 sm:mb-4">
+                <div className="flex items-center gap-2 sm:gap-3">
                   <div className="w-12 sm:w-14 md:w-16 h-12 sm:h-14 md:h-16 border border-[gray] rounded-lg flex items-center justify-center">
                     <Image
                       src={summary}
@@ -1166,74 +1845,108 @@ const Page: React.FC = () => {
                     />
                   </div>
                   <p className="text-sm sm:text-base">
-                    {dynamicSummary.totalItems} {dynamicSummary.totalItems === 1 ? 'item' : 'items'}
+                    {dynamicSummary.totalItems}{" "}
+                    {dynamicSummary.totalItems === 1 ? "item" : "items"}
                   </p>
                 </div>
-                <p className='font-semibold text-sm sm:text-base'>Rs.{formatPrice(dynamicSummary.grandTotal)}</p>
+                <p className="font-semibold text-sm sm:text-base">
+                  Rs. {formatPrice(dynamicSummary.grandTotal)}
+                </p>
               </div>
 
               {cartData.cart?.isCoupon === 1 ? (
-                <div className='bg-green-50 border border-green-200 rounded-lg p-3 mb-3'>
-                  <div className='flex justify-between items-center'>
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-3">
+                  <div className="flex justify-between items-center">
                     <div>
-                      <p className='text-sm text-green-800 font-medium'>Coupon Applied</p>
-                      <p className='text-xs text-green-600'>You saved Rs.{calculatedSummary?.totalDiscount?.toFixed(2) || '0.00'}</p>
+                      <p className="text-sm text-green-800 font-medium">
+                        Coupon Applied
+                      </p>
+                      <p className="text-xs text-green-600">
+                        You saved Rs.{" "}
+                        {calculatedSummary?.totalDiscount?.toFixed(2) || "0.00"}
+                      </p>
                     </div>
                     <button
-                      // onClick={handleRemoveCoupon}
                       disabled={couponLoading}
-                      className='text-red-500 hover:text-red-700 text-sm font-medium'
+                      className="text-red-500 hover:text-red-700 text-sm font-medium"
                     >
                       Remove
                     </button>
                   </div>
                 </div>
               ) : (
-                <div className='flex flex-row gap-3 w-full mt-2 sm:mt-3'>
-                </div>
+                <div className="flex flex-row gap-3 w-full mt-2 sm:mt-3"></div>
               )}
 
               {couponMessage && (
-                <div className={`mt-2 text-sm p-2 rounded ${couponMessage.type === 'success'
-                  ? 'bg-green-100 text-green-800 border border-green-200'
-                  : 'bg-red-100 text-red-800 border border-red-200'
-                  }`}>
+                <div
+                  className={`mt-2 text-sm p-2 rounded ${couponMessage.type === "success"
+                    ? "bg-green-100 text-green-800 border border-green-200"
+                    : "bg-red-100 text-red-800 border border-red-200"
+                    }`}
+                >
                   {couponMessage.text}
                 </div>
               )}
 
-              <div className='border-t border-dotted border-gray-300 my-3 sm:my-4' />
+              <div className="border-t border-dotted border-gray-300 my-3 sm:my-4" />
 
-              <div className='space-y-2 mb-4'>
-                <div className='flex justify-between text-sm sm:text-base'>
-                  <p className='text-gray-600'>Total</p>
-                  <p>Rs.{formatPrice(dynamicSummary.grandTotal)}</p>
+              <div className="space-y-2 mb-4">
+                <div className="flex justify-between text-sm sm:text-base">
+                  <p className="text-gray-600">Total</p>
+                  <p>Rs. {formatPrice(dynamicSummary.grandTotal)}</p>
                 </div>
 
                 {dynamicSummary.totalDiscount > 0 && (
-                  <div className='flex justify-between text-sm sm:text-base'>
-                    <p className='text-gray-600'>Discount</p>
-                    <p className='text-gray-600'>Rs.{formatPrice(dynamicSummary.totalDiscount)}</p>
+                  <div className="flex justify-between text-sm sm:text-base">
+                    <p className="text-gray-600">Discount</p>
+                    <p className="text-[#BE2A45]">
+                      - Rs. {formatPrice(Math.round(dynamicSummary.totalDiscount * 100) / 100)}
+                    </p>
                   </div>
                 )}
 
-                <div className='border-t border-gray-200 pt-2'>
-                  <div className='flex justify-between text-[20px] text-[#414347] font-semibold'>
+                <div className="border-t border-gray-200 pt-2">
+                  <div className="flex justify-between text-[20px] text-[#414347] font-semibold">
                     <p>Grand Total</p>
-                    <p>Rs.{formatPrice(dynamicSummary.finalTotal)}</p>
+                    <p>Rs. {formatPrice(dynamicSummary.finalTotal)}</p>
                   </div>
                 </div>
               </div>
 
-
               <button
                 onClick={handleCheckout}
-                disabled={checkoutLoading || isCartEmpty() || dynamicSummary.totalItems === 0}
-                className='w-full bg-[#3E206D] text-white font-semibold rounded-lg py-3 text-sm sm:text-base hover:bg-[#2F1A5B] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
+                disabled={
+                  checkoutLoading ||
+                  isCartEmpty() ||
+                  dynamicSummary.totalItems === 0 ||
+                  hasInvalidPackage()
+                }
+                className="w-full bg-[#3E206D] text-white font-semibold rounded-xl py-3.5 hover:bg-[#2f1854] transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#3E206D]"
+                title={
+                  hasInvalidPackage()
+                    ? "Remove the invalid package before checking out"
+                    : undefined
+                }
               >
-                {checkoutLoading ? 'Processing...' : 'Checkout Now'}
+                {checkoutLoading ? "Processing..." : "Checkout Now"}
               </button>
             </div>
+            {dynamicSummary.savedAmount > 0 && (
+              <div className="bg-[#EEFFE9] border border-[#D4F6CC] rounded-lg p-4 mt-4 md:mx-10 sm:mr-10">
+                <p className="flex items-center gap-1.5 text-sm font-semibold text-[#12802E] mb-1">
+                  <Trophy size={16} />
+                  Congratulations!
+                </p>
+                <p className="text-sm text-gray-700">
+                  You have saved{" "}
+                  <span className="font-bold text-gray-900">
+                    Rs. {formatPrice(dynamicSummary.savedAmount)}
+                  </span>{" "}
+                  with Polygon than the market price.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>

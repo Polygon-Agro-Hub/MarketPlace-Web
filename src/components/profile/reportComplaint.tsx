@@ -1,5 +1,5 @@
-
 'use client';
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { FaCloudUploadAlt, FaTimes, FaAngleDown } from 'react-icons/fa';
@@ -10,7 +10,6 @@ import Loader from '@/components/loader-spinner/Loader';
 import { submitComplaint, fetchComplaintCategories, Category } from '@/services/auth-service';
 import { UseFormRegister } from 'react-hook-form';
 
-// Interface for Complaint data structure
 interface Complaint {
   id?: number;
   complaintCategoryId: number;
@@ -18,17 +17,14 @@ interface Complaint {
   images: { id?: number; url: string }[];
 }
 
-// Props interface for the component
 interface ReportComplaintFormProps {
   complaint?: Complaint;
 }
 
-// Form data type for CustomDropdown
 type FormData = {
   categoryId: string;
 };
 
-// Custom Dropdown Component
 interface CustomDropdownProps {
   register?: UseFormRegister<FormData>;
   name: keyof FormData;
@@ -36,35 +32,50 @@ interface CustomDropdownProps {
   onChange: (value: string) => void;
   options: { value: string; label: string }[];
   disabled?: boolean;
+  withSearch?: boolean;
 }
 
-const CustomDropdown = ({ register, name, value, onChange, options, disabled }: CustomDropdownProps) => {
+const CustomDropdown = ({ register, name, value, onChange, options, disabled, withSearch }: CustomDropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Handle clicking outside to close dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
+        setSearchTerm('');
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Handle option selection
+  useEffect(() => {
+    if (isOpen && withSearch && searchInputRef.current) {
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 50);
+    }
+  }, [isOpen, withSearch]);
+
   const handleSelect = (selectedValue: string) => {
     onChange(selectedValue);
     setIsOpen(false);
+    setSearchTerm('');
   };
+
+  const filteredOptions = withSearch && searchTerm
+    ? options.filter(option =>
+      option.label.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    : options;
 
   return (
     <div className="relative cursor-pointer" ref={dropdownRef}>
-      {/* Hidden input for React Hook Form if register is provided */}
       {register && <input type="hidden" {...register(name)} value={value} />}
 
-      {/* Dropdown Trigger */}
       <div
         className={`appearance-none border border-[#CECECE] cursor-pointer rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px] pr-8 flex items-center justify-between ${disabled ? 'opacity-50 cursor-not-allowed' : ''
           }`}
@@ -76,25 +87,47 @@ const CustomDropdown = ({ register, name, value, onChange, options, disabled }: 
         <FaAngleDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none" />
       </div>
 
-      {/* Dropdown Options */}
       {isOpen && (
-        <ul className="absolute z-10 w-full bg-white border border-[#CECECE] rounded-lg mt-1">
-          {options.map((option) => (
-            <li
-              key={option.value}
-              className="p-2 text-[12px] md:text-[14px] cursor-pointer hover:bg-gray-100"
-              onClick={() => handleSelect(option.value)}
-            >
-              {option.label}
-            </li>
-          ))}
-        </ul>
+        <div className="absolute z-10 w-full bg-white border border-[#CECECE] rounded-lg mt-1 shadow-lg max-h-[300px] overflow-hidden">
+          {/* Search Bar */}
+          {withSearch && (
+            <div className="sticky top-0 bg-white p-2 border-b border-[#CECECE]">
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search..."
+                className="w-full p-2 text-[12px] md:text-[14px] border border-[#CECECE] rounded-md focus:outline-none focus:border-[#3E206D]"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+          )}
+
+          {/* Options List */}
+          <ul className="overflow-y-auto" style={{ maxHeight: withSearch ? '252px' : '300px' }}>
+            {filteredOptions.length > 0 ? (
+              filteredOptions.map((option) => (
+                <li
+                  key={option.value}
+                  className="p-2 text-[12px] md:text-[14px] cursor-pointer hover:bg-gray-100"
+                  onClick={() => handleSelect(option.value)}
+                >
+                  {option.label}
+                </li>
+              ))
+            ) : (
+              <li className="p-2 text-[12px] md:text-[14px] text-gray-500 text-center">
+                No results found
+              </li>
+            )}
+          </ul>
+        </div>
       )}
     </div>
   );
 };
 
-// Cancel Success Popup component
 interface CancelSuccessPopupProps {
   isVisible: boolean;
   onClose: () => void;
@@ -137,16 +170,13 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
   const [isLoading, setIsLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
 
-  // Redux auth state
   const { token, user } = useSelector((state: RootState) => state.auth);
   const userId = user?.id;
 
-  // Category options
   const categoryOptions = categories.map((cat) => ({
     value: cat.id.toString(),
     label: cat.categoryEnglish
   }));
-  // Fetch categories from backend
   useEffect(() => {
     const loadCategories = async () => {
       setIsLoading(true);
@@ -167,7 +197,6 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
     loadCategories();
   }, []);
 
-  // Populate form with existing complaint data
   useEffect(() => {
     if (complaint && categories.length > 0) {
       const selectedCategory = categories.find((cat) => cat.id === complaint.complaintCategoryId);
@@ -199,7 +228,58 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
     setIsDragging(false);
   };
 
- const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const compressImage = (file: File, maxWidth = 1600, maxHeight = 1600, quality = 0.8): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+
+        let { width, height } = img;
+        if (width > maxWidth || height > maxHeight) {
+          const ratio = Math.min(maxWidth / width, maxHeight / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Could not get canvas context'));
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const outputType = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              reject(new Error('Canvas toBlob failed'));
+              return;
+            }
+            resolve(new File([blob], file.name, { type: outputType, lastModified: Date.now() }));
+          },
+          outputType,
+          quality,
+        );
+      };
+
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error('Failed to load image for compression'));
+      };
+
+      img.src = objectUrl;
+    });
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const filesArray = Array.from(e.target.files);
       const validImages: File[] = [];
@@ -207,11 +287,13 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
       let hasInvalidSize = false;
       let hasDuplicates = false;
 
-      filesArray.forEach((file) => {
-        const isValidType = ['image/jpeg', 'image/png'].includes(file.type);
-        const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB limit
+      const allowedTypes = ['image/jpeg', 'image/png'];
+      const allowedExtensions = ['jpg', 'jpeg', 'png'];
 
-        // More reliable duplicate check - just check name and size
+      filesArray.forEach((file) => {
+        const fileExtension = file.name.split('.').pop()?.toLowerCase();
+        const isValidType = allowedTypes.includes(file.type) && allowedExtensions.includes(fileExtension || '');
+        const isValidSize = file.size <= 5 * 1024 * 1024;
         const isDuplicate = images.some((img) => img.name === file.name && img.size === file.size);
 
         if (isDuplicate) {
@@ -221,18 +303,16 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
         } else if (!isValidSize) {
           hasInvalidSize = true;
         } else {
-          // Only add if it's valid and not a duplicate
           validImages.push(file);
         }
       });
 
-      // Check total images limit before adding
       const totalImages = existingImages.length + images.length + validImages.length;
 
-      // Show error messages with proper priority
       if (totalImages > 6) {
         setErrorMessage('You can upload a maximum of 6 images.');
         setShowErrorPopup(true);
+        e.target.value = '';
         return;
       }
 
@@ -247,17 +327,25 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
         setShowErrorPopup(true);
       }
 
-      // Add valid images even if there were duplicates/invalid files
       if (validImages.length > 0) {
-        setImages((prev) => [...prev, ...validImages]);
+        // Compress each valid image before adding it to state — falls back
+        // to the original file if compression fails for any single image
+        const compressedImages = await Promise.all(
+          validImages.map((file) =>
+            compressImage(file).catch((err) => {
+              console.error('Image compression failed, using original:', err);
+              return file;
+            }),
+          ),
+        );
+        setImages((prev) => [...prev, ...compressedImages]);
       }
 
-      // Clear the input so the same file can trigger onChange again
       e.target.value = '';
     }
   };
 
-  const handleDrop = (e: React.DragEvent<HTMLLabelElement>) => {
+  const handleDrop = async (e: React.DragEvent<HTMLLabelElement>) => {
     e.preventDefault();
     setIsDragging(false);
 
@@ -267,11 +355,13 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
       let hasInvalidFiles = false;
       let hasDuplicates = false;
 
-      filesArray.forEach((file) => {
-        const isValidType = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'].includes(file.type);
-        const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB limit
+      const allowedTypes = ['image/jpeg', 'image/png'];
+      const allowedExtensions = ['jpg', 'jpeg', 'png'];
 
-        // More reliable duplicate check
+      filesArray.forEach((file) => {
+        const fileExtension = file.name.split('.').pop()?.toLowerCase();
+        const isValidType = allowedTypes.includes(file.type) && allowedExtensions.includes(fileExtension || '');
+        const isValidSize = file.size <= 5 * 1024 * 1024;
         const isDuplicate = images.some((img) => img.name === file.name && img.size === file.size);
 
         if (isDuplicate) {
@@ -279,15 +369,12 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
         } else if (!isValidType || !isValidSize) {
           hasInvalidFiles = true;
         } else {
-          // Only add if it's valid and not a duplicate
           validImages.push(file);
         }
       });
 
-      // Check total images limit before adding
       const totalImages = existingImages.length + images.length + validImages.length;
 
-      // Show error messages with proper priority
       if (totalImages > 6) {
         setErrorMessage('You can upload a maximum of 6 images.');
         setShowErrorPopup(true);
@@ -305,9 +392,16 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
         setShowErrorPopup(true);
       }
 
-      // Add valid images even if there were duplicates/invalid files
       if (validImages.length > 0) {
-        setImages((prev) => [...prev, ...validImages]);
+        const compressedImages = await Promise.all(
+          validImages.map((file) =>
+            compressImage(file).catch((err) => {
+              console.error('Image compression failed, using original:', err);
+              return file;
+            }),
+          ),
+        );
+        setImages((prev) => [...prev, ...compressedImages]);
       }
     }
   };
@@ -370,6 +464,10 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
       setSuccessMessage(
         `Complaint ${complaint?.id ? 'updated' : 'submitted'} successfully! Your feedback has been recorded. Thank you!`
       );
+
+      // Scroll to top of the page
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
       setShowSuccessPopup(true);
 
       setTimeout(() => {
@@ -436,6 +534,7 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
               onChange={setCategoryId}
               options={categoryOptions}
               disabled={isLoading}
+              withSearch={true}
             />
             <p id="category-help" className="text-xs text-[#626D76] mt-1 sr-only">
               Select the category that best describes your complaint.
@@ -491,7 +590,7 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
               <input
                 type="file"
                 multiple
-                accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml"
+                accept=".jpg,.jpeg,.png"
                 className="hidden"
                 onChange={handleImageUpload}
                 disabled={isLoading}

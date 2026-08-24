@@ -1,24 +1,49 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect, useRef } from 'react';
-import { useForm, SubmitHandler, UseFormRegister, FieldErrors, UseFormSetValue, UseFormGetValues } from 'react-hook-form';
-import { useSelector } from 'react-redux';
-import { RootState } from '@/store';
-import { FaAngleDown } from 'react-icons/fa';
-import { fetchBillingDetails, saveBillingDetails, fetchCities, BillingDetails, BillingAddress } from '@/services/auth-service';
-import SuccessPopup from '@/components/toast-messages/success-message';
-import ErrorPopup from '@/components/toast-messages/error-message';
-import Loader from '@/components/loader-spinner/Loader';
-import GeoLocationModal from '@/components/delivery-map/GeoLocationModal';
-import { LocateFixed } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import {
+  useForm,
+  SubmitHandler,
+  UseFormRegister,
+  FieldErrors,
+  UseFormSetValue,
+} from "react-hook-form";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store";
+import { FaAngleDown } from "react-icons/fa";
+import {
+  fetchBillingDetails,
+  saveBillingDetails,
+  deleteBillingAddress,
+  fetchCities,
+  searchCities,
+  getAllCities,
+  UserAddressEntry,
+  CityOption,
+  CityResult,
+} from "@/services/auth-service";
+import SuccessPopup from "@/components/toast-messages/success-message";
+import ErrorPopup from "@/components/toast-messages/error-message";
+import Loader from "@/components/loader-spinner/Loader";
+import GeoLocationModal from "@/components/delivery-map/GeoLocationModal";
+import Lottie from "react-lottie";
+import noAddItemAnimation from "@/assets/animations/GoViMartNotFound.json";
+import {
+  LocateFixed,
+  MoreVertical,
+  PencilLine,
+  Plus,
+  Trash2,
+  Info,
+  Loader2,
+  ChevronDown,
+  XCircle,
+} from "lucide-react";
 
-// Define form data type
 type BillingFormData = {
+  saveAs: string;
   billingTitle: string;
   billingName: string;
-  title: string;
-  firstName: string;
-  lastName: string;
   houseNo: string;
   buildingNo: string;
   buildingType: string;
@@ -34,95 +59,398 @@ type BillingFormData = {
   phone1: string;
   phonecode2?: string;
   phone2?: string;
-  geoLatitude?: number | null;   // Add this
-  geoLongitude?: number | null;  // Add this
+  geoLatitude?: number | null;
+  geoLongitude?: number | null;
 };
 
-// Custom Dropdown Component
+const EMPTY_FORM: BillingFormData = {
+  saveAs: "",
+  billingTitle: "",
+  billingName: "",
+  houseNo: "",
+  buildingNo: "",
+  buildingType: "",
+  apartmentName: "",
+  flatNumber: "",
+  apartmentFloor: "",
+  apartmentHouseNo: "",
+  houseStreet: "",
+  houseCity: "",
+  apartmentStreet: "",
+  apartmentCity: "",
+  phonecode1: "+94",
+  phone1: "",
+  phonecode2: "+94",
+  phone2: "",
+  geoLatitude: null,
+  geoLongitude: null,
+};
+
 interface CustomDropdownProps {
   register: UseFormRegister<BillingFormData>;
   setValue: UseFormSetValue<BillingFormData>;
   name: keyof BillingFormData;
   value: string | undefined;
   errors?: FieldErrors<BillingFormData>;
-  options: { value: string; label: string }[];
+  options: { value: string; label: string; countryCode?: string }[];
   placeholder: string;
+  withSearch?: boolean;
+  maxVisibleItems?: number;
+  disabled?: boolean;
 }
 
-const CustomDropdown = ({ register, setValue, name, value, errors, options, placeholder }: CustomDropdownProps) => {
+const CustomDropdown = ({
+  register,
+  setValue,
+  name,
+  value,
+  errors,
+  options,
+  placeholder,
+  withSearch = false,
+  maxVisibleItems = 6,
+  disabled = false,
+}: CustomDropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
+        setSearchTerm("");
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const handleSelect = (optionValue: string) => {
     setValue(name, optionValue, { shouldValidate: true });
-    console.log(`Set ${name} to:`, optionValue);
     setIsOpen(false);
+    setSearchTerm("");
   };
 
-  console.log(`${name} value:`, value);
-  console.log(`${name} options:`, options);
+  const filteredOptions = withSearch
+    ? options.filter((option) =>
+      option.label.toLowerCase().includes(searchTerm.toLowerCase()),
+    )
+    : options;
+
+  const selectedOption = options.find((opt) => opt.value === value);
 
   return (
     <div className="relative cursor-pointer" ref={dropdownRef}>
       <input type="hidden" {...register(name)} />
       <div
-        className="appearance-none border border-[#CECECE] cursor-pointer rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px] pr-8 flex items-center justify-between"
-        onClick={() => setIsOpen(!isOpen)}
+        className={`appearance-none border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px] pr-8 flex items-center justify-between ${disabled
+          ? "bg-[#F3F4F6] cursor-not-allowed opacity-70"
+          : "cursor-pointer"
+          }`}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
       >
-        <span>{value && options.find((opt) => opt.value === value)?.label || placeholder}</span>
-        <FaAngleDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none" />
+        <span className="flex items-center gap-2">
+          {selectedOption?.countryCode && (
+            <img
+              src={`https://flagcdn.com/24x18/${selectedOption.countryCode.toLowerCase()}.png`}
+              alt={selectedOption.countryCode}
+              className="w-5 h-4 object-cover"
+            />
+          )}
+          <span>{(value && selectedOption?.label) || placeholder}</span>
+        </span>
+        {!disabled && (
+          <FaAngleDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none" />
+        )}
       </div>
-      {isOpen && (
-        <ul className="absolute z-10 w-full bg-white border border-[#CECECE] rounded-lg mt-1">
-          {options.map((option) => (
-            <li
-              key={option.value}
-              className="p-2 text-[12px] md:text-[14px] cursor-pointer hover:bg-gray-100"
-              onClick={() => handleSelect(option.value)}
-            >
-              {option.label}
-            </li>
-          ))}
-        </ul>
+      {isOpen && !disabled && (
+        <div className="absolute z-10 w-full bg-white border border-[#CECECE] rounded-lg mt-1 shadow-lg">
+          {withSearch && (
+            <div className="p-2 border-b border-[#CECECE]">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search..."
+                className="w-full p-2 text-xs md:text-sm border border-[#CECECE] rounded focus:outline-none focus:ring-1 focus:ring-[#3E206D]"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+          )}
+          <ul
+            key={searchTerm}
+            className={`overflow-y-auto ${withSearch ? "max-h-[240px]" : ""}`}
+            style={{ maxHeight: `${maxVisibleItems * 40}px` }}
+          >
+            {filteredOptions.length > 0 ? (
+              filteredOptions.map((option, index) => (
+                <li
+                  key={`${option.value}-${index}`}
+                  className="p-2 text-[12px] md:text-[14px] cursor-pointer hover:bg-gray-100 flex items-center gap-2"
+                  onClick={() => handleSelect(option.value)}
+                >
+                  {option.countryCode && (
+                    <img
+                      src={`https://flagcdn.com/24x18/${option.countryCode.toLowerCase()}.png`}
+                      alt={option.countryCode}
+                      className="w-5 h-4 object-cover"
+                    />
+                  )}
+                  <span>{option.label}</span>
+                </li>
+              ))
+            ) : (
+              <li className="p-2 text-[12px] md:text-[14px] text-gray-500 text-center flex items-center justify-center gap-2">
+                <Info size={14} />
+                City not found.
+              </li>
+            )}
+          </ul>
+        </div>
       )}
       <p className="text-red-500 text-xs">{errors?.[name]?.message}</p>
     </div>
   );
 };
 
-// Cancel Success Popup Component
-interface CancelSuccessPopupProps {
-  isVisible: boolean;
-  onClose: () => void;
-  title: string;
-  duration?: number;
+interface CityDropdownProps {
+  value: string;
+  onSelect: (city: CityResult) => void;
+  onClear: () => void;
+  placeholder?: string;
+  disabled?: boolean;
 }
 
-const CancelSuccessPopup = ({ isVisible, onClose, title, duration }: CancelSuccessPopupProps) => {
-  useEffect(() => {
-    if (isVisible && duration) {
-      const timer = setTimeout(() => {
-        onClose();
-      }, duration);
-      return () => clearTimeout(timer);
-    }
-  }, [isVisible, duration, onClose]);
+const CityDropdown = ({
+  value,
+  onSelect,
+  onClear,
+  placeholder = "Search your city",
+  disabled = false,
+}: CityDropdownProps) => {
+  const [searchTerm, setSearchTerm] = useState(value || "");
+  const [results, setResults] = useState<CityResult[]>([]);
+  const [allCities, setAllCities] = useState<CityResult[]>([]);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isLoadingAll, setIsLoadingAll] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
 
-  if (!isVisible) return null;
+  const inputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchSeqRef = useRef(0);
+  const skipSyncRef = useRef(false);
+
+  useEffect(() => {
+    if (skipSyncRef.current) {
+      skipSyncRef.current = false;
+      return;
+    }
+    setSearchTerm(value || "");
+  }, [value]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleArrowClick = useCallback(async () => {
+    if (disabled) return;
+    if (isDropdownOpen) {
+      setIsDropdownOpen(false);
+      return;
+    }
+    if (allCities.length > 0) {
+      setResults(allCities);
+      setIsDropdownOpen(true);
+      inputRef.current?.focus();
+      return;
+    }
+    setIsLoadingAll(true);
+    setIsDropdownOpen(true);
+    inputRef.current?.focus();
+    try {
+      const fetched = await getAllCities();
+      setAllCities(fetched);
+      setResults(fetched);
+    } catch {
+      setResults([]);
+    } finally {
+      setIsLoadingAll(false);
+    }
+  }, [isDropdownOpen, allCities, disabled]);
+
+  const handleSearch = useCallback(
+    (val: string) => {
+      setSearchTerm(val);
+      setHasSearched(false);
+      skipSyncRef.current = true;
+      onClear();
+
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+
+      const seq = ++searchSeqRef.current;
+
+      if (!val.trim()) {
+        setResults(allCities);
+        setIsDropdownOpen(allCities.length > 0);
+        setIsSearching(false);
+        return;
+      }
+
+      setIsSearching(true);
+      setIsDropdownOpen(true);
+
+      debounceRef.current = setTimeout(async () => {
+        try {
+          const fetched = await searchCities(val);
+          if (seq !== searchSeqRef.current) return;
+          setResults(fetched);
+          setHasSearched(true);
+        } catch {
+          if (seq !== searchSeqRef.current) return;
+          setResults([]);
+          setHasSearched(true);
+        } finally {
+          if (seq === searchSeqRef.current) setIsSearching(false);
+        }
+      }, 350);
+    },
+    [allCities, onClear],
+  );
+
+  const handleSelectCity = (city: CityResult) => {
+    setSearchTerm(city.city);
+    setIsDropdownOpen(false);
+    setResults([]);
+    setHasSearched(false);
+    skipSyncRef.current = true;
+    onSelect(city);
+  };
+
+  const handleClear = () => {
+    setSearchTerm("");
+    setResults(allCities);
+    setHasSearched(false);
+    setIsDropdownOpen(allCities.length > 0);
+    inputRef.current?.focus();
+    skipSyncRef.current = true;
+    onClear();
+  };
+
+  const showSpinner = isSearching || isLoadingAll;
+  const displayList = results;
 
   return (
-    <div className="fixed top-4 right-4 bg-green-500 text-white p-4 rounded-lg shadow-lg z-50">
-      <p>{title}</p>
+    <div className="relative" ref={dropdownRef}>
+      <div
+        className={`flex items-center gap-2 border rounded-lg h-[42px] px-2 ${disabled
+          ? "bg-[#F3F4F6] border-[#CECECE] cursor-not-allowed opacity-70"
+          : "border-[#CECECE]"
+          }`}
+      >
+        <input
+          ref={inputRef}
+          type="text"
+          value={searchTerm}
+          disabled={disabled}
+          onChange={(e) => handleSearch(e.target.value)}
+          onFocus={() => {
+            if (disabled) return;
+            if (
+              !isDropdownOpen &&
+              (results.length > 0 || allCities.length > 0)
+            ) {
+              setResults(searchTerm.trim() ? results : allCities);
+              setIsDropdownOpen(true);
+            }
+          }}
+          placeholder={placeholder}
+          className="flex-1 text-[12px] md:text-[14px] text-gray-700 placeholder-gray-400 bg-transparent border-none outline-none disabled:cursor-not-allowed"
+        />
+
+        {!disabled && (
+          <button
+            type="button"
+            onClick={() => (searchTerm ? handleClear() : handleArrowClick())}
+            className="flex-shrink-0 text-gray-400 hover:text-[#3E206D] transition-colors cursor-pointer"
+            aria-label={searchTerm ? "Clear" : "Show all cities"}
+          >
+            {showSpinner ? (
+              <Loader2 size={16} className="animate-spin text-[#3E206D]" />
+            ) : searchTerm ? (
+              <XCircle size={16} />
+            ) : (
+              <ChevronDown
+                size={16}
+                className={`transition-transform duration-200 ${isDropdownOpen ? "rotate-180" : ""
+                  }`}
+              />
+            )}
+          </button>
+        )}
+      </div>
+
+      {isDropdownOpen && !disabled && (
+        <div className="absolute z-10 w-full bg-white border border-[#CECECE] rounded-lg mt-1 shadow-lg">
+          {showSpinner ? (
+            <div className="py-3 px-3 flex items-center gap-2 text-sm text-gray-500">
+              <Loader2 size={14} className="animate-spin" />
+              {isLoadingAll ? "Loading cities..." : "Searching..."}
+            </div>
+          ) : hasSearched && displayList.length === 0 ? (
+            <div className="py-3 px-3 text-sm text-gray-400 flex items-center gap-2">
+              <Info size={14} />
+              City Not Found
+            </div>
+          ) : displayList.length === 0 ? null : (
+            <ul className="max-h-52 overflow-y-auto custom-scrollbar">
+              {displayList.map((city) => (
+                <li key={city.id}>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectCity(city)}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center justify-between group transition-colors cursor-pointer"
+                  >
+                    <div>
+                      <span className="font-medium text-gray-800">
+                        {city.city}
+                      </span>
+                      {city.district && (
+                        <span className="text-xs text-gray-400 ml-1">
+                          — {city.district}
+                        </span>
+                      )}
+                    </div>
+                    {city.isAvailable ? (
+                      <span className="text-xs text-[#2E7D32] font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                        Available
+                      </span>
+                    ) : (
+                      <span className="text-xs text-orange-400 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                        Coming soon
+                      </span>
+                    )}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
     </div>
   );
 };
@@ -130,114 +458,286 @@ const CancelSuccessPopup = ({ isVisible, onClose, title, duration }: CancelSucce
 const BillingDetailsForm = () => {
   const token = useSelector((state: RootState) => state.auth.token);
 
-  // State for popup notifications and loader
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [showCancelSuccessPopup, setShowCancelSuccessPopup] = useState(false);
   const [showErrorPopup, setShowErrorPopup] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-  const [billingNameError, setBillingNameError] = useState('');
-  const [initialFormData, setInitialFormData] = useState<BillingFormData | null>(null);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [initialFormData, setInitialFormData] =
+    useState<BillingFormData | null>(null);
+  const [addressBook, setAddressBook] = useState<UserAddressEntry[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<number | null>(
+    null,
+  );
+  const [isEditingAddress, setIsEditingAddress] = useState(false);
+  const [openAddressMenuId, setOpenAddressMenuId] = useState<number | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState(false);
-  const [cities, setCities] = useState<string[]>([]);
+  const [cities, setCities] = useState<CityOption[]>([]);
   const [hasFormChanged, setHasFormChanged] = useState(false);
   const [isGeoModalOpen, setIsGeoModalOpen] = useState(false);
-  const [mapCenter, setMapCenter] = useState<[number, number]>([6.9271, 79.8612]); // Default to Colombo
+  const [mapCenter, setMapCenter] = useState<[number, number]>([
+    6.9271, 79.8612,
+  ]);
   const [isViewingLocation, setIsViewingLocation] = useState(false);
-  const [hasGeoLocation, setHasGeoLocation] = useState(false); // Track if geo location exists
-  const [isMounted, setIsMounted] = useState(false); // Track if component is mounted on client
+  const [hasGeoLocation, setHasGeoLocation] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+  const addressBookMenuRef = useRef<HTMLDivElement>(null);
+  const [addressPendingDelete, setAddressPendingDelete] =
+    useState<UserAddressEntry | null>(null);
+  const selectedAddressIdRef = useRef<number | null>(null);
+  const [hasDeliveredOrder, setHasDeliveredOrder] = useState(false);
+  const [signupCity, setSignupCity] = useState("");
+  const [showGoBackConfirm, setShowGoBackConfirm] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [showDeleteSuccessPopup, setShowDeleteSuccessPopup] = useState(false);
+  const [houseCityAvailable, setHouseCityAvailable] = useState(true);
+  const [apartmentCityAvailable, setApartmentCityAvailable] = useState(true);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  // Function to view saved location
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        addressBookMenuRef.current &&
+        !addressBookMenuRef.current.contains(event.target as Node)
+      ) {
+        setOpenAddressMenuId(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    selectedAddressIdRef.current = selectedAddressId;
+  }, [selectedAddressId]);
+
+  const getOrdinalSuffix = (num: number): string => {
+    const j = num % 10;
+    const k = num % 100;
+    if (j === 1 && k !== 11) return "st";
+    if (j === 2 && k !== 12) return "nd";
+    if (j === 3 && k !== 13) return "rd";
+    return "th";
+  };
+
+  const getAddressSummary = (entry: UserAddressEntry) => {
+    const address = entry.address;
+    const type = entry.buildingType?.toLowerCase();
+
+    if (type === "apartment") {
+      const parts = [
+        address.buildingNo,
+        address.buildingName,
+        address.unitNo,
+        address.floorNo,
+        address.houseNo,
+        address.streetName,
+        address.city,
+      ]
+        .filter(Boolean)
+        .map(String);
+
+      return parts.length > 0
+        ? parts.join(", ")
+        : "No address details available";
+    }
+
+    // House type (default)
+    const parts = [address.houseNo, address.streetName, address.city]
+      .filter(Boolean)
+      .map(String);
+
+    return parts.length > 0 ? parts.join(", ") : "No address details available";
+  };
+
+  // ── Helper: match city case-insensitively against fetched list ──────────
+  const findMatchingCity = (
+    cityValue: string,
+    citiesList: CityOption[],
+  ): string => {
+    if (!cityValue) return "";
+    const match = citiesList.find(
+      (c) => c.city.toLowerCase() === cityValue.toLowerCase(),
+    );
+    return match ? match.city : cityValue;
+  };
+
+  const mapEntryToFormData = (
+    entry: UserAddressEntry,
+    fetchedCities: CityOption[],
+  ): BillingFormData => {
+    const type = entry.buildingType?.toLowerCase();
+    return {
+      saveAs: entry.address?.saveAs || "",
+      billingTitle: entry.billingTitle || "",
+      billingName: entry.billingName || "",
+      buildingType: type || "",
+      houseNo: type === "house" ? entry.address?.houseNo || "" : "",
+      buildingNo: type === "apartment" ? entry.address?.buildingNo || "" : "",
+      apartmentName:
+        type === "apartment" ? entry.address?.buildingName || "" : "",
+      flatNumber: type === "apartment" ? entry.address?.unitNo || "" : "",
+      apartmentFloor:
+        type === "apartment" ? String(entry.address?.floorNo ?? "") : "",
+      apartmentHouseNo:
+        type === "apartment" ? entry.address?.houseNo || "" : "",
+      houseStreet: type === "house" ? entry.address?.streetName || "" : "",
+      houseCity:
+        type === "house"
+          ? findMatchingCity(entry.address?.city || "", fetchedCities)
+          : "",
+      apartmentStreet:
+        type === "apartment" ? entry.address?.streetName || "" : "",
+      apartmentCity:
+        type === "apartment"
+          ? findMatchingCity(entry.address?.city || "", fetchedCities)
+          : "",
+      phonecode1: entry.phoneCode || "+94",
+      phone1: entry.phoneNumber || "",
+      phonecode2: entry.phoneCode2 || "+94",
+      phone2: entry.phoneNumber2 || "",
+      geoLatitude: entry.geoLatitude ?? null,
+      geoLongitude: entry.geoLongitude ?? null,
+    };
+  };
+
+  const startCreateAddress = () => {
+    setSelectedAddressId(null);
+    setOpenAddressMenuId(null);
+    setInitialFormData(null);
+    setHasFormChanged(false);
+    setIsEditingAddress(true);
+    setHasGeoLocation(false);
+    setHouseCityAvailable(true);
+    setApartmentCityAvailable(true);
+    reset(EMPTY_FORM);
+  };
+
+  const startEditAddress = (entry: UserAddressEntry) => {
+    const formData = mapEntryToFormData(entry, cities);
+
+    setSelectedAddressId(entry.id);
+    setOpenAddressMenuId(null);
+    setInitialFormData(formData);
+    setHasFormChanged(false);
+    setIsEditingAddress(true);
+    setHouseCityAvailable(true);
+    setApartmentCityAvailable(true);
+    reset(formData);
+    setValue("buildingType", formData.buildingType);
+    setValue("geoLatitude", formData.geoLatitude, { shouldValidate: false });
+    setValue("geoLongitude", formData.geoLongitude, { shouldValidate: false });
+    setHasGeoLocation(Boolean(formData.geoLatitude && formData.geoLongitude));
+  };
+
+  const closeAddressForm = () => {
+    setIsEditingAddress(false);
+    setOpenAddressMenuId(null);
+    if (selectedAddressId) {
+      const selectedEntry = addressBook.find(
+        (entry) => entry.id === selectedAddressId,
+      );
+      if (selectedEntry) {
+        const formData = mapEntryToFormData(selectedEntry, cities);
+        setInitialFormData(formData);
+        reset(formData);
+      }
+    }
+  };
+
   const handleViewLocation = () => {
-    const lat = watch('geoLatitude');
-    const lng = watch('geoLongitude');
+    const lat = watch("geoLatitude");
+    const lng = watch("geoLongitude");
     if (lat && lng) {
       setMapCenter([lat, lng]);
-      setIsViewingLocation(true); // Set viewing mode
+      setIsViewingLocation(true);
       setIsGeoModalOpen(true);
     }
   };
 
-  // Function to attach new location
   const handleAttachLocation = () => {
-    setIsViewingLocation(false); // Set to attach mode
+    setIsViewingLocation(false);
     setIsGeoModalOpen(true);
   };
 
-  useEffect(() => {
-    const loadCities = async () => {
-      if (!token) return; // Additional safeguard
-      try {
-        const fetchedCities = await fetchCities(token as string); // Type assertion
-        setCities(fetchedCities);
-      } catch (error: any) {
-        console.error('Error fetching cities:', error);
-        setErrorMessage('Failed to fetch cities. Using default cities.');
-        setShowErrorPopup(true);
-        setCities(['Colombo', 'Kandy', 'Galle', 'Jaffna', 'Negombo', 'Anuradhapura']);
-      }
-    };
-
-    if (token) {
-      loadCities();
-    }
-  }, [token]);
-
-
-
-  const compareFormData = (current: BillingFormData, initial: BillingFormData | null): boolean => {
+  const compareFormData = (
+    current: BillingFormData,
+    initial: BillingFormData | null,
+  ): boolean => {
     if (!initial) return false;
 
     const stringFieldsToCompare: (keyof BillingFormData)[] = [
-      'billingTitle', 'billingName', 'title', 'firstName', 'lastName',
-      'houseNo', 'buildingNo', 'buildingType', 'apartmentName', 'flatNumber',
-      'apartmentFloor', 'apartmentHouseNo', 'houseStreet', 'houseCity',
-      'apartmentStreet', 'apartmentCity', 'phonecode1', 'phone1',
-      'phonecode2', 'phone2'
+      "saveAs",
+      "billingTitle",
+      "billingName",
+      "houseNo",
+      "buildingNo",
+      "buildingType",
+      "apartmentName",
+      "flatNumber",
+      "apartmentFloor",
+      "apartmentHouseNo",
+      "houseStreet",
+      "houseCity",
+      "apartmentStreet",
+      "apartmentCity",
+      "phonecode1",
+      "phone1",
+      "phonecode2",
+      "phone2",
     ];
 
-    // Check string fields
-    const stringFieldsChanged = stringFieldsToCompare.some(field => {
-      const currentValue = current[field] || '';
-      const initialValue = initial[field] || '';
+    const stringFieldsChanged = stringFieldsToCompare.some((field) => {
+      const currentValue = current[field] || "";
+      const initialValue = initial[field] || "";
       return currentValue !== initialValue;
     });
 
     if (stringFieldsChanged) return true;
 
-    // Check geo location fields separately (number comparison)
-    const geoLatChanged = (current.geoLatitude ?? null) !== (initial.geoLatitude ?? null);
-    const geoLngChanged = (current.geoLongitude ?? null) !== (initial.geoLongitude ?? null);
+    const geoLatChanged =
+      (current.geoLatitude ?? null) !== (initial.geoLatitude ?? null);
+    const geoLngChanged =
+      (current.geoLongitude ?? null) !== (initial.geoLongitude ?? null);
 
     return geoLatChanged || geoLngChanged;
   };
 
-
   const billingTitleOptions = [
-    { value: 'Mr.', label: 'Mr' },
-    { value: 'Mrs.', label: 'Mrs' },
-    { value: 'Ms.', label: 'Ms' },
-    { value: 'Rev.', label: 'Rev' },
+    { value: "Mr.", label: "Mr" },
+    { value: "Mrs.", label: "Mrs" },
+    { value: "Ms.", label: "Ms" },
+    { value: "Rev.", label: "Rev" },
   ];
 
   const buildingTypeOptions = [
-    { value: 'house', label: 'House' },
-    { value: 'apartment', label: 'Apartment' },
+    { value: "house", label: "House" },
+    { value: "apartment", label: "Apartment" },
   ];
-  const cityOptions = cities.map((city) => ({
-    value: city.toLowerCase(),
-    label: city,
-  }));
 
-  const phoneCodeOptions = [
-    { value: '+94', label: '+94' },
-    { value: '+91', label: '+91' },
-    { value: '+1', label: '+1' },
-    { value: '+44', label: '+44' },
+  const cityOptions = cities.map((c) => ({ value: c.city, label: c.city }));
+
+  const isCityDeliverable = (cityName: string): boolean => {
+    if (!cityName) return true;
+    const match = cities.find(
+      (c) => c.city.toLowerCase() === cityName.toLowerCase(),
+    );
+    return match ? match.isAvailable : true;
+  };
+
+  const countries = [
+    { code: "LK", dialCode: "+94", name: "Sri Lanka" },
   ];
+
+  const phoneCodeOptions = countries.map((country) => ({
+    value: country.dialCode,
+    label: country.dialCode,
+    countryCode: country.code,
+  }));
 
   const {
     register,
@@ -249,208 +749,221 @@ const BillingDetailsForm = () => {
     trigger,
     formState: { errors, isValid },
   } = useForm<BillingFormData>({
-    defaultValues: {
-      billingTitle: '',
-      billingName: '',
-      title: 'Mr.',
-      firstName: '',
-      lastName: '',
-      houseNo: '',
-      buildingNo: '',
-      buildingType: '',
-      apartmentName: '',
-      flatNumber: '',
-      apartmentFloor: '',
-      apartmentHouseNo: '',
-      houseStreet: '',
-      houseCity: '',
-      apartmentStreet: '',
-      apartmentCity: '',
-      phonecode1: '+94',
-      phone1: '',
-      phonecode2: '+94',
-      phone2: '',
-      geoLatitude: null,    // Add this
-      geoLongitude: null,
-    },
-    mode: 'onChange',
+    defaultValues: EMPTY_FORM,
+    mode: "onChange",
   });
 
-  // Watch form values for dropdowns
-  const buildingType = watch('buildingType');
-  const billingTitleValue = watch('billingTitle');
-  const houseCityValue = watch('houseCity');
-  const apartmentCityValue = watch('apartmentCity');
-  const phonecode1Value = watch('phonecode1');
-  const phonecode2Value = watch('phonecode2');
+  const buildingType = watch("buildingType");
+  const billingTitleValue = watch("billingTitle");
+  const houseCityValue = watch("houseCity");
+  const apartmentCityValue = watch("apartmentCity");
+  const phonecode1Value = watch("phonecode1");
+  const phonecode2Value = watch("phonecode2");
+  const isCityValidForSave =
+    buildingType === "house"
+      ? houseCityAvailable
+      : buildingType === "apartment"
+        ? apartmentCityAvailable
+        : true;
 
-  // Log buildingType for debugging
-  useEffect(() => {
-    console.log('buildingType changed:', buildingType);
-  }, [buildingType]);
+  const canSave = isEditingAddress
+    ? (selectedAddressId ? hasFormChanged : isValid) && isCityValidForSave
+    : false;
 
-  // Clear fields based on buildingType
   useEffect(() => {
-    if (buildingType !== 'apartment') {
-      setValue('apartmentName', '');
-      setValue('flatNumber', '');
-      setValue('apartmentFloor', '');
-      setValue('apartmentHouseNo', '');
-      setValue('apartmentStreet', '');
-      setValue('apartmentCity', '');
+    if (buildingType !== "apartment") {
+      setValue("apartmentName", "");
+      setValue("flatNumber", "");
+      setValue("apartmentFloor", "");
+      setValue("apartmentHouseNo", "");
+      setValue("apartmentStreet", "");
+      setValue("apartmentCity", "");
     }
-    if (buildingType !== 'house') {
-      setValue('houseNo', '');
-      setValue('houseStreet', '');
-      setValue('houseCity', '');
+    if (buildingType !== "house") {
+      setValue("houseNo", "");
+      setValue("houseStreet", "");
+      setValue("houseCity", "");
     }
     if (!buildingType) {
-      setValue('houseNo', '');
-      setValue('buildingNo', '');
+      setValue("houseNo", "");
+      setValue("buildingNo", "");
     }
   }, [buildingType, setValue]);
 
-  // Fetch billing details and store initial data
+  // ── Load cities + address book ────────────────────────────────────────
   useEffect(() => {
-    const loadBillingDetails = async () => {
+    const loadAll = async () => {
       if (!token) return;
-
       setIsLoading(true);
       try {
+        const fetchedCities = await fetchCities(token as string);
+        setCities(fetchedCities);
+
         const data = await fetchBillingDetails({ token });
-        console.log('API Response:', data);
-        const formData: BillingFormData = {
-          billingTitle: data.billingTitle || '',
-          billingName: data.billingName || '',
-          title: data.title || 'Mr.',
-          firstName: data.firstName || '',
-          lastName: data.lastName || '',
-          buildingType: data.buildingType ? data.buildingType.toLowerCase() : '',
-          houseNo: data.buildingType?.toLowerCase() === 'house' ? data.address?.houseNo || '' : '',
-          buildingNo: data.buildingType?.toLowerCase() === 'apartment' ? data.address?.buildingNo || '' : '',
-          apartmentName: data.buildingType?.toLowerCase() === 'apartment' ? data.address?.buildingName || '' : '',
-          flatNumber: data.buildingType?.toLowerCase() === 'apartment' ? data.address?.unitNo || '' : '',
-          apartmentFloor: data.buildingType?.toLowerCase() === 'apartment' ? data.address?.floorNo || '' : '',
-          apartmentHouseNo: data.buildingType?.toLowerCase() === 'apartment' ? data.address?.houseNo || '' : '',
-          houseStreet: data.buildingType?.toLowerCase() === 'house' ? data.address?.streetName || '' : '',
-          houseCity: data.buildingType?.toLowerCase() === 'house' ? data.address?.city?.toLowerCase() || '' : '',
-          apartmentStreet: data.buildingType?.toLowerCase() === 'apartment' ? data.address?.streetName || '' : '',
-          apartmentCity: data.buildingType?.toLowerCase() === 'apartment' ? data.address?.city?.toLowerCase() || '' : '',
-          phonecode1: data.phoneCode || '+94',
-          phone1: data.phoneNumber || '',
-          phonecode2: data.phoneCode2 || '+94',
-          phone2: data.phoneNumber2 || '',
-          geoLatitude: data.geoLatitude || data.address?.geoLatitude || null,
-          geoLongitude: data.geoLongitude || data.address?.geoLongitude || null,
-        };
-        setInitialFormData(formData);
-        reset(formData);
-        console.log('Form state after reset:', getValues());
-        console.log('Geo Location loaded:', { lat: formData.geoLatitude, lng: formData.geoLongitude });
-        setValue('buildingType', formData.buildingType); 
-        setTimeout(() => {
-          if (formData.geoLatitude && formData.geoLongitude) {
-            setValue('geoLatitude', formData.geoLatitude, { shouldValidate: false });
-            setValue('geoLongitude', formData.geoLongitude, { shouldValidate: false });
-            setHasGeoLocation(true); 
-            console.log('Geo location values set explicitly:', {
-              lat: formData.geoLatitude,
-              lng: formData.geoLongitude,
-              currentValues: { lat: getValues('geoLatitude'), lng: getValues('geoLongitude') }
-            });
-          } else {
-            setHasGeoLocation(false);
-          }
-        }, 100);
+
+        if (!data || !data.addresses || data.addresses.length === 0) {
+          setAddressBook([]);
+          setSelectedAddressId(null);
+          setInitialFormData(null);
+          setHasFormChanged(false);
+          setIsEditingAddress(false);
+          setHasDeliveredOrder(Boolean(data?.isDelivered));
+          setSignupCity(data?.nearesCity || "");
+          return;
+        }
+
+        setAddressBook(data.addresses);
+        setHasDeliveredOrder(Boolean(data.isDelivered));
+        setSignupCity(data.nearesCity || "");
       } catch (error: any) {
-        console.error('Fetch error:', error);
-        setErrorMessage(error.message || 'Failed to fetch billing details');
+        console.error("Error loading data:", error);
+        setErrorMessage(error.message || "Failed to load billing details");
         setShowErrorPopup(true);
+        setCities([
+          { id: 1, city: "Colombo", isAvailable: true },
+          { id: 2, city: "Kandy", isAvailable: true },
+          { id: 3, city: "Galle", isAvailable: true },
+          { id: 4, city: "Jaffna", isAvailable: true },
+          { id: 5, city: "Negombo", isAvailable: true },
+          { id: 6, city: "Anuradhapura", isAvailable: true },
+        ]);
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadBillingDetails();
-  }, [token, reset, setValue, getValues]);
+    if (token) {
+      loadAll();
+    }
+  }, [token]);
+
+  useEffect(() => {
+    if (!hasDeliveredOrder && signupCity) {
+      if (buildingType === "house") {
+        setValue("houseCity", signupCity, { shouldValidate: true });
+      } else if (buildingType === "apartment") {
+        setValue("apartmentCity", signupCity, { shouldValidate: true });
+      }
+    }
+  }, [hasDeliveredOrder, signupCity, buildingType, setValue]);
 
   useEffect(() => {
     const subscription = watch((value) => {
       if (initialFormData) {
         const currentFormData = value as BillingFormData;
-        const hasChanged = compareFormData(currentFormData, initialFormData);
-        setHasFormChanged(hasChanged);
+        setHasFormChanged(compareFormData(currentFormData, initialFormData));
       }
     });
     return () => subscription.unsubscribe();
   }, [watch, initialFormData]);
 
-
-
   useEffect(() => {
-    // Register building type as required
-    register('buildingType', { required: 'Building Type is required' });
+    register("buildingType", { required: "Building Type is required" });
+    register("saveAs", {
+      required: "Save Address As is required",
+      validate: (value) => {
+        const trimmedValue = (value || "").trim().toLowerCase();
+        if (!trimmedValue) return true;
 
-    // Register house fields with conditional validation
-    register('houseNo', {
-      validate: (value) => buildingType === 'house' && !value ? 'House No is required' : true
-    });
-    register('houseStreet', {
-      validate: (value) => buildingType === 'house' && !value ? 'Street Name is required' : true
-    });
-    register('houseCity', {
-      validate: (value) => buildingType === 'house' && !value ? 'City is required' : true
-    });
+        const isDuplicate = addressBook.some(
+          (entry) =>
+            entry.id !== selectedAddressIdRef.current &&
+            (entry.address.saveAs || "").trim().toLowerCase() === trimmedValue,
+        );
 
-    // Register apartment fields with conditional validation
-    register('buildingNo', {
-      validate: (value) => buildingType === 'apartment' && !value ? 'Building No is required' : true
-    });
-    register('apartmentName', {
-      validate: (value) => buildingType === 'apartment' && !value ? 'Apartment/Building Name is required' : true
-    });
-    register('flatNumber', {
-      validate: (value) => buildingType === 'apartment' && !value ? 'Flat/Unit Number is required' : true
-    });
-    register('apartmentFloor', {
-      validate: (value) => buildingType === 'apartment' && !value ? 'Floor Number is required' : true
-    });
-    register('apartmentHouseNo', {
-      validate: (value) => buildingType === 'apartment' && !value ? 'House Number is required' : true
-    });
-    register('apartmentStreet', {
-      validate: (value) => buildingType === 'apartment' && !value ? 'Street Name is required' : true
-    });
-    register('apartmentCity', {
-      validate: (value) => buildingType === 'apartment' && !value ? 'City is required' : true
+        return isDuplicate
+          ? "This name is already used. Please choose another."
+          : true;
+      },
     });
 
-    // Register phone code as required
-    register('phonecode1', { required: 'Phone code is required' });
-    
-    // Register geo location fields (optional but tracked)
-    register('geoLatitude');
-    register('geoLongitude');
-  }, [register, buildingType]);
+    register("houseNo", {
+      validate: (value) =>
+        buildingType === "house" && !value ? "House No is required" : true,
+    });
+    register("houseStreet", {
+      validate: (value) =>
+        buildingType === "house" && !value ? "Street Name is required" : true,
+    });
+    register("houseCity", {
+      validate: (value) =>
+        buildingType === "house" && !value ? "City is required" : true,
+    });
 
-  // Add this function before the onSubmit function
+    register("buildingNo", {
+      validate: (value) =>
+        buildingType === "apartment" && !value
+          ? "Building No is required"
+          : true,
+    });
+    register("apartmentName", {
+      validate: (value) =>
+        buildingType === "apartment" && !value
+          ? "Apartment/Building Name is required"
+          : true,
+    });
+    register("flatNumber", {
+      validate: (value) =>
+        buildingType === "apartment" && !value
+          ? "Flat/Unit Number is required"
+          : true,
+    });
+    register("apartmentFloor", {
+      validate: (value) =>
+        buildingType === "apartment" && !value
+          ? "Floor Number is required"
+          : true,
+    });
+    register("apartmentHouseNo", {
+      validate: (value) =>
+        buildingType === "apartment" && !value
+          ? "House Number is required"
+          : true,
+    });
+    register("apartmentStreet", {
+      validate: (value) =>
+        buildingType === "apartment" && !value
+          ? "Street Name is required"
+          : true,
+    });
+    register("apartmentCity", {
+      validate: (value) =>
+        buildingType === "apartment" && !value ? "City is required" : true,
+    });
+
+    register("phonecode1", { required: "Phone code is required" });
+    register("geoLatitude");
+    register("geoLongitude");
+  }, [register, buildingType, addressBook]);
+
   const handleLocationSelect = (lat: number, lng: number) => {
-    setValue('geoLatitude', lat, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
-    setValue('geoLongitude', lng, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
-    setHasGeoLocation(true); // Mark that geo location exists
-    console.log('Location selected and saved to form:', { lat, lng });
-    
-    // Force form change detection
+    setValue("geoLatitude", lat, {
+      shouldValidate: true,
+      shouldDirty: true,
+      shouldTouch: true,
+    });
+    setValue("geoLongitude", lng, {
+      shouldValidate: true,
+      shouldDirty: true,
+      shouldTouch: true,
+    });
+    setHasGeoLocation(true);
+
     if (initialFormData) {
       const currentData = getValues();
-      const hasChanged = compareFormData(currentData as BillingFormData, initialFormData);
-      setHasFormChanged(hasChanged || true); // Force true since location was just selected
+      setHasFormChanged(
+        compareFormData(currentData as BillingFormData, initialFormData),
+      );
     }
+  };
+
+  const normalizeTitle = (title: string): string => {
+    if (!title) return "";
+    return title.endsWith(".") ? title : `${title}.`;
   };
 
   const onSubmit: SubmitHandler<BillingFormData> = async (data) => {
     setIsLoading(true);
-
     await trigger();
 
     if (!isValid) {
@@ -459,105 +972,188 @@ const BillingDetailsForm = () => {
     }
 
     if (!token) {
-      setErrorMessage('You are not authenticated. Please login first.');
+      setErrorMessage("You are not authenticated. Please login first.");
       setShowErrorPopup(true);
       setIsLoading(false);
       return;
     }
 
-    if (!data.billingTitle || !['Rev.', 'Mr.', 'Ms.', 'Mrs.'].includes(data.billingTitle)) {
-      setErrorMessage('Please select a valid billing title ( Mr., Ms., or Mrs. ,Rev.).');
+    if (
+      !data.billingTitle ||
+      !["Rev.", "Mr.", "Ms.", "Mrs."].includes(data.billingTitle)
+    ) {
+      setErrorMessage(
+        "Please select a valid billing title ( Mr., Ms., or Mrs. ,Rev.).",
+      );
       setShowErrorPopup(true);
       setIsLoading(false);
       return;
     }
 
-    // Additional validation for building type
     if (!data.buildingType) {
-      setErrorMessage('Please select a building type.');
+      setErrorMessage("Please select a building type.");
       setShowErrorPopup(true);
       setIsLoading(false);
       return;
     }
 
-    // Validate required fields based on building type
-    if (data.buildingType === 'house') {
+    if (data.buildingType === "house") {
       if (!data.houseNo || !data.houseStreet || !data.houseCity) {
-        setErrorMessage('Please fill all required house address fields including city.');
+        setErrorMessage(
+          "Please fill all required house address fields including city.",
+        );
         setShowErrorPopup(true);
         setIsLoading(false);
         return;
       }
-    } else if (data.buildingType === 'apartment') {
-      if (!data.buildingNo || !data.apartmentName || !data.flatNumber ||
-        !data.apartmentFloor || !data.apartmentHouseNo ||
-        !data.apartmentStreet || !data.apartmentCity) {
-        setErrorMessage('Please fill all required apartment address fields including city.');
+      if (!houseCityAvailable) {
+        setErrorMessage(`Delivery is not available in ${data.houseCity} yet.`);
+        setShowErrorPopup(true);
+        setIsLoading(false);
+        return;
+      }
+      if (!data.geoLatitude || !data.geoLongitude) {
+        setErrorMessage(
+          "Geo Location is required. Please attach your geo location.",
+        );
+        setShowErrorPopup(true);
+        setIsLoading(false);
+        return;
+      }
+    } else if (data.buildingType === "apartment") {
+      if (
+        !data.buildingNo ||
+        !data.apartmentName ||
+        !data.flatNumber ||
+        !data.apartmentFloor ||
+        !data.apartmentHouseNo ||
+        !data.apartmentStreet ||
+        !data.apartmentCity
+      ) {
+        setErrorMessage(
+          "Please fill all required apartment address fields including city.",
+        );
+        setShowErrorPopup(true);
+        setIsLoading(false);
+        return;
+      }
+
+      if (!apartmentCityAvailable) {
+        setErrorMessage(
+          `Delivery is not available in ${data.apartmentCity} yet.`,
+        );
+        setShowErrorPopup(true);
+        setIsLoading(false);
+        return;
+      }
+
+      if (!data.geoLatitude || !data.geoLongitude) {
+        setErrorMessage(
+          "Geo Location is required. Please attach your geo location.",
+        );
         setShowErrorPopup(true);
         setIsLoading(false);
         return;
       }
     }
 
-    // Validate phone number
     if (!data.phonecode1 || !data.phone1) {
-      setErrorMessage('Phone number is required.');
+      setErrorMessage("Phone Number 1 is required.");
       setShowErrorPopup(true);
       setIsLoading(false);
       return;
     }
 
-    // Rest of the existing onSubmit logic...
-    const address: BillingAddress = {
-      title: data.title || data.billingTitle,
-      firstName: data.firstName || '',
-      lastName: data.lastName || '',
-      phoneCode: data.phonecode1 || '+94',
-      phoneNumber: data.phone1 || '',
-      phoneCode2: data.phonecode2 || '+94',
-      phoneNumber2: data.phone2 || '',
-      houseNo: data.buildingType === 'house' ? data.houseNo || undefined : data.buildingType === 'apartment' ? data.apartmentHouseNo || undefined : undefined,
-      buildingNo: data.buildingType === 'apartment' ? data.buildingNo || undefined : undefined,
-      buildingName: data.buildingType === 'apartment' ? data.apartmentName || undefined : undefined,
-      unitNo: data.buildingType === 'apartment' ? data.flatNumber || undefined : undefined,
-      floorNo: data.buildingType === 'apartment' ? data.apartmentFloor || undefined : undefined,
-      streetName: data.buildingType === 'house' ? data.houseStreet || undefined : data.buildingType === 'apartment' ? data.apartmentStreet || undefined : undefined,
-      city: data.buildingType === 'house' ? data.houseCity || undefined : data.buildingType === 'apartment' ? data.apartmentCity || undefined : undefined,
-      geoLatitude: data.geoLatitude || undefined,    // Keep this
-      geoLongitude: data.geoLongitude || undefined,  // Keep this
+    const addressPayload = {
+      saveAs: data.saveAs || undefined,
+      houseNo:
+        data.buildingType === "house"
+          ? data.houseNo || undefined
+          : data.buildingType === "apartment"
+            ? data.apartmentHouseNo || undefined
+            : undefined,
+      buildingNo:
+        data.buildingType === "apartment"
+          ? data.buildingNo || undefined
+          : undefined,
+      buildingName:
+        data.buildingType === "apartment"
+          ? data.apartmentName || undefined
+          : undefined,
+      unitNo:
+        data.buildingType === "apartment"
+          ? data.flatNumber || undefined
+          : undefined,
+      floorNo:
+        data.buildingType === "apartment"
+          ? data.apartmentFloor || undefined
+          : undefined,
+      streetName:
+        data.buildingType === "house"
+          ? data.houseStreet || undefined
+          : data.buildingType === "apartment"
+            ? data.apartmentStreet || undefined
+            : undefined,
+      city:
+        data.buildingType === "house"
+          ? data.houseCity || undefined
+          : data.buildingType === "apartment"
+            ? data.apartmentCity || undefined
+            : undefined,
     };
-
-    const billingDetails: BillingDetails = {
-      billingTitle: data.billingTitle,
-      billingName: data.billingName || '',
-      title: data.title || data.billingTitle,
-      firstName: data.firstName || '',
-      lastName: data.lastName || '',
-      phoneCode: data.phonecode1 || '+94',
-      phoneNumber: data.phone1 || '',
-      phoneCode2: data.phonecode2 || '+94',
-      phoneNumber2: data.phone2 || '',
-      buildingType: data.buildingType || '',
-      address,
-      geoLatitude: data.geoLatitude || undefined,
-      geoLongitude: data.geoLongitude || undefined,
-    };
-
-    console.log('Saving billing details with geo location:', {
-      geoLatitude: data.geoLatitude,
-      geoLongitude: data.geoLongitude,
-      fullData: billingDetails
-    });
 
     try {
-      await saveBillingDetails({ token, data: billingDetails });
+      const result = await saveBillingDetails({
+        token,
+        data: {
+          addressId: selectedAddressId,
+          billingTitle: data.billingTitle,
+          billingName: data.billingName,
+          phoneCode: data.phonecode1,
+          phoneNumber: data.phone1,
+          phoneCode2: data.phonecode2,
+          phoneNumber2: data.phone2,
+          buildingType: data.buildingType,
+          geoLatitude: data.geoLatitude,
+          geoLongitude: data.geoLongitude,
+          address: addressPayload,
+        },
+      });
+
+      const savedEntry: UserAddressEntry = {
+        id: result.addressId,
+        buildingType: result.buildingType,
+        billingTitle: data.billingTitle,
+        billingName: data.billingName,
+        phoneCode: data.phonecode1,
+        phoneNumber: data.phone1,
+        phoneCode2: data.phonecode2,
+        phoneNumber2: data.phone2,
+        geoLatitude: data.geoLatitude ?? undefined,
+        geoLongitude: data.geoLongitude ?? undefined,
+        address: { ...addressPayload, id: result.addressId },
+      };
+
+      setAddressBook((prev) => {
+        const index = prev.findIndex((entry) => entry.id === result.addressId);
+        if (index >= 0) {
+          const next = [...prev];
+          next[index] = savedEntry;
+          return next;
+        }
+        return [...prev, savedEntry];
+      });
+
+      setSelectedAddressId(result.addressId);
       setInitialFormData(data);
+      setHasFormChanged(false);
+      setIsEditingAddress(false);
+      setOpenAddressMenuId(null);
+      window.scrollTo({ top: 0, behavior: "smooth" });
       setShowSuccessPopup(true);
-      setTimeout(() => {
-        setShowSuccessPopup(false);
-      }, 3000);
+      setTimeout(() => setShowSuccessPopup(false), 3000);
     } catch (error: any) {
-      setErrorMessage(error.message || 'Failed to save billing details');
+      setErrorMessage(error.message || "Failed to save billing details");
       setShowErrorPopup(true);
     } finally {
       setIsLoading(false);
@@ -565,67 +1161,130 @@ const BillingDetailsForm = () => {
   };
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    // Block leading space
-    if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
+    if (e.key === " " && e.currentTarget.selectionStart === 0) {
       e.preventDefault();
     }
   };
 
-  const handleBillingNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleBillingNameKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+  ) => {
     const isNumber = /[0-9]/.test(e.key);
     const isInvalidChar = /[0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?]/.test(e.key);
 
-    // Block leading space
-    if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
+    if (e.key === " " && e.currentTarget.selectionStart === 0) {
       e.preventDefault();
       return;
     }
 
     if (isNumber) {
-      setBillingNameError('Numbers are not allowed in Billing Name');
-      setTimeout(() => setBillingNameError(''), 2000);
       e.preventDefault();
-    } else if (isInvalidChar && !['Backspace', 'Tab', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+    } else if (
+      isInvalidChar &&
+      !["Backspace", "Tab", "ArrowLeft", "ArrowRight"].includes(e.key)
+    ) {
       e.preventDefault();
     }
   };
 
   const handlePhoneKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    // Block leading space
-    if (e.key === ' ' && e.currentTarget.selectionStart === 0) {
-      e.preventDefault();
+    const allowedKeys = [
+      "Backspace",
+      "Delete",
+      "Tab",
+      "Escape",
+      "Enter",
+      "ArrowLeft",
+      "ArrowRight",
+      "ArrowUp",
+      "ArrowDown",
+    ];
+    if (allowedKeys.includes(e.key)) return;
+    if (
+      (e.ctrlKey || e.metaKey) &&
+      ["a", "c", "v", "x"].includes(e.key.toLowerCase())
+    )
       return;
-    }
-
-    const invalidKeys = ['e', 'E', '+', '-', '.', ','];
-    if (invalidKeys.includes(e.key)) {
+    if (!/^[0-9]$/.test(e.key)) {
       e.preventDefault();
     }
+  };
+
+  const handlePhoneChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    fieldName: "phone1" | "phone2",
+  ) => {
+    const numericValue = e.target.value.replace(/\D/g, "");
+    setValue(fieldName, numericValue, { shouldValidate: true });
+  };
+
+  const confirmGoBack = () => {
+    setShowGoBackConfirm(false);
+    handleCancel();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const cancelGoBack = () => {
+    setShowGoBackConfirm(false);
+  };
+
+  const confirmCancelChanges = () => {
+    setShowCancelConfirm(false);
+    handleCancel();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const dismissCancelConfirm = () => {
+    setShowCancelConfirm(false);
   };
 
   const handleCancel = () => {
+    closeAddressForm();
+    setHasFormChanged(false);
+    setShowCancelSuccessPopup(true);
+    setTimeout(() => setShowCancelSuccessPopup(false), 2000);
+  };
+
+  // Called from the 3-dot menu "Delete" button — just opens the confirmation modal
+  const requestDeleteAddress = (entry: UserAddressEntry) => {
+    setOpenAddressMenuId(null);
+    setAddressPendingDelete(entry);
+  };
+
+  // Called when user confirms in the modal
+  const confirmDeleteAddress = async () => {
+    if (!token || !addressPendingDelete) return;
+    const entry = addressPendingDelete;
+
+    setAddressPendingDelete(null);
     setIsLoading(true);
-    if (initialFormData) {
-      reset(initialFormData);
-      setValue('buildingType', initialFormData.buildingType); // Ensure buildingType is reset
-      // Explicitly reset geo location values
-      if (initialFormData.geoLatitude && initialFormData.geoLongitude) {
-        setValue('geoLatitude', initialFormData.geoLatitude);
-        setValue('geoLongitude', initialFormData.geoLongitude);
+    try {
+      await deleteBillingAddress({
+        token,
+        addressId: entry.id,
+        buildingType: entry.buildingType,
+      });
+
+      setAddressBook((prev) => prev.filter((item) => item.id !== entry.id));
+
+      if (selectedAddressId === entry.id) {
+        setSelectedAddressId(null);
+        setInitialFormData(null);
+        setIsEditingAddress(false);
       }
-      setHasFormChanged(false); // Reset the change flag
-    }
-    setTimeout(() => {
+
+      setShowDeleteSuccessPopup(true);
+      setTimeout(() => setShowDeleteSuccessPopup(false), 3000);
+    } catch (error: any) {
+      setErrorMessage(error.message || "Failed to delete address");
+      setShowErrorPopup(true);
+    } finally {
       setIsLoading(false);
-      setShowCancelSuccessPopup(true);
-      setTimeout(() => {
-        setShowCancelSuccessPopup(false);
-      }, 3000);
-    }, 500);
+    }
   };
 
   return (
-    <div className="relative z-10 px-4 sm:px-6 min-h-screen bg-white blur-effect py-4">
+    <div className="relative z-10 px-4 sm:px-6 min-h-screen bg-white blur-effect py-4 mt-2">
       <Loader isVisible={isLoading} />
       <SuccessPopup
         isVisible={showSuccessPopup}
@@ -633,6 +1292,14 @@ const BillingDetailsForm = () => {
         title="Billing details saved successfully!"
         duration={3000}
       />
+
+      <SuccessPopup
+        isVisible={showDeleteSuccessPopup}
+        onClose={() => setShowDeleteSuccessPopup(false)}
+        title="Address deleted successfully!"
+        duration={3000}
+      />
+
       <ErrorPopup
         isVisible={showErrorPopup}
         onClose={() => setShowErrorPopup(false)}
@@ -640,15 +1307,201 @@ const BillingDetailsForm = () => {
         description={errorMessage}
       />
 
+      {!isEditingAddress && (
+        <div className="bg-white">
+          <h2 className="font-medium text-[14px] text-base md:text-[17.5px]">
+            Account
+          </h2>
+          <p className="text-[12px] md:text-[16px] text-[#626D76] mb-3">
+            Real-time information and activities of your property.
+          </p>
+          <div className="border-t border-[#BDBDBD] mb-5 mt-1" />
 
-      <form onSubmit={handleSubmit(onSubmit)} className="bg-white">
-        <h2 className="font-medium text-[14px] text-base md:text-[17.5px]">Account Details</h2>
+          <div className="flex flex-col items-start gap-4 mb-5 md:flex-row md:items-center md:justify-between">
+            <h2 className="font-medium text-[14px] md:text-[18px]">
+              My Address Book
+            </h2>
+            {addressBook.length < 16 && (
+              <button
+                type="button"
+                onClick={startCreateAddress}
+                className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#3E206D] px-4 py-2.5 text-white text-[13px] md:text-[16px] font-medium shadow-[0_6px_16px_rgba(62,32,109,0.24)] hover:bg-[#341a5a] transition-colors w-auto"
+              >
+                <Plus size={18} />
+                Add New Address
+              </button>
+            )}
+          </div>
+
+          {addressBook.length === 0 ? (
+            <div className="flex min-h-[360px] flex-col items-center justify-center rounded-[18px] border border-[#E5D9FF] bg-[#FAF7FF] px-6 py-10 text-center">
+              <Lottie
+                options={{
+                  loop: true,
+                  autoplay: true,
+                  animationData: noAddItemAnimation,
+                  rendererSettings: { preserveAspectRatio: "xMidYMid slice" },
+                }}
+                height={180}
+                width={180}
+              />
+              <p className="mt-2 text-[18px] font-semibold text-[#3E206D]">
+                No saved addresses yet
+              </p>
+              <p className="mt-1 max-w-md text-[13px] text-[#626D76]">
+                Add an address to create your address book and quickly reuse it
+                at checkout.
+              </p>
+            </div>
+          ) : (
+            <div
+              ref={addressBookMenuRef}
+              className="rounded-[18px] border border-[#DCCEF6] bg-[#FAF7FF] p-4 md:p-5"
+            >
+              <div className="grid gap-4 lg:grid-cols-2">
+                {[...addressBook]
+                  .sort((a, b) =>
+                    (a.address.saveAs || "").localeCompare(
+                      b.address.saveAs || "",
+                      undefined,
+                      { sensitivity: "base" },
+                    ),
+                  )
+                  .map((entry) => {
+                    const isMenuOpen = openAddressMenuId === entry.id;
+
+                    return (
+                      <div
+                        key={entry.id}
+                        className="relative rounded-[12px] border border-[#D7D7D7] bg-white px-5 py-4 shadow-[0_4px_10px_rgba(0,0,0,0.08)]"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <h3 className="text-[16px] font-medium text-[#111827]">
+                              {entry.address.saveAs || "Address"}
+                            </h3>
+                            <p className="mt-2 text-[13px] leading-5 text-[#6B7280]">
+                              {getAddressSummary(entry)}
+                            </p>
+                          </div>
+
+                          <div className="relative flex-shrink-0">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setOpenAddressMenuId(
+                                  isMenuOpen ? null : entry.id,
+                                )
+                              }
+                              className="rounded-full p-1 text-[#111827] hover:bg-[#F3F4F6] cursor-pointer"
+                              aria-label={`Open actions for ${entry.address.saveAs || "address"}`}
+                            >
+                              <MoreVertical size={18} />
+                            </button>
+
+                            {isMenuOpen && (
+                              <div className="absolute right-0 top-6 z-20 w-32 overflow-hidden rounded-lg border border-[#E5E7EB] bg-white shadow-lg">
+                                <button
+                                  type="button"
+                                  onClick={() => startEditAddress(entry)}
+                                  className="flex cursor-pointer w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-[#111827] hover:bg-[#F9FAFB]"
+                                >
+                                  <PencilLine size={15} />
+                                  Edit
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => requestDeleteAddress(entry)}
+                                  className="flex cursor-pointer w-full items-center gap-2 border-t border-[#E5E7EB] px-3 py-2 text-left text-[13px] text-[#DC2626] hover:bg-[#FEF2F2]"
+                                >
+                                  <Trash2 size={15} />
+                                  Delete
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        className={isEditingAddress ? "bg-white" : "hidden"}
+      >
+        <h2 className="font-medium text-[14px] text-base md:text-[17.5px]">
+          Account
+        </h2>
         <p className="text-[12px] md:text-[16px] text-[#626D76] mb-3">
-          Real-time information and updates for your billing details.
+          Real-time information and activities of your property.
         </p>
-        <div className="border-t border-[#626D76] mb-6 mt-1" />
+        <div className="border-t border-[#BDBDBD] mb-5 mt-1" />
 
-        <h2 className="font-medium text-[14px] md:text-[18px] mb-4">Billing Name</h2>
+        <div className="mb-3">
+          <button
+            type="button"
+            onClick={() => setShowGoBackConfirm(true)}
+            className="inline-flex items-center gap-1 text-[#000000] text-sm font-medium underline underline-offset-2 cursor-pointer"
+            aria-label="Go back"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="w-4 h-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={3}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M15 19l-7-7 7-7"
+              />
+            </svg>
+            <span>Go Back</span>
+          </button>
+        </div>
+
+        <h2 className="font-medium text-[14px] md:text-[18px] mb-4">
+          {selectedAddressId ? "Edit Address" : "Add New Address"}
+        </h2>
+
+        <div className="w-full md:w-1/2">
+          <div className="flex items-center gap-1 mb-1">
+            <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
+              Save Address As
+            </label>
+          </div>
+          <input
+            {...register("saveAs")}
+            type="text"
+            placeholder="e.g. Home"
+            className="border border-[#CECECE] rounded-lg p-2 w-[50%] h-[42px] text-[12px] md:text-[14px]"
+            onBlur={() => trigger("saveAs")}
+            onKeyDown={handleInputKeyDown}
+            onChange={(e) => {
+              const val = e.target.value;
+              const capitalized =
+                val.length > 0
+                  ? val.charAt(0).toUpperCase() + val.slice(1)
+                  : val;
+              e.target.value = capitalized;
+              register("saveAs").onChange(e);
+            }}
+          />
+          <p className="text-red-500 text-xs mt-1">{errors.saveAs?.message}</p>
+        </div>
+
+        <div className="border-t border-[#BDBDBD] mt-6 mb-6" />
+
+        <h2 className="font-medium text-[14px] md:text-[18px] mb-4">
+          Billing Name
+        </h2>
 
         <div className="md:w-[90%]">
           <div className="flex gap-4 md:gap-8">
@@ -672,25 +1525,25 @@ const BillingDetailsForm = () => {
                 Full Name
               </label>
               <input
-                {...register('billingName', {
-                  required: 'Billing Name is required',
+                {...register("billingName", {
+                  required: "Full Name is required",
                   pattern: {
                     value: /^[A-Za-z\s]+$/,
-                    message: 'Billing Name must contain only letters and spaces',
+                    message: "Full Name must contain only letters and spaces",
                   },
                 })}
                 className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
                 onKeyDown={handleBillingNameKeyDown}
-                placeholder='Full Name'
+                placeholder="Full Name"
               />
-              {billingNameError && <p className="text-red-500 text-xs">{billingNameError}</p>}
-              <p className="text-red-500 text-xs">{errors.billingName?.message}</p>
+              <p className="text-red-500 text-xs mt-1">
+                {errors.billingName?.message}
+              </p>
             </div>
           </div>
         </div>
 
         <div className="border-t border-[#BDBDBD] my-6" />
-        <h2 className="font-medium text-[14px] md:text-[18px] mb-4">Currently Saved Address</h2>
 
         <div className="md:w-[89%]">
           <div className="flex flex-col lg:flex-row gap-4 lg:gap-[100px] mb-6">
@@ -706,41 +1559,46 @@ const BillingDetailsForm = () => {
                 errors={errors}
                 options={buildingTypeOptions}
                 placeholder="Select Building Type"
+                disabled={!!selectedAddressId}
               />
             </div>
 
-            {buildingType === 'house' && (
+            {buildingType === "house" && (
               <div className="w-full lg:w-1/2">
                 <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
                   House No
                 </label>
                 <input
-                  {...register('houseNo')}
+                  {...register("houseNo")}
                   className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
-                  placeholder='House Number'
+                  placeholder="House Number"
                   onKeyDown={handleInputKeyDown}
                 />
-                <p className="text-red-500 text-xs">{errors.houseNo?.message}</p>
+                <p className="text-red-500 text-xs">
+                  {errors.houseNo?.message}
+                </p>
               </div>
             )}
 
-            {buildingType === 'apartment' && (
+            {buildingType === "apartment" && (
               <div className="w-full lg:w-1/2">
                 <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
                   Building No
                 </label>
                 <input
-                  {...register('buildingNo')}
+                  {...register("buildingNo")}
                   className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
-                  placeholder='Building Number'
+                  placeholder="Building Number"
                   onKeyDown={handleInputKeyDown}
                 />
-                <p className="text-red-500 text-xs">{errors.buildingNo?.message}</p>
+                <p className="text-red-500 text-xs">
+                  {errors.buildingNo?.message}
+                </p>
               </div>
             )}
           </div>
 
-          {buildingType === 'house' && (
+          {buildingType === "house" && (
             <>
               <div className="flex flex-col lg:flex-row gap-4 lg:gap-[100px] mb-6">
                 <div className="w-full lg:w-1/2">
@@ -748,28 +1606,55 @@ const BillingDetailsForm = () => {
                     Street Name
                   </label>
                   <input
-                    {...register('houseStreet')}
+                    {...register("houseStreet")}
                     className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
-                    placeholder='Street Name'
+                    placeholder="Street Name"
                     onKeyDown={handleInputKeyDown}
                   />
-
-                  <p className="text-red-500 text-xs">{errors.houseStreet?.message}</p>
+                  <p className="text-red-500 text-xs">
+                    {errors.houseStreet?.message}
+                  </p>
                 </div>
 
                 <div className="w-full lg:w-1/2">
                   <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
-                    Nearest City <span className="text-red-500">*</span>
+                    Nearest City
                   </label>
-                  <CustomDropdown
-                    register={register}
-                    setValue={setValue}
-                    name="houseCity"
+                  <CityDropdown
                     value={houseCityValue}
-                    errors={errors}
-                    options={cityOptions}
-                    placeholder="Select City"
+                    onSelect={(city) => {
+                      setValue("houseCity", city.city, {
+                        shouldValidate: true,
+                      });
+                      setHouseCityAvailable(city.isAvailable);
+                    }}
+                    onClear={() => {
+                      setValue("houseCity", "", { shouldValidate: true });
+                      setHouseCityAvailable(true);
+                    }}
+                    placeholder="Search your city"
+                    disabled={!hasDeliveredOrder}
                   />
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.houseCity?.message}
+                  </p>
+
+                  {houseCityValue && !houseCityAvailable && (
+                    <div className="mt-2 flex items-start gap-2.5 rounded-xl border border-[#FFDCB5] bg-[#FEF6ED] px-3 py-2">
+                      <div>
+                        <Info
+                          size={16}
+                          className="mt-1.5 flex-shrink-0 text-[#EC6821]"
+                        />
+                      </div>
+                      <p className="text-[12px] md:text-[12px] font-medium text-[#EC6821] leading-snug">
+                        Delivery not available in {houseCityValue} yet, but
+                        we're working on it and
+                        <br />
+                        coming to your area soon!
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -778,7 +1663,9 @@ const BillingDetailsForm = () => {
                   <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
                     Geo Location
                   </label>
-                  {isMounted && (hasGeoLocation || (watch('geoLatitude') && watch('geoLongitude'))) ? (
+                  {isMounted &&
+                    (hasGeoLocation ||
+                      (watch("geoLatitude") && watch("geoLongitude"))) ? (
                     <div className="space-y-2">
                       <button
                         type="button"
@@ -786,13 +1673,18 @@ const BillingDetailsForm = () => {
                         className="w-full h-[42px] border-2 border-[#CECECE] bg-[#E6D9F5] rounded-lg flex items-center justify-center gap-2 text-[#3E206D] font-medium hover:bg-[#d9c9ed] transition-colors cursor-pointer"
                       >
                         <LocateFixed size={18} />
-                        <span className="text-[12px] md:text-[14px]">Re-attach My Geo Location</span>
+                        <span className="text-[12px] md:text-[14px]">
+                          Re-attach My Geo Location
+                        </span>
                       </button>
-                      <div 
+                      <div
                         className="flex items-start gap-2 text-[#D32F2F] cursor-pointer"
                         onClick={handleViewLocation}
                       >
-                        <LocateFixed size={16} className="mt-0.5 flex-shrink-0" />
+                        <LocateFixed
+                          size={16}
+                          className="mt-0.5 flex-shrink-0"
+                        />
                         <span className="text-[11px] md:text-[13px] underline hover:text-[#b02525]">
                           View Here
                         </span>
@@ -805,18 +1697,18 @@ const BillingDetailsForm = () => {
                       className="w-full h-[42px] border-2 border-[#CECECE] bg-[#E6D9F5] rounded-lg flex items-center justify-center gap-2 text-[#3E206D] font-medium hover:bg-[#d9c9ed] transition-colors cursor-pointer"
                     >
                       <LocateFixed size={18} />
-                      <span className="text-[12px] md:text-[14px]">Attach My Geo Location</span>
+                      <span className="text-[12px] md:text-[14px]">
+                        Attach My Geo Location
+                      </span>
                     </button>
                   )}
                 </div>
-                <div className="w-full lg:w-1/2">
-                  {/* Empty space for alignment */}
-                </div>
+                <div className="w-full lg:w-1/2" />
               </div>
             </>
           )}
 
-          {buildingType === 'apartment' && (
+          {buildingType === "apartment" && (
             <>
               <div className="flex flex-col lg:flex-row gap-4 lg:gap-[100px] mb-6">
                 <div className="w-full lg:w-1/2">
@@ -824,13 +1716,14 @@ const BillingDetailsForm = () => {
                     Apartment or Building Name
                   </label>
                   <input
-                    {...register('apartmentName')}
+                    {...register("apartmentName")}
                     className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
-                    placeholder='Apartment or Building Name'
+                    placeholder="Apartment or Building Name"
                     onKeyDown={handleInputKeyDown}
                   />
-
-                  <p className="text-red-500 text-xs">{errors.apartmentName?.message}</p>
+                  <p className="text-red-500 text-xs">
+                    {errors.apartmentName?.message}
+                  </p>
                 </div>
 
                 <div className="w-full lg:w-1/2">
@@ -838,12 +1731,14 @@ const BillingDetailsForm = () => {
                     Flat/Unit Number
                   </label>
                   <input
-                    {...register('flatNumber')}
+                    {...register("flatNumber")}
                     className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
-                    placeholder='Flat/Unit Number'
+                    placeholder="Flat/Unit Number"
                     onKeyDown={handleInputKeyDown}
                   />
-                  <p className="text-red-500 text-xs">{errors.flatNumber?.message}</p>
+                  <p className="text-red-500 text-xs">
+                    {errors.flatNumber?.message}
+                  </p>
                 </div>
               </div>
 
@@ -853,12 +1748,14 @@ const BillingDetailsForm = () => {
                     Floor Number
                   </label>
                   <input
-                    {...register('apartmentFloor')}
+                    {...register("apartmentFloor")}
                     className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
-                    placeholder='Floor Number'
+                    placeholder="Floor Number"
                     onKeyDown={handleInputKeyDown}
                   />
-                  <p className="text-red-500 text-xs">{errors.apartmentFloor?.message}</p>
+                  <p className="text-red-500 text-xs">
+                    {errors.apartmentFloor?.message}
+                  </p>
                 </div>
 
                 <div className="w-full lg:w-1/2">
@@ -866,12 +1763,14 @@ const BillingDetailsForm = () => {
                     House Number
                   </label>
                   <input
-                    {...register('apartmentHouseNo')}
+                    {...register("apartmentHouseNo")}
                     className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
-                    placeholder='House Number'
+                    placeholder="House Number"
                     onKeyDown={handleInputKeyDown}
                   />
-                  <p className="text-red-500 text-xs">{errors.apartmentHouseNo?.message}</p>
+                  <p className="text-red-500 text-xs">
+                    {errors.apartmentHouseNo?.message}
+                  </p>
                 </div>
               </div>
 
@@ -881,27 +1780,51 @@ const BillingDetailsForm = () => {
                     Street Name
                   </label>
                   <input
-                    {...register('apartmentStreet')}
+                    {...register("apartmentStreet")}
                     className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
-                    placeholder='Street Name'
+                    placeholder="Street Name"
                     onKeyDown={handleInputKeyDown}
                   />
-                  <p className="text-red-500 text-xs">{errors.apartmentStreet?.message}</p>
+                  <p className="text-red-500 text-xs">
+                    {errors.apartmentStreet?.message}
+                  </p>
                 </div>
 
                 <div className="w-full lg:w-1/2">
                   <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
-                    Nearest City <span className="text-red-500">*</span>
+                    Nearest City
                   </label>
-                  <CustomDropdown
-                    register={register}
-                    setValue={setValue}
-                    name="apartmentCity"
+                  <CityDropdown
                     value={apartmentCityValue}
-                    errors={errors}
-                    options={cityOptions}
-                    placeholder="Select City"
+                    onSelect={(city) => {
+                      setValue("apartmentCity", city.city, {
+                        shouldValidate: true,
+                      });
+                      setApartmentCityAvailable(city.isAvailable);
+                    }}
+                    onClear={() => {
+                      setValue("apartmentCity", "", { shouldValidate: true });
+                      setApartmentCityAvailable(true);
+                    }}
+                    placeholder="Search your city"
+                    disabled={!hasDeliveredOrder}
                   />
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.apartmentCity?.message}
+                  </p>
+
+                  {apartmentCityValue && !apartmentCityAvailable && (
+                    <div className="mt-2 flex items-start gap-2 rounded-lg border border-[#FFD9A8] bg-[#FFF4E5] px-3 py-2.5">
+                      <Info
+                        size={16}
+                        className="mt-0.5 flex-shrink-0 text-[#E8792C]"
+                      />
+                      <p className="text-[16px] text-medium md:text-[13px] text-[#E8792C]">
+                        Delivery not available in {apartmentCityValue} yet, but
+                        we're working on it and coming to your area soon!
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -910,7 +1833,9 @@ const BillingDetailsForm = () => {
                   <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
                     Geo Location
                   </label>
-                  {isMounted && (hasGeoLocation || (watch('geoLatitude') && watch('geoLongitude'))) ? (
+                  {isMounted &&
+                    (hasGeoLocation ||
+                      (watch("geoLatitude") && watch("geoLongitude"))) ? (
                     <div className="space-y-2">
                       <button
                         type="button"
@@ -918,13 +1843,18 @@ const BillingDetailsForm = () => {
                         className="w-full h-[42px] border-2 border-[#CECECE] bg-[#E6D9F5] rounded-lg flex items-center justify-center gap-2 text-[#3E206D] font-medium hover:bg-[#d9c9ed] transition-colors cursor-pointer"
                       >
                         <LocateFixed size={18} />
-                        <span className="text-[12px] md:text-[14px]">Re-attach My Geo Location</span>
+                        <span className="text-[12px] md:text-[14px]">
+                          Re-attach My Geo Location
+                        </span>
                       </button>
-                      <div 
+                      <div
                         className="flex items-start gap-2 text-[#D32F2F] cursor-pointer"
                         onClick={handleViewLocation}
                       >
-                        <LocateFixed size={16} className="mt-0.5 flex-shrink-0" />
+                        <LocateFixed
+                          size={16}
+                          className="mt-0.5 flex-shrink-0"
+                        />
                         <span className="text-[11px] md:text-[13px] underline hover:text-[#b02525]">
                           View Here
                         </span>
@@ -937,13 +1867,13 @@ const BillingDetailsForm = () => {
                       className="w-full h-[42px] border-2 border-[#CECECE] bg-[#E6D9F5] rounded-lg flex items-center justify-center gap-2 text-[#3E206D] font-medium hover:bg-[#d9c9ed] transition-colors cursor-pointer"
                     >
                       <LocateFixed size={18} />
-                      <span className="text-[12px] md:text-[14px]">Attach My Geo Location</span>
+                      <span className="text-[12px] md:text-[14px]">
+                        Attach My Geo Location
+                      </span>
                     </button>
                   )}
                 </div>
-                <div className="w-full lg:w-1/2">
-                  {/* Empty space for alignment */}
-                </div>
+                <div className="w-full lg:w-1/2" />
               </div>
             </>
           )}
@@ -951,7 +1881,9 @@ const BillingDetailsForm = () => {
 
         <div className="border-t border-[#BDBDBD] my-8" />
         <h2 className="font-medium text-[14px] md:text-[18px] mb-1">Contact</h2>
-        <p className="text-[12px] md:text-[16px] text-[#626D76] mb-6">Manage your account phone numbers for invoices.</p>
+        <p className="text-[12px] md:text-[16px] text-[#626D76] mb-6">
+          Manage your account phone numbers for invoices.
+        </p>
 
         <div className="flex flex-col lg:flex-row gap-y-1 lg:gap-x-2">
           {[1, 2].map((num) => (
@@ -960,46 +1892,46 @@ const BillingDetailsForm = () => {
                 Phone Number {num}
               </label>
               <div className="flex gap-4">
-                <div className="relative w-[25%] md:w-[14%] min-w-[70px]">
-                  <CustomDropdown
-                    register={register}
-                    setValue={setValue}
-                    name={`phonecode${num}` as 'phonecode1' | 'phonecode2'}
-                    value={num === 1 ? phonecode1Value : phonecode2Value}
-                    errors={errors}
-                    options={phoneCodeOptions}
-                    placeholder="Select Code"
-                  />
+                <div className="max-w-[30%] md:max-w-[20%]">
+                  <div className="flex items-center justify-center border border-[#CECECE] rounded-lg h-[42px] px-2 text-[12px] md:text-[14px] text-gray-700 bg-[#F3F4F6] select-none">
+                    +94
+                  </div>
                 </div>
 
                 <div className="w-[70%] lg:w-[65%]">
                   <input
                     type="text"
-                    {...register(`phone${num}` as 'phone1' | 'phone2', {
-                      required: num === 1 ? 'Phone number is required' : false,
+                    {...register(`phone${num}` as "phone1" | "phone2", {
+                      required:
+                        num === 1 ? "Phone Number 1 is required" : false,
                       pattern: {
-                        value: /^[0-9]{9}$/,
-                        message: 'Enter a valid number (9 digits)',
+                        value: /^7[0-9]{8}$/,
+                        message:
+                          "Please enter a valid Phone Number (format: +947XXXXXXXX)",
                       },
-                      validate: num === 2
-                        ? {
-                          notDuplicate: (value) =>
-                            !value ||
-                            !watch('phone1') ||
-                            watch('phonecode1') !== watch('phonecode2') ||
-                            value !== watch('phone1') ||
-                            'Phone numbers cannot be the same',
-                        }
-                        : undefined,
+                      validate:
+                        num === 2
+                          ? {
+                            notDuplicate: (value) =>
+                              !value ||
+                              !watch("phone1") ||
+                              watch("phonecode1") !== watch("phonecode2") ||
+                              value !== watch("phone1") ||
+                              "Phone numbers cannot be the same",
+                          }
+                          : undefined,
                     })}
                     className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px]"
                     placeholder="7XXXXXXXX"
                     inputMode="numeric"
                     maxLength={9}
                     onKeyDown={handlePhoneKeyDown}
+                    onChange={(e) =>
+                      handlePhoneChange(e, `phone${num}` as "phone1" | "phone2")
+                    }
                   />
                   <p className="text-red-500 text-xs">
-                    {errors[`phone${num}` as 'phone1' | 'phone2']?.message}
+                    {errors[`phone${num}` as "phone1" | "phone2"]?.message}
                   </p>
                 </div>
               </div>
@@ -1007,46 +1939,133 @@ const BillingDetailsForm = () => {
           ))}
         </div>
 
-        <div className="flex justify-end gap-4 mt-10">
-          <button
-            type="submit"
-            className={`w-[90px] h-[36px] sm:w-[110px] sm:h-[44px] cursor-pointer mb-4 text-[16px] md:text-[20px] font-medium rounded-lg text-white ${isLoading || !hasFormChanged
-              ? 'opacity-50 cursor-not-allowed bg-[#9ca3af]'
-              : 'bg-[#3E206D] hover:bg-[#341a5a]'
-              }`}
-            disabled={isLoading || !hasFormChanged}
-          >
-            Save
-          </button>
+        <div className="flex justify-end mt-10 p-4">
+          <div className="flex gap-4">
+            <button
+              type="button"
+              className={`px-6 py-2.5 text-[12px] md:text-[16px] font-medium rounded-lg leading-none ${isLoading || !canSave
+                ? "opacity-50 cursor-not-allowed text-[#9ca3af] bg-[#f9fafb]"
+                : "text-[#757E87] bg-[#F3F4F7] hover:bg-[#e1e2e5] cursor-pointer"
+                }`}
+              onClick={() => setShowCancelConfirm(true)}
+              disabled={isLoading || !canSave}
+            >
+              Cancel
+            </button>
 
-          <button
-            type="button"
-            className={`w-[90px] h-[36px] sm:w-[110px] sm:h-[44px] cursor-pointer text-[16px] md:text-[20px] font-medium rounded-lg ${isLoading || !hasFormChanged
-              ? 'opacity-50 cursor-not-allowed text-[#9ca3af] bg-[#f9fafb]'
-              : 'text-[#757E87] bg-[#F3F4F7] hover:bg-[#e1e2e5]'
-              }`}
-            onClick={handleCancel}
-            disabled={isLoading || !hasFormChanged}
-          >
-            Cancel
-          </button>
+            <button
+              type="submit"
+              className={`px-6 py-2.5 text-[12px] md:text-[16px] font-medium rounded-lg text-white leading-none ${isLoading || !canSave
+                ? "bg-gray-400 cursor-not-allowed opacity-50"
+                : "bg-[#3E206D] hover:bg-[#341a5a] cursor-pointer"
+                }`}
+              disabled={isLoading || !canSave}
+            >
+              Save
+            </button>
+          </div>
         </div>
+
         <GeoLocationModal
           isOpen={isGeoModalOpen}
           onClose={() => {
             setIsGeoModalOpen(false);
-            setIsViewingLocation(false); // Reset viewing mode when closing
+            setIsViewingLocation(false);
           }}
           onLocationSelect={handleLocationSelect}
           initialCenter={mapCenter}
-          savedLocation={isViewingLocation && watch('geoLatitude') && watch('geoLongitude') 
-            ? [Number(watch('geoLatitude')), Number(watch('geoLongitude'))] 
-            : null}
+          savedLocation={
+            isViewingLocation && watch("geoLatitude") && watch("geoLongitude")
+              ? [Number(watch("geoLatitude")), Number(watch("geoLongitude"))]
+              : null
+          }
+          viewOnly={isViewingLocation}
         />
       </form>
+
+      {addressPendingDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-xl">
+            <p className="text-[16px] md:text-[18px] font-medium text-[#111827] mb-6">
+              Are you sure you want to delete?
+            </p>
+            <div className="flex justify-center gap-4">
+              <button
+                type="button"
+                onClick={() => setAddressPendingDelete(null)}
+                className="px-6 py-2.5 rounded-xl bg-[#F3F4F7] text-[#757E87] font-medium hover:bg-[#e1e2e5] cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteAddress}
+                className="px-6 py-2.5 rounded-xl bg-[#E11D48] text-white font-medium hover:bg-[#be123c] cursor-pointer"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showGoBackConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-xl">
+            <p className="text-[16px] md:text-[18px] font-medium text-[#111827] mb-6">
+              Are you sure you want to Go Back?
+              <br />
+              All unsaved changes will be lost.
+            </p>
+            <div className="flex justify-center gap-4">
+              <button
+                type="button"
+                onClick={cancelGoBack}
+                className="px-6 py-2.5 rounded-xl bg-[#F3F4F7] text-[#757E87] font-medium hover:bg-[#e1e2e5] cursor-pointer"
+              >
+                No
+              </button>
+              <button
+                type="button"
+                onClick={confirmGoBack}
+                className="px-6 py-2.5 rounded-xl bg-[#3E206D] text-white font-medium hover:bg-[#341a5a] cursor-pointer"
+              >
+                Yes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCancelConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-xl">
+            <p className="text-[16px] md:text-[18px] font-medium text-[#111827] mb-6">
+              You have unsaved changes.
+              <br />
+              Are you sure you want to discard them?
+            </p>
+            <div className="flex justify-center gap-4">
+              <button
+                type="button"
+                onClick={dismissCancelConfirm}
+                className="px-6 py-2.5 rounded-xl bg-[#F3F4F7] text-[#757E87] font-medium hover:bg-[#e1e2e5] cursor-pointer"
+              >
+                No
+              </button>
+              <button
+                type="button"
+                onClick={confirmCancelChanges}
+                className="px-6 py-2.5 rounded-xl bg-[#3E206D] text-white font-medium hover:bg-[#341a5a] cursor-pointer"
+              >
+                Yes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 export default BillingDetailsForm;
-

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useForm, SubmitHandler, UseFormRegister, FieldErrors } from 'react-hook-form';
+import { useForm, UseFormRegister, FieldErrors } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { FaUserCircle, FaAngleDown } from 'react-icons/fa';
@@ -13,6 +13,10 @@ import ErrorPopup from '@/components/toast-messages/error-message';
 import Loader from '@/components/loader-spinner/Loader';
 import { fetchProfile, updateProfile, updatePassword } from '@/services/auth-service';
 import { updateUser } from '@/store/slices/authSlice';
+import PhoneCodeDropdown, {
+  validatePhoneNumber,
+  getMaxPhoneLength,
+} from '@/components/registration-components/PhoneCodeDropdown';
 
 const schema = yup.object().shape({
   title: yup.string().required('Title is required'),
@@ -27,6 +31,37 @@ const schema = yup.object().shape({
   email: yup
     .string()
     .transform((value) => value?.trim())
+    .test('no-spaces', 'Email cannot contain spaces', (value) => {
+      if (!value) return true;
+      return !value.includes(' ');
+    })
+    .test('no-consecutive-dots', 'Email cannot contain consecutive dots', (value) => {
+      if (!value) return true;
+      return !value.includes('..');
+    })
+    .test('no-leading-dot', 'Email cannot start with a dot', (value) => {
+      if (!value) return true;
+      const parts = value.split('@');
+      if (parts.length === 0) return true;
+      const localPart = parts[0];
+      return !localPart.startsWith('.');
+    })
+    .test('no-trailing-dot', 'Email cannot end with a dot before @', (value) => {
+      if (!value) return true;
+      const parts = value.split('@');
+      if (parts.length === 0) return true;
+      const localPart = parts[0];
+      return !localPart.endsWith('.');
+    })
+    .test('valid-characters', 'Email contains invalid characters', (value) => {
+      if (!value) return true;
+      const parts = value.split('@');
+      if (parts.length === 0) return true;
+      const localPart = parts[0];
+      // Only allow alphanumeric, dots, hyphens, and underscores in local part
+      const validPattern = /^[a-zA-Z0-9._-]+$/;
+      return validPattern.test(localPart);
+    })
     .email('Please enter a valid Email Address')
     .required('Email Address is required'),
   countryCode: yup.string().required('Country Code is required'),
@@ -38,14 +73,24 @@ const schema = yup.object().shape({
   phoneNumber: yup
     .string()
     .transform((value) => value?.trim())
-    .matches(/^7[0-9]{8}$/, 'Please enter a valid Phone Number (format: +947XXXXXXXX)')
-    .required('Phone Number is required'),
+    .required('Phone Number is required')
+    .test('valid-phone', function (value) {
+      if (!value) return true; // required() already handles the empty case
+      const { countryCode } = this.parent;
+      const error = validatePhoneNumber(countryCode, value);
+      return error ? this.createError({ message: error }) : true;
+    }),
   phoneNumber2: yup.string().when('$buyerType', {
     is: 'Wholesale',
     then: (schema) => schema
       .transform((value) => value?.trim())
-      .matches(/^7[0-9]{8}$/, 'Please enter a valid Phone Number (format: +947XXXXXXXX)')
-      .required('Phone Number is required'),
+      .required('Phone Number is required')
+      .test('valid-phone2', function (value) {
+        if (!value) return true;
+        const { countryCode2 } = this.parent;
+        const error = validatePhoneNumber(countryCode2, value);
+        return error ? this.createError({ message: error }) : true;
+      }),
     otherwise: (schema) => schema.notRequired(),
   }),
   companyName: yup.string().when('$buyerType', {
@@ -64,22 +109,40 @@ const schema = yup.object().shape({
     is: 'Wholesale',
     then: (schema) => schema
       .transform((value) => value?.trim())
-      .matches(/^7[0-9]{8}$/, 'Please enter a valid Company Phone Number (format: +947XXXXXXXX)')
-      .required('Company Phone Number is required'),
+      .required('Company Phone Number is required')
+      .test('valid-company-phone', function (value) {
+        if (!value) return true;
+        const { companyPhoneCode } = this.parent;
+        const error = validatePhoneNumber(companyPhoneCode, value);
+        return error ? this.createError({ message: error }) : true;
+      }),
     otherwise: (schema) => schema.notRequired(),
   }),
   currentPassword: yup.string()
     .transform((value) => value?.trim())
-    .when('newPassword', {
-      is: (val: string | undefined) => val && val.length > 0,
-      then: (schema) => schema.required('Current Password is required'),
-      otherwise: (schema) => schema.notRequired(),
+    .test('check-all-password-fields', function (value) {
+      const { newPassword, confirmPassword } = this.parent;
+      const hasAnyPassword = value || newPassword || confirmPassword;
+
+      if (hasAnyPassword && !value) {
+        return this.createError({ message: 'Current Password is required when updating password' });
+      }
+      return true;
     }),
   newPassword: yup
     .string()
     .transform((value) => value?.trim())
+    .test('check-all-password-fields', function (value) {
+      const { currentPassword, confirmPassword } = this.parent;
+      const hasAnyPassword = value || currentPassword || confirmPassword;
+
+      if (hasAnyPassword && !value) {
+        return this.createError({ message: 'New Password is required when updating password' });
+      }
+      return true;
+    })
     .test('password-requirements', 'Password must contain a minimum of 6 characters with 1 Uppercase, Numbers & Special Characters', function (value) {
-      if (!value) return true; // Allow empty (not required)
+      if (!value) return true;
 
       const hasMinLength = value.length >= 6;
       const hasUppercase = /[A-Z]/.test(value);
@@ -88,28 +151,37 @@ const schema = yup.object().shape({
 
       return hasMinLength && hasUppercase && hasNumber && hasSpecialChar;
     })
-    .notRequired(),
+    .test('not-same-as-current', 'New password cannot be the same as your current password', function (value) {
+      const { currentPassword } = this.parent;
+      if (!value || !currentPassword) return true;
+      return value !== currentPassword;
+    }),
   confirmPassword: yup.string()
     .transform((value) => value?.trim())
-    .when('newPassword', {
-      is: (val: string | undefined) => val && val.length > 0,
-      then: (schema) =>
-        schema
-          .required('Please confirm your New Password')
-          .oneOf([yup.ref('newPassword')], 'Passwords must match'),
-      otherwise: (schema) => schema.notRequired(),
+    .test('check-all-password-fields', function (value) {
+      const { currentPassword, newPassword } = this.parent;
+      const hasAnyPassword = value || currentPassword || newPassword;
+
+      if (hasAnyPassword && !value) {
+        return this.createError({ message: 'Confirm Password is required when updating password' });
+      }
+      return true;
+    })
+    .test('passwords-match', 'Passwords must match', function (value) {
+      const { newPassword } = this.parent;
+      if (!value || !newPassword) return true;
+      return value === newPassword;
     }),
 });
 
 type FormData = yup.InferType<typeof schema>;
 
-// Custom Dropdown Component
 interface CustomDropdownProps {
   register: UseFormRegister<FormData>;
   name: keyof FormData;
   value: string;
   errors?: FieldErrors<FormData>;
-  options: { value: string; label: string }[];
+  options: { value: string; label: string; countryCode?: string }[];
   placeholder: string;
   onChange: (value: string) => void;
 }
@@ -133,6 +205,8 @@ const CustomDropdown = ({ register, name, value, errors, options, placeholder, o
     setIsOpen(false);
   };
 
+  const selectedOption = options.find((opt) => opt.value === value);
+
   return (
     <div className="relative cursor-pointer" ref={dropdownRef}>
       <input type="hidden" {...register(name)} value={value} />
@@ -140,23 +214,34 @@ const CustomDropdown = ({ register, name, value, errors, options, placeholder, o
         className="appearance-none border border-[#CECECE] cursor-pointer rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm pr-8 flex items-center justify-between"
         onClick={() => setIsOpen(!isOpen)}
       >
-        <span>{value ? options.find((opt) => opt.value === value)?.label || placeholder : placeholder}</span>
+        <span className="flex items-center gap-2">
+          {selectedOption?.countryCode && (
+            <img
+              src={`https://flagcdn.com/24x18/${selectedOption.countryCode.toLowerCase()}.png`}
+              alt={selectedOption.countryCode}
+              className="w-5 h-4 object-cover"
+            />
+          )}
+          <span>{value ? selectedOption?.label || placeholder : placeholder}</span>
+        </span>
         <FaAngleDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none" />
       </div>
       {isOpen && (
-        <ul className="absolute z-10 w-full bg-white border border-[#CECECE] rounded-lg mt-1">
-          {/* <li
-            className="p-2 text-xs sm:text-sm cursor-pointer hover:bg-gray-100"
-            onClick={() => handleSelect('')}
-          >
-          </li> */}
+        <ul className="absolute z-10 w-full bg-white border border-[#CECECE] rounded-lg mt-1 max-h-48 overflow-y-auto shadow-lg">
           {options.map((option) => (
             <li
               key={option.value}
-              className="p-2 text-xs sm:text-sm cursor-pointer hover:bg-gray-100"
+              className="p-2 text-xs sm:text-sm cursor-pointer hover:bg-gray-100 flex items-center gap-2"
               onClick={() => handleSelect(option.value)}
             >
-              {option.label}
+              {option.countryCode && (
+                <img
+                  src={`https://flagcdn.com/24x18/${option.countryCode.toLowerCase()}.png`}
+                  alt={option.countryCode}
+                  className="w-5 h-4 object-cover"
+                />
+              )}
+              <span>{option.label}</span>
             </li>
           ))}
         </ul>
@@ -166,7 +251,6 @@ const CustomDropdown = ({ register, name, value, errors, options, placeholder, o
   );
 };
 
-// Cancel Success Popup Component
 interface CancelSuccessPopupProps {
   isVisible: boolean;
   onClose: () => void;
@@ -210,17 +294,20 @@ const PersonalDetailsForm = () => {
   const [originalProfilePic, setOriginalProfilePic] = useState<string | null>(null);
   const [buyerType, setBuyerType] = useState<string>('');
   const dispatch = useDispatch();
+  const [countryCode, setCountryCode] = useState("+94");
 
   const {
     register,
-    handleSubmit,
     reset,
     watch,
     setValue,
     getValues,
+    trigger,
     formState: { errors },
   } = useForm<FormData>({
     resolver: yupResolver(schema, { context: { buyerType } }) as any,
+    mode: 'onChange',
+    reValidateMode: 'onChange',
     defaultValues: {
       title: '',
       countryCode: '',
@@ -243,9 +330,29 @@ const PersonalDetailsForm = () => {
   const countryCodeValue = watch('countryCode');
   const countryCode2Value = watch('countryCode2');
   const companyPhoneCodeValue = watch('companyPhoneCode');
+  const currentPassword = watch('currentPassword');
+  const newPassword = watch('newPassword');
+  const confirmPassword = watch('confirmPassword');
   const formValues = watch();
 
   const hasErrors = Object.keys(errors).length > 0;
+
+  const isPasswordFieldsIncomplete = () => {
+    const hasCurrentPassword = !!(currentPassword?.trim());
+    const hasNewPassword = !!(newPassword?.trim());
+    const hasConfirmPassword = !!(confirmPassword?.trim());
+
+    const filledCount = [hasCurrentPassword, hasNewPassword, hasConfirmPassword].filter(Boolean).length;
+
+    return filledCount > 0 && filledCount < 3;
+  };
+
+
+  useEffect(() => {
+    if (!currentPassword?.trim() && !newPassword?.trim() && !confirmPassword?.trim()) {
+      trigger(['currentPassword', 'newPassword', 'confirmPassword']);
+    }
+  }, [currentPassword, newPassword, confirmPassword, trigger]);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -292,8 +399,7 @@ const PersonalDetailsForm = () => {
   }, [token, reset]);
 
   const handlePasswordInput = (value: string): string => {
-    // Remove leading and trailing spaces, but keep internal spaces if any
-    return value.trim();
+    return value.trimStart();
   };
 
 
@@ -307,15 +413,10 @@ const PersonalDetailsForm = () => {
     return cleaned;
   };
 
-  const handlePhoneInput = (value: string): string => {
-
+  const handlePhoneInput = (value: string, phoneCode: string): string => {
     const cleaned = value.replace(/[^0-9]/g, '');
-
-    if (cleaned.length > 0 && !cleaned.startsWith('7')) {
-      return '7' + cleaned.slice(0, 8);
-    }
-
-    return cleaned.slice(0, 9);
+    const maxLen = getMaxPhoneLength(phoneCode);
+    return cleaned.slice(0, maxLen);
   };
 
   const handleGeneralInput = (value: string): string => {
@@ -323,9 +424,84 @@ const PersonalDetailsForm = () => {
     return value.trimStart();
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleEmailInput = (value: string): string => {
+    // Remove ALL spaces from email (leading, trailing, and internal)
+    return value.replace(/\s/g, '');
+  };
+
+  const compressImage = (file: File, maxWidth = 1024, maxHeight = 1024, quality = 0.8): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+
+        let { width, height } = img;
+
+        // Scale down proportionally if larger than max dimensions
+        if (width > maxWidth || height > maxHeight) {
+          const ratio = Math.min(maxWidth / width, maxHeight / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Could not get canvas context'));
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Preserve original mime type (png stays lossless-ish, jpeg gets quality compression)
+        const outputType = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              reject(new Error('Canvas toBlob failed'));
+              return;
+            }
+            const compressedFile = new File([blob], file.name, {
+              type: outputType,
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          },
+          outputType,
+          quality,
+        );
+      };
+
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error('Failed to load image for compression'));
+      };
+
+      img.src = objectUrl;
+    });
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      const allowedTypes = ['image/png', 'image/jpeg'];
+      const allowedExtensions = ['png', 'jpg', 'jpeg'];
+      const fileExtension = file.name.split('.').pop()?.toLowerCase();
+
+      if (!allowedTypes.includes(file.type) || !allowedExtensions.includes(fileExtension || '')) {
+        setErrorMessage('Only PNG and JPEG files are allowed. JFIF and other formats are not supported.');
+        setShowErrorPopup(true);
+        setShowSuccessPopup(false);
+        e.target.value = '';
+        return;
+      }
+
       const maxSizeInBytes = 15 * 1024 * 1024;
       if (file.size > maxSizeInBytes) {
         setErrorMessage(
@@ -337,8 +513,17 @@ const PersonalDetailsForm = () => {
         return;
       }
 
-      setProfilePic(file);
-      setPreviewURL(URL.createObjectURL(file));
+      try {
+        // Compress before storing — keeps profile pics small without
+        // making the user manually resize their photo
+        const compressedFile = await compressImage(file, 1024, 1024, 0.8);
+        setProfilePic(compressedFile);
+        setPreviewURL(URL.createObjectURL(compressedFile));
+      } catch (err) {
+        console.error('Image compression failed, falling back to original file:', err);
+        setProfilePic(file);
+        setPreviewURL(URL.createObjectURL(file));
+      }
     }
   };
 
@@ -352,6 +537,40 @@ const PersonalDetailsForm = () => {
       setShowSuccessPopup(false);
       setIsLoading(false);
       return;
+    }
+
+    // Check password fields - if any is filled, all must be filled
+    const hasCurrentPassword = formValues.currentPassword?.trim();
+    const hasNewPassword = formValues.newPassword?.trim();
+    const hasConfirmPassword = formValues.confirmPassword?.trim();
+    const hasAnyPasswordField = hasCurrentPassword || hasNewPassword || hasConfirmPassword;
+
+    if (hasAnyPasswordField) {
+      if (!hasCurrentPassword || !hasNewPassword || !hasConfirmPassword) {
+        setErrorMessage('All password fields must be filled when updating password.');
+        setShowErrorPopup(true);
+        setShowSuccessPopup(false);
+        setIsLoading(false);
+        return;
+      }
+
+      // Check if new password is same as current password
+      if (hasCurrentPassword === hasNewPassword) {
+        setErrorMessage('New password cannot be the same as your current password. Please choose a different password.');
+        setShowErrorPopup(true);
+        setShowSuccessPopup(false);
+        setIsLoading(false);
+        return;
+      }
+
+      // Check if new password and confirm password match
+      if (hasNewPassword !== hasConfirmPassword) {
+        setErrorMessage('New password and confirm password must match.');
+        setShowErrorPopup(true);
+        setShowSuccessPopup(false);
+        setIsLoading(false);
+        return;
+      }
     }
 
     try {
@@ -469,7 +688,6 @@ const PersonalDetailsForm = () => {
     }
   };
 
-
   const handleCancel = () => {
     setIsLoading(true);
 
@@ -505,12 +723,6 @@ const PersonalDetailsForm = () => {
     }, 500);
   };
 
-  const phoneCodeOptions = [
-    { value: '+94', label: '+94' },
-    { value: '+91', label: '+91' },
-    { value: '+1', label: '+1' },
-    { value: '+44', label: '+44' },
-  ];
 
   const titleOptions = [
     { value: 'Mr', label: 'Mr' },
@@ -566,13 +778,13 @@ const PersonalDetailsForm = () => {
             <p className="text-[12px] md:text-[16px] text-gray-500">PNG, JPEG under 15MB</p>
           </div>
           <label
-            className="px-4 py-1 rounded-lg cursor-pointer text-sm hover:bg-gray-100 mt-2 md:mt-0"
+            className="px-4 py-2 rounded-lg shadow-md cursor-pointer text-sm hover:bg-gray-100 mt-2 md:mt-0"
             style={{ border: '1px solid #393939', color: '#393939' }}
           >
             Upload new picture
             <input
               type="file"
-              accept="image/png, image/jpeg"
+              accept=".png,.jpg,.jpeg"   // ← was "image/png, image/jpeg"
               onChange={handleFileChange}
               className="hidden"
             />
@@ -648,10 +860,32 @@ const PersonalDetailsForm = () => {
             <input
               type="email"
               {...register('email')}
+              onKeyDown={(e) => {
+                // Prevent spacebar key
+                if (e.key === ' ' || e.code === 'Space') {
+                  e.preventDefault();
+                }
+              }}
               onChange={(e) => {
-                const trimmedValue = handleGeneralInput(e.target.value);
-                e.target.value = trimmedValue;
-                setValue('email', trimmedValue, { shouldValidate: true });
+                const cleanedValue = handleEmailInput(e.target.value);
+                e.target.value = cleanedValue;
+                setValue('email', cleanedValue, { shouldValidate: true });
+              }}
+              onPaste={(e) => {
+                // Handle paste - remove spaces from pasted content
+                e.preventDefault();
+                const pastedText = e.clipboardData.getData('text');
+                const cleanedText = pastedText.replace(/\s/g, '');
+                const input = e.target as HTMLInputElement;
+                const start = input.selectionStart || 0;
+                const end = input.selectionEnd || 0;
+                const currentValue = input.value;
+                const newValue = currentValue.substring(0, start) + cleanedText + currentValue.substring(end);
+                input.value = newValue;
+                setValue('email', newValue, { shouldValidate: true });
+                // Set cursor position after pasted text
+                const newCursorPos = start + cleanedText.length;
+                input.setSelectionRange(newCursorPos, newCursorPos);
               }}
               className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm"
               placeholder="Enter email address"
@@ -661,32 +895,31 @@ const PersonalDetailsForm = () => {
           <div className="md:w-[56%]">
             <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">Phone Number</label>
             <div className="flex gap-4">
-              <div className="relative w-[30%] md:w-[15%]">
-                <CustomDropdown
-                  register={register}
-                  name="countryCode"
-                  value={countryCodeValue}
-                  errors={errors}
-                  options={phoneCodeOptions}
-                  placeholder="Select Code"
-                  onChange={(value) => setValue('countryCode', value, { shouldValidate: true })}
+              <div className="relative max-w-[40%] md:max-w-[26%]">
+                <PhoneCodeDropdown
+                  selectedValue={countryCodeValue}
+                  onSelect={(value) => {
+                    setValue('countryCode', value, { shouldValidate: true });
+                    trigger('phoneNumber');
+                  }}
                 />
+                <p className="text-red-500 text-xs">{errors.countryCode?.message}</p>
               </div>
-              <div className="w-[82%]">
+              <div className="w-[60%] md:w-[70%]">
                 <input
                   {...register('phoneNumber')}
                   onChange={(e) => {
-                    const formattedValue = handlePhoneInput(e.target.value);
+                    const formattedValue = handlePhoneInput(e.target.value, countryCodeValue);
                     e.target.value = formattedValue;
                     setValue('phoneNumber', formattedValue, { shouldValidate: true });
                   }}
                   className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm"
-                  placeholder="7XXXXXXXX"
-                  maxLength={9}
+                  placeholder="Phone number"
+                  maxLength={getMaxPhoneLength(countryCodeValue)}
                 />
-                <p className="text-red-500 text-xs">{errors.phoneNumber?.message}</p>
               </div>
             </div>
+            <p className="text-red-500 text-xs mt-1">{errors.phoneNumber?.message}</p>
           </div>
         </div>
 
@@ -721,32 +954,31 @@ const PersonalDetailsForm = () => {
               <div className="md:w-[56%]">
                 <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">Company Phone Number</label>
                 <div className="flex gap-4">
-                  <div className="relative w-[30%] md:w-[15%]">
-                    <CustomDropdown
-                      register={register}
-                      name="companyPhoneCode"
-                      value={companyPhoneCodeValue as any}
-                      errors={errors}
-                      options={phoneCodeOptions}
-                      placeholder="Select Code"
-                      onChange={(value) => setValue('companyPhoneCode', value, { shouldValidate: true })}
+                  <div className="relative w-[40%] md:w-[26%]">
+                    <PhoneCodeDropdown
+                      selectedValue={companyPhoneCodeValue as string}
+                      onSelect={(value) => {
+                        setValue('companyPhoneCode', value, { shouldValidate: true });
+                        trigger('companyPhone');
+                      }}
                     />
+                    <p className="text-red-500 text-xs">{errors.companyPhoneCode?.message}</p>
                   </div>
-                  <div className="w-[82%]">
+                  <div className="w-[60%] md:w-[70%]">
                     <input
                       {...register('companyPhone')}
                       onChange={(e) => {
-                        const formattedValue = handlePhoneInput(e.target.value);
+                        const formattedValue = handlePhoneInput(e.target.value, companyPhoneCodeValue as string);
                         e.target.value = formattedValue;
                         setValue('companyPhone', formattedValue, { shouldValidate: true });
                       }}
                       className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm"
-                      placeholder="7XXXXXXXX"
-                      maxLength={9}
+                      placeholder="e.g. 712345678"
+                      maxLength={getMaxPhoneLength(companyPhoneCodeValue as string)}
                     />
-                    <p className="text-red-500 text-xs">{errors.companyPhone?.message}</p>
                   </div>
                 </div>
+                <p className="text-red-500 text-xs mt-1">{errors.companyPhone?.message}</p>
               </div>
             </div>
 
@@ -770,10 +1002,12 @@ const PersonalDetailsForm = () => {
                 const trimmedValue = handlePasswordInput(e.target.value);
                 e.target.value = trimmedValue;
                 setValue('currentPassword', trimmedValue, { shouldValidate: true });
+                trigger(['currentPassword', 'newPassword', 'confirmPassword']); // ← add this
               }}
               onBlur={(e) => {
                 const trimmedValue = e.target.value.trim();
                 setValue('currentPassword', trimmedValue, { shouldValidate: true });
+                trigger(['currentPassword', 'newPassword', 'confirmPassword']); // ← add this
               }}
               className="w-full focus:outline-none text-xs sm:text-sm"
               placeholder="Enter current password"
@@ -797,10 +1031,12 @@ const PersonalDetailsForm = () => {
                   const trimmedValue = handlePasswordInput(e.target.value);
                   e.target.value = trimmedValue;
                   setValue('newPassword', trimmedValue, { shouldValidate: true });
+                  trigger(['currentPassword', 'newPassword', 'confirmPassword']); // ← add this
                 }}
                 onBlur={(e) => {
                   const trimmedValue = e.target.value.trim();
                   setValue('newPassword', trimmedValue, { shouldValidate: true });
+                  trigger(['currentPassword', 'newPassword', 'confirmPassword']); // ← add this
                 }}
                 className="w-full focus:outline-none text-xs sm:text-sm"
                 placeholder="Enter new password"
@@ -809,11 +1045,14 @@ const PersonalDetailsForm = () => {
                 {showNewPassword ? <FiEye className="text-gray-500" /> : <FiEyeOff className="text-gray-500" />}
               </div>
             </div>
-            {/* Password validation message */}
-            <p className="text-[#626D76] text-[10px] md:text-xs mt-1">
-              Your password must contain a minimum of 6 characters with 1 Uppercase, Numbers & Special Characters
-            </p>
-            <p className="text-red-500 text-xs">{errors.newPassword?.message}</p>
+            {/* Show validation error if exists, otherwise show info message only when field has focus or content */}
+            {errors.newPassword?.message ? (
+              <p className="text-red-500 text-xs mt-1">{errors.newPassword?.message}</p>
+            ) : (
+              <p className="text-[#626D76] text-[10px] md:text-xs mt-1">
+                Your password must contain a minimum of 6 characters with 1 Uppercase, Numbers & Special Characters
+              </p>
+            )}
           </div>
 
           <div className="md:w-[47%]">
@@ -831,10 +1070,12 @@ const PersonalDetailsForm = () => {
                   const trimmedValue = handlePasswordInput(e.target.value);
                   e.target.value = trimmedValue;
                   setValue('confirmPassword', trimmedValue, { shouldValidate: true });
+                  trigger(['currentPassword', 'newPassword', 'confirmPassword']); // ← add this
                 }}
                 onBlur={(e) => {
                   const trimmedValue = e.target.value.trim();
                   setValue('confirmPassword', trimmedValue, { shouldValidate: true });
+                  trigger(['currentPassword', 'newPassword', 'confirmPassword']); // ← add this
                 }}
                 className="w-full focus:outline-none text-xs sm:text-sm"
                 placeholder="Confirm new password"
@@ -843,7 +1084,9 @@ const PersonalDetailsForm = () => {
                 {showConfirmPassword ? <FiEye className="text-gray-500" /> : <FiEyeOff className="text-gray-500" />}
               </div>
             </div>
-            <p className="text-red-500 text-xs">{errors.confirmPassword?.message}</p>
+            {errors.confirmPassword?.message && (
+              <p className="text-red-500 text-xs mt-1">{errors.confirmPassword?.message}</p>
+            )}
           </div>
         </div>
 
@@ -860,12 +1103,12 @@ const PersonalDetailsForm = () => {
 
             <button
               type="submit"
-              className={`px-6 py-2.5 text-[12px] md:text-[16px] font-medium rounded-lg text-white leading-none ${isLoading || hasErrors
+              className={`px-6 py-2.5 text-[12px] md:text-[16px] font-medium rounded-lg text-white leading-none ${isLoading || hasErrors || isPasswordFieldsIncomplete()
                 ? 'bg-gray-400 cursor-not-allowed opacity-50'
                 : 'bg-[#3E206D] hover:bg-[#341a5a] cursor-pointer'
                 }`}
               onClick={handleProfileUpdate}
-              disabled={isLoading || hasErrors}
+              disabled={isLoading || hasErrors || isPasswordFieldsIncomplete()}
             >
               Save
             </button>

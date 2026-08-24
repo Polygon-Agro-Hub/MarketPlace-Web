@@ -24,27 +24,23 @@ const TopBanner: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Get buyerType from Redux store
   const buyerType = useSelector((state: RootState) => state.auth.user?.buyerType);
 
   useEffect(() => {
-    // Remove default body margin to prevent white gap
     document.body.style.margin = "0";
     getBannerDetails();
 
     return () => {
       document.body.style.margin = "";
     };
-  }, [buyerType]); // Re-fetch when buyerType changes
+  }, [buyerType]);
 
   async function getBannerDetails() {
     try {
       setLoading(true);
       const data = await getRetaildBanners();
-      console.log(data, "banner data");
 
       if (data && data.slides) {
-        // Map the response data to the expected format
         let formattedSlides = data.slides.map((slide: any) => ({
           id: slide.id,
           imageUrl: slide.image,
@@ -53,14 +49,12 @@ const TopBanner: React.FC = () => {
           indexId: slide.indexId,
         }));
 
-        // Filter slides based on buyerType if user is logged in
         if (buyerType) {
           formattedSlides = formattedSlides.filter((slide: Slide) => 
             slide.type === buyerType
           );
         }
 
-        // Sort slides by indexId in ascending order
         formattedSlides.sort((a: Slide, b: Slide) => a.indexId - b.indexId);
 
         setSlides(formattedSlides);
@@ -77,9 +71,8 @@ const TopBanner: React.FC = () => {
     }
   }
 
-  // Auto-play slides every 4 seconds
   useEffect(() => {
-    if (slides.length <= 1) return; // Don't auto-play if there's only one slide or no slides
+    if (slides.length <= 1) return;
 
     const interval = setInterval(() => {
       setCurrentIndex((prevIndex) => (prevIndex + 1) % slides.length);
@@ -88,7 +81,6 @@ const TopBanner: React.FC = () => {
     return () => clearInterval(interval);
   }, [slides]);
 
-  // Reset current index when slides change
   useEffect(() => {
     setCurrentIndex(0);
   }, [slides]);
@@ -121,25 +113,20 @@ const TopBanner: React.FC = () => {
 
   return (
     <div className="w-full flex flex-col">
-      {/* Banner container with responsive height and full width */}
-      <div className="w-full relative h-[200px] sm:h-[300px] md:h-[400px] lg:h-[500px] xl:h-[600px] overflow-hidden bg-gray-100">
+      {/* 8:3 aspect ratio container — image never crops */}
+      <div className="w-full" style={{ aspectRatio: "8 / 3" }}>
         <img
           src={currentSlide.imageUrl}
           alt={currentSlide.details || "Slide image"}
-          className="w-full h-full object-cover sm:object-fill md:object-cover"
-          style={{
-            objectPosition: 'center center'
-          }}
+          className="w-full h-full object-fill"
           loading="lazy"
           onError={(e) => {
             console.error("Image failed to load:", currentSlide.imageUrl);
             (e.target as HTMLImageElement).style.display = 'none';
           }}
         />
-        
       </div>
 
-      {/* Pagination dots - only show if there are multiple slides */}
       {slides.length > 1 && (
         <div className="flex justify-center mt-3 sm:mt-4 space-x-2">
           {slides.map((slide, idx) => (

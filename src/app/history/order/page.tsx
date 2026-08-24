@@ -1,16 +1,18 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState, useRef } from 'react';
-import Image from 'next/image';
-import { FaAngleDown } from 'react-icons/fa';
-import { useSelector } from 'react-redux';
-import { RootState } from '@/store';
-import { getOrderHistory, getOrderDetails } from '@/services/retail-order-service';
-import { useRouter } from 'next/navigation';
-import Select, { ActionMeta, SingleValue } from 'react-select'; // Import react-select
-import Loader from '@/components/loader-spinner/Loader';
-import cart from '../../../../public/images/History.jpg'
-
+import React, { useEffect, useState, useRef } from "react";
+import Image from "next/image";
+import { FaAngleDown } from "react-icons/fa";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store";
+import {
+  getOrderHistory,
+  getOrderDetails,
+} from "@/services/retail-order-service";
+import { useRouter } from "next/navigation";
+import Select, { ActionMeta, SingleValue } from "react-select";
+import Loader from "@/components/loader-spinner/Loader";
+import cart from "../../../../public/images/History.jpg";
 
 // Define interfaces based on the API responses
 interface DetailedItem {
@@ -21,6 +23,7 @@ interface DetailedItem {
   quantity: string;
   unit: string;
   image?: string;
+  amount?: string;
 }
 
 interface DetailedPackage {
@@ -64,6 +67,7 @@ interface OrderSummary {
   total: string;
   orderPlaced: string;
   status: string;
+  createdAt: Date;
 }
 
 interface DetailedOrder {
@@ -88,86 +92,106 @@ interface DetailedOrder {
   title: string;
 }
 
-function formatDateTime(dateTimeStr: string, type: 'date' | 'time' = 'date'): string {
-  if (!dateTimeStr || dateTimeStr === 'N/A') return 'N/A';
+function formatDateTime(
+  dateTimeStr: string,
+  type: "date" | "time" = "date",
+): string {
+  if (!dateTimeStr || dateTimeStr === "N/A") return "N/A";
   const date = new Date(dateTimeStr);
   if (isNaN(date.getTime())) {
-    if (type === 'time' && dateTimeStr.match(/^\d{2}:\d{2}:\d{2}$/)) {
+    if (type === "time" && dateTimeStr.match(/^\d{2}:\d{2}:\d{2}$/)) {
       return dateTimeStr.slice(0, 5);
     }
-    return 'N/A';
+    return "N/A";
   }
-  if (type === 'time') {
-    return date.toLocaleString('en-US', {
-      timeZone: 'Asia/Colombo',
-      timeStyle: 'short',
+  if (type === "time") {
+    return date.toLocaleString("en-US", {
+      timeZone: "Asia/Colombo",
+      timeStyle: "short",
     });
   }
-  return date.toLocaleString('en-US', {
-    timeZone: 'Asia/Colombo',
-    dateStyle: 'medium',
+  return date.toLocaleString("en-US", {
+    timeZone: "Asia/Colombo",
+    dateStyle: "medium",
   });
 }
 
-// Helper function to format quantity - removes unnecessary decimal zeros
-function formatQuantity(quantity: string | number, unit: string = ''): string {
-  const numQty = typeof quantity === 'string' ? parseFloat(quantity) : quantity;
+function formatQuantity(quantity: string | number, unit: string = ""): string {
+  const numQty = typeof quantity === "string" ? parseFloat(quantity) : quantity;
   if (isNaN(numQty)) return `${quantity}${unit}`;
-
-  // If it's a whole number, display without decimals
-  const formattedQty = numQty % 1 === 0 ? numQty.toString() : numQty.toFixed(2).replace(/\.?0+$/, '');
+  const formattedQty =
+    numQty % 1 === 0
+      ? numQty.toString()
+      : numQty.toFixed(2).replace(/\.?0+$/, "");
   return unit ? `${formattedQty}${unit}` : formattedQty;
 }
 
+const ALLOWED_ORDER_STATUSES = [
+  "ordered",
+  "processing",
+  "out for delivery",
+  "collected",
+  "ready to pickup",
+  "picked up",
+  "on the way",
+  "delivered",
+  "hold",
+  "return",
+  "return received",
+];
+
 const getStatusClass = (status: string): string => {
   switch (status.toLowerCase()) {
-    case 'ordered':
-      return 'bg-[#F5FF85] text-[#878216]';
-    case 'processing':
-      return 'bg-[#CFE1FF] text-[#3B82F6]';
-    case 'out for delivery':
-      return 'bg-[#FCD4FF] text-[#80118A]';
-    case 'collected':
-      return 'bg-[#F8FEA5] text-[#7E8700]';
-    case 'ready to pickup':
-      return 'bg-[#ACFBFF] text-[#00818A]';
-    case 'picked up':
-      return 'bg-[#BBFFC6] text-[#308233]';
-    case 'on the way':
-      return 'bg-[#FFEDCF] text-[#D17A00]';
-    case 'delivered':
-      return 'bg-[#BBFFC6] text-[#308233]';
-    case 'hold':
-      return 'bg-[#FFEDCF] text-[#D17A00]';
-    case 'return':
-      return 'bg-[#FFDCDA] text-[#FF1100]';
-    case 'cancelled':
-      return 'bg-[#FEE2E2] text-[#DC2626]';
-    case 'one time':
-      return 'bg-[#DBEAFE] text-[#2563EB]';
+    case "ordered":
+      return "bg-[#F5FF85] text-[#878216]";
+    case "processing":
+      return "bg-[#CFE1FF] text-[#3B82F6]";
+    case "out for delivery":
+      return "bg-[#FCD4FF] text-[#80118A]";
+    case "collected":
+      return "bg-[#F8FEA5] text-[#7E8700]";
+    case "ready to pickup":
+      return "bg-[#ACFBFF] text-[#00818A]";
+    case "picked up":
+      return "bg-[#BBFFC6] text-[#308233]";
+    case "on the way":
+      return "bg-[#FFEDCF] text-[#D17A00]";
+    case "delivered":
+      return "bg-[#BBFFC6] text-[#308233]";
+    case "hold":
+      return "bg-[#FFEDCF] text-[#D17A00]";
+    case "return":
+    case "return received":
+      return "bg-[#FFDCDA] text-[#FF1100]";
+    case "cancelled":
+      return "bg-[#FEE2E2] text-[#DC2626]";
+    case "one time":
+      return "bg-[#DBEAFE] text-[#2563EB]";
     default:
-      return 'bg-[#F3F4F6] text-[#4B5563]';
+      return "bg-[#F3F4F6] text-[#4B5563]";
   }
 };
 
-function formatAmount(amount: string | number, decimals: number = 2): string {
-  if (amount === null || amount === undefined || amount === 'N/A') {
-    return 'N/A';
-  }
+const getDisplayStatus = (status: string): string => {
+  if (status.toLowerCase() === "return received") return "Return";
+  return status;
+};
 
+function formatAmount(amount: string | number, decimals: number = 2): string {
+  if (amount === null || amount === undefined || amount === "N/A") {
+    return "N/A";
+  }
   let numValue: number;
-  if (typeof amount === 'string') {
-    const cleanAmount = amount.replace(/Rs\.\s*/g, '').trim();
+  if (typeof amount === "string") {
+    const cleanAmount = amount.replace(/Rs\.\s*/g, "").trim();
     numValue = parseFloat(cleanAmount);
   } else {
     numValue = amount;
   }
-
   if (isNaN(numValue)) {
-    return 'N/A';
+    return "N/A";
   }
-
-  return numValue.toLocaleString('en-US', {
+  return numValue.toLocaleString("en-US", {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   });
@@ -175,236 +199,277 @@ function formatAmount(amount: string | number, decimals: number = 2): string {
 
 function formatCurrency(amount: string | number, decimals: number = 2): string {
   const formatted = formatAmount(amount, decimals);
-  return formatted === 'N/A' ? 'N/A' : `Rs. ${formatted}`;
+  return formatted === "N/A" ? "N/A" : `Rs. ${formatted}`;
 }
 
-
-
-// Define filter options for react-select
 const filterOptions = [
-  { value: 'this-week', label: 'This Week' },
-  { value: 'last-week', label: 'Last Week' },
-  { value: 'last-2-weeks', label: 'Last 2 Weeks' },
-  { value: 'this-month', label: 'Last Month' },
-  { value: 'last-3-months', label: 'Last 3 Months' },
-  { value: 'all', label: 'All' },
+  { value: "this-week", label: "This Week" },
+  { value: "last-week", label: "Last Week" },
+  { value: "last-2-weeks", label: "Last 2 Weeks" },
+  { value: "this-month", label: "Last Month" },
+  { value: "last-3-months", label: "Last 3 Months" },
+  // { value: "all", label: "All" },
 ];
 
 export default function OrderHistoryPage() {
   const router = useRouter();
   const token = useSelector((state: RootState) => state.auth.token);
+
   const [orders, setOrders] = useState<OrderSummary[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('this-week');
-  const [selectedOrder, setSelectedOrder] = useState<DetailedOrder | null>(null);
+  const [filterLoading, setFilterLoading] = useState(false);
+  const [filter, setFilter] = useState("this-week");
+  const [selectedOrder, setSelectedOrder] = useState<DetailedOrder | null>(
+    null,
+  );
+  const [isFetchingDetails, setIsFetchingDetails] = useState(false);
+
+  // ── Pagination state ──
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const [limit, setLimit] = useState(10);
+
   const modalContentRef = useRef<HTMLDivElement>(null);
   const mainRef = useRef<HTMLElement>(null);
-  const [isFetchingDetails, setIsFetchingDetails] = useState(false);
-  const HEADER_HEIGHT = 64;
-  const FOOTER_HEIGHT = 64;
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
+  // ── Detect mobile/desktop and set limit ──
+  useEffect(() => {
+    const update = () => setLimit(window.innerWidth < 640 ? 5 : 10);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
+  // ── Normalize raw API rows → OrderSummary[] ──
+  const normalizeOrders = (orderHistory: any[]): OrderSummary[] =>
+    orderHistory
+      .map((order: any) => ({
+        orderId: order.orderId ? String(order.orderId) : "N/A",
+        invoiceNo: order.invoiceNo ? String(order.invoiceNo) : "N/A",
+        scheduleDate: order.scheduleDate
+          ? formatDateTime(order.scheduleDate, "date")
+          : "N/A",
+        scheduleTime: order.scheduleTime || "N/A",
+        deliveryType: order.delivaryMethod || "N/A",
+        total: formatCurrency(order.fullTotal || "0"),
+        orderPlaced: order.createdAt
+          ? formatDateTime(order.createdAt, "date")
+          : "N/A",
+        status: order.processStatus || "Pending",
+        createdAt: new Date(order.createdAt || order.scheduleDate),
+      }))
+      .filter((order) =>
+        ALLOWED_ORDER_STATUSES.includes(order.status.toLowerCase()),
+      );
+
+  // ── Reset + initial fetch whenever filter or limit changes ──
   useEffect(() => {
     if (!token) {
-      console.error('Token not found in Redux store at 04:37 PM +0530, July 07, 2025');
       setLoading(false);
       return;
     }
 
-
-    const fetchOrders = async () => {
+    const fetchInitial = async () => {
       try {
         setLoading(true);
-        const data = await getOrderHistory(token);
-        console.log('API Response at 04:37 PM +0530, July 07, 2025:', data);
-        ;
+        setOrders([]);
+        setPage(1);
+        setHasMore(false);
+
+        const data = await getOrderHistory(token, filter, 1, limit);
         const orderHistory = data.orderHistory || [];
+
         if (!Array.isArray(orderHistory)) {
-          console.error('orderHistory is not an array at 04:37 PM +0530, July 07, 2025:', orderHistory);
           setOrders([]);
           return;
         }
 
-        const normalizedOrders: OrderSummary[] = orderHistory.map((order: any) => ({
-          orderId: order.orderId ? String(order.orderId) : 'N/A',
-          invoiceNo: order.invoiceNo ? String(order.invoiceNo) : 'N/A',
-          scheduleDate: order.scheduleDate ? formatDateTime(order.scheduleDate, 'date') : 'N/A',
-          scheduleTime: order.scheduleTime || 'N/A',
-          deliveryType: order.delivaryMethod || 'N/A',
-          total: formatCurrency(order.fullTotal || '0'),
-          orderPlaced: order.createdAt ? formatDateTime(order.createdAt, 'date') : 'N/A',
-          status: order.processStatus || 'Pending',
-        }));
-
-        setOrders(normalizedOrders);
-      } catch (err) {
-        console.error('Error fetching orders at 04:37 PM +0530, July 07, 2025:', err);
+        setOrders(normalizeOrders(orderHistory));
+        setHasMore(data.pagination?.hasMore ?? false);
+        setPage(2);
+      } catch {
         setOrders([]);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchOrders();
-  }, [token]);
+    fetchInitial();
+  }, [token, filter, limit]);
 
-  useEffect(() => {
-    if (selectedOrder && modalContentRef.current && mainRef.current) {
-      const modalHeight = modalContentRef.current.scrollHeight;
-      mainRef.current.style.minHeight = `${modalHeight}px`;
-      mainRef.current.style.overflowY = 'auto';
-    } else if (mainRef.current) {
-      mainRef.current.style.minHeight = '';
-      mainRef.current.style.overflowY = 'auto';
-    }
-  }, [selectedOrder]);
-
-  const fetchDetailedOrder = async (orderId: string) => {
-    if (!token) return;
+  // ── Load next page ──
+  const loadMore = async () => {
+    if (!token || isFetchingMore || !hasMore) return;
     try {
-      setIsFetchingDetails(true); // Start loading
-      setSelectedOrder(null);
-      const { order: orderData, packages: packagesData, additionalItems: additionalItemsData } = await getOrderDetails(token, orderId);
-      console.log('Detailed Order Response at 04:32 PM +0530, July 07, 2025:', { orderData, packagesData, additionalItemsData });
+      setIsFetchingMore(true);
+      const data = await getOrderHistory(token, filter, page, limit);
+      const orderHistory = data.orderHistory || [];
 
-      if (orderData.status && orderData.order) {
-        const apiOrder = orderData.order;
-        const additionalItemsDiscount = additionalItemsData.status && additionalItemsData.data
-          ? additionalItemsData.data.reduce((sum: number, item: any) => sum + parseFloat(item.discount || '0'), 0)
-          : 0;
-        const totalDiscount = parseFloat(apiOrder.discount || '0') + additionalItemsDiscount;
-
-        const detailedOrder: DetailedOrder = {
-          orderId: String(apiOrder.id) || 'N/A',
-          invoiceNo: String(apiOrder.invoiceNo) || 'N/A',
-          scheduleDate: apiOrder.sheduleDate ? formatDateTime(apiOrder.sheduleDate, 'date') : 'N/A',
-          scheduleTime: apiOrder.sheduleTime || 'N/A',
-          deliveryType: apiOrder.delivaryMethod || 'N/A',
-          total: formatCurrency(apiOrder.fullTotal || 0, 2),
-          orderPlaced: apiOrder.createdAt ? formatDateTime(apiOrder.createdAt, 'date') : 'N/A',
-          status: apiOrder.processStatus || 'Pending',
-          fullName: apiOrder.fullName || 'N/A',
-          title: apiOrder.title || 'N/A',
-          phonecode1: apiOrder.phonecode1 || '',
-          phone1: apiOrder.phone1 || '',
-          phonecode2: apiOrder.phonecode2 || '',
-          phone2: apiOrder.phone2 || '',
-          pickupInfo:
-            apiOrder.delivaryMethod?.toLowerCase() === 'pickup' && apiOrder.pickupInfo
-              ? {
-                centerName: apiOrder.pickupInfo.centerName || 'N/A',
-                contact01: apiOrder.pickupInfo.contact01 || 'N/A',
-                fullName: apiOrder.pickupInfo.fullName || 'N/A',
-                buildingNumber: apiOrder.pickupInfo.address?.street || 'N/A',
-                street: apiOrder.pickupInfo.address?.street || 'N/A',
-                city: apiOrder.pickupInfo.address?.city || 'N/A',
-                district: apiOrder.pickupInfo.address?.district || 'N/A',
-                province: apiOrder.pickupInfo.address?.province || 'N/A',
-                country: apiOrder.pickupInfo.address?.country || 'N/A',
-                zipCode: apiOrder.pickupInfo.address?.zipCode || 'N/A',
-                title: apiOrder.pickupInfo.title?.title || 'N/A',
-              }
-              : undefined,
-          deliveryInfo:
-            apiOrder.delivaryMethod?.toLowerCase() === 'delivery' && apiOrder.deliveryInfo
-              ? {
-                buildingType: apiOrder.deliveryInfo.buildingType || 'N/A',
-                houseNo: apiOrder.deliveryInfo.houseNo || 'N/A',
-                street: apiOrder.deliveryInfo.streetName || apiOrder.deliveryInfo.street || 'N/A',
-                city: apiOrder.deliveryInfo.city || 'N/A',
-                buildingNo: apiOrder.deliveryInfo.buildingNo || 'N/A',
-                buildingName: apiOrder.deliveryInfo.buildingName || 'N/A',
-                flatNo: apiOrder.deliveryInfo.flatNo || 'N/A',
-                floorNo: apiOrder.deliveryInfo.floorNo || 'N/A',
-              }
-              : undefined,
-          familyPackItems: packagesData.status && packagesData.data
-            ? packagesData.data.map((pack: any, index: number) => ({
-              packageId: `${pack.packageId}_${index}`,
-              name: pack.displayName || 'Family Pack',
-              items: pack.products?.map((item: any) => ({
-                id: item.id || 0,
-                name: item.typeName || 'Unknown',
-                weight: item.weight || '1 kg',
-                price: formatCurrency(parseFloat(item.price || '0'), 2),
-                quantity: String(item.qty || 1),
-              })) || [],
-              totalPrice: formatCurrency(pack.productPrice || 0, 2),
-            }))
-            : [],
-          additionalItems: additionalItemsData.status && additionalItemsData.data
-            ? additionalItemsData.data.map((item: any) => ({
-              id: item.id || 0,
-              name: item.displayName || 'Unknown',
-              quantity: String(item.qty || 1),
-              unit: item.unit || 'kg',
-              weight: `${item.qty || '1'} ${item.unit || 'kg'}`,
-              price: formatCurrency(parseFloat(item.price || '0'), 2),
-              image: item.image || undefined,
-              amount: formatCurrency(
-                item.price && item.qty
-                  ? parseFloat(item.price) * parseFloat(item.qty)
-                  : 0,
-                2
-              ),
-            }))
-            : [],
-          discount: formatCurrency(totalDiscount > 0 ? ` ${totalDiscount.toFixed(2)}` : ' 0.00'),
-        };
-        setSelectedOrder(detailedOrder);
+      if (Array.isArray(orderHistory)) {
+        setOrders((prev) => [...prev, ...normalizeOrders(orderHistory)]);
+        setHasMore(data.pagination?.hasMore ?? false);
+        setPage((p) => p + 1);
       }
-    } catch (err) {
-      console.error('Error fetching detailed order at 04:32 PM +0530, July 07, 2025:', err);
-      setSelectedOrder(null);
+    } catch {
+      // silently ignore
     } finally {
-      setIsFetchingDetails(false); // Stop loading
+      setIsFetchingMore(false);
     }
   };
 
+  // ── IntersectionObserver: trigger loadMore when sentinel is visible ──
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
 
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !isFetchingMore) {
+          loadMore();
+        }
+      },
+      { threshold: 0.1 },
+    );
 
-  const filteredOrders = filter === 'all' ? orders : orders.filter((order) => {
-    const orderDate = new Date(order.orderPlaced !== 'N/A' ? order.orderPlaced : order.scheduleDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, isFetchingMore, page]);
 
-    const startOfThisWeek = new Date(today);
-    startOfThisWeek.setDate(today.getDate() - today.getDay()); // Sunday
-
-    const startOfLastWeek = new Date(startOfThisWeek);
-    startOfLastWeek.setDate(startOfThisWeek.getDate() - 7);
-
-    const startOfLast2Weeks = new Date(startOfThisWeek);
-    startOfLast2Weeks.setDate(startOfThisWeek.getDate() - 14);
-
-    const oneMonthAgo = new Date(today);
-    oneMonthAgo.setMonth(today.getMonth() - 1);
-
-    const threeMonthsAgo = new Date(today);
-    threeMonthsAgo.setMonth(today.getMonth() - 3);
-
-    switch (filter) {
-      case 'this-week':
-        return orderDate >= startOfThisWeek && orderDate <= today;
-      case 'last-week':
-        return orderDate >= startOfLastWeek && orderDate < startOfThisWeek;
-      case 'last-2-weeks':
-        return orderDate >= startOfLast2Weeks && orderDate < startOfThisWeek;
-      case 'this-month':
-        return orderDate >= oneMonthAgo && orderDate <= today;
-      case 'last-3-months':
-        return orderDate >= threeMonthsAgo && orderDate <= today;
-      default:
-        return true;
+  // ── Modal height adjustment ──
+  useEffect(() => {
+    if (selectedOrder && modalContentRef.current && mainRef.current) {
+      mainRef.current.style.minHeight = `${modalContentRef.current.scrollHeight}px`;
+      mainRef.current.style.overflowY = "auto";
+    } else if (mainRef.current) {
+      mainRef.current.style.minHeight = "";
+      mainRef.current.style.overflowY = "auto";
     }
-  });
+  }, [selectedOrder]);
+
+  // ── Fetch detailed order for modal ──
+  const fetchDetailedOrder = async (orderId: string) => {
+    if (!token) return;
+    try {
+      setIsFetchingDetails(true);
+      setSelectedOrder(null);
+      const {
+        order: orderData,
+        packages: packagesData,
+        additionalItems: additionalItemsData,
+      } = await getOrderDetails(token, orderId);
+
+      if (orderData.status && orderData.order) {
+        const apiOrder = orderData.order;
+        const totalDiscount = parseFloat(apiOrder.discount || "0");
+
+        const detailedOrder: DetailedOrder = {
+          orderId: String(apiOrder.id) || "N/A",
+          invoiceNo: String(apiOrder.invoiceNo) || "N/A",
+          scheduleDate: apiOrder.sheduleDate
+            ? formatDateTime(apiOrder.sheduleDate, "date")
+            : "N/A",
+          scheduleTime: apiOrder.sheduleTime || "N/A",
+          deliveryType: apiOrder.delivaryMethod || "N/A",
+          total: formatCurrency(apiOrder.fullTotal || 0, 2),
+          orderPlaced: apiOrder.createdAt
+            ? formatDateTime(apiOrder.createdAt, "date")
+            : "N/A",
+          status: apiOrder.processStatus || "Pending",
+          fullName: apiOrder.fullName || "N/A",
+          title: apiOrder.title || "N/A",
+          phonecode1: apiOrder.phonecode1 || "",
+          phone1: apiOrder.phone1 || "",
+          phonecode2: apiOrder.phonecode2 || "",
+          phone2: apiOrder.phone2 || "",
+          pickupInfo:
+            apiOrder.delivaryMethod?.toLowerCase() === "pickup" &&
+              apiOrder.pickupInfo
+              ? {
+                centerName: apiOrder.pickupInfo.centerName || "N/A",
+                contact01: apiOrder.pickupInfo.contact01 || "N/A",
+                fullName: apiOrder.pickupInfo.fullName || "N/A",
+                buildingNumber: apiOrder.pickupInfo.address?.street || "N/A",
+                street: apiOrder.pickupInfo.address?.street || "N/A",
+                city: apiOrder.pickupInfo.address?.city || "N/A",
+                district: apiOrder.pickupInfo.address?.district || "N/A",
+                province: apiOrder.pickupInfo.address?.province || "N/A",
+                country: apiOrder.pickupInfo.address?.country || "N/A",
+                zipCode: apiOrder.pickupInfo.address?.zipCode || "N/A",
+                title: apiOrder.pickupInfo.title?.title || "N/A",
+              }
+              : undefined,
+          deliveryInfo:
+            apiOrder.delivaryMethod?.toLowerCase() === "delivery" &&
+              apiOrder.deliveryInfo
+              ? {
+                buildingType: apiOrder.deliveryInfo.buildingType || "N/A",
+                houseNo: apiOrder.deliveryInfo.houseNo || "N/A",
+                street:
+                  apiOrder.deliveryInfo.streetName ||
+                  apiOrder.deliveryInfo.street ||
+                  "N/A",
+                city: apiOrder.deliveryInfo.city || "N/A",
+                buildingNo: apiOrder.deliveryInfo.buildingNo || "N/A",
+                buildingName: apiOrder.deliveryInfo.buildingName || "N/A",
+                flatNo: apiOrder.deliveryInfo.flatNo || "N/A",
+                floorNo: apiOrder.deliveryInfo.floorNo || "N/A",
+              }
+              : undefined,
+          familyPackItems:
+            packagesData.status && packagesData.data
+              ? packagesData.data.map((pack: any, index: number) => ({
+                packageId: `${pack.packageId}_${index}`,
+                name: pack.displayName || "Family Pack",
+                items:
+                  pack.products?.map((item: any) => ({
+                    id: item.id || 0,
+                    name: item.typeName || "Unknown",
+                    weight: item.weight || "1 kg",
+                    price: formatCurrency(parseFloat(item.price || "0"), 2),
+                    quantity: String(item.qty || 1),
+                  })) || [],
+                totalPrice: formatCurrency(pack.productPrice || 0, 2),
+              }))
+              : [],
+          additionalItems:
+            additionalItemsData.status && additionalItemsData.data
+              ? additionalItemsData.data.map((item: any) => ({
+                id: item.id || 0,
+                name: item.displayName || "Unknown",
+                quantity: String(item.qty || 1),
+                unit: item.unit || "kg",
+                weight: `${item.qty || "1"} ${item.unit || "kg"}`,
+                price: formatCurrency(parseFloat(item.price || "0"), 2),
+                image: item.image || undefined,
+                amount: formatCurrency(parseFloat(item.price || "0"), 2),
+              }))
+              : [],
+          discount: formatCurrency(
+            totalDiscount > 0 ? ` ${totalDiscount.toFixed(2)}` : " 0.00",
+          ),
+        };
+
+        setSelectedOrder(detailedOrder);
+      }
+    } catch {
+      setSelectedOrder(null);
+    } finally {
+      setIsFetchingDetails(false);
+    }
+  };
 
   const handleFilterChange = (
     newValue: SingleValue<{ value: string; label: string }>,
-    actionMeta: ActionMeta<{ value: string; label: string }>
+    actionMeta: ActionMeta<{ value: string; label: string }>,
   ): void => {
     if (newValue) {
-      console.log('Filter changed to:', newValue.value, 'at 06:25 PM +0530, June 27, 2025');
-      setFilter(newValue.value);
+      setFilterLoading(true);
+      setTimeout(() => {
+        setFilter(newValue.value);
+        setFilterLoading(false);
+      }, 300);
     }
   };
 
@@ -420,59 +485,61 @@ export default function OrderHistoryPage() {
           <>
             <div className="flex flex-row justify-between items-center mb-6 space-x-2 lg:mx-[72px]">
               <h1 className="text-sm lg:text-xl font-bold">
-                Your Orders ({filteredOrders.length.toString().padStart(2, '0')})
+                Your Orders ({orders.length.toString().padStart(2, "0")})
               </h1>
               <div className="relative w-[140px] sm:w-[180px]">
                 <Select
                   instanceId="order-history-filter"
                   options={filterOptions}
-                  value={filterOptions.find((option) => option.value === filter)}
+                  value={filterOptions.find(
+                    (option) => option.value === filter,
+                  )}
                   onChange={handleFilterChange}
                   isSearchable={false}
                   className="text-xs lg:text-sm"
                   styles={{
                     control: (base) => ({
                       ...base,
-                      border: '1px solid rgb(206,206,206)',
-                      borderRadius: '0.25rem',
-                      height: '36px',
-                      backgroundColor: 'rgb(248,248,248)',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      textAlign: 'center',
-                      paddingRight: '1.5rem',
-                      boxShadow: 'none',
-                      ':hover': {
-                        borderColor: 'rgb(62,32,109)',
-                        backgroundColor: 'rgb(243,244,246)',
+                      border: "1px solid rgb(206,206,206)",
+                      borderRadius: "0.25rem",
+                      height: "36px",
+                      backgroundColor: "rgb(248,248,248)",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      textAlign: "center",
+                      paddingRight: "1.5rem",
+                      boxShadow: "none",
+                      ":hover": {
+                        borderColor: "rgb(62,32,109)",
+                        backgroundColor: "rgb(243,244,246)",
                       },
                     }),
                     option: (base, { isFocused }) => ({
                       ...base,
-                      cursor: 'pointer',
-                      backgroundColor: isFocused ? 'rgb(243,244,246)' : 'white',
-                      color: 'rgb(31,41,55)',
-                      textAlign: 'center',
-                      padding: '8px 12px',
+                      cursor: "pointer",
+                      backgroundColor: isFocused ? "rgb(243,244,246)" : "white",
+                      color: "rgb(31,41,55)",
+                      textAlign: "center",
+                      padding: "8px 12px",
                     }),
                     menu: (base) => ({
                       ...base,
-                      marginTop: '0',
-                      borderRadius: '0.25rem',
-                      textAlign: 'center',
-                      width: '100%',
+                      marginTop: "0",
+                      borderRadius: "0.25rem",
+                      textAlign: "center",
+                      width: "100%",
                     }),
                     singleValue: (base) => ({
                       ...base,
-                      textAlign: 'center',
-                      width: '100%',
-                      color: 'rgb(31,41,55)',
+                      textAlign: "center",
+                      width: "100%",
+                      color: "rgb(31,41,55)",
                     }),
                     dropdownIndicator: (base) => ({
                       ...base,
-                      color: 'rgb(107,114,128)',
-                      paddingRight: '8px',
+                      color: "rgb(107,114,128)",
+                      paddingRight: "8px",
                     }),
                   }}
                   components={{
@@ -485,17 +552,24 @@ export default function OrderHistoryPage() {
               </div>
             </div>
 
-            {filteredOrders.length > 0 ? (
+            {filterLoading ? (
+              <div className="flex flex-col items-center justify-center h-[50vh] text-center">
+                <Loader isVisible={true} />
+              </div>
+            ) : orders.length > 0 ? (
               <div className="lg:mx-[72px] space-y-4">
-                {filteredOrders.map((order) => (
+                {orders.map((order) => (
                   <div
                     key={order.orderId}
                     className="border rounded-xl overflow-hidden"
-                    style={{ borderColor: 'rgb(215,215,215)' }}
+                    style={{ borderColor: "rgb(215,215,215)" }}
                   >
+                    {/* ── DESKTOP TOP ROW ── */}
                     <div className="hidden sm:grid grid-cols-5 gap-4 p-4 bg-[rgb(248,248,248)] text-xs lg:text-sm">
                       <div>
-                        <span className="text-[rgb(107,114,128)]">Scheduled Date:</span>
+                        <span className="text-[rgb(107,114,128)]">
+                          Scheduled Date:
+                        </span>
                         <p className="font-medium">{order.scheduleDate}</p>
                       </div>
                       <div>
@@ -503,7 +577,9 @@ export default function OrderHistoryPage() {
                         <p className="font-medium">{order.total}</p>
                       </div>
                       <div>
-                        <span className="text-[rgb(107,114,128)]">Order ID:</span>
+                        <span className="text-[rgb(107,114,128)]">
+                          Order ID:
+                        </span>
                         <p className="font-medium">#{order.invoiceNo}</p>
                       </div>
                       <div />
@@ -516,7 +592,11 @@ export default function OrderHistoryPage() {
                           View Order
                         </button>
                         <button
-                          onClick={() => router.push(`/history/invoice?orderId=${order.orderId}`)}
+                          onClick={() =>
+                            router.push(
+                              `/history/invoice?orderId=${order.orderId}`,
+                            )
+                          }
                           className="bg-[rgb(255,255,255)] border text-xs lg:text-sm cursor-pointer border-[rgb(209,213,219)] rounded-lg px-4 py-1.5 hover:bg-[rgb(62,32,109)] hover:text-[rgb(255,255,255)]"
                           disabled={isFetchingDetails}
                         >
@@ -525,27 +605,47 @@ export default function OrderHistoryPage() {
                       </div>
                     </div>
 
-                    <div className="sm:hidden bg-[rgb(248,248,248)] p-4 space-y-2 text-sm">
+                    {/* ── MOBILE TOP CARD ── */}
+                    <div className="sm:hidden bg-[rgb(248,248,248)] p-5 space-y-4 text-sm">
                       <div>
-                        <strong>Scheduled Date:</strong> {order.scheduleDate}
+                        <span className="text-[rgb(107,114,128)] text-xs">
+                          Scheduled Date :
+                        </span>
+                        <p className="font-semibold text-[rgb(31,41,55)] mt-0.5">
+                          {order.scheduleDate}
+                        </p>
                       </div>
                       <div>
-                        <strong>Total:</strong> {order.total}
+                        <span className="text-[rgb(107,114,128)] text-xs">
+                          Total :
+                        </span>
+                        <p className="font-semibold text-[rgb(31,41,55)] mt-0.5">
+                          {order.total}
+                        </p>
                       </div>
                       <div>
-                        <strong>Order ID:</strong> #{order.invoiceNo}
+                        <span className="text-[rgb(107,114,128)] text-xs">
+                          Order ID :
+                        </span>
+                        <p className="font-semibold text-[rgb(31,41,55)] mt-0.5">
+                          #{order.invoiceNo}
+                        </p>
                       </div>
-                      <div className="flex gap-2 justify-end">
+                      <div className="flex flex-col gap-2 pt-1">
                         <button
                           onClick={() => fetchDetailedOrder(order.orderId)}
-                          className="bg-[rgb(255,255,255)] border text-xs cursor-pointer border-[rgb(209,213,219)] rounded-lg px-4 py-1.5 hover:bg-[rgb(62,32,109)] hover:text-[rgb(255,255,255)]"
+                          className="w-full bg-[rgb(255,255,255)] border text-sm cursor-pointer border-[rgb(209,213,219)] rounded-lg px-4 py-2.5 hover:bg-[rgb(62,32,109)] hover:text-[rgb(255,255,255)] transition-colors"
                           disabled={isFetchingDetails}
                         >
                           View Order
                         </button>
                         <button
-                          onClick={() => router.push(`/history/invoice?orderId=${order.orderId}`)}
-                          className="bg-[rgb(255,255,255)] border text-xs cursor-pointer border-[rgb(209,213,219)] rounded-lg px-4 py-1.5 hover:bg-[rgb(62,32,109)] hover:text-[rgb(255,255,255)]"
+                          onClick={() =>
+                            router.push(
+                              `/history/invoice?orderId=${order.orderId}`,
+                            )
+                          }
+                          className="w-full bg-[rgb(255,255,255)] border text-sm cursor-pointer border-[rgb(209,213,219)] rounded-lg px-4 py-2.5 hover:bg-[rgb(62,32,109)] hover:text-[rgb(255,255,255)] transition-colors"
                           disabled={isFetchingDetails}
                         >
                           View Invoice
@@ -553,60 +653,116 @@ export default function OrderHistoryPage() {
                       </div>
                     </div>
 
-                    <div className="border-t" style={{ borderColor: 'rgb(215,215,215)' }} />
+                    <div
+                      className="border-t"
+                      style={{ borderColor: "rgb(215,215,215)" }}
+                    />
+
+                    {/* ── DESKTOP BOTTOM ROW ── */}
                     <div className="hidden sm:grid grid-cols-5 gap-4 p-4 bg-[rgb(255,255,255)] text-xs lg:text-sm mt-4">
                       <div>
                         <span className="text-[rgb(107,114,128)]">Status:</span>
                         <p>
                           <span
-                            className={`inline-flex justify-center items-center font-medium px-3 py-0.5 rounded-full text-xs min-w-[100px] ${getStatusClass(
-                              order.status
+                            className={`inline-flex justify-center items-center font-medium px-3 py-2 rounded-full text-xs min-w-[100px] ${getStatusClass(
+                              order.status,
                             )}`}
                           >
-                            {order.status}
+                            {getDisplayStatus(order.status)}
                           </span>
                         </p>
                       </div>
                       <div>
-                        <span className="text-[rgb(107,114,128)]">Order Placed:</span>
+                        <span className="text-[rgb(107,114,128)]">
+                          Order Placed:
+                        </span>
                         <p className="text-[rgb(0,0,0)]">{order.orderPlaced}</p>
                       </div>
                       <div>
-                        <span className="text-[rgb(107,114,128)]">Scheduled Time:</span>
-                        <p className="text-[rgb(0,0,0)]">{order.scheduleTime}</p>
+                        <span className="text-[rgb(107,114,128)]">
+                          Scheduled Time:
+                        </span>
+                        <p className="text-[rgb(0,0,0)]">
+                          {order.scheduleTime}
+                        </p>
                       </div>
                       <div>
-                        <span className="text-[rgb(107,114,128)]">Delivery / Pickup:</span>
-                        <p className="text-[rgb(0,0,0)]">{order.deliveryType}</p>
+                        <span className="text-[rgb(107,114,128)]">
+                          Delivery / Pickup:
+                        </span>
+                        <p className="text-[rgb(0,0,0)]">
+                          {order.deliveryType}
+                        </p>
                       </div>
                     </div>
 
-                    <div className="sm:hidden p-4 bg-[rgb(255,255,255)] space-y-2 text-sm">
+                    {/* ── MOBILE BOTTOM CARD ── */}
+                    <div className="sm:hidden p-5 bg-[rgb(255,255,255)] space-y-4 text-sm">
                       <div>
-                        <strong>Status:</strong>
-                        <span className={`ml-2 px-2 py-0.5 rounded-full ${getStatusClass(order.status)}`}>
-                          {order.status}
+                        <span className="text-[rgb(107,114,128)] text-xs">
+                          Status :
                         </span>
+                        <div className="mt-1">
+                          <span
+                            className={`inline-flex justify-center items-center font-medium px-4 py-1 rounded-full text-xs ${getStatusClass(
+                              order.status,
+                            )}`}
+                          >
+                            {order.status}
+                          </span>
+                        </div>
                       </div>
                       <div>
-                        <strong>Order Placed:</strong> {order.orderPlaced}
+                        <span className="text-[rgb(107,114,128)] text-xs">
+                          Order Placed :
+                        </span>
+                        <p className="font-semibold text-[rgb(31,41,55)] mt-0.5">
+                          {order.orderPlaced}
+                        </p>
                       </div>
                       <div>
-                        <strong>Scheduled Time:</strong> {order.scheduleTime}
+                        <span className="text-[rgb(107,114,128)] text-xs">
+                          Scheduled Time :
+                        </span>
+                        <p className="font-semibold text-[rgb(31,41,55)] mt-0.5">
+                          {order.scheduleTime}
+                        </p>
                       </div>
                       <div>
-                        <strong>Delivery / Pickup:</strong> {order.deliveryType}
+                        <span className="text-[rgb(107,114,128)] text-xs">
+                          Delivery / Pickup :
+                        </span>
+                        <p className="font-semibold text-[rgb(31,41,55)] mt-0.5">
+                          {order.deliveryType}
+                        </p>
                       </div>
                     </div>
                   </div>
                 ))}
+
+                {/* ── Sentinel div: IntersectionObserver watches this ── */}
+                <div ref={sentinelRef} className="h-4" />
+
+                {/* ── Spinner while loading more ── */}
+                {isFetchingMore && (
+                  <div className="flex justify-center py-4">
+                    <Loader isVisible={true} />
+                  </div>
+                )}
+
+                {/* ── End of list message ── */}
+                {!hasMore && orders.length > 0 && !loading && (
+                  <p className="text-center text-sm text-[rgb(156,163,175)] py-4 italic">
+                    — You've reached the end —
+                  </p>
+                )}
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-[70vh] text-center text-[rgb(75,85,99)] -mt-32">
-                <Image src={cart} alt="No
-
- Orders" width={200} height={200} />
-                <p className="mt-4 text-sm italic">--No orders available here--</p>
+                <Image src={cart} alt="No Orders" width={200} height={200} />
+                <p className="mt-4 text-sm italic">
+                  --No orders available here--
+                </p>
               </div>
             )}
           </>
@@ -622,10 +778,16 @@ export default function OrderHistoryPage() {
             <Loader isVisible={isFetchingDetails} />
             {selectedOrder && !isFetchingDetails && (
               <>
-                {selectedOrder.deliveryType.toLowerCase() === 'pickup' ? (
-                  <PickupOrderView order={selectedOrder} onClose={() => setSelectedOrder(null)} />
+                {selectedOrder.deliveryType.toLowerCase() === "pickup" ? (
+                  <PickupOrderView
+                    order={selectedOrder}
+                    onClose={() => setSelectedOrder(null)}
+                  />
                 ) : (
-                  <DeliveryOrderView order={selectedOrder} onClose={() => setSelectedOrder(null)} />
+                  <DeliveryOrderView
+                    order={selectedOrder}
+                    onClose={() => setSelectedOrder(null)}
+                  />
                 )}
               </>
             )}
@@ -636,130 +798,197 @@ export default function OrderHistoryPage() {
   );
 }
 
-function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: () => void }) {
-  const familyPackTotalNum = order.familyPackItems?.reduce(
-    (sum, pack) => sum + parseFloat(pack.totalPrice.replace('Rs. ', '').replace(/,/g, '') || '0'),
-    0
-  ) || 0;
+function PickupOrderView({
+  order,
+  onClose,
+}: {
+  order: DetailedOrder;
+  onClose: () => void;
+}) {
+  const familyPackTotalNum =
+    order.familyPackItems?.reduce(
+      (sum, pack) =>
+        sum +
+        parseFloat(
+          pack.totalPrice.replace("Rs. ", "").replace(/,/g, "") || "0",
+        ),
+      0,
+    ) || 0;
 
-  const additionalItemsTotalNum = order.additionalItems?.reduce(
-    (sum, item) => sum + parseFloat(item.price.replace('Rs. ', '').replace(/,/g, '') || '0') * parseFloat(item.quantity),
-    0
-  ) || 0;
+  const additionalItemsTotalNum =
+    order.additionalItems?.reduce((sum, item) => {
+      const itemAmount = parseFloat(
+        item.amount?.replace("Rs. ", "").replace(/,/g, "") || "0",
+      );
+      return sum + itemAmount;
+    }, 0) || 0;
 
   const familyPackTotal = formatAmount(familyPackTotalNum, 2);
   const additionalItemsTotal = formatAmount(additionalItemsTotalNum, 2);
-  const totalPrice = formatAmount(familyPackTotalNum + additionalItemsTotalNum, 2);
+  const totalPrice = formatAmount(
+    familyPackTotalNum + additionalItemsTotalNum,
+    2,
+  );
 
   return (
     <div className="w-full">
-      {/* Mobile Header */}
-      {/* <div className="sm:hidden bg-white border-b border-gray-200 p-4 sticky top-0 z-10">
+      <div className="sm:hidden bg-white border-b border-gray-200 p-4 sticky top-0 z-10">
         <div className="flex items-center justify-between">
           <button onClick={onClose} className="text-gray-600">
             <span className="text-xl">←</span>
           </button>
           <div className="text-center flex-1">
-            <h2 className="text-lg font-semibold">Order ID : #{order.invoiceNo}</h2>
-            <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium mt-2 ${getStatusClass(order.status)}`}>
-              {order.status}
+            <h2 className="text-lg font-semibold">
+              Order ID : #{order.invoiceNo}
+            </h2>
+            <span
+              className={`inline-block px-3 py-1 rounded-full text-sm font-medium mt-2 ${getStatusClass(order.status)}`}
+            >
+              {getDisplayStatus(order.status)}
             </span>
           </div>
         </div>
-      </div> */}
-
-      {/* Desktop Header - hidden on mobile */}
+      </div>
+      {/* Desktop Header */}
       <div className="hidden sm:flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold text-[rgb(31,41,55)] flex items-center gap-5 cursor-pointer" onClick={onClose}>
+        <h2
+          className="text-xl font-bold text-[rgb(31,41,55)] flex items-center gap-5 cursor-pointer"
+          onClick={onClose}
+        >
           <span className="text-[rgb(107,114,128)]">⟶</span>
           <span>Order ID: #{order.invoiceNo}</span>
         </h2>
-        <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusClass(order.status)}`}>
-          {order.status}
+        <span
+          className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusClass(order.status)}`}
+        >
+          {getDisplayStatus(order.status)}
         </span>
       </div>
 
       {/* Mobile Content */}
       <div className="sm:hidden bg-gray-50 min-h-screen p-4">
-        {/* Order Details Grid */}
         <div className="bg-white p-4 space-y-4 text-sm border-b border-gray-200">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <span className="text-gray-600 block">Order Placed :</span>
-              <span className="font-semibold">{order.orderPlaced || 'N/A'}</span>
+              <span className="font-semibold">
+                {order.orderPlaced || "N/A"}
+              </span>
             </div>
             <div>
               <span className="text-gray-600 block">Scheduled Date :</span>
-              <span className="font-semibold">{order.scheduleDate || 'N/A'}</span>
+              <span className="font-semibold">
+                {order.scheduleDate || "N/A"}
+              </span>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <span className="text-gray-600 block">Scheduled Time :</span>
-              <span className="font-semibold">{order.scheduleTime || 'N/A'}</span>
+              <span className="font-semibold">
+                {order.scheduleTime || "N/A"}
+              </span>
             </div>
             <div>
               <span className="text-gray-600 block">Delivery / Pickup :</span>
-              <span className="font-semibold">{order.deliveryType || 'N/A'}</span>
+              <span className="font-semibold">
+                {order.deliveryType || "N/A"}
+              </span>
             </div>
           </div>
         </div>
 
-        {/* Pickup Information */}
         <div className="bg-white mt-2 p-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold mb-3 text-black">Pickup Information</h3>
+          <h3 className="text-lg font-semibold mb-3 text-black">
+            Pickup Information
+          </h3>
           <div className="space-y-3">
             <div>
               <span className="text-gray-600 block text-sm">Centre :</span>
               <div className="mt-1">
-                <span className="font-semibold text-black">{order.pickupInfo?.centerName || 'N/A'}</span>
+                <span className="font-semibold text-black">
+                  {order.pickupInfo?.centerName || "N/A"}
+                </span>
                 <div className="text-sm text-gray-700 mt-1">
-                  {order.pickupInfo?.city || 'N/A'}, {order.pickupInfo?.district || 'N/A'}, {order.pickupInfo?.province || 'N/A'}
+                  <p>
+                    {order.pickupInfo?.city || "N/A"},{" "}
+                    {order.pickupInfo?.district || "N/A"}
+                  </p>
+                  <p>
+                    {order.pickupInfo?.province || "N/A"} province,{" "}
+                    {order.pickupInfo?.country || "N/A"}
+                  </p>
                 </div>
               </div>
             </div>
             <div>
-              <span className="text-gray-600 block text-sm">Pickup Person Information :</span>
+              <span className="text-gray-600 block text-sm">
+                Pickup Person Information :
+              </span>
               <div className="mt-1">
-                <span className="font-semibold text-black">{order.title || 'N/A'}. {order.fullName || 'N/A'}</span>
+                <span className="font-semibold text-black">
+                  {order.title || "N/A"}. {order.fullName || "N/A"}
+                </span>
                 <div className="text-sm text-gray-700">
-                  {order.phone1 ? `${order.phonecode1 || ''} ${order.phone1}` : ''}
-                  {order.phone2 ? `, ${order.phonecode2 || ''} ${order.phone2}` : ''}
+                  {order.phone1
+                    ? `${order.phonecode1 || ""} ${order.phone1}`
+                    : ""}
+                  {order.phone2
+                    ? `, ${order.phonecode2 || ""} ${order.phone2}`
+                    : ""}
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Ordered Items */}
         <div className="bg-white mt-2 rounded-[15px] border border-gray-200 overflow-hidden shadow-lg">
-          {/* Header */}
-          <div className="bg-[#F8F8F8] p-4 border-b border-gray-200">
+          <div className="bg-gray-50 p-4 border-b border-gray-200">
             <div className="flex flex-col space-y-2">
-              <span className="font-semibold text-black">Ordered Items</span>
-              <span className="font-semibold text-[#3E206D] text-lg">Total Price : Rs. {totalPrice}</span>
+              <span className="text-[14px] font-semibold text-black">
+                Ordered Items
+              </span>
+              <span className="text-[14px] font-semibold text-[#3E206D]">
+                Total Price : Rs. {totalPrice}
+              </span>
             </div>
           </div>
 
-          {/* Family Pack Items */}
           {order.familyPackItems && order.familyPackItems.length > 0 && (
             <div>
               {order.familyPackItems.map((pack, packIndex) => (
-                <div key={packIndex} className="border-b border-gray-200 last:border-b-0">
+                <div
+                  key={packIndex}
+                  className="border-b border-gray-200 last:border-b-0"
+                >
                   <div className="p-4">
-                    <div className="flex justify-between items-center mb-4">
-                      <span className="font-medium text-black">
-                        {pack.name} ({String(pack.items?.length ?? 0).padStart(2, '0')} Item{pack.items?.length > 1 ? 's' : ''})
+                    <div className="flex flex-col mb-4">
+                      <span className="text-[14px] text-black">
+                        {pack.name} (
+                        {String(
+                          pack.items?.reduce(
+                            (sum, item) =>
+                              sum + (parseFloat(item.quantity) || 0),
+                            0,
+                          ) ?? 0,
+                        ).padStart(2, "0")}{" "}
+                        Items)
                       </span>
-                      <span className="font-semibold text-[#3E206D]">
-                        Rs. {familyPackTotal}
+                      <span className="font-semibold text-[#3E206D] mt-1">
+                        {pack.totalPrice}
                       </span>
                     </div>
+                    <hr className="-mx-4 border-t border-gray-200 my-3" />
                     <div className="space-y-3">
                       {pack.items.map((item, itemIndex) => (
-                        <div key={`${packIndex}-${itemIndex}`} className="flex justify-between items-center py-2">
+                        <div
+                          key={`${packIndex}-${itemIndex}`}
+                          className="flex justify-between items-center py-2"
+                        >
                           <span className="text-gray-700">{item.name}</span>
-                          <span className="text-gray-600 font-medium">{formatQuantity(item.quantity)}</span>
+                          <span className="text-gray-600 font-medium">
+                            {formatQuantity(item.quantity)}
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -769,15 +998,16 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
             </div>
           )}
 
-          {/* Additional Items */}
           {order.additionalItems && order.additionalItems.length > 0 && (
             <div className="border-t border-gray-200">
-              <div className="p-4">
-                <div className="flex flex-col space-y-4 mb-2">
+              <div className="p-2">
+                <div className="flex flex-col space-y-1">
                   <span className="font-medium text-black">
-                    Additional Items ({String(order.additionalItems.length ?? 0).padStart(2, '0')} Item{order.additionalItems.length > 1 ? 's' : ''})
+                    Additional Items (
+                    {String(order.additionalItems.length ?? 0).padStart(2, "0")}{" "}
+                    Item{order.additionalItems.length > 1 ? "s" : ""})
                   </span>
-                  {order.discount && order.discount !== 'Rs. 0.00' && (
+                  {order.discount && order.discount !== "Rs. 0.00" && (
                     <div className="text-sm text-[#3E206D]">
                       You have saved {order.discount} with us!
                     </div>
@@ -786,29 +1016,36 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
                     Rs. {additionalItemsTotal}
                   </span>
                 </div>
-                <div className="space-y-4 mt-4">
-                  {order.additionalItems.map((item, index) => (
-                    <div key={index} className="flex items-center gap-4 py-2">
-                      <div className="w-12 h-12 flex-shrink-0">
-                        {item.image ? (
-                          <img src={item.image} alt={item.name} className="w-12 h-12 object-cover rounded" />
-                        ) : (
-                          <div className="w-12 h-12 bg-orange-200 rounded flex items-center justify-center">
-                            <span className="text-orange-600 text-xs">🥭</span>
+                <div className="border-t border-gray-200" />
+                <div className="overflow-x-auto -mx-4 px-4">
+                  <div className="space-y-3 mt-4">
+                    {order.additionalItems.map((item, index) => (
+                      <div key={index} className="flex items-center gap-3 py-2">
+                        <div className="w-12 h-12 flex-shrink-0">
+                          {item.image ? (
+                            <img
+                              src={item.image}
+                              alt={item.name}
+                              className="w-12 h-12 object-cover rounded"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 bg-orange-200 rounded flex items-center justify-center">
+                              <span className="text-orange-600 text-xs">🥭</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-black truncate">{item.name}</div>
+                          <div className="text-xs text-gray-500 mt-0.5">
+                            {formatQuantity(item.quantity, item.unit)}
                           </div>
-                        )}
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <div className="font-semibold text-black text-sm">{item.price}</div>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <div className="font-medium text-black">{item.name}</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-sm text-gray-600">{formatQuantity(item.quantity, item.unit)}</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-semibold text-black">{item.price}</div>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -816,57 +1053,76 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
         </div>
       </div>
 
-      {/* Desktop Content - hidden on mobile */}
+      {/* Desktop Content */}
       <div className="hidden sm:block">
         <div className="border-t border-[rgb(0,0,0)] mb-4 mt-4" />
         <div className="grid grid-cols-4 gap-4 text-sm mb-4">
           <div>
-            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Order Placed:</h4>
-            <p className="font-semibold">{order.orderPlaced || 'N/A'}</p>
+            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">
+              Order Placed:
+            </h4>
+            <p className="font-semibold">{order.orderPlaced || "N/A"}</p>
           </div>
           <div>
-            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Scheduled Date:</h4>
-            <p className="font-semibold">{order.scheduleDate || 'N/A'}</p>
+            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">
+              Scheduled Date:
+            </h4>
+            <p className="font-semibold">{order.scheduleDate || "N/A"}</p>
           </div>
           <div>
-            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Scheduled Time:</h4>
-            <p className="font-semibold">{order.scheduleTime || 'N/A'}</p>
+            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">
+              Scheduled Time:
+            </h4>
+            <p className="font-semibold">{order.scheduleTime || "N/A"}</p>
           </div>
           <div>
-            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Delivery / Pickup:</h4>
-            <p className="font-semibold">{order.deliveryType || 'N/A'}</p>
+            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">
+              Delivery / Pickup:
+            </h4>
+            <p className="font-semibold">{order.deliveryType || "N/A"}</p>
           </div>
         </div>
-        {/* Rest of desktop content remains the same */}
         <div className="border-t border-[rgb(229,231,235)] mb-4" />
         <div className="mb-4">
-          <h3 className="text-lg font-semibold mb-2 text-[rgb(31,41,55)]">Pickup Information</h3>
+          <h3 className="text-lg font-semibold mb-2 text-[rgb(31,41,55)]">
+            Pickup Information
+          </h3>
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div className="space-y-1 text-sm text-[rgb(31,41,55)]">
               <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Centre:</h4>
               <div className="space-y-1 text-sm">
                 <div>
-                  <span className="font-semibold">{order.pickupInfo?.centerName || 'N/A'}</span>
+                  <span className="font-semibold">
+                    {order.pickupInfo?.centerName || "N/A"}
+                  </span>
                 </div>
-                <div className="flex flex-wrap gap-2 text-sm items-center">
-
-                  <span>{order.pickupInfo?.province || 'N/A'} province ,</span>
-                  <span>{order.pickupInfo?.city || 'N/A'}</span><br />
-                  <span>{order.pickupInfo?.district || 'N/A'}</span>
+                <div className="text-sm">
+                  <p>
+                    {order.pickupInfo?.city || "N/A"},{" "}
+                    {order.pickupInfo?.district || "N/A"}
+                  </p>
+                  <p>
+                    {order.pickupInfo?.province || "N/A"} province,{" "}
+                    {order.pickupInfo?.country || "N/A"}
+                  </p>
                 </div>
               </div>
             </div>
             <div>
-              <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Pickup Person Information:</h4>
-              <p className="font-semibold">{order.title || 'N/A'}. {order.fullName || 'N/A'}</p>
+              <h4 className="font-medium text-[rgb(55,65,81)] mb-1">
+                Pickup Person Information:
+              </h4>
+              <p className="font-semibold">
+                {order.title || "N/A"}. {order.fullName || "N/A"}
+              </p>
               <div>
                 <p>
                   {order.phone1
-                    ? `${order.phonecode1 || ''} ${order.phone1}`
-                    : ''}
+                    ? `${order.phonecode1 || ""} ${order.phone1}`
+                    : ""}
                   {order.phone2
-                    ? `, ${order.phonecode2 || ''} ${order.phone2}`
-                    : ''}
+                    ? `, ${order.phonecode2 || ""} ${order.phone2}`
+                    : ""}
                 </p>
               </div>
             </div>
@@ -874,14 +1130,30 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
         </div>
         <div className="border-[rgb(229,231,235)] mb-8" />
         <div className="mb-4">
-          <div className="mb-4" style={{ border: '1px solid rgb(215,215,215)', borderRadius: '15px', overflow: 'hidden' }}>
+          <div
+            className="mb-4"
+            style={{
+              border: "1px solid rgb(215,215,215)",
+              borderRadius: "15px",
+              overflow: "hidden",
+            }}
+          >
             <table className="w-full text-sm">
               <tbody>
-                <tr className="w-full border-b border-[rgb(229,231,235)]" style={{ backgroundColor: 'rgb(248,248,248)' }}>
-                  <td colSpan={3} className="font-semibold text-[rgb(31,41,55)] py-2 p-4">
+                <tr
+                  className="w-full border-b border-[rgb(229,231,235)]"
+                  style={{ backgroundColor: "rgb(248,248,248)" }}
+                >
+                  <td
+                    colSpan={3}
+                    className="font-semibold text-[rgb(31,41,55)] py-2 p-4"
+                  >
                     Ordered Items
                   </td>
-                  <td className="text-right font-semibold py-2 p-4" style={{ color: 'rgb(62,32,109)', fontSize: '16px' }}>
+                  <td
+                    className="text-right font-semibold py-2 p-4"
+                    style={{ color: "rgb(62,32,109)", fontSize: "16px" }}
+                  >
                     Total Price: Rs. {totalPrice}
                   </td>
                 </tr>
@@ -890,10 +1162,21 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
                     <React.Fragment key={packIndex}>
                       <tr className="border-b border-t border-[rgb(229,231,235)]">
                         <td colSpan={3} className="font-medium py-2 p-4">
-                          {pack.name} ({String(pack.items?.length ?? 0).padStart(2, '0')} item{pack.items?.length > 1 ? 's' : ''})
+                          {pack.name} (
+                          {String(
+                            pack.items?.reduce(
+                              (sum, item) =>
+                                sum + (parseFloat(item.quantity) || 0),
+                              0,
+                            ) ?? 0,
+                          ).padStart(2, "0")}{" "}
+                          items)
                         </td>
-                        <td className="text-right font-semibold py-2 p-4" style={{ color: 'rgb(62,32,109)' }}>
-                          Rs.  {familyPackTotal}
+                        <td
+                          className="text-right font-semibold py-2 p-4"
+                          style={{ color: "rgb(62,32,109)" }}
+                        >
+                          {pack.totalPrice}
                         </td>
                       </tr>
                       <tr>
@@ -901,7 +1184,10 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
                           <table className="max-w-[600px] w-full p-4">
                             <tbody>
                               {pack.items.map((item, itemIndex) => (
-                                <tr key={`${packIndex}-${itemIndex}`} className="grid grid-cols-[1fr_1fr_1fr] gap-8 text-sm items-center py-4 ml-6">
+                                <tr
+                                  key={`${packIndex}-${itemIndex}`}
+                                  className="grid grid-cols-[1fr_1fr_1fr] gap-8 text-sm items-center py-4 ml-6"
+                                >
                                   <td>{item.name}</td>
                                   <td>{formatQuantity(item.quantity)}</td>
                                 </tr>
@@ -919,16 +1205,21 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
                   <>
                     <tr className="border-b border-t border-[rgb(229,231,235)]">
                       <td colSpan={3} className="font-medium py-2 p-4">
-                        Additional Items ({String(order.additionalItems.length ?? 0).padStart(2, '0')} Item{order.additionalItems.length > 1 ? 's' : ''})
+                        Additional Items (
+                        {String(order.additionalItems.length ?? 0).padStart(
+                          2,
+                          "0",
+                        )}{" "}
+                        Item{order.additionalItems.length > 1 ? "s" : ""})
                       </td>
                       <td className="text-right font-semibold py-2 p-4">
                         <div className="flex justify-end items-center gap-2">
-                          {order.discount && order.discount !== 'Rs. 0.00' && (
-                            <span className="text-xs font-normal" style={{ color: 'rgb(62,32,109)' }}>
+                          {order.discount && order.discount !== "Rs. 0.00" && (
+                            <span className="text-xs font-normal text-[#3E206D]">
                               You have saved {order.discount} with us!
                             </span>
                           )}
-                          <span style={{ color: 'rgb(62,32,109)' }}>
+                          <span className="text-[#3E206D]">
                             Rs. {additionalItemsTotal}
                           </span>
                         </div>
@@ -939,7 +1230,10 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
                         <div className="p-4">
                           <div className="space-y-4">
                             {order.additionalItems.map((item, index) => (
-                              <div key={index} className="flex items-center gap-6 py-3">
+                              <div
+                                key={index}
+                                className="flex items-center gap-6 py-3"
+                              >
                                 <div className="w-12 h-12 flex-shrink-0">
                                   {item.image ? (
                                     <img
@@ -949,18 +1243,26 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
                                     />
                                   ) : (
                                     <div className="w-full h-full bg-gray-200 rounded flex items-center justify-center">
-                                      <span className="text-gray-500 text-xs">No Image</span>
+                                      <span className="text-gray-500 text-xs">
+                                        No Image
+                                      </span>
                                     </div>
                                   )}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <div className="font-medium text-gray-900 truncate">{item.name}</div>
+                                  <div className="font-medium text-gray-900 truncate">
+                                    {item.name}
+                                  </div>
                                 </div>
                                 <div className="text-center min-w-[80px]">
-                                  <div className="text-sm text-gray-600">{formatQuantity(item.quantity, item.unit)}</div>
+                                  <div className="text-sm text-gray-600">
+                                    {formatQuantity(item.quantity, item.unit)}
+                                  </div>
                                 </div>
                                 <div className="text-right min-w-[80px]">
-                                  <div className="font-semibold text-gray-900">{item.price}</div>
+                                  <div className="font-semibold text-gray-900">
+                                    {item.price}
+                                  </div>
                                 </div>
                               </div>
                             ))}
@@ -970,7 +1272,6 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
                     </tr>
                   </>
                 )}
-
               </tbody>
             </table>
           </div>
@@ -980,20 +1281,37 @@ function PickupOrderView({ order, onClose }: { order: DetailedOrder, onClose: ()
   );
 }
 
-function DeliveryOrderView({ order, onClose }: { order: DetailedOrder, onClose: () => void }) {
-  const familyPackTotalNum = order.familyPackItems?.reduce(
-    (sum, pack) => sum + parseFloat(pack.totalPrice.replace('Rs. ', '').replace(/,/g, '') || '0'),
-    0
-  ) || 0;
+function DeliveryOrderView({
+  order,
+  onClose,
+}: {
+  order: DetailedOrder;
+  onClose: () => void;
+}) {
+  const familyPackTotalNum =
+    order.familyPackItems?.reduce(
+      (sum, pack) =>
+        sum +
+        parseFloat(
+          pack.totalPrice.replace("Rs. ", "").replace(/,/g, "") || "0",
+        ),
+      0,
+    ) || 0;
 
-  const additionalItemsTotalNum = order.additionalItems?.reduce(
-    (sum, item) => sum + parseFloat(item.price.replace('Rs. ', '').replace(/,/g, '') || '0') * parseFloat(item.quantity),
-    0
-  ) || 0;
+  const additionalItemsTotalNum =
+    order.additionalItems?.reduce((sum, item) => {
+      const itemAmount = parseFloat(
+        item.amount?.replace("Rs. ", "").replace(/,/g, "") || "0",
+      );
+      return sum + itemAmount;
+    }, 0) || 0;
 
   const familyPackTotal = formatAmount(familyPackTotalNum, 2);
   const additionalItemsTotal = formatAmount(additionalItemsTotalNum, 2);
-  const totalPrice = formatAmount(familyPackTotalNum + additionalItemsTotalNum, 2);
+  const totalPrice = formatAmount(
+    familyPackTotalNum + additionalItemsTotalNum,
+    2,
+  );
 
   return (
     <div className="w-full">
@@ -1004,122 +1322,169 @@ function DeliveryOrderView({ order, onClose }: { order: DetailedOrder, onClose: 
             <span className="text-xl">←</span>
           </button>
           <div className="text-center flex-1">
-            <h2 className="text-lg font-semibold">Order ID : #{order.invoiceNo}</h2>
-            <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium mt-2 ${getStatusClass(order.status)}`}>
-              {order.status}
+            <h2 className="text-lg font-semibold">
+              Order ID : #{order.invoiceNo}
+            </h2>
+            <span
+              className={`inline-block px-3 py-1 rounded-full text-sm font-medium mt-2 ${getStatusClass(order.status)}`}
+            >
+              {getDisplayStatus(order.status)}
             </span>
           </div>
         </div>
       </div>
 
-      {/* Desktop Header - hidden on mobile */}
+      {/* Desktop Header */}
       <div className="hidden sm:flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold text-[rgb(31,41,55)] flex items-center gap-5 cursor-pointer" onClick={onClose}>
+        <h2
+          className="text-xl font-bold text-[rgb(31,41,55)] flex items-center gap-5 cursor-pointer"
+          onClick={onClose}
+        >
           <span className="text-[rgb(107,114,128)]">⟶</span>
           <span>Order ID: #{order.invoiceNo}</span>
         </h2>
-        <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusClass(order.status)}`}>
-          {order.status}
+        <span
+          className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusClass(order.status)}`}
+        >
+          {getDisplayStatus(order.status)}
         </span>
       </div>
 
       {/* Mobile Content */}
       <div className="sm:hidden bg-gray-50 min-h-screen p-4">
-        {/* Order Details Grid */}
         <div className="bg-white p-4 space-y-4 text-sm border-b border-gray-200">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <span className="text-gray-600 block">Order Placed :</span>
-              <span className="font-semibold">{order.orderPlaced || 'N/A'}</span>
+              <span className="font-semibold">
+                {order.orderPlaced || "N/A"}
+              </span>
             </div>
             <div>
               <span className="text-gray-600 block">Scheduled Date :</span>
-              <span className="font-semibold">{order.scheduleDate || 'N/A'}</span>
+              <span className="font-semibold">
+                {order.scheduleDate || "N/A"}
+              </span>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <span className="text-gray-600 block">Scheduled Time :</span>
-              <span className="font-semibold">{order.scheduleTime || 'N/A'}</span>
+              <span className="font-semibold">
+                {order.scheduleTime || "N/A"}
+              </span>
             </div>
             <div>
               <span className="text-gray-600 block">Delivery / Pickup :</span>
-              <span className="font-semibold">{order.deliveryType || 'N/A'}</span>
+              <span className="font-semibold">
+                {order.deliveryType || "N/A"}
+              </span>
             </div>
           </div>
         </div>
 
-        {/* Delivery Information */}
         <div className="bg-white mt-2 p-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold mb-3 text-black">Delivery Information</h3>
+          <h3 className="text-lg font-semibold mb-3 text-black">
+            Delivery Information
+          </h3>
           <div className="space-y-3">
             <div>
               <span className="text-gray-600 block text-sm">Address :</span>
               <div className="mt-1">
-                <span className="font-semibold text-black">{order.deliveryInfo?.buildingType || 'N/A'}</span>
+                <span className="font-semibold text-black">
+                  {order.deliveryInfo?.buildingType || "N/A"}
+                </span>
                 <div className="text-sm text-gray-700 mt-1 space-y-1">
-                  {order.deliveryInfo?.buildingType === 'Apartment' ? (
+                  {order.deliveryInfo?.buildingType === "Apartment" ? (
                     <>
-                      <div>No : {order.deliveryInfo?.buildingNo || '--'}</div>
-                      <div>Name : {order.deliveryInfo?.buildingName || '--'}</div>
-                      <div>Flat : {order.deliveryInfo?.flatNo || '--'}</div>
-                      <div>Floor : {order.deliveryInfo?.floorNo || '--'}</div>
-                      <div>House No: {order.deliveryInfo?.houseNo || '--'}</div>
-                      <div>Street: {order.deliveryInfo?.street || '--'}</div>
-                      <div>City: {order.deliveryInfo?.city || '--'}</div>
+                      <div>No : {order.deliveryInfo?.buildingNo || "--"}</div>
+                      <div>
+                        Name : {order.deliveryInfo?.buildingName || "--"}
+                      </div>
+                      <div>Flat : {order.deliveryInfo?.flatNo || "--"}</div>
+                      <div>Floor : {order.deliveryInfo?.floorNo || "--"}</div>
+                      <div>House No: {order.deliveryInfo?.houseNo || "--"}</div>
+                      <div>Street: {order.deliveryInfo?.street || "--"}</div>
+                      <div>City: {order.deliveryInfo?.city || "--"}</div>
                     </>
                   ) : (
                     <>
-                      <div>House No: {order.deliveryInfo?.houseNo || '--'}</div>
-                      <div>Street: {order.deliveryInfo?.street || '--'}</div>
-                      <div>City: {order.deliveryInfo?.city || '--'}</div>
+                      <div>House No: {order.deliveryInfo?.houseNo || "--"}</div>
+                      <div>Street: {order.deliveryInfo?.street || "--"}</div>
+                      <div>City: {order.deliveryInfo?.city || "--"}</div>
                     </>
                   )}
                 </div>
               </div>
             </div>
             <div>
-              <span className="text-gray-600 block text-sm">Receiving Person Information :</span>
+              <span className="text-gray-600 block text-sm">
+                Receiving Person Information :
+              </span>
               <div className="mt-1">
-                <span className="font-semibold text-black">{order.title || 'N/A'}. {order.fullName || 'N/A'}</span>
+                <span className="font-semibold text-black">
+                  {order.title || "N/A"}. {order.fullName || "N/A"}
+                </span>
                 <div className="text-sm text-gray-700">
-                  {order.phone1 ? `${order.phonecode1 || ''} ${order.phone1}` : ''}
-                  {order.phone2 ? `, ${order.phonecode2 || ''} ${order.phone2}` : ''}
+                  {order.phone1
+                    ? `${order.phonecode1 || ""} ${order.phone1}`
+                    : ""}
+                  {order.phone2
+                    ? `, ${order.phonecode2 || ""} ${order.phone2}`
+                    : ""}
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Ordered Items - Mobile */}
         <div className="bg-white mt-2 rounded-[15px] border border-gray-200 overflow-hidden">
-          {/* Header */}
           <div className="bg-gray-50 p-4 border-b border-gray-200">
             <div className="flex flex-col space-y-2">
-              <span className="font-semibold text-black">Ordered Items</span>
-              <span className="font-semibold text-[#3E206D] text-lg">Total Price : Rs. {totalPrice}</span>
+              <span className="text-[14px] font-semibold text-black">
+                Ordered Items
+              </span>
+              <span className="text-[14px] font-semibold text-[#3E206D]">
+                Total Price : Rs. {totalPrice}
+              </span>
             </div>
           </div>
 
-          {/* Family Pack Items */}
           {order.familyPackItems && order.familyPackItems.length > 0 && (
             <div>
               {order.familyPackItems.map((pack, packIndex) => (
-                <div key={packIndex} className="border-b border-gray-200 last:border-b-0">
+                <div
+                  key={packIndex}
+                  className="border-b border-gray-200 last:border-b-0"
+                >
                   <div className="p-4">
-                    <div className="flex justify-between items-center mb-4">
-                      <span className="font-medium text-black">
-                        {pack.name} ({String(pack.items?.length ?? 0).padStart(2, '0')} Items)
+                    <div className="flex flex-col mb-4">
+                      <span className="text-[14px] text-black">
+                        {pack.name} (
+                        {String(
+                          pack.items?.reduce(
+                            (sum, item) =>
+                              sum + (parseFloat(item.quantity) || 0),
+                            0,
+                          ) ?? 0,
+                        ).padStart(2, "0")}{" "}
+                        Items)
                       </span>
-                      <span className="font-semibold text-[#3E206D]">
-                        Rs. {familyPackTotal}
+                      <span className="font-semibold text-[#3E206D] mt-1">
+                        {pack.totalPrice}
                       </span>
                     </div>
+                    <hr className="-mx-4 border-t border-gray-200 my-3" />
                     <div className="space-y-3">
                       {pack.items.map((item, itemIndex) => (
-                        <div key={`${packIndex}-${itemIndex}`} className="flex justify-between items-center py-2">
+                        <div
+                          key={`${packIndex}-${itemIndex}`}
+                          className="flex justify-between items-center py-2"
+                        >
                           <span className="text-gray-700">{item.name}</span>
-                          <span className="text-gray-600 font-medium">{formatQuantity(item.quantity)}</span>
+                          <span className="text-gray-600 font-medium">
+                            {formatQuantity(item.quantity)}
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -1129,46 +1494,54 @@ function DeliveryOrderView({ order, onClose }: { order: DetailedOrder, onClose: 
             </div>
           )}
 
-          {/* Additional Items */}
           {order.additionalItems && order.additionalItems.length > 0 && (
             <div className="border-t border-gray-200">
-              <div className="p-4">
-                <div className="flex flex-col space-y-7 mb-2">
+              <div className="p-2">
+                <div className="flex flex-col space-y-2">
                   <span className="font-medium text-black">
-                    Additional Items ({String(order.additionalItems.length ?? 0).padStart(2, '0')} Items)
+                    Additional Items (
+                    {String(order.additionalItems.length ?? 0).padStart(2, "0")}{" "}
+                    Items)
                   </span>
-                  {order.discount && order.discount !== 'Rs. 0.00' && (
-                    <div className="text-sm text-purple-700">
+                  {order.discount && order.discount !== "Rs. 0.00" && (
+                    <div className="text-sm text-[#3E206D]">
                       You have saved {order.discount} with us!
                     </div>
                   )}
-                  <span className="font-semibold text-purple-700">
+                  <span className="font-semibold text-[#3E206D]">
                     Rs. {additionalItemsTotal}
                   </span>
                 </div>
-                <div className="space-y-4 mt-4">
-                  {order.additionalItems.map((item, index) => (
-                    <div key={index} className="flex items-center gap-4 py-2">
-                      <div className="w-12 h-12 flex-shrink-0">
-                        {item.image ? (
-                          <img src={item.image} alt={item.name} className="w-12 h-12 object-cover rounded" />
-                        ) : (
-                          <div className="w-12 h-12 bg-orange-200 rounded flex items-center justify-center">
-                            <span className="text-orange-600 text-xs">🥭</span>
+                <div className="border-t border-gray-200" />
+                <div className="overflow-x-auto -mx-4 px-4">
+                  <div className="space-y-3 mt-4">
+                    {order.additionalItems.map((item, index) => (
+                      <div key={index} className="flex items-center gap-3 py-2">
+                        <div className="w-12 h-12 flex-shrink-0">
+                          {item.image ? (
+                            <img
+                              src={item.image}
+                              alt={item.name}
+                              className="w-12 h-12 object-cover rounded"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 bg-orange-200 rounded flex items-center justify-center">
+                              <span className="text-orange-600 text-xs">🥭</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-black truncate">{item.name}</div>
+                          <div className="text-xs text-gray-500 mt-0.5">
+                            {formatQuantity(item.quantity, item.unit)}
                           </div>
-                        )}
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <div className="font-semibold text-black text-sm">{item.price}</div>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <div className="font-medium text-black">{item.name}</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-sm text-gray-600">{formatQuantity(item.quantity, item.unit)}</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-semibold text-black">{item.price}</div>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1176,110 +1549,167 @@ function DeliveryOrderView({ order, onClose }: { order: DetailedOrder, onClose: 
         </div>
       </div>
 
+      {/* Desktop Content */}
       <div className="hidden sm:block">
         <div className="border-t border-[rgb(0,0,0)] mb-4 mt-4"></div>
         <div className="grid grid-cols-4 gap-4 text-sm mb-4">
           <div>
-            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Order Placed:</h4>
-            <p className="font-semibold">{order.orderPlaced || 'N/A'}</p>
+            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">
+              Order Placed:
+            </h4>
+            <p className="font-semibold">{order.orderPlaced || "N/A"}</p>
           </div>
           <div>
-            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Scheduled Date:</h4>
-            <p className="font-semibold">{order.scheduleDate || 'N/A'}</p>
+            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">
+              Scheduled Date:
+            </h4>
+            <p className="font-semibold">{order.scheduleDate || "N/A"}</p>
           </div>
           <div>
-            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Scheduled Time:</h4>
-            <p className="font-semibold">{order.scheduleTime || 'N/A'}</p>
+            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">
+              Scheduled Time:
+            </h4>
+            <p className="font-semibold">{order.scheduleTime || "N/A"}</p>
           </div>
           <div>
-            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Delivery / Pickup:</h4>
-            <p className="font-semibold">{order.deliveryType || 'N/A'}</p>
+            <h4 className="font-medium text-[rgb(55,65,81)] mb-1">
+              Delivery / Pickup:
+            </h4>
+            <p className="font-semibold">{order.deliveryType || "N/A"}</p>
           </div>
         </div>
         <div className="border-t border-[rgb(229,231,235)] mb-4"></div>
         <div className="mb-4">
-          <h3 className="text-lg font-semibold mb-2 text-[rgb(31,41,55)]">Delivery Information</h3>
+          <h3 className="text-lg font-semibold mb-2 text-[rgb(31,41,55)]">
+            Delivery Information
+          </h3>
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div className="space-y-1 text-sm text-[rgb(31,41,55)]">
-              <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Address:</h4>
+              <h4 className="font-medium text-[rgb(55,65,81)] mb-1">
+                Address:
+              </h4>
               <div className="space-y-1 text-sm">
                 <div>
-                  <span className="font-semibold">{order.deliveryInfo?.buildingType || 'N/A'}</span>
+                  <span className="font-semibold">
+                    {order.deliveryInfo?.buildingType || "N/A"}
+                  </span>
                 </div>
-
-                {order.deliveryInfo?.buildingType === 'Apartment' ? (
+                {order.deliveryInfo?.buildingType === "Apartment" ? (
                   <>
                     <div className="flex gap-2">
-                      <span className="font-medium text-[rgb(146,146,146)]">No :</span>
-                      <span>{order.deliveryInfo?.buildingNo || '--'}</span>
+                      <span className="font-medium text-[rgb(146,146,146)]">
+                        No :
+                      </span>
+                      <span>{order.deliveryInfo?.buildingNo || "--"}</span>
                     </div>
                     <div className="flex gap-2">
-                      <span className="font-medium text-[rgb(146,146,146)]">Name :</span>
-                      <span>{order.deliveryInfo?.buildingName || '--'}</span>
+                      <span className="font-medium text-[rgb(146,146,146)]">
+                        Name :
+                      </span>
+                      <span>{order.deliveryInfo?.buildingName || "--"}</span>
                     </div>
                     <div className="flex gap-2">
-                      <span className="font-medium text-[rgb(146,146,146)]">Flat :</span>
-                      <span>{order.deliveryInfo?.flatNo || '--'}</span>
+                      <span className="font-medium text-[rgb(146,146,146)]">
+                        Flat :
+                      </span>
+                      <span>{order.deliveryInfo?.flatNo || "--"}</span>
                     </div>
                     <div className="flex gap-2">
-                      <span className="font-medium text-[rgb(146,146,146)]">Floor :</span>
-                      <span>{order.deliveryInfo?.floorNo || '--'}</span>
+                      <span className="font-medium text-[rgb(146,146,146)]">
+                        Floor :
+                      </span>
+                      <span>{order.deliveryInfo?.floorNo || "--"}</span>
                     </div>
                     <div className="flex gap-2">
-                      <span className="font-medium text-[rgb(146,146,146)]">House No :</span>
-                      <span>{order.deliveryInfo?.houseNo || 'N/A'}</span>
+                      <span className="font-medium text-[rgb(146,146,146)]">
+                        House No :
+                      </span>
+                      <span>{order.deliveryInfo?.houseNo || "N/A"}</span>
                     </div>
                     <div className="flex gap-2">
-                      <span className="font-medium text-[rgb(146,146,146)]">Street :</span>
-                      <span>{order.deliveryInfo?.street || 'N/A'}</span>
+                      <span className="font-medium text-[rgb(146,146,146)]">
+                        Street :
+                      </span>
+                      <span>{order.deliveryInfo?.street || "N/A"}</span>
                     </div>
                     <div className="flex gap-2">
-                      <span className="font-medium text-[rgb(146,146,146)]">City :</span>
-                      <span>{order.deliveryInfo?.city || 'N/A'}</span>
+                      <span className="font-medium text-[rgb(146,146,146)]">
+                        City :
+                      </span>
+                      <span>{order.deliveryInfo?.city || "N/A"}</span>
                     </div>
                   </>
                 ) : (
                   <>
                     <div className="flex gap-2">
-                      <span className="font-medium text-[rgb(146,146,146)]">House No :</span>
-                      <span>{order.deliveryInfo?.houseNo || 'N/A'}</span>
+                      <span className="font-medium text-[rgb(146,146,146)]">
+                        House No :
+                      </span>
+                      <span>{order.deliveryInfo?.houseNo || "N/A"}</span>
                     </div>
                     <div className="flex gap-2">
-                      <span className="font-medium text-[rgb(146,146,146)]">Street :</span>
-                      <span>{order.deliveryInfo?.street || 'N/A'}</span>
+                      <span className="font-medium text-[rgb(146,146,146)]">
+                        Street :
+                      </span>
+                      <span>{order.deliveryInfo?.street || "N/A"}</span>
                     </div>
                     <div className="flex gap-2">
-                      <span className="font-medium text-[rgb(146,146,146)]">City :</span>
-                      <span>{order.deliveryInfo?.city || 'N/A'}</span>
+                      <span className="font-medium text-[rgb(146,146,146)]">
+                        City :
+                      </span>
+                      <span>{order.deliveryInfo?.city || "N/A"}</span>
                     </div>
                   </>
                 )}
               </div>
             </div>
             <div>
-              <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Receiving Person Information:</h4>
-              <p className="font-semibold">{order.title || 'N/A'}. {order.fullName || 'N/A'}</p>
+              <h4 className="font-medium text-[rgb(55,65,81)] mb-1">
+                Receiving Person Information:
+              </h4>
+              <p className="font-semibold mb-1">
+                {order.title || "N/A"}. {order.fullName || "N/A"}
+              </p>
               <p>
                 {order.phone1
-                  ? `${order.phonecode1 || ''} ${order.phone1}`
-                  : ''}
+                  ? `${order.phonecode1 || ""} ${order.phone1}`
+                  : ""}
                 {order.phone2
-                  ? `, ${order.phonecode2 || ''} ${order.phone2}`
-                  : ''}
+                  ? `, ${order.phonecode2 || ""} ${order.phone2}`
+                  : ""}
               </p>
             </div>
           </div>
         </div>
         <div className="border-[rgb(229,231,235)] mb-8"></div>
-        <div className="mb-4" style={{ borderColor: 'rgb(215,215,215)' }}>
-          <div className="mb-4" style={{ border: '1px solid rgb(215,215,215)', borderRadius: '15px', overflow: 'hidden' }}>
-            <table className="w-full text-sm" style={{ borderColor: 'rgb(215,215,215)' }}>
+        <div className="mb-4" style={{ borderColor: "rgb(215,215,215)" }}>
+          <div
+            className="mb-4"
+            style={{
+              border: "1px solid rgb(215,215,215)",
+              borderRadius: "15px",
+              overflow: "hidden",
+            }}
+          >
+            <table
+              className="w-full text-sm"
+              style={{ borderColor: "rgb(215,215,215)" }}
+            >
               <tbody>
-                <tr className="w-full border-b border-[rgb(229,231,235)]" style={{ backgroundColor: 'rgb(248,248,248)' }}>
-                  <td colSpan={3} className="font-semibold text-[rgb(31,41,55)] py-2 p-4">
+                <tr
+                  className="w-full border-b border-[rgb(229,231,235)]"
+                  style={{ backgroundColor: "rgb(248,248,248)" }}
+                >
+                  <td
+                    colSpan={3}
+                    className="font-semibold text-[rgb(31,41,55)] py-2 p-4"
+                  >
                     Ordered Items
                   </td>
-                  <td className="text-right font-semibold py-2 p-4" style={{ color: 'rgb(62,32,109)', fontSize: '16px' }}>
+                  <td
+                    className="text-right font-semibold py-2 p-4"
+                    style={{ color: "rgb(62,32,109)", fontSize: "16px" }}
+                  >
                     Total Price: Rs. {totalPrice}
                   </td>
                 </tr>
@@ -1288,10 +1718,21 @@ function DeliveryOrderView({ order, onClose }: { order: DetailedOrder, onClose: 
                     <React.Fragment key={packIndex}>
                       <tr className="border-b border-t border-[rgb(229,231,235)]">
                         <td colSpan={3} className="font-medium py-2 p-4">
-                          {pack.name} ({String(pack.items?.length ?? 0).padStart(2, '0')} Items)
+                          {pack.name} (
+                          {String(
+                            pack.items?.reduce(
+                              (sum, item) =>
+                                sum + (parseFloat(item.quantity) || 0),
+                              0,
+                            ) ?? 0,
+                          ).padStart(2, "0")}{" "}
+                          Items)
                         </td>
-                        <td className="text-right font-semibold py-2 p-4" style={{ color: 'rgb(62,32,109)' }}>
-                          Rs. {familyPackTotal}
+                        <td
+                          className="text-right font-semibold py-2 p-4"
+                          style={{ color: "rgb(62,32,109)" }}
+                        >
+                          {pack.totalPrice}
                         </td>
                       </tr>
                       <tr>
@@ -1299,7 +1740,10 @@ function DeliveryOrderView({ order, onClose }: { order: DetailedOrder, onClose: 
                           <table className="max-w-[600px] w-full p-4">
                             <tbody>
                               {pack.items.map((item, itemIndex) => (
-                                <tr key={`${packIndex}-${itemIndex}`} className="grid grid-cols-[1fr_1fr_1fr] gap-8 text-sm items-center py-4 ml-6">
+                                <tr
+                                  key={`${packIndex}-${itemIndex}`}
+                                  className="grid grid-cols-[1fr_1fr_1fr] gap-8 text-sm items-center py-4 ml-6"
+                                >
                                   <td>{item.name}</td>
                                   <td>{formatQuantity(item.quantity)}</td>
                                 </tr>
@@ -1317,16 +1761,21 @@ function DeliveryOrderView({ order, onClose }: { order: DetailedOrder, onClose: 
                   <>
                     <tr className="border-b border-t border-[rgb(229,231,235)]">
                       <td colSpan={3} className="font-medium py-2 p-4">
-                        Additional Items ({String(order.additionalItems.length ?? 0).padStart(2, '0')} Items)
+                        Additional Items (
+                        {String(order.additionalItems.length ?? 0).padStart(
+                          2,
+                          "0",
+                        )}{" "}
+                        Items)
                       </td>
                       <td className="text-right font-semibold py-2 p-4">
                         <div className="flex justify-end items-center gap-2">
-                          {order.discount && order.discount !== 'Rs. 0.00' && (
+                          {order.discount && order.discount !== "Rs. 0.00" && (
                             <span className="text-sm font-normal mx-8 text-[#3E206D]">
                               You have saved {order.discount} with us!
                             </span>
                           )}
-                          <span className='text-[#3E206D]'>
+                          <span className="text-[#3E206D]">
                             Rs. {additionalItemsTotal}
                           </span>
                         </div>
@@ -1337,7 +1786,10 @@ function DeliveryOrderView({ order, onClose }: { order: DetailedOrder, onClose: 
                         <div className="p-4">
                           <div className="space-y-4">
                             {order.additionalItems.map((item, index) => (
-                              <div key={index} className="flex items-center gap-6 py-3">
+                              <div
+                                key={index}
+                                className="flex items-center gap-6 py-3"
+                              >
                                 <div className="w-12 h-12 flex-shrink-0">
                                   {item.image ? (
                                     <img
@@ -1347,18 +1799,26 @@ function DeliveryOrderView({ order, onClose }: { order: DetailedOrder, onClose: 
                                     />
                                   ) : (
                                     <div className="w-full h-full bg-gray-200 rounded flex items-center justify-center">
-                                      <span className="text-gray-500 text-xs">No Image</span>
+                                      <span className="text-gray-500 text-xs">
+                                        No Image
+                                      </span>
                                     </div>
                                   )}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <div className="font-medium text-gray-900 truncate">{item.name}</div>
+                                  <div className="font-medium text-gray-900 truncate">
+                                    {item.name}
+                                  </div>
                                 </div>
                                 <div className="text-center min-w-[80px]">
-                                  <div className="text-sm text-gray-600">{formatQuantity(item.quantity, item.unit)}</div>
+                                  <div className="text-sm text-gray-600">
+                                    {formatQuantity(item.quantity, item.unit)}
+                                  </div>
                                 </div>
                                 <div className="text-right min-w-[80px]">
-                                  <div className="font-semibold text-gray-900">{item.price}</div>
+                                  <div className="font-semibold text-gray-900">
+                                    {item.price}
+                                  </div>
                                 </div>
                               </div>
                             ))}

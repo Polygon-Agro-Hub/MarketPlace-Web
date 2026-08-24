@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -10,10 +8,8 @@ import { fetchComplaints } from '@/services/auth-service';
 import EmptyComplaints from '../complaints/No-complaint';
 import Select, { ActionMeta, SingleValue } from 'react-select';
 import Loader from '@/components/loader-spinner/Loader';
-import Image from 'next/image';
-import noComplaints from '../../../public/icons/no complaints.png';
 
-// Interfaces
+
 interface Complaint {
   id: string;
   category: string;
@@ -40,6 +36,7 @@ const filterOptions = [
 const ComplaintsHistory = () => {
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filterLoading, setFilterLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState('This Month');
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
@@ -67,7 +64,6 @@ const ComplaintsHistory = () => {
         const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
         setError(errorMessage);
       } finally {
-        // Ensure loader shows for minimum duration
         const elapsedTime = Date.now() - startTime;
         const remainingTime = Math.max(0, minimumLoadTime - elapsedTime);
 
@@ -80,7 +76,7 @@ const ComplaintsHistory = () => {
     getComplaints();
   }, [userId, token]);
 
-  // Scroll to top when popup is opened
+
   useEffect(() => {
     if (selectedComplaint) {
       window.scrollTo({
@@ -124,34 +120,42 @@ const ComplaintsHistory = () => {
     if (!replyTime) return 'Not replied yet';
 
     const date = new Date(replyTime);
-    // Add 5 hours and 30 minutes to UTC time
-    const istDate = new Date(date.getTime() + (5.5 * 60 * 60 * 1000));
 
-    return istDate.toLocaleDateString('en-US', {
+    const formattedDate = date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
-    }) + ' at ' + istDate.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit'
+      day: 'numeric',
+      timeZone: 'Asia/Colombo'
     });
+
+    const formattedTime = date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: 'Asia/Colombo'
+    });
+
+    return `${formattedDate} at ${formattedTime}`;
   };
 
-
-  // Handle filter change for react-select
   const handleFilterChange = (
     newValue: SingleValue<{ value: string; label: string }>,
     actionMeta: ActionMeta<{ value: string; label: string }>
   ): void => {
     if (newValue) {
+      setFilterLoading(true);
       setFilter(newValue.value);
+
+      setTimeout(() => {
+        setFilterLoading(false);
+      }, 300);
     }
   };
 
 
   return (
     <div className="relative z-10 px-4 sm:px-6 min-h-screen bg-white blur-effect py-4">
-      <Loader isVisible={loading} />
+      <Loader isVisible={loading || filterLoading} />
       <div
         className={`relative z-10 ${selectedComplaint ? 'bg-white' : 'bg-white'
           } blur-effect`}
@@ -175,7 +179,9 @@ const ComplaintsHistory = () => {
                   className="w-8 h-8 mb-2"
                 />
                 <h3 className="text-lg font-semibold mb-4">Reply for your complaint</h3>
-                <div className="w-full border border-gray-300 rounded-md p-4 mb-4">
+
+                {/* Scrollable content area — fixed height, scrolls if content overflows */}
+                <div className="w-full border border-gray-300 rounded-md p-4 mb-4 max-h-60 overflow-y-auto">
                   <p className="text-sm mb-2">
                     Dear {selectedComplaint.customerName || 'Customer'},
                   </p>
@@ -183,11 +189,12 @@ const ComplaintsHistory = () => {
                     {selectedComplaint.reply || 'No reply available yet.'}
                   </p>
                   <p className="text-sm">Sincerely,</p>
-                  <p className="text-sm">Support Team</p>
+                  <p className="text-sm">Polygon Customer Support Team</p>
                   <p className="text-sm">
                     {formatReplyTime(selectedComplaint.replyTime)}
                   </p>
                 </div>
+
                 <button
                   onClick={handleGoBack}
                   className="w-24 h-9 text-sm text-gray-700 rounded-lg cursor-pointer hover:bg-gray-300"
@@ -206,7 +213,7 @@ const ComplaintsHistory = () => {
               <div className="text-[14px] text-base md:text-[18px] font-bold">
                 All ({String(filteredComplaints.length).padStart(2, '0')})
               </div>
-              <div className="relative w-[140px] sm:w-[180px]">
+              <div className="relative w-[140px] sm:w-[144px]">
                 <Select
                   instanceId="complaints-history-filter"
                   options={filterOptions}
@@ -225,7 +232,7 @@ const ComplaintsHistory = () => {
                       display: 'flex',
                       alignItems: 'center',
                       textAlign: 'center',
-                      
+
                       paddingRight: '1.5rem',
                       boxShadow: 'none',
                       ':hover': {
@@ -271,9 +278,9 @@ const ComplaintsHistory = () => {
             </div>
 
             {loading && <div className="text-center text-sm text-[#626D76]">Loading complaints...</div>}
-            {!loading && error && <div className="text-center text-sm text-red-600">Error: {error}</div>}
-            {!loading && !error && filteredComplaints.length === 0 && <EmptyComplaints />}
-            {!loading && !error && filteredComplaints.length > 0 && (
+            {!loading && !filterLoading && error && <div className="text-center text-sm text-red-600">Error: {error}</div>}
+            {!loading && !filterLoading && !error && filteredComplaints.length === 0 && <EmptyComplaints />}
+            {!loading && !filterLoading && !error && filteredComplaints.length > 0 && (
               <div className="space-y-4">
                 {filteredComplaints.map((complaint) => (
                   <div key={complaint.id} className="border border-[#CECECE] rounded-lg p-4">
@@ -284,7 +291,7 @@ const ComplaintsHistory = () => {
                       </div>
                       <div className="flex flex-col items-start">
                         <div className="text-[12px] md:text-[16px] text-[#626D76] font-medium">Category:</div>
-                        <div className="text-[12px] md:text-[16px]">{complaint.category}</div>
+                        <div className="text-[12px] md:text-[16px] break-all max-w-full">{complaint.category}</div>
                       </div>
                       <div className="flex flex-col items-start">
                         <div className="text-[12px] md:text-[16px] text-[#626D76] font-medium">Date:</div>
@@ -293,7 +300,7 @@ const ComplaintsHistory = () => {
                       <div className="flex flex-col justify-center sm:items-center">
                         <div className="flex items-center">
                           <span
-                            className={`min-w-[100px] sm:min-w-[120px] text-center px-2 py-1 rounded-full text-[12px] md:text-[16px] ${complaint.status === 'Closed'
+                            className={`min-w-[80px] sm:min-w-[120px] text-center px-2 py-1 rounded-full text-[12px] md:text-[16px] ${complaint.status === 'Closed'
                               ? 'bg-[#EDE1FF] text-[#3E206D]'
                               : complaint.status === 'Opened'
                                 ? 'bg-[#CFE1FF] text-[#3B82F6]'
