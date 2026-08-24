@@ -28,8 +28,8 @@ export const getRetailCart = async (
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          `Failed with status ${error.response.status}`,
+        error.response.data?.error ||
+        `Failed with status ${error.response.status}`,
       );
     } else if (error.request) {
       throw new Error("No response received from server");
@@ -132,7 +132,7 @@ export const getOrderDetails = async (
     if (additionalItemsResponse.status !== 200) {
       throw new Error(
         additionalItemsResponse?.data?.message ||
-          "Failed to fetch additional items",
+        "Failed to fetch additional items",
       );
     }
 
@@ -144,8 +144,8 @@ export const getOrderDetails = async (
   } catch (error: any) {
     throw new Error(
       error.response?.data?.message ||
-        error.response?.data?.error ||
-        "Failed to fetch order details",
+      error.response?.data?.error ||
+      "Failed to fetch order details",
     );
   }
 };
@@ -170,8 +170,8 @@ export const getInvoice = async (
   } catch (error: any) {
     throw new Error(
       error.response?.data?.message ||
-        error.response?.data?.error ||
-        "Failed to fetch invoice",
+      error.response?.data?.error ||
+      "Failed to fetch invoice",
     );
   }
 };

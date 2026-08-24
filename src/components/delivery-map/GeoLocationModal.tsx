@@ -293,8 +293,6 @@ const GeoLocationModal: React.FC<GeoLocationModalProps> = ({
                             </div>
                         )}
 
-                        {/* Map Container */}
-                        {/* Map Container */}
                         <div
                             ref={mapRef}
                             className="w-full h-[180px] sm:h-[250px] md:h-[280px] rounded-lg border border-gray-300 mb-3 sm:mb-4"

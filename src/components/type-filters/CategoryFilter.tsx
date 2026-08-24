@@ -261,7 +261,7 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
                     discount={product.discount}
                     unitType={product.unitType}
                     startValue={product.startValue}
-                    changeby={product.changeby}       
+                    changeby={product.changeby}
                     displayType={product.displayType}
                   />
                 ))

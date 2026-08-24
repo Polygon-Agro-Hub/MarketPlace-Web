@@ -1,14 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Head from "next/head";
-import {
-  GoogleLoginButton,
-  FacebookLoginButton,
-} from "react-social-login-buttons";
-import { getCartInfo, login } from "@/services/auth-service";
+import { login } from "@/services/auth-service";
 import { useRouter } from "next/navigation";
-import Swal from "sweetalert2";
 import { useDispatch } from "react-redux";
 import { setCredentials } from "@/store/slices/authSlice";
 import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
@@ -218,14 +212,14 @@ const Page = () => {
               <button
                 onClick={() => setUserType("Retail")}
                 className={`flex-1 px-2 sm:px-4 py-2 border rounded-md flex items-center justify-start space-x-1 sm:space-x-2 text-xs sm:text-sm cursor-pointer ${userType === "Retail"
-                    ? "bg-purple-100 text-purple-800 border-purple-500"
-                    : "bg-white text-gray-800 border-gray-300"
+                  ? "bg-purple-100 text-purple-800 border-purple-500"
+                  : "bg-white text-gray-800 border-gray-300"
                   }`}
               >
                 <span
                   className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${userType === "Retail"
-                      ? "border-purple-800"
-                      : "border-gray-400"
+                    ? "border-purple-800"
+                    : "border-gray-400"
                     }`}
                 >
                   {userType === "Retail" && (
@@ -240,14 +234,14 @@ const Page = () => {
               <button
                 onClick={() => setUserType("Wholesale")}
                 className={`flex-1 px-2 sm:px-4 py-2 border rounded-md flex items-center justify-start space-x-1 sm:space-x-2 text-xs sm:text-sm cursor-pointer ${userType === "Wholesale"
-                    ? "bg-purple-100 text-purple-800 border-purple-500"
-                    : "bg-white text-gray-800 border-gray-300"
+                  ? "bg-purple-100 text-purple-800 border-purple-500"
+                  : "bg-white text-gray-800 border-gray-300"
                   }`}
               >
                 <span
                   className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${userType === "Wholesale"
-                      ? "border-purple-800"
-                      : "border-gray-400"
+                    ? "border-purple-800"
+                    : "border-gray-400"
                     }`}
                 >
                   {userType === "Wholesale" && (
