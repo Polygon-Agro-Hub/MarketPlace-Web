@@ -87,7 +87,6 @@ export const getOrderDetails = async (
   orderId: string,
 ): Promise<any> => {
   try {
-    // Fetch order details
     const orderResponse = await axios.get(`/retail-order/order/${orderId}`, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -101,7 +100,6 @@ export const getOrderDetails = async (
       );
     }
 
-    // Fetch package details
     const packagesResponse = await axios.get(
       `/retail-order/order/packages/${orderId}`,
       {
@@ -118,7 +116,6 @@ export const getOrderDetails = async (
       );
     }
 
-    // Fetch additional items
     const additionalItemsResponse = await axios.get(
       `/retail-order/order/additional-items/${orderId}`,
       {

@@ -211,7 +211,6 @@ export const productAddToCart = async (
     throw new Error(response.data?.message || "Failed to add product to cart");
   } catch (error: any) {
     if (error.response) {
-      // Handle specific error cases
       if (
         error.response.status === 200 &&
         error.response.data.status === false
@@ -327,8 +326,6 @@ export interface ProductCartData {
   quantityType: "kg" | "g";
   quantity: number;
 }
-
-//whole sale api calls
 
 export const getProductsByCategoryWholesale = async (
   category: string,
