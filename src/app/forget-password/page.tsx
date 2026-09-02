@@ -5,8 +5,6 @@ import { sendResetEmail, sendOTP } from "@/services/auth-service";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import reset from "../../../public/images/reset.png";
-import success from "../../../public/images/correct.png";
-import error from "../../../public/images/wrong.png";
 import SuccessPopup from "@/components/toast-messages/success-message-with-button";
 
 const Page = () => {
@@ -274,9 +272,6 @@ const Page = () => {
               Choose how you'd like to receive your password reset code:
             </p>
 
-            {/* ── Radio options ──
-                < sm  : full-width card with custom dot (matches screenshots)
-                >= sm : original side-by-side native radio style               */}
             <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 mb-6 items-center justify-center">
 
               {/* Via Email */}
@@ -352,11 +347,11 @@ const Page = () => {
                     onChange={handleEmailChange}
                     placeholder="Enter Email Address"
                     className={`
-          w-full px-3 py-2.5 rounded-xl border text-sm
-          md:px-4 md:py-3 md:rounded-md md:text-base
-          focus:outline-none focus:ring-2 focus:ring-purple-600 transition
-          ${emailError ? "border-red-500" : "border-gray-300"}
-        `}
+                      w-full px-3 py-2.5 rounded-xl border text-sm
+                      md:px-4 md:py-3 md:rounded-md md:text-base
+                      focus:outline-none focus:ring-2 focus:ring-purple-600 transition
+                      ${emailError ? "border-red-500" : "border-gray-300"}
+                    `}
                     disabled={isSendingEmail}
                   />
                   {emailError && (
@@ -428,11 +423,11 @@ const Page = () => {
                         placeholder="7XXXXXXXX"
                         maxLength={9}
                         className={`
-              w-full px-3 py-2.5 rounded-xl border text-sm
-              md:px-4 md:py-3 md:rounded-md md:text-base
-              focus:outline-none focus:ring-2 focus:ring-purple-600 transition
-              ${phoneError ? "border-red-500" : "border-gray-300"}
-            `}
+                          w-full px-3 py-2.5 rounded-xl border text-sm
+                          md:px-4 md:py-3 md:rounded-md md:text-base
+                          focus:outline-none focus:ring-2 focus:ring-purple-600 transition
+                          ${phoneError ? "border-red-500" : "border-gray-300"}
+                        `}
                         required
                       />
                     </div>

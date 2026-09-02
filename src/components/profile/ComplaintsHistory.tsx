@@ -8,10 +8,8 @@ import { fetchComplaints } from '@/services/auth-service';
 import EmptyComplaints from '../complaints/No-complaint';
 import Select, { ActionMeta, SingleValue } from 'react-select';
 import Loader from '@/components/loader-spinner/Loader';
-import Image from 'next/image';
-import noComplaints from '../../../public/icons/no complaints.png';
 
-// Interfaces
+
 interface Complaint {
   id: string;
   category: string;
@@ -66,7 +64,6 @@ const ComplaintsHistory = () => {
         const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
         setError(errorMessage);
       } finally {
-        // Ensure loader shows for minimum duration
         const elapsedTime = Date.now() - startTime;
         const remainingTime = Math.max(0, minimumLoadTime - elapsedTime);
 
@@ -79,7 +76,7 @@ const ComplaintsHistory = () => {
     getComplaints();
   }, [userId, token]);
 
-  // Scroll to top when popup is opened
+
   useEffect(() => {
     if (selectedComplaint) {
       window.scrollTo({
@@ -141,7 +138,6 @@ const ComplaintsHistory = () => {
     return `${formattedDate} at ${formattedTime}`;
   };
 
-  // Handle filter change for react-select
   const handleFilterChange = (
     newValue: SingleValue<{ value: string; label: string }>,
     actionMeta: ActionMeta<{ value: string; label: string }>
@@ -150,7 +146,6 @@ const ComplaintsHistory = () => {
       setFilterLoading(true);
       setFilter(newValue.value);
 
-      // Show loader for a brief moment to indicate filtering is happening
       setTimeout(() => {
         setFilterLoading(false);
       }, 300);

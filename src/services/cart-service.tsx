@@ -69,7 +69,7 @@ interface CartData {
     couponValue: string;
     createdAt: string;
     creditBalance?: number;
-  }; // Remove | null since it's always present
+  };
   packages: CartPackage[];
   additionalItems: {
     id: number;
@@ -79,7 +79,6 @@ interface CartData {
   summary: CartSummary;
 }
 
-// Get user's complete cart data
 export const getUserCart = async (token: string | null): Promise<CartData> => {
   if (!token) {
     throw new Error("Authentication required");
@@ -118,14 +117,14 @@ export const updateCartProductQuantity = async (
   productId: number,
   quantity: number,
   token: string | null,
-  unit?: string, // Add unit parameter
+  unit?: string,
 ): Promise<void> => {
   if (!token) throw new Error("Authentication required");
 
   try {
     const response = await axios.put(
       "/product/quantity",
-      { productId, quantity, unit }, // Send unit to backend
+      { productId, quantity, unit },
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -155,12 +154,10 @@ export const bulkRemoveCartProducts = async (
     throw new Error("Authentication required");
   }
 
-  // Validate input
   if (!Array.isArray(productIds) || productIds.length === 0) {
     throw new Error("Invalid product IDs provided");
   }
 
-  // Ensure all IDs are numbers and convert to integers
   const validIds = productIds
     .map((id) => parseInt(String(id), 10))
     .filter((id) => !isNaN(id) && id > 0);
@@ -172,7 +169,7 @@ export const bulkRemoveCartProducts = async (
   try {
     const response = await axios.post(
       "/product/bulk-remove-products",
-      { productIds: validIds }, // This is the request body
+      { productIds: validIds },
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -208,7 +205,6 @@ export const bulkRemoveCartProducts = async (
   }
 };
 
-// Update package quantity in cart
 export const updateCartPackageQuantity = async (
   packageId: number,
   quantity: number,
@@ -251,7 +247,6 @@ export const updateCartPackageQuantity = async (
   }
 };
 
-// Remove product from cart
 export const removeCartProduct = async (
   productId: number,
   token: string | null,
@@ -288,7 +283,6 @@ export const removeCartProduct = async (
   }
 };
 
-// Remove package from cart
 export const removeCartPackage = async (
   packageId: number,
   token: string | null,
@@ -353,7 +347,7 @@ export interface OrderPayload {
     couponType?: string;
     geoLatitude?: number | null;
     geoLongitude?: number | null;
-    saveAs?: string; // Add this
+    saveAs?: string;
   };
   paymentMethod: "card" | "cash";
   discountAmount: number;
@@ -390,7 +384,6 @@ export const submitOrderToBackend = async (
         error.response?.data || error.message,
       );
 
-      // Preserve the machine-readable code so the caller can branch on it
       const responseData = error.response?.data;
       if (responseData?.code === "ITEMS_UNAVAILABLE") {
         const codedError: any = new Error(responseData.error || "Some Items No Longer Available!");
@@ -414,7 +407,6 @@ export const validateOrderData = (
 ): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];
 
-  // Validate payment method
   if (
     !payload.paymentMethod ||
     !["card", "cash"].includes(payload.paymentMethod)
@@ -422,12 +414,10 @@ export const validateOrderData = (
     errors.push("Invalid payment method");
   }
 
-  // Validate cartId (backend will get items from this)
   if (!payload.cartId || payload.cartId <= 0) {
     errors.push("Valid cart ID is required");
   }
 
-  // Validate checkout details
   const {
     deliveryMethod,
     title,
@@ -474,7 +464,6 @@ export const validateOrderData = (
     errors.push("Time slot is required");
   }
 
-  // Validate delivery method specific requirements
   if (deliveryMethod === "home") {
     if (!cityName || cityName.trim().length < 2) {
       errors.push("City name is required for home delivery");
@@ -487,7 +476,6 @@ export const validateOrderData = (
       errors.push("Valid building type is required (apartment or house)");
     }
 
-    // Check for apartment (case insensitive)
     if (
       buildingType &&
       (buildingType.toLowerCase() === "apartment" ||
@@ -507,7 +495,6 @@ export const validateOrderData = (
       }
     }
 
-    // Always require house number and street for home delivery (both house and apartment)
     if (!houseNo || houseNo.trim().length === 0) {
       errors.push("House number is required for home delivery");
     }
@@ -520,7 +507,6 @@ export const validateOrderData = (
     }
   }
 
-  // Validate financial details
   if (!payload.grandTotal || payload.grandTotal <= 0) {
     errors.push("Valid grand total is required (must be greater than 0)");
   }
@@ -529,7 +515,6 @@ export const validateOrderData = (
     errors.push("Valid discount amount is required (must be 0 or greater)");
   }
 
-  // Validate coupon details consistency
   if (
     payload.checkoutDetails.isCoupon &&
     payload.checkoutDetails.couponValue < 0
@@ -544,12 +529,10 @@ export const validateOrderData = (
     errors.push("Coupon value should be 0 when no coupon is applied");
   }
 
-  // Validate order app
   if (!payload.orderApp || payload.orderApp.trim().length === 0) {
     errors.push("Order app is required");
   }
 
-  // Validate schedule type
   if (
     !payload.checkoutDetails.scheduleType ||
     payload.checkoutDetails.scheduleType.trim().length === 0
@@ -563,7 +546,6 @@ export const validateOrderData = (
   };
 };
 
-// Helper function to format validation errors for display
 export const formatValidationErrors = (errors: string[]): string => {
   if (errors.length === 0) return "";
 
@@ -574,7 +556,6 @@ export const formatValidationErrors = (errors: string[]): string => {
   return errors.map((error, index) => `${index + 1}. ${error}`).join("\n");
 };
 
-// Helper function to validate cart exists (can be used before order submission)
 export const validateCartExists = async (
   cartId: number,
   token: string,
@@ -657,7 +638,6 @@ export const validateCoupon = async (
   } catch (error: any) {
     console.error("Error validating coupon:", error);
 
-    // Handle axios error response
     const errorMessage =
       error.response?.data?.message || "Failed to validate coupon";
     throw new Error(errorMessage);

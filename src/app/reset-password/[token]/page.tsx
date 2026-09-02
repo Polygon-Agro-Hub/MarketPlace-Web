@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { useSearchParams, useRouter, useParams } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { resetPassword, validateResetToken } from "@/services/auth-service";
 import wrongImg from "../../../../public/images/wrong.png";
 import resetImg from "../../../../public/images/resetPasswordImg.png";

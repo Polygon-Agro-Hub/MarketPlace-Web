@@ -174,25 +174,6 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
         city: selectedCity?.city || "",
         cityId: selectedCity?.id || null,
     });
-    // const countries: PhoneCode[] = [
-    //     { code: "LK", dialCode: "+94", name: "Sri Lanka" },
-    //     { code: "VN", dialCode: "+84", name: "Vietnam" },
-    //     { code: "KH", dialCode: "+855", name: "Cambodia" },
-    //     { code: "BD", dialCode: "+880", name: "Bangladesh" },
-    //     { code: "IN", dialCode: "+91", name: "India" },
-    //     { code: "NL", dialCode: "+31", name: "Netherlands" },
-    // ];
-
-    // const getFlagUrl = (countryCode: string): string => {
-    //     return `https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png`;
-    // };
-
-    // const countryOptions = countries.map((country) => ({
-    //     value: country.dialCode,
-    //     label: country.dialCode,
-    //     flag: getFlagUrl(country.code),
-    //     countryName: country.name,
-    // }));
 
     const checkPhoneLive = (
         fieldName: "phoneNumber" | "companyPhoneNumber",
@@ -241,7 +222,7 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
     };
 
     const checkNicOnBlur = (nic: string) => {
-        if (!nic) return; // required-field check stays in validateForm on submit
+        if (!nic) return;
 
         const isValid = /^(\d{9}V|\d{12})$/.test(nic);
 

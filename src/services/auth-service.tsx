@@ -16,7 +16,6 @@ interface LoginResponse {
   tokenExpiration: any;
 }
 
-// Signup interface
 interface SignupPayload {
   title?: string;
   firstName: string;
@@ -56,7 +55,7 @@ interface Complaint {
 interface ApiComplaint {
   complainId: number;
   complaiCategoryId: number;
-  categoryName: string; // ✅ Add this line
+  categoryName: string;
   createdAt: string | number | Date;
   status: string;
   complain: string;
@@ -94,13 +93,12 @@ interface Profile {
   phoneNumber: string;
   phoneCode2: string;
   phoneNumber2: string;
-  companyPhoneCode: string; // Add this
-  companyPhone: string; // Add this
+  companyPhoneCode: string;
+  companyPhone: string;
   image?: string;
   profileImageURL?: string;
 }
 
-// Updated ApiProfile interface
 interface ApiProfile {
   title: string;
   firstName: string;
@@ -110,8 +108,8 @@ interface ApiProfile {
   phoneNumber: string;
   phoneCode2: string;
   phoneNumber2: string;
-  companyPhoneCode: string; // Add this
-  companyPhone: string; // Add this
+  companyPhoneCode: string;
+  companyPhone: string;
   image?: string;
   profileImageURL?: string;
   companyName?: string;
@@ -123,7 +121,7 @@ export interface CityOption {
   city: string;
   district?: string;
   province?: string;
-  isAvailable: boolean; // 1/0 → boolean
+  isAvailable: boolean;
 }
 
 export interface BillingAddress {
@@ -143,14 +141,14 @@ export interface BillingAddress {
   phoneNumber?: string;
   phoneCode2?: string;
   phoneNumber2?: string;
-  geoLatitude?: number; // Add this
+  geoLatitude?: number;
   geoLongitude?: number;
 }
 
 export interface BillingDetails {
   id?: number;
   billingName: string | undefined;
-  billingTitle: string; // Required
+  billingTitle: string;
   title: string;
   firstName: string;
   lastName: string;
@@ -160,7 +158,7 @@ export interface BillingDetails {
   address: BillingAddress;
   phoneCode2?: string | null;
   phoneNumber2?: string | null;
-  geoLatitude?: number; // Add this
+  geoLatitude?: number;
   geoLongitude?: number;
 }
 
@@ -221,8 +219,8 @@ interface UpdateProfilePayload {
     phoneCode2?: string;
     phoneNumber2?: string;
     companyName?: string;
-    companyPhoneCode?: string; // Add this
-    companyPhone?: string; // Add this
+    companyPhoneCode?: string;
+    companyPhone?: string;
   };
   profilePic: File | null;
 }
@@ -249,7 +247,6 @@ interface ApiResponse<T = any> {
   message?: string;
 }
 
-// Interface for complaint payload
 interface ComplaintPayload {
   userId: number;
   token: string;
@@ -260,7 +257,6 @@ interface ComplaintPayload {
   complaintId?: number;
 }
 
-// Interface for complaint response
 interface ComplaintResponse {
   status: boolean;
   message: string;
@@ -431,7 +427,6 @@ export const sendResetEmail = async (
   }
 };
 
-// auth-service.ts
 export const validateResetToken = async (
   token: string,
 ): Promise<{
@@ -513,8 +508,6 @@ export const sendOTP = async (
   try {
     const formattedPhone = phoneNumber.replace(/\s+/g, "");
     const fullPhoneNumber = `${countryCode}${formattedPhone}`;
-
-    // Default options
     const {
       checkPhoneExists = true,
       message = `Your OTP for verification is: {{code}}`,
@@ -579,7 +572,6 @@ export const sendOTPInSignup = async (
   },
 ): Promise<OTPServiceResponse> => {
 
-  // ── Non-+94: send OTP via backend email ───────────────────────────────────
   if (countryCode !== "+94") {
 
     const emailTarget = options?.email;
@@ -722,7 +714,6 @@ export const resetPasswordByPhone = async (
   }
 };
 
-// Map category ID to category name
 const categoryMap: { [key: number]: string } = {
   1: "Product Issues",
   2: "Delivery Issues",
@@ -763,8 +754,8 @@ export const fetchProfile = async (
           phoneNumber: resData.data.phoneNumber || "",
           phoneCode2: resData.data.phoneCode2 || "+94",
           phoneNumber2: resData.data.phoneNumber2 || "",
-          companyPhoneCode: resData.data.companyPhoneCode || "+94", // Add this
-          companyPhone: resData.data.companyPhone || "", // Add this
+          companyPhoneCode: resData.data.companyPhoneCode || "+94",
+          companyPhone: resData.data.companyPhone || "",
           image: resData.data.image,
           profileImageURL: resData.data.profileImageURL,
           title: resData.data.title || "",
@@ -806,7 +797,6 @@ export const updateProfile = async (
 
     const formData = new FormData();
 
-    // Required fields
     formData.append("title", payload.data.title);
     formData.append("firstName", payload.data.firstName);
     formData.append("lastName", payload.data.lastName);
@@ -814,7 +804,6 @@ export const updateProfile = async (
     formData.append("phoneCode", payload.data.phoneCode);
     formData.append("phoneNumber", payload.data.phoneNumber);
 
-    // Optional fields - only append if they exist
     if (payload.data.phoneCode2) {
       formData.append("phoneCode2", payload.data.phoneCode2);
     }
@@ -827,7 +816,6 @@ export const updateProfile = async (
       formData.append("companyName", payload.data.companyName);
     }
 
-    // Add company phone fields
     if (payload.data.companyPhoneCode) {
       formData.append("companyPhoneCode", payload.data.companyPhoneCode);
     }
@@ -836,7 +824,6 @@ export const updateProfile = async (
       formData.append("companyPhone", payload.data.companyPhone);
     }
 
-    // Profile picture - only append if provided
     if (payload.profilePic) {
       formData.append("profilePicture", payload.profilePic);
     }
@@ -1013,7 +1000,7 @@ export const fetchBillingDetails = async (
 };
 
 export interface SaveAddressPayloadData {
-  addressId?: number | null; // null/undefined = new address, number = editing existing
+  addressId?: number | null;
   billingTitle: string;
   billingName: string;
   phoneCode: string;
@@ -1098,7 +1085,6 @@ export const saveBillingDetails = async (payload: {
   }
 };
 
-// ── Delete ─────────────────────────────────────────────────────────────
 export const deleteBillingAddress = async (payload: {
   token: string;
   addressId: number;
@@ -1184,7 +1170,7 @@ export const fetchComplaints = async (
         !resData.status &&
         resData.message === "No complaints found for the given user ID."
       ) {
-        return []; // Return empty array when no complaints are found
+        return [];
       } else {
         throw new Error(resData.message || "Invalid response format");
       }
@@ -1222,7 +1208,7 @@ const uploadSingleImage = async (
       Authorization: `Bearer ${token}`,
       "Content-Type": "multipart/form-data",
     },
-    timeout: 60000, // don't inherit a short global default for large uploads
+    timeout: 60000,
   });
 
   if (!response.data?.url) {
@@ -1310,7 +1296,6 @@ export const submitComplaint = async (
   }
 };
 
-// Fetch complaint categories from backend
 export const fetchComplaintCategories = async (): Promise<Category[]> => {
   try {
     const response = await axios.get("/auth/categories", {
@@ -1332,7 +1317,6 @@ export const fetchComplaintCategories = async (): Promise<Category[]> => {
   }
 };
 
-// services/unsubscribeService.ts
 
 export const unsubscribeUser = async (
   token: string,
