@@ -340,6 +340,9 @@ export interface OrderPayload {
     street?: string;
     cityName: string;
     scheduleType: string;
+    selectedDays?: string;        // NEW - JSON string of full day names, e.g. '["Thursday","Saturday"]'
+    validPeriod?: string | null;  // NEW - weeks as string, e.g. "04"
+    sheduleDate?: string | null;  // NEW - nearest scheduled order date (ISO string)
     centerId?: number | null;
     couponValue: number;
     isCoupon: boolean;
@@ -434,6 +437,10 @@ export const validateOrderData = (
     floorNumber,
     houseNo,
     street,
+    scheduleType,
+    selectedDays,
+    validPeriod,
+    sheduleDate,
   } = payload.checkoutDetails;
 
   if (!deliveryMethod) {
@@ -456,12 +463,48 @@ export const validateOrderData = (
     errors.push("Valid phone number 1 is required (minimum 9 digits)");
   }
 
-  if (!deliveryDate || deliveryDate.trim().length === 0) {
-    errors.push("Delivery date is required");
-  }
-
   if (!timeSlot || timeSlot.trim().length === 0) {
     errors.push("Time slot is required");
+  }
+
+  // Schedule validation — branches based on scheduleType
+  if (
+    !scheduleType ||
+    scheduleType.trim().length === 0
+  ) {
+    errors.push("Schedule type is required");
+  } else if (!["One Time", "Once a week", "Twice a week"].includes(scheduleType)) {
+    errors.push("Invalid schedule type");
+  } else if (scheduleType === "One Time") {
+    if (!deliveryDate || deliveryDate.trim().length === 0) {
+      errors.push("Delivery date is required");
+    }
+  } else {
+    // Recurring: Once a week / Twice a week
+    if (!selectedDays) {
+      errors.push("Selected day(s) are required for recurring schedules");
+    } else {
+      try {
+        const parsedDays = JSON.parse(selectedDays);
+        if (!Array.isArray(parsedDays) || parsedDays.length === 0) {
+          errors.push("Selected day(s) are required for recurring schedules");
+        } else if (scheduleType === "Twice a week" && parsedDays.length !== 2) {
+          errors.push("Please select exactly 2 days for twice a week delivery");
+        } else if (scheduleType === "Once a week" && parsedDays.length !== 1) {
+          errors.push("Please select exactly 1 day for once a week delivery");
+        }
+      } catch {
+        errors.push("Selected days must be valid JSON");
+      }
+    }
+
+    if (!validPeriod || validPeriod.trim().length === 0) {
+      errors.push("Valid period is required for recurring schedules");
+    }
+
+    if (!sheduleDate || sheduleDate.trim().length === 0) {
+      errors.push("Nearest schedule date is required for recurring schedules");
+    }
   }
 
   if (deliveryMethod === "home") {
@@ -531,13 +574,6 @@ export const validateOrderData = (
 
   if (!payload.orderApp || payload.orderApp.trim().length === 0) {
     errors.push("Order app is required");
-  }
-
-  if (
-    !payload.checkoutDetails.scheduleType ||
-    payload.checkoutDetails.scheduleType.trim().length === 0
-  ) {
-    errors.push("Schedule type is required");
   }
 
   return {
