@@ -19,13 +19,21 @@ import { getCities, City } from "@/services/cart-service";
 import { getAllCities, CityResult } from "@/services/auth-service";
 import GeoLocationModal from "@/components/delivery-map/GeoLocationModal";
 import { updateCartInfo } from "@/store/slices/authSlice";
-import packageBasketImg from "../../../public/pp1.png";
-import reviewCalendarImg from "../../../public/pp2.png";
-import packageVeggiesImg from "../../../public/pp3.png";
-import cardPaymentImg from "../../../public/pp4.png";
 import { ChevronDown, XCircle, LocateFixed, AlertTriangle, X, Info } from "lucide-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCircleInfo } from "@fortawesome/free-solid-svg-icons";
+import PackageHandlingModal from "@/components/checkout/PackageHandlingModal";
+import {
+  dayOptions,
+  validPeriodOptions,
+  TIME_SLOT_OPTIONS,
+  TITLE_OPTIONS,
+  BUILDING_TYPE_OPTIONS,
+  getMinDeliveryDate,
+  getMinDateStr,
+  generateScheduledOrderDates,
+} from "@/utils/schedule";
+import OrderListModal from "@/components/checkout/OrderListModal";
 
 const OpenStreetMap = dynamic(
   () => import("@/components/open-map/OpenStreetMap"),
@@ -243,25 +251,6 @@ const Page: React.FC = () => {
   ) as string | null | undefined;
   const [isNewAddressCityLocked, setIsNewAddressCityLocked] = useState(false);
   const hasPackages = cartPackages.length > 0;
-
-  const dayOptions = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
-
-  const validPeriodOptions = Array.from({ length: 11 }, (_, i) => {
-    const week = i + 2; // 2 -> 12
-    const padded = String(week).padStart(2, "0");
-    return { value: padded, label: `${padded} weeks` };
-  });
-
-
-  const dayNameToIndex: Record<string, number> = {
-    Su: 0,
-    Mo: 1,
-    Tu: 2,
-    We: 3,
-    Th: 4,
-    Fr: 5,
-    Sa: 6,
-  };
 
   const [showOrderListModal, setShowOrderListModal] = useState(false);
   const [generatedOrders, setGeneratedOrders] = useState<Date[]>([]);
@@ -536,106 +525,11 @@ const Page: React.FC = () => {
     setErrors((prev) => ({ ...prev, selectedDays: "" }));
   };
 
-  // Minimum date recurring orders can start on.
-  // Before 6 PM: need 2 full middle days between order day and delivery day
-  // (order day + 2 prep days + delivery day = 3 days out minimum).
-  // After 6 PM: treated as needing 3 full middle days (4 days out minimum),
-  // then if that lands on a weekend, push forward to the next Monday.
-  const getMinRecurringDate = (): Date => {
-    const now = new Date();
-    const isAfterCutoff = now.getHours() >= 18; // 6:00 PM cutoff
-
-    const base = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    base.setHours(0, 0, 0, 0);
-
-    let minDate = new Date(base);
-
-    if (!isAfterCutoff) {
-      minDate.setDate(minDate.getDate() + 3); // CHANGED: was +2
-    } else {
-      minDate.setDate(minDate.getDate() + 4); // CHANGED: was +3
-
-      const dow = minDate.getDay(); // 0 = Sunday, 6 = Saturday
-      if (dow === 0) {
-        minDate.setDate(minDate.getDate() + 1); // Sunday -> Monday
-      } else if (dow === 6) {
-        minDate.setDate(minDate.getDate() + 2); // Saturday -> Monday
-      }
-    }
-
-    return minDate;
-  };
-
-  // First valid occurrence of `dayCode` (Mo/Tu/We/...), counting from today.
-  // If the nearest occurrence falls before the minimum recurring date,
-  // push to that same weekday the following week instead.
-  const getFirstOccurrence = (dayCode: string, minDate: Date): Date => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const targetIdx = dayNameToIndex[dayCode];
-    const diff = (targetIdx - today.getDay() + 7) % 7;
-
-    const occurrence = new Date(today);
-    occurrence.setDate(occurrence.getDate() + diff);
-
-    if (occurrence < minDate) {
-      occurrence.setDate(occurrence.getDate() + 7);
-    }
-
-    return occurrence;
-  };
-
-  const generateScheduledOrderDates = (): Date[] => {
-    const weeks = parseInt(formData.validPeriod, 10) || 0;
-    const minDate = getMinRecurringDate();
-    const dates: Date[] = [];
-
-    if (formData.scheduleType === "Once a week" && formData.selectedDays[0]) {
-      const firstOccurrence = getFirstOccurrence(formData.selectedDays[0], minDate);
-
-      for (let i = 0; i < weeks; i++) {
-        const d = new Date(firstOccurrence);
-        d.setDate(d.getDate() + i * 7);
-        dates.push(d);
-      }
-    } else if (
-      formData.scheduleType === "Twice a week" &&
-      formData.selectedDays.length === 2
-    ) {
-      formData.selectedDays.forEach((dayCode) => {
-        const firstOccurrence = getFirstOccurrence(dayCode, minDate);
-        for (let i = 0; i < weeks; i++) {
-          const d = new Date(firstOccurrence);
-          d.setDate(d.getDate() + i * 7);
-          dates.push(d);
-        }
-      });
-    }
-
-    dates.sort((a, b) => a.getTime() - b.getTime());
-    return dates;
-  };
-
   const handleViewOrders = () => {
-    const dates = generateScheduledOrderDates();
+    const dates = generateScheduledOrderDates(formData.scheduleType, formData.selectedDays, formData.validPeriod);
     setGeneratedOrders(dates);
     setShowOrderListModal(true);
   };
-
-  const getOrdinal = (n: number): string => {
-    const s = ["th", "st", "nd", "rd"];
-    const v = n % 100;
-    return `${n}${s[(v - 20) % 10] || s[v] || s[0]}`;
-  };
-
-  const formatOrderDate = (date: Date): string =>
-    date.toLocaleDateString("en-US", {
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-    });
-
 
   const filteredCityOptions = useMemo(() => {
     if (!citySearchTerm.trim()) return allCityResults;
@@ -940,29 +834,6 @@ const Page: React.FC = () => {
     label: center.label,
   }));
 
-  const getMinDeliveryDate = (): Date => {
-    const now = new Date();
-    const isAfterCutoff = now.getHours() >= 18; // 6:00 PM cutoff
-    const extraDays = isAfterCutoff ? 4 : 3;
-
-    const minDate = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate() + extraDays,
-    );
-    minDate.setHours(0, 0, 0, 0);
-    return minDate;
-  };
-
-  const getMinDate = (): string => {
-    const minDate = getMinDeliveryDate();
-
-    const year = minDate.getFullYear();
-    const month = String(minDate.getMonth() + 1).padStart(2, "0");
-    const day = String(minDate.getDate()).padStart(2, "0");
-
-    return `${year}-${month}-${day}`;
-  };
 
   const readOnlyFields: (keyof FormData)[] = [
     "title",
@@ -1385,7 +1256,7 @@ const Page: React.FC = () => {
       }
 
       dispatch(resetFormData());
-      const scheduledOrderDates = generateScheduledOrderDates();
+      const scheduledOrderDates = generateScheduledOrderDates(formData.scheduleType, formData.selectedDays, formData.validPeriod);
 
       const recurringPayload =
         formData.scheduleType !== "One Time"
@@ -1473,196 +1344,16 @@ const Page: React.FC = () => {
       <form onSubmit={handleSubmit}>
         <div className="px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5 pt-10 sm:pt-12">
           {showPackagePopup && (
-            <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-3 sm:p-4">
-              <div className="bg-white rounded-2xl w-full max-w-2xl sm:max-w-3xl max-h-[90vh] overflow-y-auto p-4 sm:p-6 relative">
-                {/* Close button */}
-                <button
-                  type="button"
-                  onClick={() => setShowPackagePopup(false)}
-                  className="absolute top-3 right-3 sm:top-4 sm:right-4 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors cursor-pointer"
-                  aria-label="Close"
-                >
-                  <X size={16} className="text-gray-600 sm:hidden" />
-                  <X size={18} className="text-gray-600 hidden sm:block" />
-                </button>
-
-                {/* Header */}
-                <div className="flex items-center gap-2.5 sm:gap-4 mb-3 sm:mb-5 pr-8">
-                  <div className="flex-shrink-0 w-14 h-14 sm:w-20 sm:h-20 relative">
-                    <Image src={packageBasketImg} alt="Package items" fill className="object-contain" />
-                  </div>
-                  <h2 className="text-[15px] sm:text-xl font-bold text-[#252525] leading-snug">
-                    How would you like us to handle your order&apos;s
-                    <br />
-                    package items?
-                  </h2>
-                </div>
-
-                {/* Option 1: Review and confirm */}
-                <button
-                  type="button"
-                  onClick={() => setPackageHandlingOption("review")}
-                  style={{
-                    background: packageHandlingOption === "review"
-                      ? "linear-gradient(180deg, #F7F2FF 0%, #F6F0FF 100%)"
-                      : "#FFFFFF",
-                    border: `1px solid ${packageHandlingOption === "review" ? "#B186EF" : "#E5E7EE"}`,
-                    boxShadow: "0px 4px 10px 5px #F8F2FF",
-                  }}
-                  className="w-full text-left rounded-xl p-3 sm:p-4 mb-3 sm:mb-4 transition-colors cursor-pointer"
-                >
-                  <div className="flex items-start gap-2 sm:gap-3">
-                    <span
-                      className={`mt-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${packageHandlingOption === "review" ? "border-[#3E206D]" : "border-gray-300"
-                        }`}
-                    >
-                      {packageHandlingOption === "review" && (
-                        <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-[#3E206D]" />
-                      )}
-                    </span>
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 relative flex-shrink-0">
-                      <Image src={reviewCalendarImg} alt="Review and confirm" fill className="object-contain" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p
-                        className="font-bold text-[15px] sm:text-[18px] mb-1"
-                        style={{ color: packageHandlingOption === "review" ? "#47108E" : "#2A272E" }}
-                      >
-                        Review and confirm before delivery
-                      </p>
-                      <p className="text-[12.5px] sm:text-[14px] text-gray-600 leading-snug">
-                        Two days before your delivery or pickup, you&apos;ll receive an in-app notification
-                        with the exact produce and quantities. Confirm your order between 8:00 AM and 6:00 PM
-                        to finalize it for dispatch or pickup.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Orange warning box */}
-                  {/* Orange warning box */}
-                  {/* Orange warning box */}
-                  <div className="mt-3 flex items-stretch gap-2 sm:gap-3">
-                    <div className="flex items-start gap-2 sm:gap-3 bg-[#FFF9F5] border border-orange-200 rounded-lg p-2.5 sm:p-3 flex-1">
-                      <AlertTriangle size={16} className="text-[#EE7719] flex-shrink-0 mt-0.5 sm:hidden" />
-                      <AlertTriangle size={18} className="text-[#EE7719] flex-shrink-0 mt-0.5 hidden sm:block" />
-                      <p className="text-[12px] sm:text-[14px] text-[#EE7719] leading-snug flex-1">
-                        This facility is available on a first-come, first-served basis and is limited to a
-                        certain number of customers. If we do not receive your confirmation on time and all
-                        slots for your preferred delivery date are filled, we will be unable to process your
-                        order. You may check again later for any available slots.
-                      </p>
-                    </div>
-                    {/* Veggie image — matches the orange box's full height */}
-                    <div className="flex-shrink-0 w-16 sm:w-28 relative">
-                      <Image src={packageVeggiesImg} alt="" fill className="object-contain drop-shadow-md" />
-                    </div>
-                  </div>
-                </button>
-
-                {/* Option 2: Finalize immediately */}
-                <button
-                  type="button"
-                  onClick={() => setPackageHandlingOption("finalize")}
-                  style={{
-                    background: packageHandlingOption === "finalize"
-                      ? "linear-gradient(180deg, #F7F2FF 0%, #F6F0FF 100%)"
-                      : "#FFFFFF",
-                    border: `1px solid ${packageHandlingOption === "finalize" ? "#B186EF" : "#E5E7EE"}`,
-                    boxShadow: "0px 4px 10px 5px #F8F2FF",
-                  }}
-                  className="w-full text-left rounded-xl p-3 sm:p-4 mb-4 sm:mb-5 transition-colors cursor-pointer"
-                >
-                  <div className="flex items-start gap-2 sm:gap-3">
-                    <span
-                      className={`mt-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${packageHandlingOption === "finalize" ? "border-[#3E206D]" : "border-gray-300"
-                        }`}
-                    >
-                      {packageHandlingOption === "finalize" && (
-                        <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-[#3E206D]" />
-                      )}
-                    </span>
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 relative flex-shrink-0">
-                      <Image src={cardPaymentImg} alt="Finalize immediately" fill className="object-contain" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1">
-                        <p
-                          className="font-bold text-[15px] sm:text-[18px]"
-                          style={{ color: packageHandlingOption === "finalize" ? "#47108E" : "#2A272E" }}
-                        >
-                          Finalize Immediately
-                        </p>
-                        <span className="text-[10px] sm:text-[11px] font-medium text-blue-700 bg-blue-100 px-1.5 sm:px-2 py-0.5 rounded-full whitespace-nowrap">
-                          Card Payment Required
-                        </span>
-                      </div>
-                      <p className="text-[12.5px] sm:text-[14px] text-gray-600 leading-snug">
-                        Want to secure your delivery slot now? Confirm your order right away and we&apos;ll
-                        prepare it using the standard package items assigned for your delivery date. Please
-                        note that once confirmed, this order cannot be changed or canceled.
-                      </p>
-                    </div>
-                  </div>
-                </button>
-
-                {/* Continue button */}
-                <button
-                  type="button"
-                  onClick={handlePackagePopupContinue}
-                  disabled={isLoading}
-                  className="w-full font-semibold text-[14px] sm:text-base rounded-xl py-3 sm:py-3.5 bg-[#3E206D] text-white hover:bg-[#2f1854] transition cursor-pointer disabled:opacity-70"
-                >
-                  {isLoading ? "Processing..." : "Continue to Payment"}
-                </button>
-              </div>
-            </div>
+            <PackageHandlingModal
+              option={packageHandlingOption}
+              onOptionChange={setPackageHandlingOption}
+              onClose={() => setShowPackagePopup(false)}
+              onContinue={handlePackagePopupContinue}
+              isLoading={isLoading}
+            />
           )}
           {showOrderListModal && (
-            <div className="fixed inset-0 z-[70] bg-black/70 flex items-center justify-center p-4">
-              <div className="bg-white rounded-2xl w-full max-w-md p-5 sm:p-6">
-                <h3 className="text-center font-bold text-lg text-[#252525] mb-4">
-                  Your Order List ({String(generatedOrders.length).padStart(2, "0")} Orders)
-                </h3>
-
-                <div className="flex justify-center mb-5">
-                  <div className="inline-flex flex-col space-y-3 max-h-[50vh] overflow-y-auto pr-1">
-                    {generatedOrders.map((date, idx) => (
-                      <div key={idx}>
-                        <div className="grid grid-cols-[100px_14px_1fr] items-baseline text-sm sm:text-base">
-                          <p className="font-medium text-[#414347]">{getOrdinal(idx + 1)} Order</p>
-                          <p className="text-[#414347]">:</p>
-                          <p className="text-[#414347]">{formatOrderDate(date)}</p>
-                        </div>
-                        {idx === 0 && (
-                          <div className="mt-2 flex justify-center">
-                            <div className="px-5 py-3 rounded-[10px] border border-[#6156FF] bg-[#FFFFFF] text-[#6156FF] text-xs font-medium text-center">
-                              You only need to pay for this 1st order today.
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex justify-center">
-                  <button
-                    type="button"
-                    onClick={() => setShowOrderListModal(false)}
-                    style={{
-                      width: "110px",
-                      height: "41px",
-                      borderRadius: "10px",
-                      backgroundColor: "#F3F4F7",
-                      boxShadow: "0px 2px 5px 0px rgba(0, 0, 0, 0.10)",
-                    }}
-                    className="font-semibold text-[#757E87] hover:bg-[#e9ebee] transition cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            </div>
+            <OrderListModal orders={generatedOrders} onClose={() => setShowOrderListModal(false)} />
           )}
           <TopNavigation NavArray={NavArray} />
 
@@ -1927,12 +1618,7 @@ const Page: React.FC = () => {
                           className={`rounded-lg ${errors.title ? "border-2 border-red-500" : ""}`}
                         >
                           <CustomDropdown
-                            options={[
-                              { value: "Mr", label: "Mr" },
-                              { value: "Ms", label: "Ms" },
-                              { value: "Mrs", label: "Mrs" },
-                              { value: "Rev", label: "Rev" },
-                            ]}
+                            options={TITLE_OPTIONS}
                             selectedValue={formData.title}
                             onSelect={(value) => handleFieldChange("title", value)}
                             placeholder="Title"
@@ -2097,10 +1783,7 @@ const Page: React.FC = () => {
                               Building type *
                             </label>
                             <CustomDropdown
-                              options={[
-                                { value: "Apartment", label: "Apartment" },
-                                { value: "House", label: "House" },
-                              ]}
+                              options={BUILDING_TYPE_OPTIONS}
                               selectedValue={formData.buildingType}
                               onSelect={(value) =>
                                 handleFieldChange("buildingType", value)
@@ -2657,7 +2340,7 @@ const Page: React.FC = () => {
                             }
                           }
                         }}
-                        min={getMinDate()}
+                        min={getMinDateStr()}
                       />
 
                       {/* Custom Calendar Icon */}
@@ -2723,11 +2406,7 @@ const Page: React.FC = () => {
                       Time Slot *
                     </label>
                     <CustomDropdown
-                      options={[
-                        { value: "08:00 AM - 12:00 PM", label: "08:00 AM - 12:00 PM" },
-                        { value: "12:00 PM - 04:00 PM", label: "12:00 PM - 04:00 PM" },
-                        { value: "04:00 PM - 09:00 PM", label: "04:00 PM - 09:00 PM" },
-                      ]}
+                      options={TIME_SLOT_OPTIONS}
                       selectedValue={formData.timeSlot}
                       onSelect={(value) => handleFieldChange("timeSlot", value)}
                       placeholder="Select Time Slot"
@@ -2777,11 +2456,7 @@ const Page: React.FC = () => {
                         Time Slot *
                       </label>
                       <CustomDropdown
-                        options={[
-                          { value: "08:00 AM - 12:00 PM", label: "08:00 AM - 12:00 PM" },
-                          { value: "12:00 PM - 04:00 PM", label: "12:00 PM - 04:00 PM" },
-                          { value: "04:00 PM - 09:00 PM", label: "04:00 PM - 09:00 PM" },
-                        ]}
+                        options={TIME_SLOT_OPTIONS}
                         selectedValue={formData.timeSlot}
                         onSelect={(value) => handleFieldChange("timeSlot", value)}
                         placeholder="Select Time Slot"
