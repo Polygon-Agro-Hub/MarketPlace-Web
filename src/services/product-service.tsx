@@ -111,6 +111,7 @@ export const packageAddToCart = async (
 export const getProductsByCategory = async (
   category: string,
   search?: string,
+  token?: string,
 ): Promise<any> => {
   try {
     const params: { category: string; search?: string } = { category };
@@ -122,6 +123,7 @@ export const getProductsByCategory = async (
       params,
       headers: {
         "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
     });
 
@@ -233,25 +235,25 @@ export const productAddToCart = async (
   }
 };
 
-export const checkProductInCart = async (productId: number, token: string) => {
-  try {
-    const response = await axios.post(
-      "/product/check-product",
-      { mpItemId: productId },
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      },
-    );
+// export const checkProductInCart = async (productId: number, token: string) => {
+//   try {
+//     const response = await axios.post(
+//       "/product/check-product",
+//       { mpItemId: productId },
+//       {
+//         headers: {
+//           "Content-Type": "application/json",
+//           Authorization: `Bearer ${token}`,
+//         },
+//       },
+//     );
 
-    return response.data;
-  } catch (error) {
-    console.error("Error checking product in cart:", error);
-    throw error;
-  }
-};
+//     return response.data;
+//   } catch (error) {
+//     console.error("Error checking product in cart:", error);
+//     throw error;
+//   }
+// };
 
 export const getRetaildBanners = async (): Promise<any> => {
   try {
@@ -330,6 +332,7 @@ export interface ProductCartData {
 export const getProductsByCategoryWholesale = async (
   category: string,
   search?: string,
+  token?: string,
 ): Promise<any> => {
   try {
     const params: { category: string; search?: string } = { category };
@@ -341,6 +344,7 @@ export const getProductsByCategoryWholesale = async (
       params,
       headers: {
         "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
     });
 
