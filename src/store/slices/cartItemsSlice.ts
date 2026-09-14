@@ -6,12 +6,12 @@ interface CartItem {
   name: string;
   unit: 'kg' | 'g';
   quantity: number;
-  discount: number; // Per kg discount
-  price: number; // Per kg price
+  discount: number;
+  price: number;
   normalPrice: number;
   discountedPrice: number | null;
-  startValue: number; // Added from API response
-  changeby: number;   // Added from API response
+  startValue: number;
+  changeby: number;
   image: string;
   varietyNameEnglish: string;
   category: string;
@@ -52,7 +52,7 @@ interface CartSummary {
   packageTotal: number;
   productTotal: number;
   couponDiscount: number;
-  savedAmount?: number;   // add this
+  savedAmount?: number;
   grandTotal?: number;
   totalDiscount?: number;
   finalTotal?: number;
@@ -74,7 +74,6 @@ interface CartItemsState {
   packages: CartPackage[];
   additionalItems: AdditionalItems[];
   summary: CartSummary | null;
-  // Calculated values for order creation
   calculatedSummary: {
     grandTotal: number;
     totalDiscount: number;
@@ -83,7 +82,6 @@ interface CartItemsState {
   } | null;
 }
 
-// Define RootState type for the selector
 interface RootState {
   cartItems: CartItemsState;
 }
@@ -114,8 +112,7 @@ const calculateSummary = (
   additionalItems: AdditionalItems[],
   couponDiscount: number = 0
 ) => {
-  // Exclude disabled packages from every total — they're displayed but never counted.
-  // Matches the "status" field the API actually sends (not "isValid").
+
   const validPackages = packages.filter(pkg => pkg.status !== "Disabled");
 
   const packageTotal = parseFloat(
@@ -181,7 +178,6 @@ const cartItemsSlice = createSlice({
       state.additionalItems = additionalItems;
       state.summary = summary;
 
-      // Calculate the summary for order creation
       const calculated = calculateSummary(packages, additionalItems, summary.couponDiscount);
       state.calculatedSummary = {
         grandTotal: calculated.grandTotal,
@@ -200,7 +196,6 @@ const cartItemsSlice = createSlice({
     ) => {
       const { productId, newQuantity } = action.payload;
 
-      // Update in additionalItems array
       state.additionalItems = state.additionalItems.map(group => ({
         ...group,
         Items: group.Items.map(item =>
@@ -208,7 +203,6 @@ const cartItemsSlice = createSlice({
         ),
       }));
 
-      // Recalculate summary
       const calculated = calculateSummary(
         state.packages,
         state.additionalItems,
@@ -223,7 +217,6 @@ const cartItemsSlice = createSlice({
       };
     },
 
-    // New reducer to handle unit change with quantity conversion
     updateProductUnit: (
       state,
       action: PayloadAction<{
@@ -234,7 +227,6 @@ const cartItemsSlice = createSlice({
     ) => {
       const { productId, newUnit, newQuantity } = action.payload;
 
-      // Update both unit and quantity in additionalItems array
       state.additionalItems = state.additionalItems.map(group => ({
         ...group,
         Items: group.Items.map(item =>
@@ -353,7 +345,7 @@ const cartItemsSlice = createSlice({
 export const {
   setCartData,
   updateProductQuantity,
-  updateProductUnit, // New export
+  updateProductUnit,
   removeProduct,
   removePackage,
   applyCoupon,
@@ -362,18 +354,15 @@ export const {
 
 export default cartItemsSlice.reducer;
 
-// Selectors for easy access to calculated values
 export const selectCartSummary = (state: { cartItems: CartItemsState }) => state.cartItems.calculatedSummary;
 
 export const selectCartForOrder = createSelector(
   [(state: RootState) => state.cartItems],
   (cartItems) => {
-    // Return null if no cart or cart ID
     if (!cartItems?.cart?.cartId) {
       return null;
     }
 
-    // Return null if no items
     const hasItems = (cartItems.additionalItems && cartItems.additionalItems.length > 0) ||
       (cartItems.packages && cartItems.packages.length > 0);
 
@@ -381,7 +370,6 @@ export const selectCartForOrder = createSelector(
       return null;
     }
 
-    // Use calculated summary if available (preferred)
     if (cartItems.calculatedSummary) {
       return {
         cartId: cartItems.cart.cartId,
@@ -392,7 +380,6 @@ export const selectCartForOrder = createSelector(
       };
     }
 
-    // Use summary data if available (fallback)
     if (cartItems.summary) {
       return {
         cartId: cartItems.cart.cartId,
@@ -403,7 +390,6 @@ export const selectCartForOrder = createSelector(
       };
     }
 
-    // Final fallback calculation if no summary is available
     return {
       cartId: cartItems.cart.cartId,
       grandTotal: 0,

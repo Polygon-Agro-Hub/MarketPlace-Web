@@ -33,6 +33,7 @@ interface Product {
   cropNameSinhala: string;
   cropNameTamil: string;
   category: string;
+  inCart: boolean; // NEW
 }
 
 interface Category {
@@ -59,6 +60,7 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [countsLoading, setCountsLoading] = useState(true);
   const dispatch = useDispatch();
+  const token = useSelector((state: RootState) => state.auth.token);
 
   const defaultCategories = [
     {
@@ -163,6 +165,7 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
         const response = await getProductsByCategory(
           selectedCategory,
           searchTerm || undefined,
+          token || undefined,
         );
         setProducts(response.products);
 
@@ -261,8 +264,9 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
                     discount={product.discount}
                     unitType={product.unitType}
                     startValue={product.startValue}
-                    changeby={product.changeby}       
+                    changeby={product.changeby}
                     displayType={product.displayType}
+                    initialInCart={product.inCart}   // NEW
                   />
                 ))
               ) : (

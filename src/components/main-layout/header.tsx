@@ -19,7 +19,6 @@ import { clearCart } from "@/store/slices/cartSlice";
 import { useRouter, usePathname } from "next/navigation";
 import { LogOut, ChevronUp, ChevronDown, WalletMinimal } from "lucide-react";
 import {
-  setSearchTerm,
   clearSearch,
   resetAndSearch,
 } from "../../store/slices/searchSlice";
@@ -27,7 +26,6 @@ import { X } from "lucide-react";
 import Image from "next/image";
 import glogo from "../../../public/glogo.png";
 import { CreditBalancePill } from "@/components/creditupdate/CreditBalancePill";
-import walletIcon from "../../../public/icons/wallet-solid 1.png";
 
 interface HeaderProps {
   onSearch?: (searchTerm: string) => void;
@@ -170,22 +168,6 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
     };
   }, [showSignupModal, showLogoutModal]);
 
-  // useEffect(() => {
-  //   const handleScroll = () => {
-  //     const currentScrollY = window.scrollY;
-
-  //     if (currentScrollY > lastScrollY.current && currentScrollY > 120) {
-  //       setShowHeader(false);
-  //     } else {
-  //       setShowHeader(true);
-  //     }
-
-  //     lastScrollY.current = currentScrollY;
-  //   };
-
-  //   window.addEventListener("scroll", handleScroll);
-  //   return () => window.removeEventListener("scroll", handleScroll);
-  // }, []);
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);

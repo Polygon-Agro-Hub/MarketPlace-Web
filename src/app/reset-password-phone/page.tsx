@@ -146,7 +146,7 @@ const Page = () => {
               </div>
 
               <p className="text-sm sm:text-base text-gray-600 text-center mb-6">
-              Updating password for: {phoneNumber.substring(0, 3)}****{phoneNumber.slice(-3)}
+                Updating password for: {phoneNumber.substring(0, 3)}****{phoneNumber.slice(-3)}
               </p>
 
               <div className="mb-4 relative">

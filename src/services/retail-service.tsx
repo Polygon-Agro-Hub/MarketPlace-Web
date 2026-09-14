@@ -23,9 +23,9 @@ interface fetchedFormData {
 
 export interface SavedAddress {
   id: number;
-  addressKey: string; // e.g. "apartment_12" or "house_5"
+  addressKey: string;
   buildingType: "Apartment" | "House";
-  saveAs: string; // "Home", "Office", "Girlfriend's House", etc.
+  saveAs: string;
   title: string;
   fullName: string;
   phonecode1: string;

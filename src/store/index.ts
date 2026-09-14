@@ -12,7 +12,6 @@ import searchReducer from './slices/searchSlice';
 const persistConfig = {
   key: 'root',
   storage,
-  // Remove 'form' from whitelist since you don't have a form reducer
   whitelist: ['auth', 'checkout', 'cart', 'cartItems'],
 };
 
@@ -39,7 +38,5 @@ export const store = configureStore({
 });
 
 export const persistor = persistStore(store);
-
-// CRITICAL FIX: Define RootState from the rootReducer, not store.getState
 export type RootState = ReturnType<typeof rootReducer>;
 export type AppDispatch = typeof store.dispatch;

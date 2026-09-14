@@ -17,7 +17,7 @@ interface UserData {
 
 interface AuthState {
   token: string | null;
-  tokenExpiration: number | null; // Unix timestamp
+  tokenExpiration: number | null;
   user: UserData | null;
   cart: CartInfo;
 }

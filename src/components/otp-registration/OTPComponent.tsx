@@ -271,8 +271,8 @@ export default function OTPComponent({
             onClick={handleResendOTP}
             disabled={disabledResend || isResending}
             className={`text-[13px] bg-transparent border-none p-0 font-bold leading-none ${disabledResend || isResending
-                ? "text-gray-500 cursor-not-allowed"
-                : "text-[#4715C7] font-bold underline cursor-pointer"
+              ? "text-gray-500 cursor-not-allowed"
+              : "text-[#4715C7] font-bold underline cursor-pointer"
               }`}
           >
             {isResending ? (
@@ -293,8 +293,8 @@ export default function OTPComponent({
           onClick={handleVerify}
           disabled={isVerifying || isOtpExpired || !isOtpComplete || isVerified}
           className={`w-full h-[48px] sm:h-[52px] rounded-xl text-[14px] sm:text-[15px] font-bold transition-colors ${isVerifying || isOtpExpired || !isOtpComplete || isVerified
-              ? "bg-gray-400 text-gray-200 cursor-not-allowed"
-              : "bg-[#3E206D] text-white hover:bg-[#2D1650] cursor-pointer"
+            ? "bg-gray-400 text-gray-200 cursor-not-allowed"
+            : "bg-[#3E206D] text-white hover:bg-[#2D1650] cursor-pointer"
             }`}
         >
           {isVerifying ? "Verifying..." : isVerified ? "Verified ✓" : "Verify"}

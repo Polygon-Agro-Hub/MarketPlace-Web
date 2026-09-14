@@ -24,7 +24,7 @@ interface FormState {
   geoLongitude: number | null;
   companycenterId?: any;
   isFinalizeImdt: number;
-  saveAs: string; // Add this
+  saveAs: string;
 }
 
 const initialState: FormState = {
@@ -51,7 +51,7 @@ const initialState: FormState = {
   geoLongitude: null,
   companycenterId: null,
   isFinalizeImdt: 0,
-  saveAs: '', // Add this
+  saveAs: '',
 };
 
 const checkoutSlice = createSlice({

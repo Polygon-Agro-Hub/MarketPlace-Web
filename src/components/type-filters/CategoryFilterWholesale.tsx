@@ -32,6 +32,7 @@ interface Product {
     cropNameSinhala: string;
     cropNameTamil: string;
     category: string;
+    inCart: boolean; // NEW
 }
 
 interface Category {
@@ -53,6 +54,7 @@ export default function CategoryFilterWholesale() {
     const [error, setError] = useState<string | null>(null);
     const [categories, setCategories] = useState<Category[]>([]);
     const [countsLoading, setCountsLoading] = useState(true);
+    const token = useSelector((state: RootState) => state.auth.token);
 
     const defaultCategories = [
         {
@@ -126,7 +128,11 @@ export default function CategoryFilterWholesale() {
             setError(null);
 
             try {
-                const response = await getProductsByCategoryWholesale(selectedCategory, searchTerm || undefined);
+                const response = await getProductsByCategoryWholesale(
+                    selectedCategory,
+                    searchTerm || undefined,
+                    token || undefined,
+                );
                 setProducts(response.products);
 
                 // Update category results state based on products length
@@ -223,6 +229,7 @@ export default function CategoryFilterWholesale() {
                                         changeby={product.changeby}
                                         unitType={product.unitType}
                                         displayType={product.displayType}
+                                        initialInCart={product.inCart}   // NEW
                                     />
                                 </div>
                             ))
