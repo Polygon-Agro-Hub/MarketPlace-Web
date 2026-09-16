@@ -5,7 +5,6 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   productAddToCart,
-  checkProductInCart,
 } from "@/services/product-service";
 import { useSelector, useDispatch } from "react-redux";
 import { updateCartInfo } from "@/store/slices/authSlice";
@@ -28,6 +27,7 @@ type ItemCardProps = {
   startValue?: string | number;
   changeby?: string | number;
   displayType?: string | null;
+  initialInCart?: boolean; // NEW
 };
 
 const ItemCard = ({
@@ -41,6 +41,7 @@ const ItemCard = ({
   startValue = "1000",
   changeby = "1000",
   displayType = "",
+  initialInCart = false, // NEW
 }: ItemCardProps) => {
   const router = useRouter();
   const { token, user } = useAppSelector((state) => state.auth);
@@ -50,6 +51,10 @@ const ItemCard = ({
   const [isInCart, setIsInCart] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
   const [showMinQuantityTooltip, setShowMinQuantityTooltip] = useState(false);
+
+  useEffect(() => {
+    setIsInCart(initialInCart);
+  }, [initialInCart, id]);
 
   // ─── displayType helpers ───────────────────────────────────────────────────
   const dt = (displayType ?? "").toUpperCase();
@@ -109,21 +114,6 @@ const ItemCard = ({
   const [isHovering, setIsHovering] = useState(false);
   const dispatch = useDispatch();
 
-  useEffect(() => {
-    const checkIfInCart = async () => {
-      if (token && user) {
-        try {
-          const response = await checkProductInCart(id, token);
-          setIsInCart(response.inCart);
-        } catch (error) {
-          console.error("Error checking if product is in cart:", error);
-        }
-      } else {
-        setIsInCart(false);
-      }
-    };
-    checkIfInCart();
-  }, [id, token, user]);
 
   const formatPrice = (price: number): string => {
     const fixedPrice = Number(price).toFixed(2);
