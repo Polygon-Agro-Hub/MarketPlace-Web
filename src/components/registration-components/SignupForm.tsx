@@ -546,9 +546,11 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
         try {
             const response = await signup({
                 ...formData,
+                companyName: isHome ? "" : formData.companyName,
+                companyPhoneCode: isHome ? "" : formData.companyPhoneCode,
+                companyPhoneNumber: isHome ? "" : formData.companyPhoneNumber,
                 buyerType: isHome ? "Retail" : "Wholesale",
             });
-
             if (skipSuccessPopup) {
                 router.push("/signin");
             } else {
@@ -573,6 +575,9 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
         try {
             await signup({
                 ...formData,
+                companyName: isHome ? "" : formData.companyName,
+                companyPhoneCode: isHome ? "" : formData.companyPhoneCode,
+                companyPhoneNumber: isHome ? "" : formData.companyPhoneNumber,
                 buyerType: isHome ? "Retail" : "Wholesale",
             });
             setLoading(false);
