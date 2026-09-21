@@ -59,9 +59,18 @@ const Page = () => {
         } else {
           setEmailError("");
         }
-      } else if (emailInput.startsWith("+")) {
+      } else if (emailInput.startsWith("+94")) {
         if (!/^\+947\d{8}$/.test(emailInput)) {
           setEmailError("Enter the number in +947XXXXXXXX");
+          valid = false;
+        } else {
+          setEmailError("");
+        }
+      } else if (emailInput.startsWith("+")) {
+        // Overseas number: general E.164-style check (+ and 8-15 digits),
+        // not the strict Sri Lankan mobile format.
+        if (!/^\+\d{8,15}$/.test(emailInput)) {
+          setEmailError("Enter a valid phone number with country code");
           valid = false;
         } else {
           setEmailError("");
@@ -172,7 +181,7 @@ const Page = () => {
   return (
     <div className="flex lg:bg-gray-100 justify-center items-center w-full min-h-screen lg:py-10 lg:px-2">
       <div className="flex w-full lg:max-w-7xl">
-        <div className="flex min-w-full mx-auto lg:shadow-lg rounded-lg bg-white overflow-auto">
+       <div className="flex min-w-full mx-auto lg:shadow-lg rounded-lg bg-white overflow-auto lg:min-h-[800px]">
           <SuccessPopup
             isVisible={showSuccessPopup}
             onClose={() => setShowSuccessPopup(false)}
@@ -270,7 +279,7 @@ const Page = () => {
                 <input
                   type="text"
                   name="email"
-                  placeholder="Email / Phone Number (e.g. +947XXXXXXXX)"
+                  placeholder="Email / Mobile Number"
                   className={`w-full px-10 py-2 border rounded-md text-xs sm:text-base ${emailError ? "border-red-500" : "border-gray-300"
                     }`}
                   value={email}
@@ -388,7 +397,7 @@ const Page = () => {
               src={LoginImg}
               alt="MyFarm Registration"
               fill
-              className="object-cover"
+              className="object-cover object-top"
               priority
             />
           </div>

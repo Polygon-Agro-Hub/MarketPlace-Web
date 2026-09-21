@@ -196,6 +196,9 @@ const Page: React.FC = () => {
       street: "",
       cityName: "",
       scheduleType: checkoutDetails.scheduleType || "One Time",
+      selectedDays: checkoutDetails.selectedDays || JSON.stringify([]), // NEW
+      validPeriod: checkoutDetails.validPeriod || null,                 // NEW
+      sheduleDate: checkoutDetails.sheduleDate || null,                 // NEW - nearest order date only
       centerId: null as number | null,
       couponValue: isCouponApplied ? Number(couponDiscountAmount) : 0,
       isCoupon: isCouponApplied,
@@ -637,7 +640,7 @@ const Page: React.FC = () => {
                     <div>
                       <p className="text-xs text-gray-500">Credit Applied</p>
                       <p className={`font-semibold ${useCredit ? "text-[#27AA48]" : "text-[#27AA48]"}`}>
-                        {useCredit ? `- Rs. ${formatPrice(creditApplied)}` : "0.00"}
+                        {useCredit ? ` Rs. ${formatPrice(creditApplied)}` : "0.00"}
                       </p>
                     </div>
                   </div>
@@ -877,7 +880,7 @@ const Page: React.FC = () => {
                 </div>
               </>
             )}
-            {!showCashOption && (
+            {!showCashOption && !(creditBalance >= displayValues.grandTotal) && (
               <div className=" pb-4 mt-4">
                 <div className="flex items-start gap-2 bg-[#F5F8FD] border border-[#E1E8F8] rounded-lg p-3 text-sm text-[#41519E]">
                   <svg className="w-4 h-4 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none">
@@ -1109,4 +1112,4 @@ const Page: React.FC = () => {
   );
 };
 
-export default Page;
+export default Page; 

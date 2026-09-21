@@ -148,6 +148,87 @@ const Page: React.FC = () => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+
+  const mergeAdditionalItemsWithPending = (
+    additionalItems: AdditionalItems[],
+    pending: { productId: number; newQuantity: number }[],
+  ): AdditionalItems[] =>
+    additionalItems?.map((group) => ({
+      ...group,
+      Items: group.Items.map((item) => {
+        const update = pending.find((u) => u.productId === item.id);
+        return update ? { ...item, quantity: update.newQuantity } : item;
+      }),
+    })) ?? additionalItems;
+
+  const buildUnitSelection = (
+    additionalItems: AdditionalItems[],
+    existing: Record<number, "kg" | "g"> = {},
+  ): Record<number, "kg" | "g"> => {
+    const updated = { ...existing };
+    additionalItems?.forEach((group) =>
+      group.Items.forEach((item) => {
+        if (!updated[item.id]) {
+          updated[item.id] = item.unit.toLowerCase() === "kg" ? "kg" : "g";
+        }
+      }),
+    );
+    return updated;
+  };
+
+  // Dispatches setCartData with pending quantity edits merged back in, and
+  // keeps unitSelection in sync. Returns the merged additionalItems for
+  // callers that need it for a summary calc.
+  const applyCartRefresh = (
+    updatedCartData: any,
+    pending: { productId: number; newQuantity: number }[] = [],
+  ) => {
+    const mergedAdditionalItems = mergeAdditionalItemsWithPending(
+      updatedCartData.additionalItems,
+      pending,
+    );
+    dispatch(
+      setCartData({
+        cart: updatedCartData.cart,
+        packages: updatedCartData.packages,
+        additionalItems: mergedAdditionalItems,
+        summary: updatedCartData.summary,
+      }),
+    );
+    setUnitSelection((prev) => buildUnitSelection(mergedAdditionalItems, prev));
+    return mergedAdditionalItems;
+  };
+
+  const syncCartInfoSummary = async (
+    packages: CartPackage[],
+    additionalItems: AdditionalItems[],
+    unitSel: Record<number, "kg" | "g">,
+    fallbackCreditBalance: number | undefined,
+  ) => {
+    const creditBalance = fallbackCreditBalance ?? 0;
+    const freshSummary = computeSummaryFrom(packages, additionalItems, unitSel);
+    dispatch(
+      updateCartInfo({
+        price: parseFloat(freshSummary.finalTotal.toFixed(2)),
+        count: freshSummary.totalItems,
+        creditBalance,
+      }),
+    );
+    try {
+      const cartInfo = await getCartInfo(token);
+      dispatch(
+        updateCartInfo({
+          price: parseFloat(freshSummary.finalTotal.toFixed(2)),
+          count: freshSummary.totalItems,
+          creditBalance: cartInfo?.creditBalance ?? creditBalance,
+        }),
+      );
+    } catch (cartError) {
+      console.error("Error fetching cart info:", cartError);
+    }
+    return freshSummary;
+  };
+
   const calculateDiscount = (
     baseDiscount: number,
     unit: "kg" | "g",
@@ -234,7 +315,7 @@ const Page: React.FC = () => {
         dispatch(
           setCartData({
             cart: response.cart,
-            packages: response.packages, 
+            packages: response.packages,
             additionalItems: filteredAdditionalItems,
             summary: response.summary,
           }),
@@ -445,61 +526,21 @@ const Page: React.FC = () => {
 
   const handleRemoveProduct = async (productId: number) => {
     const itemKey = `product-${productId}`;
-
     if (removingItems.has(itemKey)) return;
 
     try {
       setRemovingItems((prev) => new Set(prev).add(itemKey));
-
       await removeCartProduct(productId, token);
-
       dispatch(removeProduct(productId));
 
       try {
-        const cartInfo = await getCartInfo(token);
-        dispatch(updateCartInfo(cartInfo));
+        dispatch(updateCartInfo(await getCartInfo(token)));
       } catch (cartError) {
         console.error("Error fetching cart info:", cartError);
       }
 
       const updatedCartData = await getUserCart(token);
-
-      const mergedAdditionalItems = updatedCartData.additionalItems?.map(
-        (itemGroup: AdditionalItems) => ({
-          ...itemGroup,
-          Items: itemGroup.Items.map((item: CartItem) => {
-            const pendingUpdate = pendingUpdates.find(
-              (u) => u.productId === item.id,
-            );
-            if (pendingUpdate) {
-              return { ...item, quantity: pendingUpdate.newQuantity };
-            }
-            return item;
-          }),
-        }),
-      );
-
-      dispatch(
-        setCartData({
-          cart: updatedCartData.cart,
-          packages: updatedCartData.packages,
-          additionalItems: mergedAdditionalItems ?? updatedCartData.additionalItems,
-          summary: updatedCartData.summary,
-        }),
-      );
-
-      setUnitSelection((prev) => {
-        const updated = { ...prev };
-        updatedCartData.additionalItems?.forEach((itemGroup: AdditionalItems) => {
-          itemGroup.Items.forEach((item: CartItem) => {
-            if (!updated[item.id]) {
-              updated[item.id] =
-                item.unit.toLowerCase() === "kg" ? "kg" : "g";
-            }
-          });
-        });
-        return updated;
-      });
+      applyCartRefresh(updatedCartData, pendingUpdates);
 
       setSuccessPopupKey((prev) => prev + 1);
       setShowSuccessPopup(true);
@@ -520,85 +561,34 @@ const Page: React.FC = () => {
   };
 
   const confirmRemovePackage = async (packageId: number) => {
-  const itemKey = `package-${packageId}`;
-  if (removingItems.has(itemKey)) return;
-
-  try {
-    setRemovingItems((prev) => new Set(prev).add(itemKey));
-
-    await removeCartPackage(packageId, token);
-    dispatch(removePackage(packageId));
-
-    const updatedCartData = await getUserCart(token);
-
-    const mergedAdditionalItems = updatedCartData.additionalItems?.map(
-      (itemGroup: AdditionalItems) => ({
-        ...itemGroup,
-        Items: itemGroup.Items.map((item: CartItem) => {
-          const pendingUpdate = pendingUpdates.find((u) => u.productId === item.id);
-          return pendingUpdate ? { ...item, quantity: pendingUpdate.newQuantity } : item;
-        }),
-      }),
-    );
-
-    dispatch(
-      setCartData({
-        cart: updatedCartData.cart,
-        packages: updatedCartData.packages,
-        additionalItems: mergedAdditionalItems ?? updatedCartData.additionalItems,
-        summary: updatedCartData.summary,
-      }),
-    );
-
-    setUnitSelection((prev) => {
-      const updated = { ...prev };
-      updatedCartData.additionalItems?.forEach((itemGroup: AdditionalItems) => {
-        itemGroup.Items.forEach((item: CartItem) => {
-          if (!updated[item.id]) {
-            updated[item.id] = item.unit.toLowerCase() === "kg" ? "kg" : "g";
-          }
-        });
-      });
-      return updated;
-    });
-
-    const freshSummary = computeSummaryFrom(
-      updatedCartData.packages,
-      mergedAdditionalItems ?? updatedCartData.additionalItems,
-      unitSelection,
-    );
-
-    dispatch(
-      updateCartInfo({
-        price: parseFloat(freshSummary.finalTotal.toFixed(2)),
-        count: freshSummary.totalItems,
-        creditBalance: updatedCartData.cart?.creditBalance ?? authCart.creditBalance,
-      }),
-    );
+    const itemKey = `package-${packageId}`;
+    if (removingItems.has(itemKey)) return;
 
     try {
-      const cartInfo = await getCartInfo(token);
-      dispatch(
-        updateCartInfo({
-          price: parseFloat(freshSummary.finalTotal.toFixed(2)),
-          count: freshSummary.totalItems,
-          creditBalance: cartInfo?.creditBalance ?? updatedCartData.cart?.creditBalance,
-        }),
+      setRemovingItems((prev) => new Set(prev).add(itemKey));
+      await removeCartPackage(packageId, token);
+      dispatch(removePackage(packageId));
+
+      const updatedCartData = await getUserCart(token);
+      const mergedAdditionalItems = applyCartRefresh(updatedCartData, pendingUpdates);
+
+      await syncCartInfoSummary(
+        updatedCartData.packages,
+        mergedAdditionalItems,
+        unitSelection,
+        updatedCartData.cart?.creditBalance ?? authCart.creditBalance,
       );
-    } catch (cartError) {
-      console.error("Error fetching cart info:", cartError);
+    } catch (error: any) {
+      console.error("Error removing package:", error);
+      alert("Failed to remove package. Please try again.");
+    } finally {
+      setRemovingItems((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(itemKey);
+        return newSet;
+      });
     }
-  } catch (error: any) {
-    console.error("Error removing package:", error);
-    alert("Failed to remove package. Please try again.");
-  } finally {
-    setRemovingItems((prev) => {
-      const newSet = new Set(prev);
-      newSet.delete(itemKey);
-      return newSet;
-    });
-  }
-};
+  };
 
   const getAllProductIds = (): number[] => {
     const productIds: number[] = [];
@@ -657,93 +647,38 @@ const Page: React.FC = () => {
     try {
       setBulkDeleteLoading(true);
 
-      let validProductIds: number[] = [];
-
-      if (Array.isArray(productIds)) {
-        validProductIds = productIds
-          .map((id) => parseInt(String(id), 10))
-          .filter((id) => !isNaN(id) && id > 0);
-      } else {
+      if (!Array.isArray(productIds)) {
         throw new Error("ProductIds must be an array");
       }
+      const validProductIds = productIds
+        .map((id) => parseInt(String(id), 10))
+        .filter((id) => !isNaN(id) && id > 0);
 
       if (validProductIds.length === 0) {
         throw new Error("No valid product IDs to delete");
       }
 
       await bulkRemoveCartProducts(validProductIds, token);
-
-      validProductIds.forEach((productId) => {
-        dispatch(removeProduct(productId));
-      });
+      validProductIds.forEach((productId) => dispatch(removeProduct(productId)));
 
       try {
-        const cartInfo = await getCartInfo(token);
-        dispatch(updateCartInfo(cartInfo));
+        dispatch(updateCartInfo(await getCartInfo(token)));
       } catch (cartError) {
         console.error("Error fetching cart info:", cartError);
       }
 
       const updatedCartData = await getUserCart(token);
-
-      // ── Merge pending quantity changes back (for items NOT deleted) ──
       const remainingPendingUpdates = pendingUpdates.filter(
         (u) => !validProductIds.includes(u.productId),
       );
-
-      const mergedAdditionalItems = updatedCartData.additionalItems?.map(
-        (itemGroup: AdditionalItems) => ({
-          ...itemGroup,
-          Items: itemGroup.Items.map((item: CartItem) => {
-            const pendingUpdate = remainingPendingUpdates.find(
-              (u) => u.productId === item.id,
-            );
-            if (pendingUpdate) {
-              return { ...item, quantity: pendingUpdate.newQuantity };
-            }
-            return item;
-          }),
-        }),
-      );
-
-      dispatch(
-        setCartData({
-          cart: updatedCartData.cart,
-          packages: updatedCartData.packages,
-          additionalItems: mergedAdditionalItems ?? updatedCartData.additionalItems,
-          summary: updatedCartData.summary,
-        }),
-      );
-
-      // ── Preserve local unit selections for remaining items ──
-      setUnitSelection((prev) => {
-        const updated = { ...prev };
-        // Remove deleted items from unit selection
-        validProductIds.forEach((id) => delete updated[id]);
-        // Keep existing selections for remaining items
-        updatedCartData.additionalItems?.forEach((itemGroup: AdditionalItems) => {
-          itemGroup.Items.forEach((item: CartItem) => {
-            if (!updated[item.id]) {
-              updated[item.id] =
-                item.unit.toLowerCase() === "kg" ? "kg" : "g";
-            }
-          });
-        });
-        return updated;
-      });
-
-      // Also clean up pending updates for deleted items
-      setPendingUpdates((prev) =>
-        prev.filter((u) => !validProductIds.includes(u.productId)),
-      );
+      applyCartRefresh(updatedCartData, remainingPendingUpdates);
+      setPendingUpdates(remainingPendingUpdates);
 
       setSelectedProducts(new Set());
       setSelectAll(false);
     } catch (error: any) {
       console.error("Error bulk deleting products:", error);
-      alert(
-        error.message || "Failed to remove selected items. Please try again.",
-      );
+      alert(error.message || "Failed to remove selected items. Please try again.");
     } finally {
       setBulkDeleteLoading(false);
     }

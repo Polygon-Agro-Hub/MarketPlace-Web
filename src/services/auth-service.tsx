@@ -29,6 +29,11 @@ interface SignupPayload {
   buyerType: "Retail" | "Wholesale";
   agreeToTerms: boolean;
   agreeToMarketing: boolean;
+  companyName?: string;
+  companyPhoneCode?: string;
+  companyPhoneNumber?: string;
+  city?: string;
+  cityId?: number | null;
 }
 
 interface SignupResponse {

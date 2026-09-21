@@ -19,13 +19,21 @@ import { getCities, City } from "@/services/cart-service";
 import { getAllCities, CityResult } from "@/services/auth-service";
 import GeoLocationModal from "@/components/delivery-map/GeoLocationModal";
 import { updateCartInfo } from "@/store/slices/authSlice";
-import packageBasketImg from "../../../public/pp1.png";
-import reviewCalendarImg from "../../../public/pp2.png";
-import packageVeggiesImg from "../../../public/pp3.png";
-import cardPaymentImg from "../../../public/pp4.png";
 import { ChevronDown, XCircle, LocateFixed, AlertTriangle, X, Info } from "lucide-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCircleInfo } from "@fortawesome/free-solid-svg-icons";
+import PackageHandlingModal from "@/components/checkout/PackageHandlingModal";
+import {
+  dayOptions,
+  validPeriodOptions,
+  TIME_SLOT_OPTIONS,
+  TITLE_OPTIONS,
+  BUILDING_TYPE_OPTIONS,
+  getMinDeliveryDate,
+  getMinDateStr,
+  generateScheduledOrderDates,
+} from "@/utils/schedule";
+import OrderListModal from "@/components/checkout/OrderListModal";
 
 const OpenStreetMap = dynamic(
   () => import("@/components/open-map/OpenStreetMap"),
@@ -59,10 +67,13 @@ interface FormData {
   street: string;
   cityName: string;
   scheduleType: string;
+  selectedDays: string[];   // NEW
+  validPeriod: string;
   geoLatitude: number | null; // Add this
   geoLongitude: number | null; // Add this
   companycenterId?: any; // Add this to store companycenterId for later use
   saveAs: string;
+
 }
 
 interface FormErrors {
@@ -85,6 +96,8 @@ interface FormErrors {
   street: string;
   cityName: string;
   scheduleType: string;
+  selectedDays: string;     // NEW
+  validPeriod: string;
   geoLatitude: string;
   geoLongitude: string;
   companycenterId?: any;
@@ -111,6 +124,8 @@ const initialFormState: FormData = {
   street: "",
   cityName: "",
   scheduleType: "One Time",
+  selectedDays: [],          // NEW
+  validPeriod: "",
   geoLatitude: null, // Add this
   geoLongitude: null, // Add this
   companycenterId: null,
@@ -137,6 +152,8 @@ const initioalError = {
   street: "",
   cityName: "",
   scheduleType: "",
+  selectedDays: "",          // NEW
+  validPeriod: "",
   geoLatitude: "",
   geoLongitude: "",
   saveAs: "",
@@ -161,6 +178,8 @@ const fieldLabels: Record<string, string> = {
   geoLatitude: "Geo Location",
   geoLongitude: "Geo Location",
   centerId: "Pickup Center",
+  selectedDays: "Select a day",   // NEW
+  validPeriod: "Valid Period",
 };
 
 const Page: React.FC = () => {
@@ -232,6 +251,9 @@ const Page: React.FC = () => {
   ) as string | null | undefined;
   const [isNewAddressCityLocked, setIsNewAddressCityLocked] = useState(false);
   const hasPackages = cartPackages.length > 0;
+
+  const [showOrderListModal, setShowOrderListModal] = useState(false);
+  const [generatedOrders, setGeneratedOrders] = useState<Date[]>([]);
 
   const isReadOnly =
     formData.deliveryMethod === "home" &&
@@ -460,6 +482,54 @@ const Page: React.FC = () => {
     }
   }, [formData.deliveryMethod, searchParamsLoaded, loadingCities]);
 
+  const handleScheduleTypeChange = (value: string) => {
+    setFormDataLocal((prev) => ({
+      ...prev,
+      scheduleType: value,
+      selectedDays: [],
+      validPeriod: "",
+      timeSlot: "",
+      deliveryDate: "",
+    }));
+    setErrors((prev) => ({
+      ...prev,
+      selectedDays: "",
+      validPeriod: "",
+      timeSlot: "",
+      deliveryDate: "",
+    }));
+    setGeneratedOrders([]);
+    setShowOrderListModal(false);
+  };
+
+  const handleDaySelect = (day: string) => {
+    setFormDataLocal((prev) => {
+      if (prev.scheduleType === "Once a week") {
+        return { ...prev, selectedDays: [day] };
+      }
+      if (prev.scheduleType === "Twice a week") {
+        const exists = prev.selectedDays.includes(day);
+        let updated: string[];
+        if (exists) {
+          updated = prev.selectedDays.filter((d) => d !== day);
+        } else if (prev.selectedDays.length < 2) {
+          updated = [...prev.selectedDays, day];
+        } else {
+          // keep only the most recent 2 selections
+          updated = [prev.selectedDays[1], day];
+        }
+        return { ...prev, selectedDays: updated };
+      }
+      return prev;
+    });
+    setErrors((prev) => ({ ...prev, selectedDays: "" }));
+  };
+
+  const handleViewOrders = () => {
+    const dates = generateScheduledOrderDates(formData.scheduleType, formData.selectedDays, formData.validPeriod);
+    setGeneratedOrders(dates);
+    setShowOrderListModal(true);
+  };
 
   const filteredCityOptions = useMemo(() => {
     if (!citySearchTerm.trim()) return allCityResults;
@@ -764,29 +834,6 @@ const Page: React.FC = () => {
     label: center.label,
   }));
 
-  const getMinDeliveryDate = (): Date => {
-    const now = new Date();
-    const isAfterCutoff = now.getHours() >= 18; // 6:00 PM cutoff
-    const extraDays = isAfterCutoff ? 4 : 3;
-
-    const minDate = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate() + extraDays,
-    );
-    minDate.setHours(0, 0, 0, 0);
-    return minDate;
-  };
-
-  const getMinDate = (): string => {
-    const minDate = getMinDeliveryDate();
-
-    const year = minDate.getFullYear();
-    const month = String(minDate.getMonth() + 1).padStart(2, "0");
-    const day = String(minDate.getDate()).padStart(2, "0");
-
-    return `${year}-${month}-${day}`;
-  };
 
   const readOnlyFields: (keyof FormData)[] = [
     "title",
@@ -817,7 +864,6 @@ const Page: React.FC = () => {
     const error = validateField(field, value, updatedFormData);
     setErrors((prev) => ({ ...prev, [field]: error }));
 
-    // Special case: if deliveryMethod changes, revalidate all fields and reset relevant state
     if (field === "deliveryMethod") {
       // Clear errors for all fields first
       setErrors({
@@ -840,6 +886,8 @@ const Page: React.FC = () => {
         street: "",
         cityName: "",
         scheduleType: "",
+        selectedDays: "",   // NEW
+        validPeriod: "",    // NEW
         geoLatitude: "",
         geoLongitude: "",
         saveAs: "",
@@ -884,14 +932,18 @@ const Page: React.FC = () => {
       return false;
     }
 
-    // Check required fields based on delivery method
     const requiredFields = [
       "title",
       "fullName",
       "phone1",
-      "deliveryDate",
       "timeSlot",
     ];
+
+    if (formData.scheduleType === "One Time") {
+      requiredFields.push("deliveryDate");
+    } else {
+      requiredFields.push("selectedDays", "validPeriod");
+    }
 
     // Add delivery method specific required fields
     if (isPickup) {
@@ -914,23 +966,19 @@ const Page: React.FC = () => {
       }
     }
 
-    // Check if all required fields are filled and valid
     for (const field of requiredFields) {
       const value = formData[field as keyof FormData];
 
-      // Check if field is empty
-      if (
-        field === "centerId" ||
-        field === "geoLatitude" ||
-        field === "geoLongitude"
-      ) {
+      if (field === "centerId" || field === "geoLatitude" || field === "geoLongitude") {
         if (value === null || value === undefined) return false;
+      } else if (field === "selectedDays") {
+        const days = (value as string[]) || [];
+        if (days.length === 0) return false;
+        if (formData.scheduleType === "Twice a week" && days.length !== 2) return false;
       } else {
-        if (!value || (typeof value === "string" && !value.trim()))
-          return false;
+        if (!value || (typeof value === "string" && !value.trim())) return false;
       }
 
-      // Check if field has validation errors
       const error = validateField(field as keyof FormData, value, formData);
       if (error) return false;
     }
@@ -1039,18 +1087,32 @@ const Page: React.FC = () => {
         return !trimmed ? `${fieldLabels.timeSlot} is required.` : "";
 
       case "deliveryDate":
+        if (formData.scheduleType !== "One Time") return ""; // handled by selectedDays/validPeriod instead
         if (!value) return `${fieldLabels.deliveryDate} is required.`;
 
         const selectedDate = new Date(value.toString());
         const minDate = getMinDeliveryDate();
-
         selectedDate.setHours(0, 0, 0, 0);
 
         if (selectedDate < minDate) {
           return "Please select a date at least 3 days from today.";
         }
-
         return "";
+
+      case "selectedDays":
+        if (formData.scheduleType === "One Time") return "";
+        if (!formData.selectedDays || formData.selectedDays.length === 0) {
+          return `${fieldLabels.selectedDays} is required.`;
+        }
+        if (formData.scheduleType === "Twice a week" && formData.selectedDays.length !== 2) {
+          return "Please select 2 days for twice a week delivery.";
+        }
+        return "";
+
+      case "validPeriod":
+        return formData.scheduleType !== "One Time" && !trimmed
+          ? `${fieldLabels.validPeriod} is required.`
+          : "";
 
       // Address fields - only required for home delivery
       case "buildingType":
@@ -1086,6 +1148,8 @@ const Page: React.FC = () => {
           }
         }
         return "";
+
+
 
       default:
         return "";
@@ -1138,6 +1202,10 @@ const Page: React.FC = () => {
     try {
       setIsLoading(true);
 
+      // Send short day codes directly (Mo, Tu, We, Th, Fr, Sa, Su) — no full-name conversion
+      const selectedDaysToSend =
+        formData.scheduleType !== "One Time" ? formData.selectedDays : [];
+
       let dataToSubmit: FormData = {
         ...initialFormState,
         deliveryMethod: formData.deliveryMethod,
@@ -1150,10 +1218,12 @@ const Page: React.FC = () => {
         deliveryDate: formData.deliveryDate,
         timeSlot: formData.timeSlot,
         scheduleType: formData.scheduleType,
+        selectedDays: JSON.stringify(selectedDaysToSend) as any,
+        validPeriod: formData.validPeriod,
         geoLatitude: formData.geoLatitude,
         geoLongitude: formData.geoLongitude,
         companycenterId: companycenterId,
-        saveAs: formData.deliveryMethod === "home" ? (formData.saveAs || "") : "", // Add this
+        saveAs: formData.deliveryMethod === "home" ? (formData.saveAs || "") : "",
       };
 
       if (formData.deliveryMethod === "home") {
@@ -1186,22 +1256,40 @@ const Page: React.FC = () => {
       }
 
       dispatch(resetFormData());
-      dispatch(setFormData({
-        ...dataToSubmit,
-        isFinalizeImdt: hasPackages && packageHandlingOption === "finalize" ? 1 : 0,
-      } as any));
+      const scheduledOrderDates = generateScheduledOrderDates(formData.scheduleType, formData.selectedDays, formData.validPeriod);
+
+      const recurringPayload =
+        formData.scheduleType !== "One Time"
+          ? {
+            sheduleDate: scheduledOrderDates[0]
+              ? scheduledOrderDates[0].toISOString()
+              : null,
+            validPeriod: formData.validPeriod,
+            selectedDays: JSON.stringify(selectedDaysToSend),
+          }
+          : {
+            sheduleDate: formData.deliveryDate
+              ? new Date(formData.deliveryDate).toISOString()
+              : null,
+            validPeriod: "",
+            selectedDays: JSON.stringify([]),
+          };
+
+      dispatch(
+        setFormData({
+          ...dataToSubmit,
+          ...recurringPayload,
+          isFinalizeImdt: hasPackages && packageHandlingOption === "finalize" ? 1 : 0,
+        } as any),
+      );
+
       localStorage.setItem("deliveryCharge", deliveryCharge.toString());
 
       await new Promise((resolve) => setTimeout(resolve, 2500));
       router.push("/payment");
     } catch (err: any) {
       setErrorMsg(err.message || "Check out failed!");
-      await Swal.fire({
-        title: "Check out failed",
-        icon: "error",
-        confirmButtonText: "Try Again",
-        confirmButtonColor: "#3E206D",
-      });
+      setShowErrorPopup(true);
     } finally {
       setIsLoading(false);
     }
@@ -1256,149 +1344,16 @@ const Page: React.FC = () => {
       <form onSubmit={handleSubmit}>
         <div className="px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5 pt-10 sm:pt-12">
           {showPackagePopup && (
-            <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-3 sm:p-4">
-              <div className="bg-white rounded-2xl w-full max-w-2xl sm:max-w-3xl max-h-[90vh] overflow-y-auto p-4 sm:p-6 relative">
-                {/* Close button */}
-                <button
-                  type="button"
-                  onClick={() => setShowPackagePopup(false)}
-                  className="absolute top-3 right-3 sm:top-4 sm:right-4 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors cursor-pointer"
-                  aria-label="Close"
-                >
-                  <X size={16} className="text-gray-600 sm:hidden" />
-                  <X size={18} className="text-gray-600 hidden sm:block" />
-                </button>
-
-                {/* Header */}
-                <div className="flex items-center gap-2.5 sm:gap-4 mb-3 sm:mb-5 pr-8">
-                  <div className="flex-shrink-0 w-14 h-14 sm:w-20 sm:h-20 relative">
-                    <Image src={packageBasketImg} alt="Package items" fill className="object-contain" />
-                  </div>
-                  <h2 className="text-[15px] sm:text-xl font-bold text-[#252525] leading-snug">
-                    How would you like us to handle your order&apos;s
-                    <br />
-                    package items?
-                  </h2>
-                </div>
-
-                {/* Option 1: Review and confirm */}
-                <button
-                  type="button"
-                  onClick={() => setPackageHandlingOption("review")}
-                  style={{
-                    background: packageHandlingOption === "review"
-                      ? "linear-gradient(180deg, #F7F2FF 0%, #F6F0FF 100%)"
-                      : "#FFFFFF",
-                    border: `1px solid ${packageHandlingOption === "review" ? "#B186EF" : "#E5E7EE"}`,
-                    boxShadow: "0px 4px 10px 5px #F8F2FF",
-                  }}
-                  className="w-full text-left rounded-xl p-3 sm:p-4 mb-3 sm:mb-4 transition-colors cursor-pointer"
-                >
-                  <div className="flex items-start gap-2 sm:gap-3">
-                    <span
-                      className={`mt-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${packageHandlingOption === "review" ? "border-[#3E206D]" : "border-gray-300"
-                        }`}
-                    >
-                      {packageHandlingOption === "review" && (
-                        <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-[#3E206D]" />
-                      )}
-                    </span>
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 relative flex-shrink-0">
-                      <Image src={reviewCalendarImg} alt="Review and confirm" fill className="object-contain" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p
-                        className="font-bold text-[15px] sm:text-[18px] mb-1"
-                        style={{ color: packageHandlingOption === "review" ? "#47108E" : "#2A272E" }}
-                      >
-                        Review and confirm before delivery
-                      </p>
-                      <p className="text-[12.5px] sm:text-[14px] text-gray-600 leading-snug">
-                        Two days before your delivery or pickup, you&apos;ll receive an in-app notification
-                        with the exact produce and quantities. Confirm your order between 8:00 AM and 6:00 PM
-                        to finalize it for dispatch or pickup.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Orange warning box */}
-                  {/* Orange warning box */}
-                  {/* Orange warning box */}
-                  <div className="mt-3 flex items-stretch gap-2 sm:gap-3">
-                    <div className="flex items-start gap-2 sm:gap-3 bg-[#FFF9F5] border border-orange-200 rounded-lg p-2.5 sm:p-3 flex-1">
-                      <AlertTriangle size={16} className="text-[#EE7719] flex-shrink-0 mt-0.5 sm:hidden" />
-                      <AlertTriangle size={18} className="text-[#EE7719] flex-shrink-0 mt-0.5 hidden sm:block" />
-                      <p className="text-[12px] sm:text-[14px] text-[#EE7719] leading-snug flex-1">
-                        This facility is available on a first-come, first-served basis and is limited to a
-                        certain number of customers. If we do not receive your confirmation on time and all
-                        slots for your preferred delivery date are filled, we will be unable to process your
-                        order. You may check again later for any available slots.
-                      </p>
-                    </div>
-                    {/* Veggie image — matches the orange box's full height */}
-                    <div className="flex-shrink-0 w-16 sm:w-28 relative">
-                      <Image src={packageVeggiesImg} alt="" fill className="object-contain drop-shadow-md" />
-                    </div>
-                  </div>
-                </button>
-
-                {/* Option 2: Finalize immediately */}
-                <button
-                  type="button"
-                  onClick={() => setPackageHandlingOption("finalize")}
-                  style={{
-                    background: packageHandlingOption === "finalize"
-                      ? "linear-gradient(180deg, #F7F2FF 0%, #F6F0FF 100%)"
-                      : "#FFFFFF",
-                    border: `1px solid ${packageHandlingOption === "finalize" ? "#B186EF" : "#E5E7EE"}`,
-                    boxShadow: "0px 4px 10px 5px #F8F2FF",
-                  }}
-                  className="w-full text-left rounded-xl p-3 sm:p-4 mb-4 sm:mb-5 transition-colors cursor-pointer"
-                >
-                  <div className="flex items-start gap-2 sm:gap-3">
-                    <span
-                      className={`mt-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${packageHandlingOption === "finalize" ? "border-[#3E206D]" : "border-gray-300"
-                        }`}
-                    >
-                      {packageHandlingOption === "finalize" && (
-                        <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-[#3E206D]" />
-                      )}
-                    </span>
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 relative flex-shrink-0">
-                      <Image src={cardPaymentImg} alt="Finalize immediately" fill className="object-contain" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1">
-                        <p
-                          className="font-bold text-[15px] sm:text-[18px]"
-                          style={{ color: packageHandlingOption === "finalize" ? "#47108E" : "#2A272E" }}
-                        >
-                          Finalize Immediately
-                        </p>
-                        <span className="text-[10px] sm:text-[11px] font-medium text-blue-700 bg-blue-100 px-1.5 sm:px-2 py-0.5 rounded-full whitespace-nowrap">
-                          Card Payment Required
-                        </span>
-                      </div>
-                      <p className="text-[12.5px] sm:text-[14px] text-gray-600 leading-snug">
-                        Want to secure your delivery slot now? Confirm your order right away and we&apos;ll
-                        prepare it using the standard package items assigned for your delivery date. Please
-                        note that once confirmed, this order cannot be changed or canceled.
-                      </p>
-                    </div>
-                  </div>
-                </button>
-
-                {/* Continue button */}
-                <button
-                  type="button"
-                  onClick={handlePackagePopupContinue}
-                  disabled={isLoading}
-                  className="w-full font-semibold text-[14px] sm:text-base rounded-xl py-3 sm:py-3.5 bg-[#3E206D] text-white hover:bg-[#2f1854] transition cursor-pointer disabled:opacity-70"
-                >
-                  {isLoading ? "Processing..." : "Continue to Payment"}
-                </button>
-              </div>
-            </div>
+            <PackageHandlingModal
+              option={packageHandlingOption}
+              onOptionChange={setPackageHandlingOption}
+              onClose={() => setShowPackagePopup(false)}
+              onContinue={handlePackagePopupContinue}
+              isLoading={isLoading}
+            />
+          )}
+          {showOrderListModal && (
+            <OrderListModal orders={generatedOrders} onClose={() => setShowOrderListModal(false)} />
           )}
           <TopNavigation NavArray={NavArray} />
 
@@ -1663,12 +1618,7 @@ const Page: React.FC = () => {
                           className={`rounded-lg ${errors.title ? "border-2 border-red-500" : ""}`}
                         >
                           <CustomDropdown
-                            options={[
-                              { value: "Mr", label: "Mr" },
-                              { value: "Ms", label: "Ms" },
-                              { value: "Mrs", label: "Mrs" },
-                              { value: "Rev", label: "Rev" },
-                            ]}
+                            options={TITLE_OPTIONS}
                             selectedValue={formData.title}
                             onSelect={(value) => handleFieldChange("title", value)}
                             placeholder="Title"
@@ -1833,10 +1783,7 @@ const Page: React.FC = () => {
                               Building type *
                             </label>
                             <CustomDropdown
-                              options={[
-                                { value: "Apartment", label: "Apartment" },
-                                { value: "House", label: "House" },
-                              ]}
+                              options={BUILDING_TYPE_OPTIONS}
                               selectedValue={formData.buildingType}
                               onSelect={(value) =>
                                 handleFieldChange("buildingType", value)
@@ -2256,16 +2203,41 @@ const Page: React.FC = () => {
               <div className="border-t border-gray-300 my-6"></div>
 
               <h3 className="font-bold text-lg mb-4 text-[#252525]">
-                {formData.deliveryMethod === "pickup"
-                  ? "Schedule Pickup"
-                  : "Schedule Delivery"}
+                {formData.deliveryMethod === "pickup" ? "Schedule Pickup" : "Schedule Delivery"}
               </h3>
 
-              <div className="flex md:flex-row flex-col gap-4 mb-6">
-                <div className="md:w-1/2 w-full">
-                  <style
-                    dangerouslySetInnerHTML={{
-                      __html: `
+              {/* Schedule type toggle */}
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mb-6">
+                {["One Time", "Once a week", "Twice a week"].map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => handleScheduleTypeChange(option)}
+                    className={`flex-1 flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-lg border text-xs sm:text-sm md:text-base font-medium transition-colors cursor-pointer whitespace-nowrap ${formData.scheduleType === option
+                      ? "border-[#3E206D] text-[#3E206D]"
+                      : "border-gray-300 text-[#2E2E2E]"
+                      }`}
+                  >
+                    <span
+                      className={`w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${formData.scheduleType === option ? "border-[#3E206D]" : "border-gray-300"
+                        }`}
+                    >
+                      {formData.scheduleType === option && (
+                        <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#3E206D]" />
+                      )}
+                    </span>
+                    {option}
+                  </button>
+                ))}
+              </div>
+              <div className="border-t border-dashed border-gray-300 my-4" />
+
+              {formData.scheduleType === "One Time" ? (
+                <div className="flex md:flex-row flex-col gap-4 mb-6">
+                  <div className="md:w-1/2 w-full">
+                    <style
+                      dangerouslySetInnerHTML={{
+                        __html: `
                         .date-input::-webkit-calendar-picker-indicator {
                           cursor: pointer;
                         }
@@ -2299,158 +2271,248 @@ const Page: React.FC = () => {
                           }
                         }
                       `,
-                    }}
-                  />
-                  <label className="block text-[#2E2E2E] font-semibold mb-4">
-                    Date *
-                  </label>
-                  <div className="relative w-full">
-                    <input
-                      type="date"
-                      className={`
-      date-input 
-      w-full 
-      border 
-      h-[39px] 
-      border-gray-300 
-      cursor-pointer 
-      focus:outline-none 
-      focus:ring-2 
-      focus:ring-purple-600 
-      rounded-lg 
-      px-4 
-      py-2 
-      bg-white 
-      pr-10
-      [&::-webkit-calendar-picker-indicator]:opacity-0
-      [&::-webkit-calendar-picker-indicator]:absolute
-      [&::-webkit-calendar-picker-indicator]:right-0
-      [&::-webkit-calendar-picker-indicator]:w-full
-      [&::-webkit-calendar-picker-indicator]:h-full
-      [&::-webkit-calendar-picker-indicator]:cursor-pointer
-      [&::-webkit-calendar-picker-indicator]:z-[2]
-      [&::-webkit-calendar-picker-indicator]:bg-transparent
-      ${formData.deliveryDate ? "has-value" : ""}
-    `}
-                      style={{
-                        colorScheme: "light",
                       }}
-                      value={formData.deliveryDate}
-                      onChange={(e) => {
-                        const selectedValue = e.target.value;
-                        // Additional client-side validation
-                        if (selectedValue) {
-                          const selectedDate = new Date(selectedValue);
-                          const minDate = getMinDeliveryDate();
-                          selectedDate.setHours(0, 0, 0, 0);
-
-                          if (selectedDate >= minDate) {
-                            handleFieldChange("deliveryDate", selectedValue);
-                          } else {
-                            // Don't update the field value, just trigger validation error
-                            handleFieldChange("deliveryDate", selectedValue);
-                          }
-                        } else {
-                          handleFieldChange("deliveryDate", selectedValue);
-                        }
-                      }}
-                      onClick={(e) => {
-                        // Ensure the date picker opens on click (Chrome, Edge, Safari)
-                        const target = e.target as HTMLInputElement;
-                        if (
-                          target.showPicker &&
-                          typeof target.showPicker === "function"
-                        ) {
-                          try {
-                            target.showPicker();
-                          } catch (error) {
-                            console.error(error);
-                          }
-                        }
-                      }}
-                      min={getMinDate()}
                     />
+                    <label className="block text-[#2E2E2E] font-semibold mb-4">
+                      Date *
+                    </label>
+                    <div className="relative w-full">
+                      <input
+                        type="date"
+                        className={`
+                            date-input 
+                            w-full 
+                            border 
+                            h-[39px] 
+                            border-gray-300 
+                            cursor-pointer 
+                            focus:outline-none 
+                            focus:ring-2 
+                            focus:ring-purple-600 
+                            rounded-lg 
+                            px-4 
+                            py-2 
+                            bg-white 
+                            pr-10
+                            [&::-webkit-calendar-picker-indicator]:opacity-0
+                            [&::-webkit-calendar-picker-indicator]:absolute
+                            [&::-webkit-calendar-picker-indicator]:right-0
+                            [&::-webkit-calendar-picker-indicator]:w-full
+                            [&::-webkit-calendar-picker-indicator]:h-full
+                            [&::-webkit-calendar-picker-indicator]:cursor-pointer
+                            [&::-webkit-calendar-picker-indicator]:z-[2]
+                            [&::-webkit-calendar-picker-indicator]:bg-transparent
+                            ${formData.deliveryDate ? "has-value" : ""}
+                          `}
+                        style={{
+                          colorScheme: "light",
+                        }}
+                        value={formData.deliveryDate}
+                        onChange={(e) => {
+                          const selectedValue = e.target.value;
+                          // Additional client-side validation
+                          if (selectedValue) {
+                            const selectedDate = new Date(selectedValue);
+                            const minDate = getMinDeliveryDate();
+                            selectedDate.setHours(0, 0, 0, 0);
 
-                    {/* Custom Calendar Icon */}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        const input = e.currentTarget.parentElement?.querySelector('input[type="date"]') as HTMLInputElement;
-                        if (input && input.showPicker && typeof input.showPicker === "function") {
-                          try {
-                            input.showPicker();
-                          } catch (error) {
-                            console.error(error);
+                            if (selectedDate >= minDate) {
+                              handleFieldChange("deliveryDate", selectedValue);
+                            } else {
+                              // Don't update the field value, just trigger validation error
+                              handleFieldChange("deliveryDate", selectedValue);
+                            }
+                          } else {
+                            handleFieldChange("deliveryDate", selectedValue);
                           }
-                        }
-                      }}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer hover:opacity-70 transition-opacity z-10"
-                      aria-label="Select date"
-                    >
-                      <svg
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="text-gray-500"
-                      >
-                        <path
-                          d="M8 2V6M16 2V6M3 10H21M5 4H19C20.1046 4 21 4.89543 21 6V20C21 21.1046 20.1046 22 19 22H5C3.89543 22 3 21.1046 3 20V6C3 4.89543 3.89543 4 5 4Z"
-                          stroke="currentColor"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M12 12H16V16H12V12Z"
-                          stroke="currentColor"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </button>
+                        }}
+                        onClick={(e) => {
+                          // Ensure the date picker opens on click (Chrome, Edge, Safari)
+                          const target = e.target as HTMLInputElement;
+                          if (
+                            target.showPicker &&
+                            typeof target.showPicker === "function"
+                          ) {
+                            try {
+                              target.showPicker();
+                            } catch (error) {
+                              console.error(error);
+                            }
+                          }
+                        }}
+                        min={getMinDateStr()}
+                      />
 
-                    {/* Custom placeholder */}
-                    {!formData.deliveryDate && (
-                      <div className="custom-date-placeholder absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none text-base">
-                        mm/dd/yyyy
-                      </div>
+                      {/* Custom Calendar Icon */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          const input = e.currentTarget.parentElement?.querySelector('input[type="date"]') as HTMLInputElement;
+                          if (input && input.showPicker && typeof input.showPicker === "function") {
+                            try {
+                              input.showPicker();
+                            } catch (error) {
+                              console.error(error);
+                            }
+                          }
+                        }}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer hover:opacity-70 transition-opacity z-10"
+                        aria-label="Select date"
+                      >
+                        <svg
+                          width="20"
+                          height="20"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="text-gray-500"
+                        >
+                          <path
+                            d="M8 2V6M16 2V6M3 10H21M5 4H19C20.1046 4 21 4.89543 21 6V20C21 21.1046 20.1046 22 19 22H5C3.89543 22 3 21.1046 3 20V6C3 4.89543 3.89543 4 5 4Z"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                          <path
+                            d="M12 12H16V16H12V12Z"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </button>
+
+                      {/* Custom placeholder */}
+                      {!formData.deliveryDate && (
+                        <div className="custom-date-placeholder absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none text-base">
+                          mm/dd/yyyy
+                        </div>
+                      )}
+                    </div>
+
+
+                    {errors.deliveryDate && (
+                      <p className="text-red-600 text-sm mt-1">
+                        {errors.deliveryDate}
+                      </p>
                     )}
                   </div>
-
-
-                  {errors.deliveryDate && (
-                    <p className="text-red-600 text-sm mt-1">
-                      {errors.deliveryDate}
-                    </p>
-                  )}
+                  <div className="md:w-1/2 w-full">
+                    <label className="block font-semibold mb-4">
+                      Time Slot *
+                    </label>
+                    <CustomDropdown
+                      options={TIME_SLOT_OPTIONS}
+                      selectedValue={formData.timeSlot}
+                      onSelect={(value) => handleFieldChange("timeSlot", value)}
+                      placeholder="Select Time Slot"
+                    />
+                    {errors.timeSlot && (
+                      <p className="text-red-600 text-sm mt-1">
+                        {errors.timeSlot}
+                      </p>
+                    )}
+                  </div>
                 </div>
-                <div className="md:w-1/2 w-full">
-                  <label className="block font-semibold mb-4">
-                    Time Slot *
-                  </label>
-                  <CustomDropdown
-                    options={[
-                      { value: "08:00 AM - 12:00 PM", label: "08:00 AM - 12:00 PM" },
-                      { value: "12:00 PM - 04:00 PM", label: "12:00 PM - 04:00 PM" },
-                      { value: "04:00 PM - 09:00 PM", label: "04:00 PM - 09:00 PM" },
-                    ]}
-                    selectedValue={formData.timeSlot}
-                    onSelect={(value) => handleFieldChange("timeSlot", value)}
-                    placeholder="Select Time Slot"
-                  />
-                  {errors.timeSlot && (
-                    <p className="text-red-600 text-sm mt-1">
-                      {errors.timeSlot}
-                    </p>
-                  )}
+              ) : (
+                <div className="flex flex-col gap-4 mb-6">
+                  <div className="flex md:flex-row flex-col gap-4">
+                    {/* Select a day */}
+                    {/* Select a day */}
+                    <div className="md:w-1/2 w-full">
+                      <label className="block font-semibold mb-4 text-[#2E2E2E]">
+                        Select a day *
+                      </label>
+                      <div className="flex gap-2">
+                        {dayOptions.map((day) => {
+                          const isSelected = formData.selectedDays.includes(day);
+                          return (
+                            <button
+                              key={day}
+                              type="button"
+                              onClick={() => handleDaySelect(day)}
+                              className={`flex-1 h-10 sm:h-11 rounded-lg border text-sm font-medium transition-colors cursor-pointer ${isSelected
+                                ? "bg-[#F1E9FC] border-[#B186EF] text-[#3E206D]"
+                                : "bg-white border-gray-300 text-[#2E2E2E] hover:border-gray-400"
+                                }`}
+                            >
+                              {day}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {errors.selectedDays && (
+                        <p className="text-red-600 text-sm mt-1">{errors.selectedDays}</p>
+                      )}
+                    </div>
+
+                    {/* Time Slot */}
+                    <div className="md:w-1/2 w-full">
+                      <label className="block font-semibold mb-4 text-[#2E2E2E]">
+                        Time Slot *
+                      </label>
+                      <CustomDropdown
+                        options={TIME_SLOT_OPTIONS}
+                        selectedValue={formData.timeSlot}
+                        onSelect={(value) => handleFieldChange("timeSlot", value)}
+                        placeholder="Select Time Slot"
+                      />
+                      {errors.timeSlot && (
+                        <p className="text-red-600 text-sm mt-1">{errors.timeSlot}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex md:flex-row flex-col gap-4 items-end">
+                    {/* Valid Period */}
+                    <div className="md:w-1/2 w-full">
+                      <label className="block font-semibold mb-1 text-[#2E2E2E]">
+                        Valid Period *
+                      </label>
+                      <CustomDropdown
+                        options={validPeriodOptions}
+                        selectedValue={formData.validPeriod}
+                        onSelect={(value) => handleFieldChange("validPeriod", value)}
+                        placeholder="Select weeks"
+                      />
+                      {errors.validPeriod && (
+                        <p className="text-red-600 text-sm mt-1">{errors.validPeriod}</p>
+                      )}
+                    </div>
+
+                    {/* View My Orders */}
+                    <div className="md:w-1/2 w-full">
+                      {(() => {
+                        const disabled =
+                          formData.selectedDays.length === 0 ||
+                          !formData.timeSlot ||
+                          !formData.validPeriod ||
+                          (formData.scheduleType === "Twice a week" &&
+                            formData.selectedDays.length !== 2);
+                        return (
+                          <button
+                            type="button"
+                            onClick={handleViewOrders}
+                            disabled={disabled}
+                            className={`w-full font-semibold rounded-xl py-2.5 transition ${disabled
+                              ? "bg-[#EBEEF2] text-[#B1BAC3] cursor-not-allowed"
+                              : "bg-black text-white hover:bg-gray-800 cursor-pointer"
+                              }`}
+                          >
+                            View My Orders
+                          </button>
+                        );
+                      })()}
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
+
             {/* Right Section - Order Summary */}
             <div className="w-full lg:w-1/3 mt-6 lg:mt-0">
               <div className="border border-gray-300 rounded-lg shadow-md p-4 sm:p-5 md:p-6">
