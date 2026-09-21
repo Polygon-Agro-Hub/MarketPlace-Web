@@ -181,7 +181,7 @@ const Page = () => {
   return (
     <div className="flex lg:bg-gray-100 justify-center items-center w-full min-h-screen lg:py-10 lg:px-2">
       <div className="flex w-full lg:max-w-7xl">
-        <div className="flex min-w-full mx-auto lg:shadow-lg rounded-lg bg-white overflow-auto">
+       <div className="flex min-w-full mx-auto lg:shadow-lg rounded-lg bg-white overflow-auto lg:min-h-[800px]">
           <SuccessPopup
             isVisible={showSuccessPopup}
             onClose={() => setShowSuccessPopup(false)}
@@ -397,7 +397,7 @@ const Page = () => {
               src={LoginImg}
               alt="MyFarm Registration"
               fill
-              className="object-cover"
+              className="object-cover object-top"
               priority
             />
           </div>

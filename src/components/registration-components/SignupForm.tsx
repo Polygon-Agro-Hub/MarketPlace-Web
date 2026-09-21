@@ -1198,7 +1198,7 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
                                 src={LoginImg}
                                 alt="MyFarm Registration"
                                 fill
-                                className="object-cover"
+                                className="object-cover object-top"
                                 priority
                             />
                         </div>
