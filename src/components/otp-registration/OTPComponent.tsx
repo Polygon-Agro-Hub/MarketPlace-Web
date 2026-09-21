@@ -13,7 +13,7 @@ import { faEnvelope } from "@fortawesome/free-solid-svg-icons";
 
 interface OTPComponentProps {
   phoneNumber: string;
-  phoneCode: string;        // ← add this
+  phoneCode: string;
   referenceId: string;
   onVerificationSuccess: () => void;
   onVerificationFailure: () => void;
@@ -22,6 +22,11 @@ interface OTPComponentProps {
   mode?: "phone" | "email";
   contactValue?: string;
   email?: string;
+  /** How long the OTP is valid, in seconds. Defaults: email = 240 (4 min), phone = 60. */
+  otpValiditySeconds?: number;
+  /** How long before "Resend" becomes available, in seconds. Default: 60. */
+  resendCooldown?: number;
+  /** @deprecated Use resendCooldown / otpValiditySeconds. Used only as a fallback for resendCooldown. */
   initialTimer?: number;
 }
 
@@ -36,38 +41,57 @@ export default function OTPComponent({
   mode = "phone",
   contactValue,
   email,
-  initialTimer = 60,
+  otpValiditySeconds,
+  resendCooldown,
+  initialTimer,
 }: OTPComponentProps) {
   const router = useRouter();
+
+  const isEmail = mode === "email";
+  const validitySeconds = otpValiditySeconds ?? (isEmail ? 240 : 60);
+  const cooldownSeconds = resendCooldown ?? initialTimer ?? 60;
+
   const [otp, setOtp] = useState(["", "", "", "", ""]);
-  const [timer, setTimer] = useState(initialTimer);
-  const [disabledResend, setDisabledResend] = useState(true);
-  const [isVerified, setIsVerified] = useState(false);
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
+  const [isVerified, setIsVerified] = useState(false);
   const [isResendSuccess, setIsResendSuccess] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isError, setIsError] = useState(false);
   const [modalMessage, setModalMessage] = useState("");
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
-  const [isOtpExpired, setIsOtpExpired] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [showResendSuccessPopup, setShowResendSuccessPopup] = useState(false);
 
-  const isEmail = mode === "email";
-  const displayContact = contactValue ?? phoneNumber;
-  const isOtpComplete = otp.every((digit) => digit !== "");
+  // ── Timers (absolute timestamps, so throttled tabs can't skew the countdown) ──
+  const [expiresAt, setExpiresAt] = useState(() => Date.now() + validitySeconds * 1000);
+  const [resendAt, setResendAt] = useState(() => Date.now() + cooldownSeconds * 1000);
+  const [now, setNow] = useState(() => Date.now());
+  const [serverExpired, setServerExpired] = useState(false); // set when backend says 1002 / 1003
 
   useEffect(() => {
-    if (timer > 0) {
-      const interval = setInterval(() => setTimer((prev) => prev - 1), 1000);
-      return () => clearInterval(interval);
-    } else {
-      setDisabledResend(false);
-      setIsOtpExpired(true);
-      if (onOTPExpired) onOTPExpired();
-    }
-  }, [timer, onOTPExpired]);
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const expiryLeft = Math.max(0, Math.ceil((expiresAt - now) / 1000));
+  const resendLeft = Math.max(0, Math.ceil((resendAt - now) / 1000));
+
+  const isOtpExpired = serverExpired || expiryLeft === 0;
+  const disabledResend = resendLeft > 0;
+
+  // Notify parent once when the code expires
+  const onOTPExpiredRef = useRef(onOTPExpired);
+  useEffect(() => {
+    onOTPExpiredRef.current = onOTPExpired;
+  }, [onOTPExpired]);
+
+  useEffect(() => {
+    if (isOtpExpired) onOTPExpiredRef.current?.();
+  }, [isOtpExpired]);
+
+  const displayContact = contactValue ?? phoneNumber;
+  const isOtpComplete = otp.every((digit) => digit !== "");
 
   const handleChange = (value: string, idx: number) => {
     if (!/^\d?$/.test(value)) return;
@@ -115,10 +139,10 @@ export default function OTPComponent({
       } else if (statusCode === "1001") {
         setIsError(true); setModalMessage("This OTP is Invalid. Please enter correct OTP."); setIsModalOpen(true);
       } else if (statusCode === "1002" || statusCode === "1003") {
-        setIsOtpExpired(true); setIsError(true); setModalMessage("OTP has expired. Please request a new one."); setIsModalOpen(true);
+        setServerExpired(true); setIsError(true); setModalMessage("OTP has expired. Please request a new one."); setIsModalOpen(true);
       } else { setIsError(true); setModalMessage("Something went wrong. Please try again."); setIsModalOpen(true); }
     } catch (error: any) {
-      if (error.message?.toLowerCase().includes("expired")) { setIsOtpExpired(true); setIsError(true); setModalMessage("OTP has expired. Please request a new one."); }
+      if (error.message?.toLowerCase().includes("expired")) { setServerExpired(true); setIsError(true); setModalMessage("OTP has expired. Please request a new one."); }
       else { setIsError(true); setModalMessage("Failed to verify OTP. Try again later."); }
       setIsModalOpen(true);
     } finally { setIsVerifying(false); }
@@ -132,7 +156,16 @@ export default function OTPComponent({
       const res = await sendOTPInSignup(phone, phoneCode, { email });
       if (res.referenceId) {
         onResendOTP(res.referenceId);
-        setTimer(initialTimer); setDisabledResend(true); setIsOtpExpired(false);
+
+        // Prefer the validity the server reports, fall back to the prop
+        const serverSeconds = Number((res as any).expiresIn);
+        const validity = Number.isFinite(serverSeconds) && serverSeconds > 0 ? serverSeconds : validitySeconds;
+
+        const current = Date.now();
+        setNow(current);
+        setExpiresAt(current + validity * 1000);
+        setResendAt(current + cooldownSeconds * 1000);
+        setServerExpired(false);
         setOtp(["", "", "", "", ""]);
         setShowResendSuccessPopup(true);
         inputsRef.current[0]?.focus();
@@ -144,7 +177,8 @@ export default function OTPComponent({
     } finally { setIsResending(false); }
   };
 
-  const timerText = `${Math.floor(timer / 60)} : ${String(timer % 60).padStart(2, "0")}`;
+  // Countdown shown next to "Resend" (cooldown only, not OTP expiry)
+  const timerText = `${Math.floor(resendLeft / 60)} : ${String(resendLeft % 60).padStart(2, "0")}`;
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#EEEEF5] px-4 py-8">
@@ -234,7 +268,7 @@ export default function OTPComponent({
             <div className="flex flex-col gap-0.5">
               <span className="text-[13px] text-[#4C5160] font-semibold">Code Expired!</span>
               <span className="text-[12px] font-regular text-[#4C5160] leading-snug">
-                Your verification code has expired.Please request a new code to continue.
+                Your verification code has expired. Please request a new code to continue.
               </span>
             </div>
           </div>
