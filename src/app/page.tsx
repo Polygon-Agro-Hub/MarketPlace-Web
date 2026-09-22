@@ -12,6 +12,7 @@ import Loading from "@/components/loadings/loading";
 import PackageSlider from "@/components/home/PackageSlider";
 import CategoryFilter from "@/components/type-filters/CategoryFilter";
 import { getAllProduct } from "@/services/product-service";
+import socketService from "@/services/socketService"; 
 import TopBanner from "@/components/home/TopBanner";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -118,6 +119,20 @@ function HomeContent() {
       // Handle empty search - fetch all products
       fetchAllPackages(); // This will call API with undefined, which should get all products
     }
+  }, [searchTerm]);
+
+  // NEW: Real-time catalog subscription. Whenever the backend broadcasts a
+  // catalog change (admin panel enabled/disabled/created/edited a package),
+  // re-run the same fetch this component already uses — no manual refresh.
+  useEffect(() => {
+    const unsubscribe = socketService.onCatalogUpdate((data) => {
+      console.log("📦 Real-time catalog update received:", data);
+      fetchAllPackages(searchTerm);
+    });
+
+    return () => {
+      unsubscribe();
+    };
   }, [searchTerm]);
 
   // Mobile search handlers

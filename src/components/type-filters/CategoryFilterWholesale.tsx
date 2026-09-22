@@ -11,6 +11,7 @@ import ItemCard from '../../components/item-card/ItemCard';
 import { getProductsByCategoryWholesale } from '@/services/product-service';
 import { getCategoryCountsWholesale } from '@/services/product-service';
 import { StaticImageData } from 'next/image';
+import socketService from '@/services/socketService';
 
 interface Product {
     id: number;
@@ -54,6 +55,7 @@ export default function CategoryFilterWholesale() {
     const [error, setError] = useState<string | null>(null);
     const [categories, setCategories] = useState<Category[]>([]);
     const [countsLoading, setCountsLoading] = useState(true);
+    const [refreshTick, setRefreshTick] = useState(0); // NEW — bumped on real-time catalog updates
     const token = useSelector((state: RootState) => state.auth.token);
 
     const defaultCategories = [
@@ -82,6 +84,15 @@ export default function CategoryFilterWholesale() {
             itemCount: 0
         }
     ];
+
+    useEffect(() => {
+        const unsubscribe = socketService.onCatalogUpdate((data) => {
+            setRefreshTick((t) => t + 1);
+        });
+        return () => {
+            unsubscribe();
+        };
+    }, []);
 
     useEffect(() => {
         const fetchCategoryCounts = async () => {
@@ -119,7 +130,7 @@ export default function CategoryFilterWholesale() {
         };
 
         fetchCategoryCounts();
-    }, []);
+    }, [refreshTick]); // CHANGED — was []; now also re-runs on real-time updates so tile counts stay accurate
 
     // Updated useEffect that properly listens to Redux search term changes
     useEffect(() => {
@@ -150,7 +161,7 @@ export default function CategoryFilterWholesale() {
         };
 
         fetchProducts();
-    }, [selectedCategory, searchTerm, dispatch]);
+    }, [selectedCategory, searchTerm, dispatch, refreshTick]); // CHANGED — added refreshTick
 
     function handleCategorySelect(id: string): void {
         setSelectedCategory(id);
