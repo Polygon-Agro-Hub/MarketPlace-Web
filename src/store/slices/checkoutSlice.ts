@@ -20,8 +20,8 @@ interface FormState {
   street: string;
   cityName: string;
   scheduleType: string;
-  selectedDays: string;        // NEW - JSON string of full day names
-  validPeriod: string;         // NEW - weeks as string, e.g. "04"
+  selectedDays: string | null;
+  validPeriod: string | null;
   sheduleDate: string | null;  // NEW - nearest scheduled order date (ISO string)
   geoLatitude: number | null;
   geoLongitude: number | null;
@@ -49,8 +49,8 @@ const initialState: FormState = {
   street: '',
   cityName: '',
   scheduleType: 'One Time',
-  selectedDays: '',           // NEW
-  validPeriod: '',            // NEW
+  selectedDays: null,
+  validPeriod: null,
   sheduleDate: null,          // NEW
   centerId: null,
   geoLatitude: null,

@@ -1202,9 +1202,12 @@ const Page: React.FC = () => {
     try {
       setIsLoading(true);
 
-      // Send short day codes directly (Mo, Tu, We, Th, Fr, Sa, Su) — no full-name conversion
-      const selectedDaysToSend =
-        formData.scheduleType !== "One Time" ? formData.selectedDays : [];
+      const isRecurring = formData.scheduleType !== "One Time";
+
+      // null for One Time, JSON string for recurring
+      const selectedDaysToSend: string | null = isRecurring
+        ? JSON.stringify(formData.selectedDays)
+        : null;
 
       let dataToSubmit: FormData = {
         ...initialFormState,
@@ -1218,8 +1221,8 @@ const Page: React.FC = () => {
         deliveryDate: formData.deliveryDate,
         timeSlot: formData.timeSlot,
         scheduleType: formData.scheduleType,
-        selectedDays: JSON.stringify(selectedDaysToSend) as any,
-        validPeriod: formData.validPeriod,
+        selectedDays: selectedDaysToSend as any,
+        validPeriod: isRecurring ? formData.validPeriod : "",
         geoLatitude: formData.geoLatitude,
         geoLongitude: formData.geoLongitude,
         companycenterId: companycenterId,
@@ -1258,22 +1261,23 @@ const Page: React.FC = () => {
       dispatch(resetFormData());
       const scheduledOrderDates = generateScheduledOrderDates(formData.scheduleType, formData.selectedDays, formData.validPeriod);
 
-      const recurringPayload =
-        formData.scheduleType !== "One Time"
-          ? {
-            sheduleDate: scheduledOrderDates[0]
-              ? scheduledOrderDates[0].toISOString()
-              : null,
-            validPeriod: formData.validPeriod,
-            selectedDays: JSON.stringify(selectedDaysToSend),
-          }
-          : {
-            sheduleDate: formData.deliveryDate
-              ? new Date(formData.deliveryDate).toISOString()
-              : null,
-            validPeriod: "",
-            selectedDays: JSON.stringify([]),
-          };
+
+
+      const recurringPayload = isRecurring
+        ? {
+          sheduleDate: scheduledOrderDates[0]
+            ? scheduledOrderDates[0].toISOString()
+            : null,
+          validPeriod: formData.validPeriod,
+          selectedDays: selectedDaysToSend, 
+        }
+        : {
+          sheduleDate: formData.deliveryDate
+            ? new Date(formData.deliveryDate).toISOString()
+            : null,
+          validPeriod: null,   
+          selectedDays: null,                        
+        };
 
       dispatch(
         setFormData({

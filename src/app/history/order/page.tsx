@@ -367,8 +367,8 @@ export default function OrderHistoryPage() {
         const detailedOrder: DetailedOrder = {
           orderId: String(apiOrder.id) || "N/A",
           invoiceNo: String(apiOrder.invoiceNo) || "N/A",
-          scheduleDate: apiOrder.sheduleDate
-            ? formatDateTime(apiOrder.sheduleDate, "date")
+          scheduleDate: apiOrder.scheduleDate
+            ? formatDateTime(apiOrder.scheduleDate, "date")
             : "N/A",
           scheduleTime: apiOrder.sheduleTime || "N/A",
           deliveryType: apiOrder.delivaryMethod || "N/A",
