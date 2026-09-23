@@ -12,6 +12,7 @@ import { getCategoryCounts } from "@/services/product-service";
 import { StaticImageData } from "next/image";
 import { useDispatch } from "react-redux";
 import { setCategoryResults } from "@/store/slices/searchSlice";
+import socketService from "@/services/socketService"; // NEW
 
 interface Product {
   id: number;
@@ -59,6 +60,7 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
   const [error, setError] = useState<string | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [countsLoading, setCountsLoading] = useState(true);
+  const [refreshTick, setRefreshTick] = useState(0); // NEW — bumped on real-time catalog updates
   const dispatch = useDispatch();
   const token = useSelector((state: RootState) => state.auth.token);
 
@@ -88,6 +90,15 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
       itemCount: 0,
     },
   ];
+
+  useEffect(() => {
+    const unsubscribe = socketService.onCatalogUpdate((data) => {
+      setRefreshTick((t) => t + 1);
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     const fetchCategoryCounts = async () => {
@@ -154,7 +165,7 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
     };
 
     fetchCategoryCounts();
-  }, []);
+  }, [refreshTick]); // CHANGED — was []; now also re-runs on real-time updates so tile counts stay accurate
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -184,7 +195,7 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
     };
 
     fetchProducts();
-  }, [selectedCategory, searchTerm, dispatch]);
+  }, [selectedCategory, searchTerm, dispatch, refreshTick]); // CHANGED — added refreshTick
 
   function handleCategorySelect(id: string): void {
     setSelectedCategory(id);

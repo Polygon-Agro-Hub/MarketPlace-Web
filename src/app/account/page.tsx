@@ -14,7 +14,7 @@ export default function AccountPage() {
 
   const handleComplaintIconClick = (isOpen: boolean) => {
     if (window.innerWidth < 768) {
-      setIsRightContentVisible(!isOpen); // Hide right content when submenu opens, show when closed
+      setIsRightContentVisible(!isOpen);
     }
   };
 

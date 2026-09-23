@@ -340,9 +340,9 @@ export interface OrderPayload {
     street?: string;
     cityName: string;
     scheduleType: string;
-    selectedDays?: string;        // NEW - JSON string of full day names, e.g. '["Thursday","Saturday"]'
-    validPeriod?: string | null;  // NEW - weeks as string, e.g. "04"
-    sheduleDate?: string | null;  // NEW - nearest scheduled order date (ISO string)
+    selectedDays?: string | null;  
+    validPeriod?: string | null; 
+    sheduleDate?: string | null;
     centerId?: number | null;
     couponValue: number;
     isCoupon: boolean;

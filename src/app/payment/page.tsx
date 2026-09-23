@@ -196,9 +196,9 @@ const Page: React.FC = () => {
       street: "",
       cityName: "",
       scheduleType: checkoutDetails.scheduleType || "One Time",
-      selectedDays: checkoutDetails.selectedDays || JSON.stringify([]), // NEW
-      validPeriod: checkoutDetails.validPeriod || null,                 // NEW
-      sheduleDate: checkoutDetails.sheduleDate || null,                 // NEW - nearest order date only
+      selectedDays: checkoutDetails.selectedDays || null,
+      validPeriod: checkoutDetails.validPeriod || null,
+      sheduleDate: checkoutDetails.sheduleDate || null,
       centerId: null as number | null,
       couponValue: isCouponApplied ? Number(couponDiscountAmount) : 0,
       isCoupon: isCouponApplied,
