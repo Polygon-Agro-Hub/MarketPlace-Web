@@ -46,7 +46,7 @@ const Page = () => {
     let valid = true;
 
     if (!email.trim()) {
-      setEmailError("Email is required");
+      setEmailError("Email / Mobile Number is required");
       valid = false;
     } else {
       const emailInput = email.trim();
@@ -77,7 +77,7 @@ const Page = () => {
         }
       } else {
         setEmailError(
-          "Enter a valid email address or phone number in +947XXXXXXXX format",
+          "Enter a valid email address or phone number",
         );
         valid = false;
       }

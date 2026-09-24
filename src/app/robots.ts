@@ -1,3 +1,4 @@
+// app/robots.ts
 import { MetadataRoute } from "next";
 
 export default function robots(): MetadataRoute.Robots {
@@ -38,6 +39,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: "/",
       },
     ],
-    sitemap: "https://www.govimart.com/sitemap.xml",
+    sitemap: "https://www.polygon.lk/sitemap.xml",
   };
 }

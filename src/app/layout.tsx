@@ -16,30 +16,29 @@ const geistMono = Geist_Mono({
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-const SITE_URL = "https://www.govimart.com";
-const SITE_NAME = "GoviMart";
+const SITE_URL = "https://www.polygon.lk";
+const SITE_NAME = "Polygon";
 const SITE_DESCRIPTION =
-  "GoviMart – Sri Lanka's #1 online fresh grocery store. Order farm-fresh vegetables, fruits, spices, cereals, pulses & mushrooms online. Build a custom cart, choose any quantity, and get fast doorstep delivery across Sri Lanka. 100% fresh. Order now!";
+  "Polygon – Sri Lanka's #1 online fresh grocery store. Order farm-fresh vegetables, fruits, spices, cereals, pulses & mushrooms online. Build a custom cart, choose any quantity, and get fast doorstep delivery across Sri Lanka. 100% fresh. Order now!";
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
 
   title: {
-    default:
-      "Polygon",
-    template: "%s | GoviMart Sri Lanka",
+    default: "Polygon",
+    template: "%s | Polygon Sri Lanka",
   },
 
   description: SITE_DESCRIPTION,
 
   keywords: [
     // ── Brand ───────────────────────────────────────────────────────────────
-    "GoviMart",
-    "Govimart.com",
-    "GoviMart Sri Lanka",
-    "GoviMart online grocery",
-    "GoviMart delivery",
+    "Polygon",
+    "Polygon.lk",
+    "Polygon Sri Lanka",
+    "Polygon online grocery",
+    "Polygon delivery",
 
     // ── Product / category ──────────────────────────────────────────────────
     "fresh vegetables online Sri Lanka",
@@ -111,8 +110,8 @@ export const metadata: Metadata = {
     "New Year vegetable delivery Sri Lanka",
   ],
 
-  authors: [{ name: "GoviMart", url: SITE_URL }],
-  creator: "GoviMart",
+  authors: [{ name: "Polygon", url: SITE_URL }],
+  creator: "Polygon",
   publisher: "Polygon Holdings (Pvt) Ltd",
   category: "Shopping",
 
@@ -125,15 +124,15 @@ export const metadata: Metadata = {
     url: SITE_URL,
     siteName: SITE_NAME,
     title:
-      "GoviMart | Fresh Vegetables, Fruits & Groceries – Home Delivery Sri Lanka",
+      "Polygon | Fresh Vegetables, Fruits & Groceries – Home Delivery Sri Lanka",
     description:
-      "Shop the freshest vegetables, fruits, spices, cereals, pulses & mushrooms online at GoviMart. Build your own custom grocery cart with any quantity and get reliable home delivery anywhere in Sri Lanka. Fresh from the farm to your door – every order, every time.",
+      "Shop the freshest vegetables, fruits, spices, cereals, pulses & mushrooms online at Polygon. Build your own custom grocery cart with any quantity and get reliable home delivery anywhere in Sri Lanka. Fresh from the farm to your door – every order, every time.",
     images: [
       {
         url: `${SITE_URL}/og-image.jpg`, // place a 1200×630px image at /public/og-image.jpg
         width: 1200,
         height: 630,
-        alt: "GoviMart – Fresh Vegetables, Fruits & Groceries Delivered to Your Door in Sri Lanka",
+        alt: "Polygon – Fresh Vegetables, Fruits & Groceries Delivered to Your Door in Sri Lanka",
         type: "image/jpeg",
       },
     ],
@@ -142,11 +141,11 @@ export const metadata: Metadata = {
   // ── Twitter / X card ─────────────────────────────────────────────────────
   twitter: {
     card: "summary_large_image",
-    site: "@govimart",
+    site: "@polygonlk",
     title:
-      "GoviMart | Fresh Vegetables & Fruits – Doorstep Delivery Sri Lanka",
+      "Polygon | Fresh Vegetables & Fruits – Doorstep Delivery Sri Lanka",
     description:
-      "Sri Lanka's freshest online grocery store. Custom cart, any quantity — vegetables, fruits, spices, cereals & mushrooms delivered to your door. Order at GoviMart today!",
+      "Sri Lanka's freshest online grocery store. Custom cart, any quantity — vegetables, fruits, spices, cereals & mushrooms delivered to your door. Order at Polygon today!",
     images: [`${SITE_URL}/og-image.jpg`],
   },
 
@@ -199,7 +198,7 @@ export default function RootLayout({
       <head>
         {/* ── JSON-LD: Organization ─────────────────────────────────────────
             Powers Google's Knowledge Panel — the branded info box that
-            appears on the right side when someone searches "GoviMart".      */}
+            appears on the right side when someone searches "Polygon".      */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -207,7 +206,7 @@ export default function RootLayout({
               "@context": "https://schema.org",
               "@type": "Organization",
               "@id": `${SITE_URL}/#organization`,
-              name: "GoviMart",
+              name: "Polygon",
               legalName: "Polygon Holdings (Pvt) Ltd",
               url: SITE_URL,
               logo: {
@@ -233,8 +232,8 @@ export default function RootLayout({
                 availableLanguage: ["English", "Sinhala", "Tamil"],
               },
               sameAs: [
-                "https://www.facebook.com/p/Govimart-61582676188251/",
-                "https://www.instagram.com/govimart/",
+                "https://www.facebook.com/p/Polygon-61582676188251/",
+                "https://www.instagram.com/polygon.lk/",
               ],
             }),
           }}
@@ -247,7 +246,7 @@ export default function RootLayout({
               "@type": "WebSite",
               "@id": `${SITE_URL}/#website`,
               url: SITE_URL,
-              name: "GoviMart",
+              name: "Polygon",
               description: SITE_DESCRIPTION,
               publisher: { "@id": `${SITE_URL}/#organization` },
               potentialAction: {
@@ -270,7 +269,7 @@ export default function RootLayout({
               "@context": "https://schema.org",
               "@type": "GroceryStore",
               "@id": `${SITE_URL}/#store`,
-              name: "GoviMart",
+              name: "Polygon",
               image: `${SITE_URL}/og-image.jpg`,
               url: SITE_URL,
               telephone: "+94770111999",
@@ -279,7 +278,7 @@ export default function RootLayout({
               paymentAccepted:
                 "Cash, Credit Card, Debit Card, Visa, Mastercard",
               description:
-                "GoviMart is Sri Lanka's premier online fresh produce marketplace. Order fresh vegetables, fruits, spices, cereals, pulses, and mushrooms online with fast doorstep delivery island-wide.",
+                "Polygon is Sri Lanka's premier online fresh produce marketplace. Order fresh vegetables, fruits, spices, cereals, pulses, and mushrooms online with fast doorstep delivery island-wide.",
               address: {
                 "@type": "PostalAddress",
                 streetAddress: "No. 46/42, Nawam Mawatha",
