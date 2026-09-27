@@ -1,7 +1,7 @@
 // app/sitemap.ts
 import { MetadataRoute } from "next";
 
-const BASE_URL = "https://www.govimart.com";
+const BASE_URL = "https://www.polygon.lk";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date().toISOString();

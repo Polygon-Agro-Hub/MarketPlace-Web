@@ -880,7 +880,7 @@ const Page: React.FC = () => {
                 </div>
               </>
             )}
-            {!showCashOption && !(creditBalance >= displayValues.grandTotal) && (
+            {!showCashOption && !isFullyCoveredByCredit && (
               <div className=" pb-4 mt-4">
                 <div className="flex items-start gap-2 bg-[#F5F8FD] border border-[#E1E8F8] rounded-lg p-3 text-sm text-[#41519E]">
                   <svg className="w-4 h-4 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none">
