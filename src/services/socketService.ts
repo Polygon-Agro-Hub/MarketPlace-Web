@@ -1,6 +1,4 @@
 import { io, Socket } from "socket.io-client";
-import { environment } from "@/environment/environment";
-
 type CatalogListener = (data?: any) => void;
  
 class SocketService {
@@ -10,7 +8,7 @@ class SocketService {
   connect() {
     if (this.socket) return this.socket;
  
-    this.socket = io(environment.SOCKET_URL, {
+    this.socket = io(process.env.NEXT_PUBLIC_SOCKET_URL, {
       transports: ["websocket"],
       autoConnect: true,
     });

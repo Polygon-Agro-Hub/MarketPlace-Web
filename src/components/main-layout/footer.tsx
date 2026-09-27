@@ -66,29 +66,7 @@ function DesktopFooter() {
               <div>
                 <p className="text-[#8492A3]">Registered Office :</p>
                 <p className="text-sm text-[#8492A3]">
-                  No. 14, Sir Baron Jayathilaka Mawatha, Colombo 01.
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start mb-5">
-              <div className="text-[#8492A3] mr-2 mt-1">
-                <svg
-                  className="w-5 h-5"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
-                    clipRule="evenodd"
-                  ></path>
-                </svg>
-              </div>
-              <div>
-                <p className="text-[#8492A3]">Cooperate Office :</p>
-                <p className="text-sm text-[#8492A3]">
-                  No. 46/42, Nawam Mawatha, Colombo 02.
+                  Level 2, Building 2 No. 46/42, Nawam Mawatha, Colombo 02.
                 </p>
               </div>
             </div>
@@ -103,7 +81,7 @@ function DesktopFooter() {
                   <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"></path>
                 </svg>
               </div>
-              <p className="text-sm text-[#8492A3]">+94 770111999</p>
+              <p className="text-sm text-[#8492A3]">011 431 3433</p>
             </div>
           </div>
         </div>
@@ -278,25 +256,7 @@ function MobileFooter() {
           <div>
             <p className="text-[#8492A3] text-sm">Registered Office :</p>
             <p className="text-xs text-[#8492A3]">
-              No. 14, Sir Baron Jayathilaka Mawatha, Colombo 01.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-start w-full max-w-xs">
-          <div className="text-[#8492A3] mr-2 mt-0.5 flex-shrink-0">
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-              <path
-                fillRule="evenodd"
-                d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </div>
-          <div>
-            <p className="text-[#8492A3] text-sm">Cooperate Office :</p>
-            <p className="text-xs text-[#8492A3]">
-              No. 46/42, Nawam Mawatha, Colombo 02.
+              Level 2, Building 2 No. 46/42, Nawam Mawatha, Colombo 02.
             </p>
           </div>
         </div>
@@ -307,7 +267,7 @@ function MobileFooter() {
               <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
             </svg>
           </div>
-          <p className="text-xs text-[#8492A3]">+94 77 1666 800</p>
+          <p className="text-xs text-[#8492A3]">011 431 3433</p>
         </div>
       </div>
 
