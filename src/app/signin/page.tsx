@@ -1,14 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Head from "next/head";
-import {
-  GoogleLoginButton,
-  FacebookLoginButton,
-} from "react-social-login-buttons";
-import { getCartInfo, login } from "@/services/auth-service";
+import { login } from "@/services/auth-service";
 import { useRouter } from "next/navigation";
-import Swal from "sweetalert2";
 import { useDispatch } from "react-redux";
 import { setCredentials } from "@/store/slices/authSlice";
 import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
@@ -52,7 +46,7 @@ const Page = () => {
     let valid = true;
 
     if (!email.trim()) {
-      setEmailError("Email is required");
+      setEmailError("Email / Mobile Number is required");
       valid = false;
     } else {
       const emailInput = email.trim();
@@ -65,16 +59,25 @@ const Page = () => {
         } else {
           setEmailError("");
         }
-      } else if (emailInput.startsWith("+")) {
+      } else if (emailInput.startsWith("+94")) {
         if (!/^\+947\d{8}$/.test(emailInput)) {
           setEmailError("Enter the number in +947XXXXXXXX");
           valid = false;
         } else {
           setEmailError("");
         }
+      } else if (emailInput.startsWith("+")) {
+        // Overseas number: general E.164-style check (+ and 8-15 digits),
+        // not the strict Sri Lankan mobile format.
+        if (!/^\+\d{8,15}$/.test(emailInput)) {
+          setEmailError("Enter a valid phone number with country code");
+          valid = false;
+        } else {
+          setEmailError("");
+        }
       } else {
         setEmailError(
-          "Enter a valid email address or phone number in +947XXXXXXXX format",
+          "Enter a valid email address or phone number",
         );
         valid = false;
       }
@@ -178,7 +181,7 @@ const Page = () => {
   return (
     <div className="flex lg:bg-gray-100 justify-center items-center w-full min-h-screen lg:py-10 lg:px-2">
       <div className="flex w-full lg:max-w-7xl">
-        <div className="flex min-w-full mx-auto lg:shadow-lg rounded-lg bg-white overflow-auto">
+       <div className="flex min-w-full mx-auto lg:shadow-lg rounded-lg bg-white overflow-auto lg:min-h-[800px]">
           <SuccessPopup
             isVisible={showSuccessPopup}
             onClose={() => setShowSuccessPopup(false)}
@@ -218,14 +221,14 @@ const Page = () => {
               <button
                 onClick={() => setUserType("Retail")}
                 className={`flex-1 px-2 sm:px-4 py-2 border rounded-md flex items-center justify-start space-x-1 sm:space-x-2 text-xs sm:text-sm cursor-pointer ${userType === "Retail"
-                    ? "bg-purple-100 text-purple-800 border-purple-500"
-                    : "bg-white text-gray-800 border-gray-300"
+                  ? "bg-purple-100 text-purple-800 border-purple-500"
+                  : "bg-white text-gray-800 border-gray-300"
                   }`}
               >
                 <span
                   className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${userType === "Retail"
-                      ? "border-purple-800"
-                      : "border-gray-400"
+                    ? "border-purple-800"
+                    : "border-gray-400"
                     }`}
                 >
                   {userType === "Retail" && (
@@ -240,14 +243,14 @@ const Page = () => {
               <button
                 onClick={() => setUserType("Wholesale")}
                 className={`flex-1 px-2 sm:px-4 py-2 border rounded-md flex items-center justify-start space-x-1 sm:space-x-2 text-xs sm:text-sm cursor-pointer ${userType === "Wholesale"
-                    ? "bg-purple-100 text-purple-800 border-purple-500"
-                    : "bg-white text-gray-800 border-gray-300"
+                  ? "bg-purple-100 text-purple-800 border-purple-500"
+                  : "bg-white text-gray-800 border-gray-300"
                   }`}
               >
                 <span
                   className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${userType === "Wholesale"
-                      ? "border-purple-800"
-                      : "border-gray-400"
+                    ? "border-purple-800"
+                    : "border-gray-400"
                     }`}
                 >
                   {userType === "Wholesale" && (
@@ -276,7 +279,7 @@ const Page = () => {
                 <input
                   type="text"
                   name="email"
-                  placeholder="Email / Phone Number (e.g. +947XXXXXXXX)"
+                  placeholder="Email / Mobile Number"
                   className={`w-full px-10 py-2 border rounded-md text-xs sm:text-base ${emailError ? "border-red-500" : "border-gray-300"
                     }`}
                   value={email}
@@ -394,7 +397,7 @@ const Page = () => {
               src={LoginImg}
               alt="MyFarm Registration"
               fill
-              className="object-cover"
+              className="object-cover object-top"
               priority
             />
           </div>

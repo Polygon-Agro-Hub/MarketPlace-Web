@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { useSearchParams, useRouter, useParams } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { resetPassword, validateResetToken } from "@/services/auth-service";
 import wrongImg from "../../../../public/images/wrong.png";
 import resetImg from "../../../../public/images/resetPasswordImg.png";
@@ -219,13 +219,17 @@ const Page = () => {
               </div>
 
               <div className="mb-4 relative">
-                <input
-                  type={showConfirmPassword ? "text" : "password"}
-                  placeholder="Re-enter New Password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 text-sm sm:text-base"
-                />
+            <input
+              type={showConfirmPassword ? "text" : "password"}
+              placeholder="Re-enter New Password"
+              value={confirmPassword}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (/\s/.test(value)) return;
+                setConfirmPassword(value);
+              }}
+              className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 text-sm sm:text-base"
+            />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}

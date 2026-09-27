@@ -25,8 +25,8 @@ export const getAllProduct = async (search?: string): Promise<any> => {
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          `Failed to fetch products with status ${error.response.status}`,
+        error.response.data?.error ||
+        `Failed to fetch products with status ${error.response.status}`,
       );
     } else if (error.request) {
       throw new Error(
@@ -59,8 +59,8 @@ export const getPackageDetails = async (packageId: number): Promise<any> => {
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          `Failed with status ${error.response.status}`,
+        error.response.data?.error ||
+        `Failed with status ${error.response.status}`,
       );
     } else if (error.request) {
       throw new Error("No response received from server");
@@ -97,8 +97,8 @@ export const packageAddToCart = async (
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          `Failed with status ${error.response.status}`,
+        error.response.data?.error ||
+        `Failed with status ${error.response.status}`,
       );
     } else if (error.request) {
       throw new Error("No response received from server");
@@ -111,6 +111,7 @@ export const packageAddToCart = async (
 export const getProductsByCategory = async (
   category: string,
   search?: string,
+  token?: string,
 ): Promise<any> => {
   try {
     const params: { category: string; search?: string } = { category };
@@ -122,6 +123,7 @@ export const getProductsByCategory = async (
       params,
       headers: {
         "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
     });
 
@@ -138,8 +140,8 @@ export const getProductsByCategory = async (
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          `Failed to fetch category products with status ${error.response.status}`,
+        error.response.data?.error ||
+        `Failed to fetch category products with status ${error.response.status}`,
       );
     } else if (error.request) {
       throw new Error(
@@ -172,8 +174,8 @@ export const getCategoryCounts = async (): Promise<any> => {
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          `Failed with status ${error.response.status}`,
+        error.response.data?.error ||
+        `Failed with status ${error.response.status}`,
       );
     } else if (error.request) {
       throw new Error("No response received from server");
@@ -211,7 +213,6 @@ export const productAddToCart = async (
     throw new Error(response.data?.message || "Failed to add product to cart");
   } catch (error: any) {
     if (error.response) {
-      // Handle specific error cases
       if (
         error.response.status === 200 &&
         error.response.data.status === false
@@ -223,8 +224,8 @@ export const productAddToCart = async (
       }
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          "Failed to add product to cart",
+        error.response.data?.error ||
+        "Failed to add product to cart",
       );
     } else if (error.request) {
       throw new Error("No response from server. Please try again.");
@@ -234,25 +235,25 @@ export const productAddToCart = async (
   }
 };
 
-export const checkProductInCart = async (productId: number, token: string) => {
-  try {
-    const response = await axios.post(
-      "/product/check-product",
-      { mpItemId: productId },
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      },
-    );
+// export const checkProductInCart = async (productId: number, token: string) => {
+//   try {
+//     const response = await axios.post(
+//       "/product/check-product",
+//       { mpItemId: productId },
+//       {
+//         headers: {
+//           "Content-Type": "application/json",
+//           Authorization: `Bearer ${token}`,
+//         },
+//       },
+//     );
 
-    return response.data;
-  } catch (error) {
-    console.error("Error checking product in cart:", error);
-    throw error;
-  }
-};
+//     return response.data;
+//   } catch (error) {
+//     console.error("Error checking product in cart:", error);
+//     throw error;
+//   }
+// };
 
 export const getRetaildBanners = async (): Promise<any> => {
   try {
@@ -273,8 +274,8 @@ export const getRetaildBanners = async (): Promise<any> => {
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          `Failed with status ${error.response.status}`,
+        error.response.data?.error ||
+        `Failed with status ${error.response.status}`,
       );
     } else if (error.request) {
       throw new Error("No response received from server");
@@ -328,11 +329,10 @@ export interface ProductCartData {
   quantity: number;
 }
 
-//whole sale api calls
-
 export const getProductsByCategoryWholesale = async (
   category: string,
   search?: string,
+  token?: string,
 ): Promise<any> => {
   try {
     const params: { category: string; search?: string } = { category };
@@ -344,6 +344,7 @@ export const getProductsByCategoryWholesale = async (
       params,
       headers: {
         "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
     });
 
@@ -352,7 +353,7 @@ export const getProductsByCategoryWholesale = async (
     } else {
       throw new Error(
         response.data?.message ||
-          "Failed to fetch wholesale products by category",
+        "Failed to fetch wholesale products by category",
       );
     }
   } catch (error: any) {
@@ -361,8 +362,8 @@ export const getProductsByCategoryWholesale = async (
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          `Failed to fetch wholesale products with status ${error.response.status}`,
+        error.response.data?.error ||
+        `Failed to fetch wholesale products with status ${error.response.status}`,
       );
     } else if (error.request) {
       throw new Error(
@@ -371,7 +372,7 @@ export const getProductsByCategoryWholesale = async (
     } else {
       throw new Error(
         error.message ||
-          "An error occurred while fetching wholesale products by category",
+        "An error occurred while fetching wholesale products by category",
       );
     }
   }
@@ -396,8 +397,8 @@ export const getCategoryCountsWholesale = async (): Promise<any> => {
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          `Failed with status ${error.response.status}`,
+        error.response.data?.error ||
+        `Failed with status ${error.response.status}`,
       );
     } else if (error.request) {
       throw new Error("No response received from server");
@@ -431,15 +432,15 @@ export const getMarketplaceSuggestions = async (
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          `Failed with status ${error.response.status}`,
+        error.response.data?.error ||
+        `Failed with status ${error.response.status}`,
       );
     } else if (error.request) {
       throw new Error("No response received from server");
     } else {
       throw new Error(
         error.message ||
-          "An error occurred while fetching marketplace suggestions",
+        "An error occurred while fetching marketplace suggestions",
       );
     }
   }
@@ -477,8 +478,8 @@ export async function excludeItems(
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          `Failed with status ${error.response.status}`,
+        error.response.data?.error ||
+        `Failed with status ${error.response.status}`,
       );
     } else if (error.request) {
       throw new Error("No response received from server");
@@ -516,8 +517,8 @@ export async function getExcludedItems(
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          `Failed with status ${error.response.status}`,
+        error.response.data?.error ||
+        `Failed with status ${error.response.status}`,
       );
     } else if (error.request) {
       throw new Error("No response received from server");
@@ -553,8 +554,8 @@ export async function deleteExcludedItems(items: string[], authToken: string) {
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          `Failed with status ${error.response.status}`,
+        error.response.data?.error ||
+        `Failed with status ${error.response.status}`,
       );
     } else if (error.request) {
       throw new Error("No response received from server");
@@ -626,15 +627,15 @@ export const getMarketplaceSuggestionsProfile = async (
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          `Failed with status ${error.response.status}`,
+        error.response.data?.error ||
+        `Failed with status ${error.response.status}`,
       );
     } else if (error.request) {
       throw new Error("No response received from server");
     } else {
       throw new Error(
         error.message ||
-          "An error occurred while fetching marketplace suggestions",
+        "An error occurred while fetching marketplace suggestions",
       );
     }
   }
@@ -666,15 +667,15 @@ export const searchProductsAndPackages = async (
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          `Failed with status ${error.response.status}`,
+        error.response.data?.error ||
+        `Failed with status ${error.response.status}`,
       );
     } else if (error.request) {
       throw new Error("No response received from server");
     } else {
       throw new Error(
         error.message ||
-          "An error occurred while searching products and packages",
+        "An error occurred while searching products and packages",
       );
     }
   }
@@ -713,8 +714,8 @@ export async function getIncludedItems(
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          `Failed with status ${error.response.status}`,
+        error.response.data?.error ||
+        `Failed with status ${error.response.status}`,
       );
     } else if (error.request) {
       throw new Error("No response received from server");
@@ -750,8 +751,8 @@ export async function addIncludedItems(
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          `Failed with status ${error.response.status}`,
+        error.response.data?.error ||
+        `Failed with status ${error.response.status}`,
       );
     } else if (error.request) {
       throw new Error("No response received from server");
@@ -789,8 +790,8 @@ export async function deleteIncludedItems(
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          `Failed with status ${error.response.status}`,
+        error.response.data?.error ||
+        `Failed with status ${error.response.status}`,
       );
     } else if (error.request) {
       throw new Error("No response received from server");

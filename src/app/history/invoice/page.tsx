@@ -4,7 +4,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
 import { useRouter, useSearchParams } from "next/navigation";
-import { getInvoice, getOrderDetails } from "@/services/retail-order-service";
+import { getInvoice } from "@/services/retail-order-service";
 import pdfMake from "pdfmake/build/pdfmake";
 import pdfFonts from "pdfmake/build/vfs_fonts";
 pdfMake.vfs = (pdfFonts as any).vfs;
@@ -263,7 +263,7 @@ function getPaymentStatusInfo(
   let showDeliveryNote = false;
 
   const isPaid = Number(invoice.isPaid) === 1;
-  const isCardPayment = invoice.paymentMethod === "Card"; 
+  const isCardPayment = invoice.paymentMethod === "Card";
   const creditPaidNum = parseAmount(invoice.creditPaid);
   const hasCreditPaid =
     invoice.creditPaid !== null &&
@@ -348,7 +348,6 @@ function InvoiceView({
     return `Rs. ${numValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   }
 
-  // Update the parseCurrency function to work with the new formatter
   function parseCurrency(value: string): number {
     if (value === "Rs. NaN" || !value) return 0;
     return parseFloat(value.replace("Rs. ", "").replace(/,/g, "")) || 0;
@@ -417,74 +416,74 @@ function InvoiceView({
         {/* Row 2: Address + Payment Method */}
         {(!invoice.deliveryMethod?.toLowerCase().includes("pickup") ||
           true) && (
-          <div className="mb-4 grid grid-cols-1 gap-3 lg:grid-cols-[1.15fr_0.85fr] lg:gap-10">
-            <div>
-              {!invoice.deliveryMethod?.toLowerCase().includes("pickup") && (
-                <div className="space-y-1">
-                  {invoice.billingInfo.buildingType === "House" ? (
-                    <>
-                      <p className="font-bold">House Address :</p>
-                      <p>
-                        <span style={{ color: "#929292" }}>House No :</span>{" "}
-                        {invoice.billingInfo.houseNo},
-                      </p>
-                      <p>
-                        <span style={{ color: "#929292" }}>Street Name :</span>{" "}
-                        {invoice.billingInfo.street},
-                      </p>
-                      <p>
-                        <span style={{ color: "#929292" }}>City :</span>{" "}
-                        {invoice.billingInfo.city}
-                      </p>
-                    </>
-                  ) : invoice.billingInfo.buildingType === "Apartment" ? (
-                    <>
-                      <p className="font-bold">Apartment Address :</p>
-                      <p>
-                        <span style={{ color: "#929292" }}>No :</span>{" "}
-                        {invoice.billingInfo.buildingNo || "N/A"},
-                      </p>
-                      <p>
-                        <span style={{ color: "#929292" }}>Name :</span>{" "}
-                        {invoice.billingInfo.apartmentName || "N/A"},
-                      </p>
-                      <p>
-                        <span style={{ color: "#929292" }}>Flat :</span>{" "}
-                        {invoice.billingInfo.flatNo || "N/A"},
-                      </p>
-                      <p>
-                        <span style={{ color: "#929292" }}>Floor :</span>{" "}
-                        {invoice.billingInfo.floorNo || "N/A"},
-                      </p>
-                      <p>
-                        <span style={{ color: "#929292" }}>House No :</span>{" "}
-                        {invoice.billingInfo.houseNo},
-                      </p>
-                      <p>
-                        <span style={{ color: "#929292" }}>Street Name :</span>{" "}
-                        {invoice.billingInfo.street}
-                      </p>
-                      <p>
-                        <span style={{ color: "#929292" }}>City :</span>{" "}
-                        {invoice.billingInfo.city}
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <p>{`No. ${invoice.billingInfo.houseNo}`}</p>
-                      <p>{invoice.billingInfo.street}</p>
-                      <p>{invoice.billingInfo.city}</p>
-                    </>
-                  )}
-                </div>
-              )}
+            <div className="mb-4 grid grid-cols-1 gap-3 lg:grid-cols-[1.15fr_0.85fr] lg:gap-10">
+              <div>
+                {!invoice.deliveryMethod?.toLowerCase().includes("pickup") && (
+                  <div className="space-y-1">
+                    {invoice.billingInfo.buildingType === "House" ? (
+                      <>
+                        <p className="font-bold">House Address :</p>
+                        <p>
+                          <span style={{ color: "#929292" }}>House No :</span>{" "}
+                          {invoice.billingInfo.houseNo},
+                        </p>
+                        <p>
+                          <span style={{ color: "#929292" }}>Street Name :</span>{" "}
+                          {invoice.billingInfo.street},
+                        </p>
+                        <p>
+                          <span style={{ color: "#929292" }}>City :</span>{" "}
+                          {invoice.billingInfo.city}
+                        </p>
+                      </>
+                    ) : invoice.billingInfo.buildingType === "Apartment" ? (
+                      <>
+                        <p className="font-bold">Apartment Address :</p>
+                        <p>
+                          <span style={{ color: "#929292" }}>No :</span>{" "}
+                          {invoice.billingInfo.buildingNo || "N/A"},
+                        </p>
+                        <p>
+                          <span style={{ color: "#929292" }}>Name :</span>{" "}
+                          {invoice.billingInfo.apartmentName || "N/A"},
+                        </p>
+                        <p>
+                          <span style={{ color: "#929292" }}>Flat :</span>{" "}
+                          {invoice.billingInfo.flatNo || "N/A"},
+                        </p>
+                        <p>
+                          <span style={{ color: "#929292" }}>Floor :</span>{" "}
+                          {invoice.billingInfo.floorNo || "N/A"},
+                        </p>
+                        <p>
+                          <span style={{ color: "#929292" }}>House No :</span>{" "}
+                          {invoice.billingInfo.houseNo},
+                        </p>
+                        <p>
+                          <span style={{ color: "#929292" }}>Street Name :</span>{" "}
+                          {invoice.billingInfo.street}
+                        </p>
+                        <p>
+                          <span style={{ color: "#929292" }}>City :</span>{" "}
+                          {invoice.billingInfo.city}
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p>{`No. ${invoice.billingInfo.houseNo}`}</p>
+                        <p>{invoice.billingInfo.street}</p>
+                        <p>{invoice.billingInfo.city}</p>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+              <div className="lg:pl-12">
+                <p className="font-bold">Payment Method:</p>
+                <p>{paymentTypeLabel}</p>
+              </div>
             </div>
-            <div className="lg:pl-12">
-              <p className="font-bold">Payment Method:</p>
-              <p>{paymentTypeLabel}</p>
-            </div>
-          </div>
-        )}
+          )}
 
         {/* Row 3: Invoice No + Ordered Date */}
         <div className="mb-4 grid grid-cols-1 gap-3 lg:grid-cols-[1.15fr_0.85fr] lg:gap-10">
@@ -569,7 +568,7 @@ function InvoiceView({
                       </thead>
                       <tbody>
                         {pack.packageDetails &&
-                        pack.packageDetails.length > 0 ? (
+                          pack.packageDetails.length > 0 ? (
                           pack.packageDetails.map((detail, index) => (
                             <tr
                               key={index}
@@ -757,20 +756,18 @@ function InvoiceView({
                       {paymentStatusRows.map((row, idx) => (
                         <tr key={idx}>
                           <td
-                            className={`p-2 font-bold ${
-                              row.status === "paid"
+                            className={`p-2 font-bold ${row.status === "paid"
                                 ? "text-green-600"
                                 : "text-amber-600"
-                            }`}
+                              }`}
                           >
                             {row.label}
                           </td>
                           <td
-                            className={`p-2 text-right font-bold ${
-                              row.status === "paid"
+                            className={`p-2 text-right font-bold ${row.status === "paid"
                                 ? "text-green-600"
                                 : "text-amber-600"
-                            }`}
+                              }`}
                           >
                             {formatCurrencyWithCommas(row.amount)}
                           </td>
@@ -963,101 +960,17 @@ function InvoicePageContent() {
     const familyPackSections =
       invoice.familyPackItems && invoice.familyPackItems.length > 0
         ? invoice.familyPackItems
-            .map((pack) => [
-              {
-                columns: [
-                  {
-                    text: `${pack.name} (${formatItemCount(pack.packageDetails?.reduce((sum, detail) => sum + (detail.qty || 0), 0) || 0)})`,
-                    bold: true,
-                    fontSize: 9,
-                    margin: [0, 8, 0, 4],
-                  },
-                  {
-                    text: formatCurrencyForPDF(pack.amount),
-                    bold: true,
-                    fontSize: 9,
-                    alignment: "right",
-                    margin: [0, 8, 0, 4],
-                  },
-                ],
-              },
-              {
-                canvas: [
-                  {
-                    type: "line",
-                    x1: 0,
-                    y1: 0,
-                    x2: 545,
-                    y2: 0,
-                    lineWidth: 0.5,
-                    lineColor: "#D7D7D7",
-                  },
-                ],
-                margin: [0, 4, 0, 4],
-              },
-              {
-                table: {
-                  widths: ["10%", "70%", "20%"],
-                  body: [
-                    [
-                      {
-                        text: "Index",
-                        style: "tableHeader",
-                        fillColor: "#F8F8F8",
-                      },
-                      {
-                        text: "Item Description",
-                        style: "tableHeader",
-                        fillColor: "#F8F8F8",
-                      },
-                      {
-                        text: "QTY",
-                        style: "tableHeader",
-                        fillColor: "#F8F8F8",
-                      },
-                    ],
-                    ...(pack.packageDetails?.map((detail, i) => [
-                      `${i + 1}.`,
-                      detail.typeName,
-                      detail.qty,
-                    ]) || []),
-                  ],
-                },
-                margin: [0, 4, 0, 4],
-                layout: {
-                  fillColor: (row: number) => (row === 0 ? "#F8F8F8" : null),
-                  hLineWidth: (i: number, node: any) => {
-                    return i === 0 || i === node.table.body.length ? 0.5 : 0;
-                  },
-                  vLineWidth: (i: number, node: any) => {
-                    return i === 0 || i === node.table.widths.length ? 0.5 : 0;
-                  },
-                  hLineColor: () => "#D1D5DB",
-                  vLineColor: () => "#D1D5DB",
-                  paddingLeft: () => 6,
-                  paddingRight: () => 6,
-                  paddingTop: () => 8,
-                  paddingBottom: () => 8,
-                },
-              },
-            ])
-            .flat()
-        : [];
-
-    // Additional Items Section - only include if additionalItems exist
-    const additionalItemsSection =
-      invoice.additionalItems && invoice.additionalItems.length > 0
-        ? [
+          .map((pack) => [
             {
               columns: [
                 {
-                  text: `${buyerType === "Wholesale" ? "Selected Items" : "Additional Items"} (${formatItemCount(invoice.additionalItems.length)})`,
+                  text: `${pack.name} (${formatItemCount(pack.packageDetails?.reduce((sum, detail) => sum + (detail.qty || 0), 0) || 0)})`,
                   bold: true,
                   fontSize: 9,
                   margin: [0, 8, 0, 4],
                 },
                 {
-                  text: formatCurrencyForPDF(invoice.additionalItemsTotal),
+                  text: formatCurrencyForPDF(pack.amount),
                   bold: true,
                   fontSize: 9,
                   alignment: "right",
@@ -1081,38 +994,30 @@ function InvoicePageContent() {
             },
             {
               table: {
-                widths: ["10%", "40%", "20%", "15%", "15%"],
+                widths: ["10%", "70%", "20%"],
                 body: [
                   [
                     {
                       text: "Index",
                       style: "tableHeader",
-                      fillColor: "#F3F4F6",
+                      fillColor: "#F8F8F8",
                     },
                     {
                       text: "Item Description",
                       style: "tableHeader",
-                      fillColor: "#F3F4F6",
+                      fillColor: "#F8F8F8",
                     },
                     {
-                      text: "Unit Price (Rs.)",
+                      text: "QTY",
                       style: "tableHeader",
-                      fillColor: "#F3F4F6",
-                    },
-                    { text: "QTY", style: "tableHeader", fillColor: "#F3F4F6" },
-                    {
-                      text: "Amount (Rs.)",
-                      style: "tableHeader",
-                      fillColor: "#F3F4F6",
+                      fillColor: "#F8F8F8",
                     },
                   ],
-                  ...invoice.additionalItems.map((it, i) => [
+                  ...(pack.packageDetails?.map((detail, i) => [
                     `${i + 1}.`,
-                    it.name,
-                    formatCurrencyForPDF(it.unitPrice), // Updated to use comma formatting
-                    formatQuantity(it.quantity, it.unit),
-                    formatCurrencyForPDF(it.amount), // Updated to use comma formatting
-                  ]),
+                    detail.typeName,
+                    detail.qty,
+                  ]) || []),
                 ],
               },
               margin: [0, 4, 0, 4],
@@ -1132,7 +1037,99 @@ function InvoicePageContent() {
                 paddingBottom: () => 8,
               },
             },
-          ]
+          ])
+          .flat()
+        : [];
+
+    // Additional Items Section - only include if additionalItems exist
+    const additionalItemsSection =
+      invoice.additionalItems && invoice.additionalItems.length > 0
+        ? [
+          {
+            columns: [
+              {
+                text: `${buyerType === "Wholesale" ? "Selected Items" : "Additional Items"} (${formatItemCount(invoice.additionalItems.length)})`,
+                bold: true,
+                fontSize: 9,
+                margin: [0, 8, 0, 4],
+              },
+              {
+                text: formatCurrencyForPDF(invoice.additionalItemsTotal),
+                bold: true,
+                fontSize: 9,
+                alignment: "right",
+                margin: [0, 8, 0, 4],
+              },
+            ],
+          },
+          {
+            canvas: [
+              {
+                type: "line",
+                x1: 0,
+                y1: 0,
+                x2: 545,
+                y2: 0,
+                lineWidth: 0.5,
+                lineColor: "#D7D7D7",
+              },
+            ],
+            margin: [0, 4, 0, 4],
+          },
+          {
+            table: {
+              widths: ["10%", "40%", "20%", "15%", "15%"],
+              body: [
+                [
+                  {
+                    text: "Index",
+                    style: "tableHeader",
+                    fillColor: "#F3F4F6",
+                  },
+                  {
+                    text: "Item Description",
+                    style: "tableHeader",
+                    fillColor: "#F3F4F6",
+                  },
+                  {
+                    text: "Unit Price (Rs.)",
+                    style: "tableHeader",
+                    fillColor: "#F3F4F6",
+                  },
+                  { text: "QTY", style: "tableHeader", fillColor: "#F3F4F6" },
+                  {
+                    text: "Amount (Rs.)",
+                    style: "tableHeader",
+                    fillColor: "#F3F4F6",
+                  },
+                ],
+                ...invoice.additionalItems.map((it, i) => [
+                  `${i + 1}.`,
+                  it.name,
+                  formatCurrencyForPDF(it.unitPrice), // Updated to use comma formatting
+                  formatQuantity(it.quantity, it.unit),
+                  formatCurrencyForPDF(it.amount), // Updated to use comma formatting
+                ]),
+              ],
+            },
+            margin: [0, 4, 0, 4],
+            layout: {
+              fillColor: (row: number) => (row === 0 ? "#F8F8F8" : null),
+              hLineWidth: (i: number, node: any) => {
+                return i === 0 || i === node.table.body.length ? 0.5 : 0;
+              },
+              vLineWidth: (i: number, node: any) => {
+                return i === 0 || i === node.table.widths.length ? 0.5 : 0;
+              },
+              hLineColor: () => "#D1D5DB",
+              vLineColor: () => "#D1D5DB",
+              paddingLeft: () => 6,
+              paddingRight: () => 6,
+              paddingTop: () => 8,
+              paddingBottom: () => 8,
+            },
+          },
+        ]
         : [];
 
     const grandTotalRows = [];
@@ -1568,28 +1565,28 @@ function InvoicePageContent() {
 
         ...(showDeliveryNote
           ? [
-              {
-                columns: [
-                  {
-                    width: 10,
-                    svg: `<svg width="10" height="10" viewBox="0 0 12 12">
+            {
+              columns: [
+                {
+                  width: 10,
+                  svg: `<svg width="10" height="10" viewBox="0 0 12 12">
             <circle cx="6" cy="6" r="6" fill="#1a1a1a"/>
             <text x="6" y="8.7" font-size="8" font-family="Helvetica" 
                   fill="white" text-anchor="middle">i</text>
           </svg>`,
-                  },
-                  {
-                    width: "*",
-                    text: "The delivery charges might be different on the day of delivery. Your Grand Total might be changed then.",
-                    fontSize: 8,
-                    color: "#000000",
-                    italics: true,
-                  },
-                ],
-                columnGap: 3,
-                margin: [0, -4, 0, 10],
-              },
-            ]
+                },
+                {
+                  width: "*",
+                  text: "The delivery charges might be different on the day of delivery. Your Grand Total might be changed then.",
+                  fontSize: 8,
+                  color: "#000000",
+                  italics: true,
+                },
+              ],
+              columnGap: 3,
+              margin: [0, -4, 0, 10],
+            },
+          ]
           : []),
 
         // Remarks
@@ -1706,33 +1703,33 @@ function InvoicePageContent() {
 
           familyPackItems: Array.isArray(apiInvoice.familyPackItems)
             ? apiInvoice.familyPackItems.map((item: any) => ({
-                id: item.id ?? 0,
-                name: item.name || "Unknown",
-                unitPrice: parseCurrency(item.unitPrice),
-                quantity: item.quantity || "1",
-                unit: item.unit || "units",
-                amount: parseCurrency(item.amount),
-                packageDetails: Array.isArray(item.packageDetails)
-                  ? item.packageDetails.map((detail: any) => ({
-                      packageId: detail.packageId,
-                      productTypeId: detail.productTypeId,
-                      typeName: detail.typeName,
-                      qty: detail.qty,
-                    }))
-                  : [],
-              }))
+              id: item.id ?? 0,
+              name: item.name || "Unknown",
+              unitPrice: parseCurrency(item.unitPrice),
+              quantity: item.quantity || "1",
+              unit: item.unit || "units",
+              amount: parseCurrency(item.amount),
+              packageDetails: Array.isArray(item.packageDetails)
+                ? item.packageDetails.map((detail: any) => ({
+                  packageId: detail.packageId,
+                  productTypeId: detail.productTypeId,
+                  typeName: detail.typeName,
+                  qty: detail.qty,
+                }))
+                : [],
+            }))
             : [],
 
           additionalItems: Array.isArray(apiInvoice.additionalItems)
             ? apiInvoice.additionalItems.map((item: any) => ({
-                id: item.id ?? 0,
-                name: item.name || "Unknown",
-                unitPrice: parseCurrency(item.unitPrice),
-                quantity: item.quantity || "1",
-                unit: item.unit || "units",
-                amount: parseCurrency(item.amount),
-                image: item.image || undefined,
-              }))
+              id: item.id ?? 0,
+              name: item.name || "Unknown",
+              unitPrice: parseCurrency(item.unitPrice),
+              quantity: item.quantity || "1",
+              unit: item.unit || "units",
+              amount: parseCurrency(item.amount),
+              image: item.image || undefined,
+            }))
             : [],
 
           familyPackTotal: parseCurrency(apiInvoice.familyPackTotal),
@@ -1759,18 +1756,18 @@ function InvoicePageContent() {
 
           pickupInfo: apiInvoice.pickupInfo
             ? {
-                centerId: apiInvoice.pickupInfo.centerId ?? undefined,
-                centerName: apiInvoice.pickupInfo.centerName || "N/A",
-                contact01: apiInvoice.pickupInfo.contact01 || "N/A",
-                address: {
-                  street: apiInvoice.pickupInfo.address?.street || "N/A",
-                  city: apiInvoice.pickupInfo.address?.city || "N/A",
-                  district: apiInvoice.pickupInfo.address?.district || "N/A",
-                  province: apiInvoice.pickupInfo.address?.province || "N/A",
-                  country: apiInvoice.pickupInfo.address?.country || "N/A",
-                  zipCode: apiInvoice.pickupInfo.address?.zipCode || "N/A",
-                },
-              }
+              centerId: apiInvoice.pickupInfo.centerId ?? undefined,
+              centerName: apiInvoice.pickupInfo.centerName || "N/A",
+              contact01: apiInvoice.pickupInfo.contact01 || "N/A",
+              address: {
+                street: apiInvoice.pickupInfo.address?.street || "N/A",
+                city: apiInvoice.pickupInfo.address?.city || "N/A",
+                district: apiInvoice.pickupInfo.address?.district || "N/A",
+                province: apiInvoice.pickupInfo.address?.province || "N/A",
+                country: apiInvoice.pickupInfo.address?.country || "N/A",
+                zipCode: apiInvoice.pickupInfo.address?.zipCode || "N/A",
+              },
+            }
             : undefined,
         };
 

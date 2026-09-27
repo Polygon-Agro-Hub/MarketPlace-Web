@@ -3,8 +3,8 @@ import { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "GoviMart – Fresh Groceries Sri Lanka",
-    short_name: "GoviMart",
+    name: "Polygon – Fresh Groceries Sri Lanka",
+    short_name: "Polygon",
     description:
       "Sri Lanka's #1 online fresh grocery store. Order farm-fresh vegetables, fruits, spices, cereals, pulses & mushrooms with fast doorstep delivery island-wide.",
     start_url: "/",

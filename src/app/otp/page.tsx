@@ -3,8 +3,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { verifyOTP, sendOTP } from '@/services/auth-service';
-import CorrectImg from '../../../public/images/correct.png'
-import WrongImg from '../../../public/images/wrong.png'
 import Image from 'next/image';
 import logoImg from '../../../public/glogo.png';
 
@@ -329,8 +327,8 @@ export default function Page() {
               onClick={handleResendOTP}
               disabled={disabledResend || isResending}
               className={`w-full text-base  mb-6 text-center ${disabledResend || isResending
-                  ? 'text-gray-400 cursor-not-allowed'
-                  : 'text-[#3E206D] font-semibold hover:underline cursor-pointer'
+                ? 'text-gray-400 cursor-not-allowed'
+                : 'text-[#3E206D] font-semibold hover:underline cursor-pointer'
                 }`}
             >
               {isResending

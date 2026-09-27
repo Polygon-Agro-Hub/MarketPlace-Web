@@ -12,6 +12,7 @@ import { getCategoryCounts } from "@/services/product-service";
 import { StaticImageData } from "next/image";
 import { useDispatch } from "react-redux";
 import { setCategoryResults } from "@/store/slices/searchSlice";
+import socketService from "@/services/socketService"; // NEW
 
 interface Product {
   id: number;
@@ -33,6 +34,7 @@ interface Product {
   cropNameSinhala: string;
   cropNameTamil: string;
   category: string;
+  inCart: boolean; // NEW
 }
 
 interface Category {
@@ -58,7 +60,9 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
   const [error, setError] = useState<string | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [countsLoading, setCountsLoading] = useState(true);
+  const [refreshTick, setRefreshTick] = useState(0); // NEW — bumped on real-time catalog updates
   const dispatch = useDispatch();
+  const token = useSelector((state: RootState) => state.auth.token);
 
   const defaultCategories = [
     {
@@ -86,6 +90,15 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
       itemCount: 0,
     },
   ];
+
+  useEffect(() => {
+    const unsubscribe = socketService.onCatalogUpdate((data) => {
+      setRefreshTick((t) => t + 1);
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     const fetchCategoryCounts = async () => {
@@ -152,7 +165,7 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
     };
 
     fetchCategoryCounts();
-  }, []);
+  }, [refreshTick]); // CHANGED — was []; now also re-runs on real-time updates so tile counts stay accurate
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -163,6 +176,7 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
         const response = await getProductsByCategory(
           selectedCategory,
           searchTerm || undefined,
+          token || undefined,
         );
         setProducts(response.products);
 
@@ -181,7 +195,7 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
     };
 
     fetchProducts();
-  }, [selectedCategory, searchTerm, dispatch]);
+  }, [selectedCategory, searchTerm, dispatch, refreshTick]); // CHANGED — added refreshTick
 
   function handleCategorySelect(id: string): void {
     setSelectedCategory(id);
@@ -261,8 +275,9 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
                     discount={product.discount}
                     unitType={product.unitType}
                     startValue={product.startValue}
-                    changeby={product.changeby}       
+                    changeby={product.changeby}
                     displayType={product.displayType}
+                    initialInCart={product.inCart}   // NEW
                   />
                 ))
               ) : (

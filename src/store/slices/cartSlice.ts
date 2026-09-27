@@ -6,7 +6,6 @@ interface CartState {
   discountAmount: number;
   grandTotal: number;
   paymentMethod: string | null;
-  // Additional fields to match your cart summary structure
   totalPackages: number;
   totalProducts: number;
   packageTotal: number;
@@ -48,10 +47,10 @@ const cartSlice = createSlice({
         finalTotal?: number;
       }>
     ) => {
-      const { 
-        totalItems, 
-        totalPrice, 
-        discountAmount, 
+      const {
+        totalItems,
+        totalPrice,
+        discountAmount,
         grandTotal,
         totalPackages = 0,
         totalProducts = 0,
@@ -60,7 +59,7 @@ const cartSlice = createSlice({
         couponDiscount = 0,
         finalTotal = grandTotal
       } = action.payload;
-      
+
       state.totalItems = totalItems;
       state.totalPrice = totalPrice;
       state.discountAmount = discountAmount;
@@ -72,7 +71,7 @@ const cartSlice = createSlice({
       state.couponDiscount = couponDiscount;
       state.finalTotal = finalTotal;
     },
-    
+
     // New action to set complete cart summary
     setCartSummary: (
       state,
@@ -96,16 +95,14 @@ const cartSlice = createSlice({
       state.totalItems = summary.totalItems;
       state.couponDiscount = summary.couponDiscount;
       state.finalTotal = summary.finalTotal;
-      
-      // Set legacy fields for backward compatibility
       state.totalPrice = summary.grandTotal;
       state.discountAmount = summary.couponDiscount;
     },
-    
+
     setPaymentMethod: (state, action: PayloadAction<string>) => {
       state.paymentMethod = action.payload;
     },
-    
+
     clearCart: (state) => {
       state.totalItems = 0;
       state.totalPrice = 0;

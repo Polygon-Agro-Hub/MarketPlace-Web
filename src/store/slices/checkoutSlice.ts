@@ -20,11 +20,14 @@ interface FormState {
   street: string;
   cityName: string;
   scheduleType: string;
+  selectedDays: string | null;
+  validPeriod: string | null;
+  sheduleDate: string | null;  // NEW - nearest scheduled order date (ISO string)
   geoLatitude: number | null;
   geoLongitude: number | null;
   companycenterId?: any;
   isFinalizeImdt: number;
-  saveAs: string; // Add this
+  saveAs: string;
 }
 
 const initialState: FormState = {
@@ -46,12 +49,15 @@ const initialState: FormState = {
   street: '',
   cityName: '',
   scheduleType: 'One Time',
+  selectedDays: null,
+  validPeriod: null,
+  sheduleDate: null,          // NEW
   centerId: null,
   geoLatitude: null,
   geoLongitude: null,
   companycenterId: null,
   isFinalizeImdt: 0,
-  saveAs: '', // Add this
+  saveAs: '',
 };
 
 const checkoutSlice = createSlice({

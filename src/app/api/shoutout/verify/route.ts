@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { environment } from "@/environment/environment";
 
 const SHOUTOUT_VERIFY_URL = "https://api.getshoutout.com/otpservice/verify";
 
@@ -9,7 +8,7 @@ export async function POST(request: Request) {
     const response = await fetch(SHOUTOUT_VERIFY_URL, {
       method: "POST",
       headers: {
-        Authorization: `Apikey ${environment.SHOUTOUT_API_KEY}`,
+        Authorization: `Apikey ${process.env.NEXT_PUBLIC_SHOUTOUT_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
