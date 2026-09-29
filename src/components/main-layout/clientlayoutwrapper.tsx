@@ -20,6 +20,7 @@ const excludedRoutes = [
   '/exclude/summary',
   '/exclude/exclude',
   '/dash-password-update',
+  '/privacy-policy',
 ];
 
 const publicRoutes = [
@@ -33,6 +34,7 @@ const publicRoutes = [
   '/wholesale/home',
   '/error/451',
   '/unsubscribe',
+  '/privacy-policy',
   '/', // Root route should be accessible without auth
 ];
 
