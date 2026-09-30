@@ -1,12 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import {
-  FaAngleLeft,
-  FaUser,
-  FaExclamationTriangle,
-  FaTasks,
-} from "react-icons/fa";
+import { FaAngleLeft, FaUser, FaExclamationTriangle, FaTasks, FaTrash } from "react-icons/fa";
 import { FaLocationDot } from "react-icons/fa6";
 import { useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
@@ -181,9 +176,9 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                   <div
                     onClick={handleExcludeClick}
                     className={`flex items-center justify-center md:justify-start gap-4 px-2 py-2 rounded-md ${isActive("ExcludedItemList") &&
-                        !["ViewMyList", "AddMoreItems"].includes(selectedMenu)
-                        ? "bg-[#D2D2D2]"
-                        : "bg-transparent"
+                      !["ViewMyList", "AddMoreItems"].includes(selectedMenu)
+                      ? "bg-[#D2D2D2]"
+                      : "bg-transparent"
                       }`}
                   >
                     <div
@@ -206,15 +201,15 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                   {excludeSubmenuOpen && (
                     <div
                       className={`flex flex-col ${isDesktop
-                          ? "mt-2 w-full"
-                          : "absolute left-[70px] top-[1px] w-[200px] shadow-lg z-10 bg-[#DDDDDD] justify-center rounded-md"
+                        ? "mt-2 w-full"
+                        : "absolute left-[70px] top-[1px] w-[200px] shadow-lg z-10 bg-[#DDDDDD] justify-center rounded-md"
                         }`}
                     >
                       <div
                         onClick={() => handleSubMenuClick("ViewMyList")}
                         className={`cursor-pointer text-[15px] px-2 w-full flex items-center ${isDesktop
-                            ? "py-2 justify-start"
-                            : "justify-center h-[51px]"
+                          ? "py-2 justify-start"
+                          : "justify-center h-[51px]"
                           } ${isActive("ViewMyList")
                             ? "bg-[#D2D2D2] font-[700] text-[#111]"
                             : "text-[#233242] font-[500]"
@@ -232,8 +227,8 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                       <div
                         onClick={() => handleSubMenuClick("AddMoreItems")}
                         className={`cursor-pointer text-[15px] px-2 w-full flex items-center ${isDesktop
-                            ? "py-2 justify-start"
-                            : "justify-center h-[47px] border-t border-[#C1C1C1]"
+                          ? "py-2 justify-start"
+                          : "justify-center h-[47px] border-t border-[#C1C1C1]"
                           } ${isActive("AddMoreItems")
                             ? "bg-[#D2D2D2] font-[700] text-[#111]"
                             : "text-[#233242] font-[500]"
@@ -266,11 +261,11 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                 <div
                   onClick={handleComplaintClick}
                   className={`flex items-center justify-center md:justify-start gap-4 px-2 py-2 rounded-md ${isActive("complaints") &&
-                      !["reportComplaint", "ComplaintHistory"].includes(
-                        selectedMenu,
-                      )
-                      ? "bg-[#D2D2D2]"
-                      : "bg-transparent"
+                    !["reportComplaint", "ComplaintHistory"].includes(
+                      selectedMenu,
+                    )
+                    ? "bg-[#D2D2D2]"
+                    : "bg-transparent"
                     }`}
                 >
                   <div
@@ -293,15 +288,15 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                 {complaintSubmenuOpen && (
                   <div
                     className={`flex flex-col ${isDesktop
-                        ? "mt-2 w-full"
-                        : "absolute left-[70px] top-[1px] w-[200px] shadow-lg z-10 bg-[#DDDDDD] justify-center rounded-md"
+                      ? "mt-2 w-full"
+                      : "absolute left-[70px] top-[1px] w-[200px] shadow-lg z-10 bg-[#DDDDDD] justify-center rounded-md"
                       }`}
                   >
                     <div
                       onClick={() => handleSubMenuClick("reportComplaint")}
                       className={`cursor-pointer text-[15px] px-2 w-full flex items-center ${isDesktop
-                          ? "py-2 justify-start"
-                          : "justify-center h-[51px]"
+                        ? "py-2 justify-start"
+                        : "justify-center h-[51px]"
                         } ${isActive("reportComplaint")
                           ? "bg-[#D2D2D2] font-[700] text-[#111]"
                           : "text-[#233242] font-[500]"
@@ -321,8 +316,8 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                     <div
                       onClick={() => handleSubMenuClick("ComplaintHistory")}
                       className={`cursor-pointer text-[15px] px-2 w-full flex items-center ${isDesktop
-                          ? "py-2 justify-start"
-                          : "justify-center h-[47px] border-t border-[#C1C1C1]"
+                        ? "py-2 justify-start"
+                        : "justify-center h-[47px] border-t border-[#C1C1C1]"
                         } ${isActive("ComplaintHistory")
                           ? "bg-[#D2D2D2] font-[700] text-[#111]"
                           : "text-[#233242] font-[500]"
@@ -342,6 +337,28 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                   </div>
                 )}
               </div>
+            </div>
+          </li>
+
+          {/* Delete Account */}
+          <li
+            onClick={() => handleMenuClick("deleteAccount")}
+            className="cursor-pointer"
+          >
+            <div
+              className={`flex items-center justify-center md:justify-start gap-4 px-2 py-2 rounded-md ${isActive("deleteAccount") ? "bg-[#DDDDDD]" : ""}`}
+            >
+              <div
+                className="w-[44px] h-[42px] border border-[#D4D8DC] rounded-[10px] flex items-center justify-center bg-white"
+                style={{ boxShadow: "-4px 2px 8px rgba(0, 0, 0, 0.1)" }}
+              >
+                <FaTrash
+                  className={isActive("deleteAccount") ? "text-[#3E206D]" : "text-[#233242]"}
+                />
+              </div>
+              <span className="hidden md:inline font-[500] text-[16px]">
+                Delete Account
+              </span>
             </div>
           </li>
         </ul>
