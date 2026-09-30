@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, FormEvent } from "react";
+import Link from "next/link";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import {
     sendOTPInSignup,
@@ -1130,18 +1131,35 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
                                             name="agreeToTerms"
                                             checked={formData.agreeToTerms}
                                             onChange={handleChange}
-                                            className={`h-4 w-4 accent-[#318831] cursor-pointer focus:ring-purple-500 border-gray-300 rounded ${errors.agreeToTerms ? "border-red-500" : ""
+                                            className={`h-5 w-5 accent-[#0E9F7E] cursor-pointer rounded ${errors.agreeToTerms ? "outline outline-1 outline-red-500" : ""
                                                 }`}
                                         />
                                         <label
                                             htmlFor="terms"
-                                            className="ml-2 block text-md text-[#777A7D]"
+                                            className="ml-3 block text-sm text-[#6B7280] tracking-wide"
                                         >
-                                            I agree to the Terms & Conditions
+                                            I agree to the{" "}
+                                            <Link
+                                                href="/terms-and-conditions"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-black underline underline-offset-4 decoration-1 font-medium"
+                                            >
+                                                Terms &amp; Conditions
+                                            </Link>
+                                            {"  "}&amp;{" "}
+                                            <Link
+                                                href="/privacy-policy"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-black underline underline-offset-4 decoration-1 font-medium"
+                                            >
+                                                Privacy Policy
+                                            </Link>
                                         </label>
                                     </div>
                                     {errors.agreeToTerms && (
-                                        <p className="mt-1 text-sm text-red-600 ml-6">
+                                        <p className="mt-1 text-sm text-red-600 ml-8">
                                             {errors.agreeToTerms}
                                         </p>
                                     )}
