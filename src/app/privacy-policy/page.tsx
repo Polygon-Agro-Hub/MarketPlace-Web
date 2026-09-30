@@ -112,7 +112,7 @@ export default function PrivacyPolicy() {
       {/* Go Back */}
       <div className="px-6 pt-4">
         <button
-          onClick={() => router.back()}
+          onClick={() => router.push("/signup")}
           className="inline-flex items-center gap-3 bg-white border border-gray-200 rounded-lg shadow-sm px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
         >
           <FontAwesomeIcon icon={faChevronLeft} style={{ width: 12 }} />

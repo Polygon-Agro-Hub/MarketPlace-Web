@@ -1635,3 +1635,92 @@ export const updatePasswordByNic = async (
     }
   }
 };
+
+export interface DeleteAccountEligibility {
+  canDelete: boolean;
+  hasPendingOrders: boolean;
+  hasNegativeCredit: boolean;
+  creditBalance: number;
+}
+ 
+export const fetchDeleteAccountEligibility = async (
+  token: string,
+): Promise<DeleteAccountEligibility> => {
+  try {
+    if (!token) {
+      throw new Error("You are not authenticated. Please log in first.");
+    }
+ 
+    const response = await axios.get("/auth/delete-account/eligibility", {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+ 
+    const resData: ApiResponse<DeleteAccountEligibility> = response.data;
+ 
+    if (resData.status && resData.data) {
+      return resData.data;
+    }
+    throw new Error(resData.message || "Failed to check account status");
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(
+        error.response.data?.message ||
+          error.response.data?.error ||
+          `Eligibility check failed with status ${error.response.status}`,
+      );
+    } else if (error.request) {
+      throw new Error(
+        "No response received from server. Please check your network connection.",
+      );
+    } else {
+      throw new Error(
+        error.message || "An error occurred while checking account status",
+      );
+    }
+  }
+};
+ 
+export const deleteAccount = async (
+  token: string,
+): Promise<{ message: string }> => {
+  try {
+    if (!token) {
+      throw new Error("You are not authenticated. Please log in first.");
+    }
+ 
+    const response = await axios.delete("/auth/delete-account", {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+ 
+    if (
+      response.status >= 200 &&
+      response.status < 300 &&
+      response.data?.status
+    ) {
+      return { message: response.data.message || "Account deleted." };
+    }
+    throw new Error(response.data?.message || "Failed to delete account");
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(
+        error.response.data?.message ||
+          error.response.data?.error ||
+          `Account deletion failed with status ${error.response.status}`,
+      );
+    } else if (error.request) {
+      throw new Error(
+        "No response received from server. Please check your network connection.",
+      );
+    } else {
+      throw new Error(
+        error.message || "An error occurred while deleting the account",
+      );
+    }
+  }
+};
