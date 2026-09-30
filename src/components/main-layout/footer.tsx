@@ -82,7 +82,6 @@ function DesktopFooter() {
                 </svg>
               </div>
               <p className="text-sm text-[#8492A3]">011 431 3433</p>
-              <p className="text-sm text-[#8492A3]">011 431 3433</p>
             </div>
           </div>
         </div>
