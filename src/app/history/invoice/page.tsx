@@ -380,7 +380,7 @@ function InvoiceView({
           </p>
           <div className="text-xs sm:text-sm">
             <p>No. 42/46, Nawam Mawatha, Colombo 02.</p>
-            <p>Contact No: +94 770 111 999</p>
+            <p>Contact No: 011 431 3433</p>
             <p>Email Address: info@polygon.lk</p>
           </div>
         </div>
@@ -1275,7 +1275,7 @@ function InvoicePageContent() {
                 margin: [0, 1, 0, 0],
               },
               {
-                text: "Contact No: +94 770 111 999",
+                text: "Contact No: 011 431 3433",
                 fontSize: 9,
                 margin: [0, 1, 0, 0],
               },

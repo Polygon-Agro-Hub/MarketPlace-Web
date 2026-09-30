@@ -82,6 +82,7 @@ function DesktopFooter() {
                 </svg>
               </div>
               <p className="text-sm text-[#8492A3]">011 431 3433</p>
+              <p className="text-sm text-[#8492A3]">011 431 3433</p>
             </div>
           </div>
         </div>
@@ -97,9 +98,9 @@ function DesktopFooter() {
               </a>
             </li>
             <li className="mb-2">
-              <a href="#" className="text-[#DBDBDB] hover:text-blue-300">
+              <Link href="/privacy-policy" className="text-[#DBDBDB] hover:text-blue-300">
                 Privacy Policy
-              </a>
+              </Link>
             </li>
             <li className="mb-2">
               <a href="#" className="text-[#DBDBDB] hover:text-blue-300">
@@ -214,12 +215,12 @@ function DesktopFooter() {
           >
             Terms & Conditions
           </a>
-          <a
-            href="#"
+          <Link
+            href="/privacy-policy"
             className="text-sm text-[#DBDBDB] hover:text-white underline"
           >
             Privacy Policy
-          </a>
+          </Link>
         </div>
       </div>
     </div>
@@ -287,12 +288,12 @@ function MobileFooter() {
               </a>
             </li>
             <li>
-              <a
-                href="#"
+              <Link
+                href="/privacy-policy"
                 className="text-sm text-[#DBDBDB] hover:text-blue-300"
               >
                 Privacy Policy
-              </a>
+              </Link>
             </li>
             <li>
               <a
@@ -400,12 +401,12 @@ function MobileFooter() {
           >
             Terms & Conditions
           </a>
-          <a
-            href="#"
+          <Link
+            href="/privacy-policy"
             className="text-xs text-[#DBDBDB] hover:text-white underline"
           >
             Privacy Policy
-          </a>
+          </Link>
         </div>
       </div>
     </div>

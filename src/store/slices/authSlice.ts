@@ -70,10 +70,11 @@ const authSlice = createSlice({
           : state.cart.creditBalance,
       };
     },
-    updateCreditBalance: (state, action: PayloadAction<number>) => {
-      if (state.cart) {
-        state.cart.creditBalance = action.payload;
+    updateCreditBalance(state, action: PayloadAction<number>) {
+      if (!state.cart) {
+        state.cart = { count: 0, price: 0, creditBalance: 0 };
       }
+      state.cart.creditBalance = action.payload;
     },
     logout: (state) => {
       state.token = null;
