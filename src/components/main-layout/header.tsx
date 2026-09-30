@@ -14,7 +14,8 @@ import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
 import { useDispatch } from "react-redux";
-import { logout } from "../../store/slices/authSlice";
+import { logout, updateCreditBalance } from "../../store/slices/authSlice";
+import socketService from "@/services/socketService";
 import { clearCart } from "@/store/slices/cartSlice";
 import { useRouter, usePathname } from "next/navigation";
 import { LogOut, ChevronUp, ChevronDown, WalletMinimal } from "lucide-react";
@@ -114,6 +115,22 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
 
     return () => clearInterval(interval);
   }, [token, tokenExpiration, pathname]);
+
+  // Real-time credit balance
+useEffect(() => {
+  if (!token || !isTokenValid) {
+    socketService.setAuthToken(null); // logged out -> back to guest socket
+    return;
+  }
+
+  socketService.setAuthToken(token);
+
+  const unsubscribe = socketService.onCreditBalanceUpdate(({ creditBalance }) => {
+    dispatch(updateCreditBalance(creditBalance));
+  });
+
+  return () => unsubscribe();
+}, [token, isTokenValid, dispatch]);
 
   useEffect(() => {
     setLocalSearchInput(searchTerm);
@@ -429,7 +446,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
         <div className="bg-[#2C2C2C] text-gray-300 py-2 px-4 sm:px-7">
           <div className="mx-auto flex flex-col sm:flex-row justify-between items-center gap-2 sm:gap-0">
             <span className="text-xs sm:text-sm italic text-center sm:text-left">
-              Call us for any query or help +94 770 111 999
+              Call us for any query or help 011 431 3433
             </span>
             <div className="flex gap-2">{renderAuthButtons()}</div>
           </div>
@@ -662,7 +679,6 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
               )}
             </div>
           )}
-          ;
           {!isMobile && isAuthenticated() && (
             <CreditBalancePill creditBalance={cartState.creditBalance ?? 0} />
           )}
