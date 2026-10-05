@@ -138,6 +138,7 @@ const ALLOWED_ORDER_STATUSES = [
   "hold",
   "return",
   "return received",
+  "cancelled",
 ];
 
 const getStatusClass = (status: string): string => {
@@ -163,12 +164,13 @@ const getStatusClass = (status: string): string => {
     case "return":
     case "return received":
       return "bg-[#FFDCDA] text-[#FF1100]";
-    case "cancelled":
-      return "bg-[#FEE2E2] text-[#DC2626]";
     case "one time":
       return "bg-[#DBEAFE] text-[#2563EB]";
+    case "cancelled":
+      return "bg-[#F2F2F2] text-[#454545]";
     default:
       return "bg-[#F3F4F6] text-[#4B5563]";
+
   }
 };
 
@@ -176,6 +178,9 @@ const getDisplayStatus = (status: string): string => {
   if (status.toLowerCase() === "return received") return "Return";
   return status;
 };
+
+const isCancelled = (status: string): boolean =>
+  status.toLowerCase() === "cancelled";
 
 function formatAmount(amount: string | number, decimals: number = 2): string {
   if (amount === null || amount === undefined || amount === "N/A") {
@@ -591,17 +596,17 @@ export default function OrderHistoryPage() {
                         >
                           View Order
                         </button>
-                        <button
-                          onClick={() =>
-                            router.push(
-                              `/history/invoice?orderId=${order.orderId}`,
-                            )
-                          }
-                          className="bg-[rgb(255,255,255)] border text-xs lg:text-sm cursor-pointer border-[rgb(209,213,219)] rounded-lg px-4 py-1.5 hover:bg-[rgb(62,32,109)] hover:text-[rgb(255,255,255)]"
-                          disabled={isFetchingDetails}
-                        >
-                          View Invoice
-                        </button>
+                        {!isCancelled(order.status) && (
+                          <button
+                            onClick={() =>
+                              router.push(`/history/invoice?orderId=${order.orderId}`)
+                            }
+                            className="bg-[rgb(255,255,255)] border text-xs lg:text-sm cursor-pointer border-[rgb(209,213,219)] rounded-lg px-4 py-1.5 hover:bg-[rgb(62,32,109)] hover:text-[rgb(255,255,255)]"
+                            disabled={isFetchingDetails}
+                          >
+                            View Invoice
+                          </button>
+                        )}
                       </div>
                     </div>
 
@@ -639,17 +644,17 @@ export default function OrderHistoryPage() {
                         >
                           View Order
                         </button>
-                        <button
-                          onClick={() =>
-                            router.push(
-                              `/history/invoice?orderId=${order.orderId}`,
-                            )
-                          }
-                          className="w-full bg-[rgb(255,255,255)] border text-sm cursor-pointer border-[rgb(209,213,219)] rounded-lg px-4 py-2.5 hover:bg-[rgb(62,32,109)] hover:text-[rgb(255,255,255)] transition-colors"
-                          disabled={isFetchingDetails}
-                        >
-                          View Invoice
-                        </button>
+                        {!isCancelled(order.status) && (
+                          <button
+                            onClick={() =>
+                              router.push(`/history/invoice?orderId=${order.orderId}`)
+                            }
+                            className="w-full bg-[rgb(255,255,255)] border text-sm cursor-pointer border-[rgb(209,213,219)] rounded-lg px-4 py-2.5 hover:bg-[rgb(62,32,109)] hover:text-[rgb(255,255,255)] transition-colors"
+                            disabled={isFetchingDetails}
+                          >
+                            View Invoice
+                          </button>
+                        )}
                       </div>
                     </div>
 

@@ -34,6 +34,7 @@ interface SignupPayload {
   companyPhoneNumber?: string;
   city?: string;
   cityId?: number | null;
+  restoreAccount?: boolean;
 }
 
 interface SignupResponse {
@@ -281,6 +282,18 @@ export interface CityResult {
   isAvailable: boolean;
 }
 
+export interface DeletedAccountInfo {
+  pastOrders: number;
+  memberSince: string | null;
+  deletedOn: string | null;
+}
+
+export interface VerifyUserDetailsResponse {
+  status: boolean;
+  message: string;
+  deletedAccount: DeletedAccountInfo | null;
+}
+
 const emailOtpReferenceIds = new Set<string>();
 
 export const login = async (payload: LoginPayload): Promise<LoginResponse> => {
@@ -370,27 +383,22 @@ export const verifyUserDetails = async (
   phoneNumber: string,
   phoneCode: string,
   nicNumber: string,
-) => {
+): Promise<VerifyUserDetailsResponse> => {
   try {
     const response = await axios.post(
       "/auth/verify-user-details",
-      {
-        email,
-        phoneNumber,
-        phoneCode,
-        nicNumber,
-      },
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      },
+      { email, phoneNumber, phoneCode, nicNumber },
+      { headers: { "Content-Type": "application/json" } },
     );
 
     const resData = response.data;
 
     if (resData.status === true) {
-      return resData;
+      return {
+        status: true,
+        message: resData.message,
+        deletedAccount: resData.deletedAccount ?? null,
+      };
     } else {
       throw new Error(resData.message || "User verification failed on server.");
     }
@@ -399,8 +407,8 @@ export const verifyUserDetails = async (
       const resData = error.response.data;
       throw new Error(
         resData?.message ||
-        resData?.error ||
-        `Verification failed with status ${error.response.status}`,
+          resData?.error ||
+          `Verification failed with status ${error.response.status}`,
       );
     } else if (error.request) {
       throw new Error(
@@ -516,7 +524,7 @@ export const sendOTP = async (
     const {
       checkPhoneExists = true,
       message = `Your OTP for verification is: {{code}}`,
-      source = "PolygonAgro",
+      source = "Polygon",
     } = options || {};
 
     // Step 1: Optionally check if phone number exists
@@ -624,7 +632,7 @@ export const sendOTPInSignup = async (
 
     const {
       message = `Your OTP for verification is: {{code}}`,
-      source = "PolygonAgro",
+      source = "Polygon",
     } = options || {};
 
     const apiUrl = "/api/shoutout/send";
