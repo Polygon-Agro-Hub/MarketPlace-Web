@@ -1,11 +1,14 @@
 "use client";
 import React, { useState, FormEvent } from "react";
+import Link from "next/link";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import {
     sendOTPInSignup,
     signup,
     verifyUserDetails,
+    DeletedAccountInfo,
 } from "@/services/auth-service";
+import RestoreAccountPopup from "@/components/registration-components/Restoreaccountpopup";
 import { useRouter } from "next/navigation";
 import SuccessPopup from "@/components/toast-messages/success-message";
 import ErrorPopup from "@/components/toast-messages/error-message";
@@ -155,8 +158,11 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
     const [otpReferenceId, setOtpReferenceId] = useState("");
     const [fullPhoneNumber, setFullPhoneNumber] = useState("");
     const [currentReferenceId, setCurrentReferenceId] = useState("");
+    const [linkedAccount, setLinkedAccount] = useState<DeletedAccountInfo | null>(null);
+    const [showRestorePopup, setShowRestorePopup] = useState(false);
+    const [restoreConfirmed, setRestoreConfirmed] = useState(false);
 
-    const [formData, setFormData] = useState({
+    const getInitialFormData = () => ({
         title: "",
         firstName: "",
         lastName: "",
@@ -174,6 +180,8 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
         city: selectedCity?.city || "",
         cityId: selectedCity?.id || null,
     });
+
+    const [formData, setFormData] = useState(getInitialFormData);
 
     const checkPhoneLive = (
         fieldName: "phoneNumber" | "companyPhoneNumber",
@@ -320,8 +328,12 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
                 digits = digits.slice(0, 12);
                 processedValue = digits;
             }
-            // ⬅️ checkNicLive(processedValue) REMOVED from here
+            if (linkedAccount) {
+                setLinkedAccount(null);
+                setRestoreConfirmed(false);
+            }
         }
+
 
         if (name === "companyName") {
             if (value.startsWith(" ")) {
@@ -481,6 +493,26 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
         return Object.keys(newErrors).length === 0;
     };
 
+    const sendOtpAndContinue = async () => {
+        const res = await sendOTPInSignup(
+            formData.phoneNumber,
+            formData.phoneCode,
+            { email: formData.email },
+        );
+        setSuccess(
+            formData.phoneCode !== "+94"
+                ? `Verification code has been sent to ${formData.email}`
+                : `OTP code has been sent to ${formData.phoneCode}${formData.phoneNumber}`,
+        );
+        setShowSuccessPopup(true);
+
+        if (res && res.referenceId) {
+            setOtpReferenceId(res.referenceId);
+            setFullPhoneNumber(`${formData.phoneCode}${formData.phoneNumber}`);
+            setShowOTPVerification(true);
+        }
+    };
+
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         setErrors({});
@@ -491,54 +523,62 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
         setLoading(true);
 
         try {
-            await verifyUserDetails(
+            const verifyRes = await verifyUserDetails(
                 formData.email,
                 formData.phoneNumber,
                 formData.phoneCode,
                 formData.nicNumber,
             );
 
-            const res = await sendOTPInSignup(
-                formData.phoneNumber,
-                formData.phoneCode,
-                { email: formData.email },
-            );
-            setSuccess(
-                formData.phoneCode !== '+94'
-                    ? `Verification code has been sent to ${formData.email}`
-                    : `OTP code has been sent to ${formData.phoneCode}${formData.phoneNumber}`,
-            );
-            setShowSuccessPopup(true);
-
-            if (res && res.referenceId) {
-                setOtpReferenceId(res.referenceId);
-                setFullPhoneNumber(`${formData.phoneCode}${formData.phoneNumber}`);
-                setShowOTPVerification(true);
-            }
-        } catch (err: any) {
-            let errorMessage = "An error occurred. Please try again.";
-
-            if (err.message) {
-                errorMessage = err.message;
-            } else if (err.type === "email_exists") {
-                errorMessage =
-                    "This email address is already registered. Please use a different email or try logging in.";
-            } else if (err.type === "phone_exists") {
-                errorMessage =
-                    "This phone number is already registered. Please use a different phone number or try logging in.";
-            } else if (err.type === "nic_exists") {
-                errorMessage =
-                    "This NIC is already registered. Please use a different NIC or try logging in.";
+            if (verifyRes.deletedAccount) {
+                setLinkedAccount(verifyRes.deletedAccount);
+                if (!restoreConfirmed) {
+                    // Stop here and ask the user what to do
+                    setShowRestorePopup(true);
+                    return; // `finally` resets loading
+                }
             } else {
-                errorMessage =
-                    err.message || "Failed to process request. Please try again.";
+                setLinkedAccount(null);
+                setRestoreConfirmed(false);
             }
 
-            setErrorMessage(errorMessage);
+            await sendOtpAndContinue();
+        } catch (err: any) {
+            setErrorMessage(
+                err.message || "Failed to process request. Please try again.",
+            );
             setShowErrorPopup(true);
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleContinueWithAccount = async () => {
+        setShowRestorePopup(false);
+        setRestoreConfirmed(true);
+        setLoading(true);
+        try {
+            await sendOtpAndContinue();
+        } catch (err: any) {
+            setErrorMessage(
+                err.message || "Failed to process request. Please try again.",
+            );
+            setShowErrorPopup(true);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleGoBackAndEditNic = () => {
+        setShowRestorePopup(false);
+        setLinkedAccount(null);
+        setRestoreConfirmed(false);
+        setFormData(getInitialFormData());
+        setErrors({});
+        setSuccess(null);
+        setIsPasswordValid(false);
+        setShowPassword(false);
+        setShowConfirmPassword(false);
     };
 
     const completeSignup = async (skipSuccessPopup: boolean = false) => {
@@ -550,6 +590,7 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
                 companyPhoneCode: isHome ? "" : formData.companyPhoneCode,
                 companyPhoneNumber: isHome ? "" : formData.companyPhoneNumber,
                 buyerType: isHome ? "Retail" : "Wholesale",
+                restoreAccount: restoreConfirmed && !!linkedAccount,   // NEW
             });
             if (skipSuccessPopup) {
                 router.push("/signin");
@@ -579,6 +620,7 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
                 companyPhoneCode: isHome ? "" : formData.companyPhoneCode,
                 companyPhoneNumber: isHome ? "" : formData.companyPhoneNumber,
                 buyerType: isHome ? "Retail" : "Wholesale",
+                restoreAccount: restoreConfirmed && !!linkedAccount, // ADD THIS
             });
             setLoading(false);
         } catch (err: any) {
@@ -650,6 +692,16 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
                         onClose={() => setShowErrorPopup(false)}
                         title="Error!"
                         description={errorMessage}
+                    />
+                    <RestoreAccountPopup
+                        isOpen={showRestorePopup && !!linkedAccount}
+                        nicNumber={formData.nicNumber}
+                        pastOrders={linkedAccount?.pastOrders ?? 0}
+                        memberSince={linkedAccount?.memberSince ?? null}
+                        deletedOn={linkedAccount?.deletedOn ?? null}
+                        onContinue={handleContinueWithAccount}
+                        onGoBack={handleGoBackAndEditNic}
+                        onClose={() => setShowRestorePopup(false)}
                     />
 
                     {/* Left side - Form */}
@@ -881,16 +933,33 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
                                     </div>
 
                                     <div className="w-full md:w-1/2">
-                                        <input
-                                            type="text"
-                                            name="nicNumber"
-                                            value={formData.nicNumber}
-                                            onChange={handleChange}
-                                            onBlur={(e) => checkNicOnBlur(e.target.value)}
-                                            placeholder="NIC Number"
-                                            className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass("nicNumber")}`}
-                                            maxLength={12}
-                                        />
+                                        <div className="relative">
+                                            <input
+                                                type="text"
+                                                name="nicNumber"
+                                                value={formData.nicNumber}
+                                                onChange={handleChange}
+                                                onBlur={(e) => checkNicOnBlur(e.target.value)}
+                                                placeholder="NIC Number"
+                                                className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${linkedAccount
+                                                    ? "bg-[#F1E8FF] border-[#3E206D] focus:ring-[#3E206D] pr-24"
+                                                    : getInputClass("nicNumber")
+                                                    }`}
+                                                maxLength={12}
+                                            />
+                                            {linkedAccount && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowRestorePopup(true)}
+                                                    className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5 rounded-full bg-black pl-1.5 pr-3 py-1 text-xs font-medium text-white cursor-pointer"
+                                                >
+                                                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-white text-[10px] font-bold text-black">
+                                                        !
+                                                    </span>
+                                                    Linked
+                                                </button>
+                                            )}
+                                        </div>
                                         {errors.nicNumber && (
                                             <p className="mt-1 text-sm text-red-600">{errors.nicNumber}</p>
                                         )}
@@ -1130,18 +1199,35 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
                                             name="agreeToTerms"
                                             checked={formData.agreeToTerms}
                                             onChange={handleChange}
-                                            className={`h-4 w-4 accent-[#318831] cursor-pointer focus:ring-purple-500 border-gray-300 rounded ${errors.agreeToTerms ? "border-red-500" : ""
+                                            className={`h-5 w-5 accent-[#0E9F7E] cursor-pointer rounded ${errors.agreeToTerms ? "outline outline-1 outline-red-500" : ""
                                                 }`}
                                         />
                                         <label
                                             htmlFor="terms"
-                                            className="ml-2 block text-md text-[#777A7D]"
+                                            className="ml-3 block text-sm text-[#6B7280] tracking-wide"
                                         >
-                                            I agree to the Terms & Conditions
+                                            I agree to the{" "}
+                                            <Link
+                                                href="/terms-and-conditions"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-black underline underline-offset-4 decoration-1 font-medium"
+                                            >
+                                                Terms &amp; Conditions
+                                            </Link>
+                                            {"  "}&amp;{" "}
+                                            <Link
+                                                href="/privacy-policy"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-black underline underline-offset-4 decoration-1 font-medium"
+                                            >
+                                                Privacy Policy
+                                            </Link>
                                         </label>
                                     </div>
                                     {errors.agreeToTerms && (
-                                        <p className="mt-1 text-sm text-red-600 ml-6">
+                                        <p className="mt-1 text-sm text-red-600 ml-8">
                                             {errors.agreeToTerms}
                                         </p>
                                     )}

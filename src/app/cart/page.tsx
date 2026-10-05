@@ -29,6 +29,7 @@ import { updateCartInfo } from "@/store/slices/authSlice";
 import { getCartInfo } from "@/services/auth-service";
 import SuccessPopup from "@/components/toast-messages/success-message";
 import invalidPackageIcon from "../../../public/invalid-package.png";
+import socketService from "@/services/socketService";
 
 interface PackageItem {
   name: string;
@@ -135,6 +136,17 @@ const Page: React.FC = () => {
   const dispatch = useDispatch();
   const router = useRouter();
   const authCart = useSelector((state: RootState) => state.auth.cart);
+  const [catalogNotice, setCatalogNotice] = useState<string | null>(null);
+
+  // Refs so the socket listener always sees the latest values
+  const pendingUpdatesRef = useRef(pendingUpdates);
+  const unitSelectionRef = useRef(unitSelection);
+  const busyRef = useRef(false);
+  const refreshRef = useRef<() => Promise<void>>(async () => { });
+
+  pendingUpdatesRef.current = pendingUpdates;
+  unitSelectionRef.current = unitSelection;
+  busyRef.current = checkoutLoading || removingItems.size > 0 || bulkDeleteLoading;
 
 
   useEffect(() => {
@@ -356,6 +368,104 @@ const Page: React.FC = () => {
 
     if (token) fetchCartData();
   }, [token, dispatch]);
+
+  // Silent refresh: no spinner, keeps pending quantity edits and unit choices
+  const refreshCartRealtime = async () => {
+    if (!token) return;
+    try {
+      const response = await getUserCart(token);
+
+      const disabledProductIds: number[] = [];
+      const filteredAdditionalItems = (response.additionalItems || [])
+        .map((group: AdditionalItems) => ({
+          ...group,
+          Items: group.Items.filter((item: CartItem) => {
+            if (item.isEnable === 0) {
+              disabledProductIds.push(item.id);
+              return false;
+            }
+            return true;
+          }),
+        }))
+        .filter((group: AdditionalItems) => group.Items.length > 0);
+
+      // Keep the user's unsaved quantity edits on top of fresh server data
+      const merged = mergeAdditionalItemsWithPending(
+        filteredAdditionalItems,
+        pendingUpdatesRef.current,
+      );
+      const unitSel = buildUnitSelection(merged, unitSelectionRef.current);
+
+      dispatch(
+        setCartData({
+          cart: response.cart,
+          packages: response.packages, // disabled ones render as <InvalidPackageCard/>
+          additionalItems: merged,
+          summary: response.summary,
+        }),
+      );
+      setUnitSelection(unitSel);
+
+      // Drop selections / pending edits for items that no longer exist
+      const validIds = new Set<number>(
+        merged.flatMap((g: AdditionalItems) => g.Items.map((i) => i.id)),
+      );
+      setSelectedProducts((prev) => {
+        const next = new Set(Array.from(prev).filter((id) => validIds.has(id)));
+        setSelectAll(validIds.size > 0 && Array.from(validIds).every((id) => next.has(id)));
+        return next;
+      });
+      setPendingUpdates((prev) => prev.filter((u) => validIds.has(u.productId)));
+
+      // Header bag count/price (computeSummaryFrom already skips disabled packages)
+      const summary = computeSummaryFrom(response.packages, merged, unitSel);
+      dispatch(
+        updateCartInfo({
+          price: parseFloat(summary.finalTotal.toFixed(2)),
+          count: summary.totalItems,
+        }),
+      );
+
+      if (disabledProductIds.length > 0) {
+        setCatalogNotice(
+          "Some items in your cart are no longer available and were removed.",
+        );
+        bulkRemoveCartProducts(disabledProductIds, token).catch((err) =>
+          console.error("Silent cleanup of disabled products failed:", err),
+        );
+      }
+    } catch (err) {
+      console.error("Realtime cart refresh failed:", err); // don't replace the page with an error
+    }
+  };
+  refreshRef.current = refreshCartRealtime;
+
+  useEffect(() => {
+    if (!token) return;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const schedule = (delay: number) => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(run, delay);
+    };
+
+    const run = () => {
+      if (busyRef.current) {
+        schedule(1000); // user is mid-action, try again shortly
+        return;
+      }
+      refreshRef.current();
+    };
+
+    const unsubscribe = socketService.onCatalogUpdate(() => {
+      schedule(300 + Math.random() * 700); // debounce + jitter
+    });
+
+    return () => {
+      unsubscribe();
+      if (timer) clearTimeout(timer);
+    };
+  }, [token]);
 
   const hasInvalidPackage = (): boolean => {
     return Boolean(
@@ -1398,6 +1508,17 @@ const Page: React.FC = () => {
           title="Successfully Deleted!"
         />
         <div className="px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5">
+
+          {
+            catalogNotice && (
+              <div className="mb-4 flex items-start justify-between gap-3 rounded-lg border border-[#FFD9A0] bg-[#FFF8EB] px-4 py-3 text-sm text-[#7A4B00]">
+                <span>{catalogNotice}</span>
+                <button onClick={() => setCatalogNotice(null)} className="cursor-pointer">
+                  <X size={16} />
+                </button>
+              </div>
+            )
+          }
           <TopNavigation NavArray={NavArray} />
           <div className="flex flex-col items-center justify-center py-8 px-4">
             <div className="mb-6">
