@@ -300,7 +300,7 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
                         <div className="flex justify-center mb-6">
                             <div className="flex items-center gap-2 bg-[#F2F2F6] rounded-full px-4 py-1.5">
                                 <FontAwesomeIcon icon={faPhone} className="w-[13px] h-[13px] text-[#4C5160]" />
-                                <span className="text-xs font-medium font-[500] text-[#4C5160]">Hotline : +94 770111999</span>
+                                <span className="text-xs font-medium font-[500] text-[#4C5160]">Hotline : 011 431 3433</span>
                             </div>
                         </div>
 
