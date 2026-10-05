@@ -524,7 +524,7 @@ export const sendOTP = async (
     const {
       checkPhoneExists = true,
       message = `Your OTP for verification is: {{code}}`,
-      source = "PolygonAgro",
+      source = "Polygon",
     } = options || {};
 
     // Step 1: Optionally check if phone number exists
@@ -632,7 +632,7 @@ export const sendOTPInSignup = async (
 
     const {
       message = `Your OTP for verification is: {{code}}`,
-      source = "PolygonAgro",
+      source = "Polygon",
     } = options || {};
 
     const apiUrl = "/api/shoutout/send";

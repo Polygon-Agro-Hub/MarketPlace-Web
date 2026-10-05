@@ -15,7 +15,7 @@ interface OTPComponentProps {
   phoneNumber: string;
   phoneCode: string;
   referenceId: string;
-  onVerificationSuccess: () => void;
+  onVerificationSuccess: () => void | Promise<void>;
   onVerificationFailure: () => void;
   onResendOTP: (newReferenceId: string) => void;
   onOTPExpired?: () => void;
@@ -28,6 +28,12 @@ interface OTPComponentProps {
   resendCooldown?: number;
   /** @deprecated Use resendCooldown / otpValiditySeconds. Used only as a fallback for resendCooldown. */
   initialTimer?: number;
+  /** Where to go after success. Pass null to stay on the page. Default "/signin". */
+  redirectOnSuccess?: string | null;
+  /** Label for the bottom link. Default "Back to Registration". */
+  backLabel?: string;
+  /** Message shown when onVerificationSuccess throws. */
+  successFailMessage?: string;
 }
 
 export default function OTPComponent({
@@ -44,6 +50,9 @@ export default function OTPComponent({
   otpValiditySeconds,
   resendCooldown,
   initialTimer,
+  redirectOnSuccess = "/signin",
+  backLabel = "Back to Registration",
+  successFailMessage = "Account creation failed. Please try again.",
 }: OTPComponentProps) {
   const router = useRouter();
 
@@ -133,9 +142,18 @@ export default function OTPComponent({
         setIsVerified(true); setIsError(false);
         try {
           await onVerificationSuccess();
-          setShowSuccessPopup(true);
-          setTimeout(() => { setShowSuccessPopup(false); router.push("/signin"); }, 3000);
-        } catch { setIsError(true); setModalMessage("Account creation failed. Please try again."); setIsModalOpen(true); }
+          if (redirectOnSuccess) {
+            setShowSuccessPopup(true);
+            setTimeout(() => {
+              setShowSuccessPopup(false);
+              router.push(redirectOnSuccess);
+            }, 3000);
+          }
+        } catch {
+          setIsError(true);
+          setModalMessage(successFailMessage);
+          setIsModalOpen(true);
+        }
       } else if (statusCode === "1001") {
         setIsError(true); setModalMessage("This OTP is Invalid. Please enter correct OTP."); setIsModalOpen(true);
       } else if (statusCode === "1002" || statusCode === "1003") {
@@ -302,6 +320,7 @@ export default function OTPComponent({
         <div className="flex items-center justify-center gap-2 mb-6">
           <RotateCw style={{ width: 15, height: 15, color: "#4715C7", flexShrink: 0, fontWeight: "bold" }} />
           <button
+            type="button"
             onClick={handleResendOTP}
             disabled={disabledResend || isResending}
             className={`text-[13px] bg-transparent border-none p-0 font-bold leading-none ${disabledResend || isResending
@@ -324,6 +343,7 @@ export default function OTPComponent({
 
         {/* Verify button */}
         <button
+          type="button"
           onClick={handleVerify}
           disabled={isVerifying || isOtpExpired || !isOtpComplete || isVerified}
           className={`w-full h-[48px] sm:h-[52px] rounded-xl text-[14px] sm:text-[15px] font-bold transition-colors ${isVerifying || isOtpExpired || !isOtpComplete || isVerified
@@ -336,10 +356,11 @@ export default function OTPComponent({
 
         {/* Back link */}
         <button
+          type="button"
           onClick={onVerificationFailure}
           className="text-[#3E206D] font-bold mt-4 text-[13px] sm:text-[14px] cursor-pointer hover:underline self-center"
         >
-          Back to Registration
+          {backLabel}
         </button>
       </div>
 
@@ -367,6 +388,7 @@ export default function OTPComponent({
             </h2>
             <p className="text-gray-500 mb-6 text-[13px] sm:text-[14px]">{modalMessage}</p>
             <button
+              type="button"
               onClick={() => { setIsModalOpen(false); setIsResendSuccess(false); }}
               className="px-6 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition cursor-pointer text-gray-700 font-medium text-[14px]"
             >
@@ -376,13 +398,19 @@ export default function OTPComponent({
         </div>
       )}
 
-      <SuccessPopup
-        isVisible={showSuccessPopup}
-        onClose={() => { setShowSuccessPopup(false); router.push("/signin"); }}
-        title="OTP Verified Successfully!"
-        description="Your account has been created."
-        duration={3000}
-      />
+      {/* Only shown when the component redirects afterwards (signup flow) */}
+      {redirectOnSuccess && (
+        <SuccessPopup
+          isVisible={showSuccessPopup}
+          onClose={() => {
+            setShowSuccessPopup(false);
+            router.push(redirectOnSuccess);
+          }}
+          title="OTP Verified Successfully!"
+          description="Your account has been created."
+          duration={3000}
+        />
+      )}
 
       <SuccessPopup
         isVisible={showResendSuccessPopup}

@@ -1218,8 +1218,6 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
                                             {"  "}&amp;{" "}
                                             <Link
                                                 href="/privacy-policy"
-                                                target="_blank"
-                                                rel="noopener noreferrer"
                                                 className="text-black underline underline-offset-4 decoration-1 font-medium"
                                             >
                                                 Privacy Policy
