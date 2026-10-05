@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, MouseEvent } from "react";
+import React, { useState, useEffect, useRef, MouseEvent } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import TopNavigation from "@/components/top-navigation/TopNavigation";
@@ -27,6 +27,16 @@ import cashPaymentIcon from "../../../public/cashicon.png";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faLock } from "@fortawesome/free-solid-svg-icons";
 import Loader from "@/components/loader-spinner/Loader";
+
+
+const PAYMENT_SESSION_KEY = "paymentSessionExpiresAt";
+const PAYMENT_SESSION_DURATION_MS = 5 * 60 * 1000;
+
+const formatTimer = (totalSeconds: number): string => {
+  const m = Math.floor(totalSeconds / 60).toString().padStart(2, "0");
+  const s = (totalSeconds % 60).toString().padStart(2, "0");
+  return `${m}:${s}`;
+};
 
 const Page: React.FC = () => {
   const router = useRouter();
@@ -73,6 +83,51 @@ const Page: React.FC = () => {
   const [expirationDateError, setExpirationDateError] = useState("");
   const [cardNumberError, setCardNumberError] = useState("");
   const [cvvError, setCvvError] = useState("");
+  const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
+  const orderSubmittedRef = useRef(false);
+
+  useEffect(() => {
+    // Reuse the saved expiry on refresh, otherwise start a new 5 min session
+    let expiresAt = Number(sessionStorage.getItem(PAYMENT_SESSION_KEY));
+    if (!expiresAt || Number.isNaN(expiresAt)) {
+      expiresAt = Date.now() + PAYMENT_SESSION_DURATION_MS;
+      sessionStorage.setItem(PAYMENT_SESSION_KEY, expiresAt.toString());
+    }
+
+    const handleExpire = () => {
+      sessionStorage.removeItem(PAYMENT_SESSION_KEY);
+      router.replace("/cart");
+    };
+
+    const tick = () => {
+      if (orderSubmittedRef.current) {
+        clearInterval(interval);
+        return;
+      }
+      const secondsLeft = Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000));
+      setRemainingSeconds(secondsLeft);
+      if (secondsLeft <= 0) {
+        clearInterval(interval);
+        handleExpire();
+      }
+    };
+
+    const interval = setInterval(tick, 1000);
+    tick(); // run immediately so there's no 1s delay / flash of wrong value
+
+    return () => clearInterval(interval);
+  }, [router]);
+
+  useEffect(() => {
+    orderSubmittedRef.current = orderSubmitted;
+  }, [orderSubmitted]);
+
+  useEffect(() => {
+    return () => {
+      if (!orderSubmittedRef.current) return; // keep it on refresh
+      sessionStorage.removeItem(PAYMENT_SESSION_KEY);
+    };
+  }, []);
 
   useEffect(() => {
     if (!token) return;
@@ -375,6 +430,8 @@ const Page: React.FC = () => {
         setOrderId(result.processOrderId);
         setOrderSubmitted(true);
         localStorage.removeItem("deliveryCharge");
+        sessionStorage.removeItem(PAYMENT_SESSION_KEY);
+        localStorage.removeItem("deliveryCharge");
 
         setIsError(false);
         setModalMessage("Your order has been placed.");
@@ -587,6 +644,25 @@ const Page: React.FC = () => {
       )}
 
       <TopNavigation NavArray={NavArray} />
+
+      {remainingSeconds !== null && (
+        <div className="mt-4">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#C9B8F0] bg-[#F5F3FD] px-4 py-1.5 text-xs sm:text-sm text-[#3E206D]">
+            <span
+              className={`h-2 w-2 rounded-full ${remainingSeconds <= 60 ? "bg-red-500 animate-pulse" : "bg-[#3E206D]"
+                }`}
+            />
+            <span className="font-semibold">
+              Session expires in:{" "}
+              <span className={remainingSeconds <= 60 ? "text-red-600" : ""}>
+                {formatTimer(remainingSeconds)}
+              </span>
+            </span>
+            <span className="text-gray-400">|</span>
+            <span>Please complete payment</span>
+          </div>
+        </div>
+      )}
 
       {/* Two Column Layout - Matches the image exactly */}
       <div className="flex flex-col lg:flex-row gap-6 mt-6 lg:mt-8">
