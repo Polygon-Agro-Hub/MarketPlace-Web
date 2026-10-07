@@ -28,9 +28,10 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faLock } from "@fortawesome/free-solid-svg-icons";
 import Loader from "@/components/loader-spinner/Loader";
 
-
 const PAYMENT_SESSION_KEY = "paymentSessionExpiresAt";
 const PAYMENT_SESSION_DURATION_MS = 5 * 60 * 1000;
+
+let pendingSessionClear: ReturnType<typeof setTimeout> | null = null;
 
 const formatTimer = (totalSeconds: number): string => {
   const m = Math.floor(totalSeconds / 60).toString().padStart(2, "0");
@@ -87,12 +88,23 @@ const Page: React.FC = () => {
   const orderSubmittedRef = useRef(false);
 
   useEffect(() => {
-    // Reuse the saved expiry on refresh, otherwise start a new 5 min session
-    let expiresAt = Number(sessionStorage.getItem(PAYMENT_SESSION_KEY));
+    // Cancel a pending clear scheduled by a Strict Mode fake-unmount
+    if (pendingSessionClear) {
+      clearTimeout(pendingSessionClear);
+      pendingSessionClear = null;
+    }
+
+    const navEntry = performance.getEntriesByType("navigation")[0] as
+      | PerformanceNavigationTiming
+      | undefined;
+    const isReload = navEntry?.type === "reload";
+
+    // Reuse the saved expiry only on a browser refresh; otherwise start fresh
+    let expiresAt = isReload ? Number(sessionStorage.getItem(PAYMENT_SESSION_KEY)) : 0;
     if (!expiresAt || Number.isNaN(expiresAt)) {
       expiresAt = Date.now() + PAYMENT_SESSION_DURATION_MS;
-      sessionStorage.setItem(PAYMENT_SESSION_KEY, expiresAt.toString());
     }
+    sessionStorage.setItem(PAYMENT_SESSION_KEY, expiresAt.toString());
 
     const handleExpire = () => {
       sessionStorage.removeItem(PAYMENT_SESSION_KEY);
@@ -113,21 +125,23 @@ const Page: React.FC = () => {
     };
 
     const interval = setInterval(tick, 1000);
-    tick(); // run immediately so there's no 1s delay / flash of wrong value
+    tick();
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      // Deferred so an immediate remount (Strict Mode) can cancel it.
+      // A real navigation away has no remount, so the key gets cleared.
+      pendingSessionClear = setTimeout(() => {
+        sessionStorage.removeItem(PAYMENT_SESSION_KEY);
+        pendingSessionClear = null;
+      }, 0);
+    };
   }, [router]);
 
   useEffect(() => {
     orderSubmittedRef.current = orderSubmitted;
   }, [orderSubmitted]);
 
-  useEffect(() => {
-    return () => {
-      if (!orderSubmittedRef.current) return; // keep it on refresh
-      sessionStorage.removeItem(PAYMENT_SESSION_KEY);
-    };
-  }, []);
 
   useEffect(() => {
     if (!token) return;

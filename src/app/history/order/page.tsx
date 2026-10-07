@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import Image from "next/image";
-import { FaAngleDown } from "react-icons/fa";
+import { FaAngleDown, FaInfoCircle } from "react-icons/fa";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
 import {
@@ -563,6 +563,16 @@ export default function OrderHistoryPage() {
               </div>
             ) : orders.length > 0 ? (
               <div className="lg:mx-[72px] space-y-4">
+                {/* Price difference notice */}
+                <div className="flex items-start gap-2 rounded-xl bg-[#FFF5E9] px-4 py-3 text-xs lg:text-sm text-[#31111D]">
+                  <FaInfoCircle className="mt-[3px] flex-shrink-0 text-[12px]" />
+                  <p>
+                    Please note that the total amount on the delivery date may differ from
+                    the amount shown on the order date. If there is any price difference,
+                    the final amount applicable on the delivery date will be charged later.
+                  </p>
+                </div>
+
                 {orders.map((order) => (
                   <div
                     key={order.orderId}

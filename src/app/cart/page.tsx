@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
-import { Plus, Minus, Trash, ShoppingCart, X, ChevronLeft, ChevronRight, Trophy } from "lucide-react";
+import { Plus, Minus, Trash, ShoppingCart, X, ChevronLeft, ChevronRight, Trophy, Info } from "lucide-react";
 import TopNavigation from "@/components/top-navigation/TopNavigation";
 import {
   getUserCart,
@@ -1962,12 +1962,23 @@ const Page: React.FC = () => {
                   </div>
                 )}
 
-                <div className="border-t border-gray-200 pt-2">
+                             <div className="border-t border-gray-200 pt-2">
                   <div className="flex justify-between text-[20px] text-[#414347] font-semibold">
                     <p>Grand Total</p>
                     <p>Rs. {formatPrice(dynamicSummary.finalTotal)}</p>
                   </div>
                 </div>
+              </div>
+
+              {/* Price difference notice */}
+              <div className="flex items-start gap-1.5 rounded-lg bg-[#FFF5E9] px-3 py-3 mb-4 text-[12px] leading-relaxed text-[#31111D]">
+                <Info size={12} className="mt-[2px] flex-shrink-0" />
+                <p>
+                  Please note that the total amount on the delivery date may
+                  differ from the amount shown on the order date. If there is
+                  any price difference, the final amount applicable on the
+                  delivery date will be charged later.
+                </p>
               </div>
 
               <button

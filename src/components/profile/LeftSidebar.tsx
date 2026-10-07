@@ -119,7 +119,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
         <div className="border-t border-[#BDBDBD] mb-6 hidden md:block" />
 
-        <ul className="space-y-6">
+        <ul className="space-y-6 md:px-2">
           {/* Personal Details */}
           <li
             onClick={() => handleMenuClick("personalDetails")}
