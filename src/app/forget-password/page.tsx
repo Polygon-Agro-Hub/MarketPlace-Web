@@ -5,7 +5,8 @@ import { sendResetEmail, sendOTP } from "@/services/auth-service";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import reset from "../../../public/images/reset.png";
-import SuccessPopup from "@/components/toast-messages/success-message-with-button";
+import SuccessPopup from "@/components/toast-messages/success-message";
+import ErrorPopup from "@/components/toast-messages/error-message";
 
 const Page = () => {
   const [email, setEmail] = useState("");
@@ -159,7 +160,6 @@ const Page = () => {
         setModalMessage(`OTP code has been sent to ${countryCode}${phoneNumber}`);
         setIsOTPSent(true);
         if (res && res.referenceId) localStorage.setItem("otpReferenceId", res.referenceId);
-        const fullPhoneNumber = countryCode + cleanedPhone;
         localStorage.setItem("otpPhoneOnly", cleanedPhone);
         localStorage.setItem("otpCountryCode", countryCode);
         setTimeout(() => { router.push("/otp"); }, 1000);
@@ -482,56 +482,21 @@ const Page = () => {
         </div>
       </div>
 
-      {/* Success Popup */}
       <SuccessPopup
         isVisible={isModalOpen && !isError}
         onClose={() => setIsModalOpen(false)}
-        onCancel={() => setIsModalOpen(false)}
         title={resetMethod === "email" ? "Email has been sent!" : "OTP Sent Successfully"}
         description={modalMessage}
         duration={0}
       />
 
-      {/* Error Modal */}
-      {isModalOpen && isError && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white p-4 md:p-8 rounded-xl text-center w-full max-w-md shadow-xl">
-            <div className="flex justify-center mb-4">
-              <div className="relative w-20 h-20 md:w-28 md:h-28">
-                <div
-                  className="absolute inset-0 rounded-full bg-red-500 transition-all duration-700 ease-out scale-100 opacity-100"
-                  style={{ transformOrigin: "center", animationDelay: "0.2s" }}
-                />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <svg className="w-12 h-12 md:w-16 md:h-16 text-white" viewBox="0 0 24 24" fill="none">
-                    <path
-                      className="opacity-100 transition-all duration-700 ease-out"
-                      d="M18 6L6 18M6 6L18 18"
-                      stroke="currentColor"
-                      strokeWidth="3"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      style={{ strokeDasharray: "24", strokeDashoffset: "0", transitionDelay: "0.6s" }}
-                    />
-                  </svg>
-                </div>
-                <div
-                  className="absolute inset-0 rounded-full bg-red-500 scale-125 opacity-0 transition-all duration-1000"
-                  style={{ animationDelay: "0.8s" }}
-                />
-              </div>
-            </div>
-            <h2 className="text-lg md:text-xl font-bold mb-2 text-gray-900">Error</h2>
-            <p className="text-gray-500 mb-4 text-sm md:text-base">{modalMessage}</p>
-            <button
-              onClick={() => setIsModalOpen(false)}
-              className="px-4 md:px-6 py-2 bg-[#F3F4F7] rounded hover:bg-gray-300 text-[#757E87] transition cursor-pointer text-sm md:text-base"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Error Popup */}
+      <ErrorPopup
+        isVisible={isModalOpen && isError}
+        onClose={() => setIsModalOpen(false)}
+        title="Error!"
+        description={modalMessage}
+      />
     </div>
   );
 };

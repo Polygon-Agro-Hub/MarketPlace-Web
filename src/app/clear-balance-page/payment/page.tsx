@@ -11,11 +11,12 @@ import { updateCreditBalance } from "@/services/auth-service";
 import visaLogo from "../../../../public/icons/Visa-Logo.png";
 import mastercardLogo from "../../../../public/icons/Master-Card.png";
 import masterCardText from "../../../../public/icons/MasterCardText.png";
-import checkMark from "../../../../public/un.png";
 import { useDispatch } from "react-redux";
 import { updateCreditBalance as setCreditBalanceInStore } from "@/store/slices/authSlice";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faLock } from "@fortawesome/free-solid-svg-icons";
+import SuccessPopup from "@/components/toast-messages/success-message";
+import ErrorPopup from "@/components/toast-messages/error-message";
 
 const Page = () => {
   const router = useRouter();
@@ -45,8 +46,14 @@ const Page = () => {
   }>({});
 
   const [isProcessing, setIsProcessing] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [showErrorPopup, setShowErrorPopup] = useState(false);
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+
+  const showError = (message: string) => {
+    setErrorMessage(message);
+    setShowErrorPopup(true);
+  };
 
   const formatPrice = (price: number): string => {
     const fixedPrice = Number(price).toFixed(2);
@@ -65,7 +72,6 @@ const Page = () => {
     if (digitsOnly.length <= 2) return digitsOnly;
     return `${digitsOnly.slice(0, 2)}/${digitsOnly.slice(2)}`;
   };
-
 
   const validateCardNumberValue = (rawValue: string): string | undefined => {
     const digits = rawValue.replace(/\s/g, "");
@@ -160,17 +166,17 @@ const Page = () => {
     return Object.values(errors).every((err) => !err);
   };
 
- const handlePayNow = async () => {
+  const handlePayNow = async () => {
     if (!validateFields()) {
       return;
     }
 
     if (!token || !user?.id) {
-      setErrorMessage("You need to be signed in to complete this payment.");
+      showError("You need to be signed in to complete this payment.");
       return;
     }
 
-    setErrorMessage(null);
+    setShowErrorPopup(false);
     setIsProcessing(true);
 
     try {
@@ -180,12 +186,15 @@ const Page = () => {
       });
 
       const updatedCreditBalance = creditBalance + amountToPay;
-
       dispatch(setCreditBalanceInStore(updatedCreditBalance));
 
-      setShowSuccessModal(true);
+      setShowSuccessPopup(true);
+
+      setTimeout(() => {
+        router.replace("/");
+      }, 3000);
     } catch (error: any) {
-      setErrorMessage(
+      showError(
         error?.message || "Something went wrong while processing your payment.",
       );
     } finally {
@@ -193,13 +202,22 @@ const Page = () => {
     }
   };
 
-  const handleCloseSuccess = () => {
-    setShowSuccessModal(false);
-    router.replace("/");
-  };
-
   return (
     <div className="bg-white pb-8 pl-4 sm:pl-6 pr-4 sm:pr-6">
+      <SuccessPopup
+        isVisible={showSuccessPopup}
+        onClose={() => setShowSuccessPopup(false)}
+        title="Payment Successful!"
+        description="Your payment has been completed successfully. Your credit balance has been cleared. You will be redirected to the home page shortly."
+      />
+
+      <ErrorPopup
+        isVisible={showErrorPopup}
+        onClose={() => setShowErrorPopup(false)}
+        title="Error!"
+        description={errorMessage}
+      />
+
       {/* Breadcrumb */}
       <div className="px-4 sm:px-8 pt-7 pb-2">
         <nav className="flex items-center gap-2 text-sm text-gray-400">
@@ -366,14 +384,10 @@ const Page = () => {
 
             <div className="mb-6" />
 
-            {errorMessage && (
-              <p className="text-sm text-red-600 mb-3">{errorMessage}</p>
-            )}
-
             {/* Pay button */}
             <button
               onClick={handlePayNow}
-              disabled={isProcessing}
+              disabled={isProcessing || showSuccessPopup}
               className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-[#FFFFFF] text-sm font-medium transition-colors cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
               style={{ backgroundColor: "#3E206D" }}
             >
@@ -383,7 +397,7 @@ const Page = () => {
                 : `Pay Rs. ${formatPrice(amountToPay)} Now`}
             </button>
 
-           <p className="text-xs text-[#6C6C6C] mt-3 font-medium text-center px-2 leading-relaxed">
+            <p className="text-xs text-[#6C6C6C] mt-3 font-medium text-center px-2 leading-relaxed">
               <FontAwesomeIcon
                 icon={faLock}
                 className="inline-block align-middle mr-1 -mt-0.5 w-3 h-3"
@@ -442,37 +456,6 @@ const Page = () => {
           </div>
         </div>
       </div>
-
-      {/* Success modal */}
-      {showSuccessModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-3xl shadow-lg w-full max-w-sm px-8 py-10 flex flex-col items-center text-center">
-            <div className="w-24 h-24 rounded-lg flex items-center justify-center mb-5">
-              <Image
-                src={checkMark}
-                alt="Payment successful"
-                width={96}
-                height={96}
-                style={{ objectFit: "contain" }}
-              />
-            </div>
-
-            <h2 className="text-lg font-semibold text-[#000000] mb-2">
-              Payment Successful!
-            </h2>
-            <p className="text-sm text-[#8492A3] mb-6">
-              Your payment has been completed successfully.
-            </p>
-
-            <button
-              onClick={handleCloseSuccess}
-              className="px-8 py-2 rounded-lg text-sm shadow shadow-md font-medium text-[#757E87] bg-[#F3F4F7] hover:bg-gray-200 transition-colors cursor-pointer"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

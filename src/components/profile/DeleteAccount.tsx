@@ -10,6 +10,8 @@ import {
     deleteAccount,
     DeleteAccountEligibility,
 } from "@/services/auth-service"; // <-- adjust to your service file path
+import SuccessPopup from "@/components/toast-messages/success-message";
+import ErrorPopup from "@/components/toast-messages/error-message";
 
 interface DeleteAccountProps {
     /** Called by "Go Back" and "Cancel" (e.g. () => setSelectedMenu("personalDetails")) */
@@ -40,7 +42,17 @@ const DeleteAccount: React.FC<DeleteAccountProps> = ({
         useState<DeleteAccountEligibility | null>(null);
     const [confirmText, setConfirmText] = useState("");
     const [submitting, setSubmitting] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [deleted, setDeleted] = useState(false);
+    const [loadFailed, setLoadFailed] = useState(false);
+
+    const [errorMessage, setErrorMessage] = useState("");
+    const [showErrorPopup, setShowErrorPopup] = useState(false);
+    const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+
+    const showError = (message: string) => {
+        setErrorMessage(message);
+        setShowErrorPopup(true);
+    };
 
     useEffect(() => {
         let cancelled = false;
@@ -50,7 +62,10 @@ const DeleteAccount: React.FC<DeleteAccountProps> = ({
                 const data = await fetchDeleteAccountEligibility(token);
                 if (!cancelled) setEligibility(data);
             } catch (e: any) {
-                if (!cancelled) setError(e.message || "Something went wrong");
+                if (!cancelled) {
+                    setLoadFailed(true);
+                    showError(e.message || "Something went wrong");
+                }
             } finally {
                 if (!cancelled) setLoading(false);
             }
@@ -64,20 +79,26 @@ const DeleteAccount: React.FC<DeleteAccountProps> = ({
     const isMatch = confirmText === CONFIRM_WORD;
 
     const handleDelete = async () => {
-        if (!token || !isMatch || submitting) return;
+        if (!token || !isMatch || submitting || deleted) return;
         setSubmitting(true);
-        setError(null);
+        setShowErrorPopup(false);
         try {
             await deleteAccount(token);
-            if (onDeleted) {
-                onDeleted();
-            } else {
-                localStorage.clear();
-                sessionStorage.clear();
-                window.location.href = "/";
-            }
+            setDeleted(true);
+            setShowSuccessPopup(true);
+
+            // Let the user read the success popup, then finish up
+            setTimeout(() => {
+                if (onDeleted) {
+                    onDeleted();
+                } else {
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    window.location.href = "/";
+                }
+            }, 3000);
         } catch (e: any) {
-            setError(e.message || "Failed to delete account");
+            showError(e.message || "Failed to delete account");
             setSubmitting(false);
         }
     };
@@ -94,6 +115,20 @@ const DeleteAccount: React.FC<DeleteAccountProps> = ({
 
     return (
         <div className="w-full bg-white min-h-full">
+            <SuccessPopup
+                isVisible={showSuccessPopup}
+                onClose={() => setShowSuccessPopup(false)}
+                title="Account Deleted!"
+                description="Your account has been deleted successfully. You will be redirected shortly."
+            />
+
+            <ErrorPopup
+                isVisible={showErrorPopup}
+                onClose={() => setShowErrorPopup(false)}
+                title="Error!"
+                description={errorMessage}
+            />
+
             {/* Header */}
             <div className="px-6 pt-5">
                 <h2 className="text-[16px] font-semibold text-[#111827]">
@@ -110,6 +145,7 @@ const DeleteAccount: React.FC<DeleteAccountProps> = ({
                 <button
                     type="button"
                     onClick={onBack}
+                    disabled={deleted}
                     className="flex items-center gap-2 text-[13px] text-black"
                 >
                     <FaAngleLeft className="text-[12px]" />
@@ -202,7 +238,7 @@ const DeleteAccount: React.FC<DeleteAccountProps> = ({
                                 <button
                                     type="button"
                                     onClick={handleClearBalance}
-                                    className="bg-[#DC2626] hover:bg-[#B91C1C] text-white text-[16px] font-medium rounded-[6px] px-6 py-[10px] shadow-md"
+                                    className="bg-[#DC2626] hover:bg-[#B91C1C] text-white text-[16px] font-medium rounded-[6px] px-6 py-[10px] shadow-md cursor-pointer"
                                 >
                                     Clear Negative Credit Balance
                                 </button>
@@ -232,6 +268,7 @@ const DeleteAccount: React.FC<DeleteAccountProps> = ({
                                     autoComplete="off"
                                     autoCapitalize="characters"
                                     spellCheck={false}
+                                    disabled={submitting || deleted}
                                     className={`flex-1 bg-transparent outline-none text-[12px] font-semibold tracking-wide uppercase placeholder:font-normal placeholder:text-[#9CA3AF] ${isMatch ? "text-[#DC2626]" : "text-[#111827]"
                                         }`}
                                 />
@@ -240,41 +277,40 @@ const DeleteAccount: React.FC<DeleteAccountProps> = ({
                                 </span>
                             </div>
 
-                            {error && (
-                                <p className="mt-3 text-center text-[13px] text-[#DC2626]">
-                                    {error}
-                                </p>
-                            )}
-
                             <div className="mt-8 border-t border-[#D4D8DC]" />
 
                             <div className="flex justify-end gap-4 mt-6">
                                 <button
                                     type="button"
                                     onClick={onBack}
-                                    disabled={submitting}
-                                    className="bg-[#F1F2F4] text-[#6B7280] text-[16px] rounded-[6px] px-6 py-[10px] shadow-sm"
+                                    disabled={submitting || deleted}
+                                    className="bg-[#F1F2F4] text-[#6B7280] text-[16px] rounded-[6px] px-6 py-[10px] shadow-sm cursor-pointer hover:bg-[#E5E7EB] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="button"
                                     onClick={handleDelete}
-                                    disabled={!isMatch || submitting}
-                                    className={`text-white text-[16px] font-medium rounded-[6px] px-8 py-[10px] transition-colors ${isMatch && !submitting
+                                    disabled={!isMatch || submitting || deleted}
+                                    className={`text-white text-[16px] font-medium rounded-[6px] px-8 py-[10px] cursor-pointer transition-colors ${isMatch && !submitting && !deleted
                                             ? "bg-[#DC2626] hover:bg-[#B91C1C] cursor-pointer"
                                             : "bg-[#A8A8A8] cursor-not-allowed"
                                         }`}
                                 >
-                                    {submitting ? "Deleting..." : "Delete My Account"}
+                                    {deleted
+                                        ? "Account Deleted"
+                                        : submitting
+                                            ? "Deleting..."
+                                            : "Delete My Account"}
                                 </button>
                             </div>
                         </>
                     )}
 
-                    {!loading && !eligibility && error && (
+                    {/* Fallback if eligibility could not be loaded (details are in the error popup) */}
+                    {!loading && !eligibility && loadFailed && (
                         <p className="mt-8 text-center text-[13px] text-[#DC2626]">
-                            {error}
+                            Unable to check your account right now. Please try again later.
                         </p>
                     )}
                 </div>
