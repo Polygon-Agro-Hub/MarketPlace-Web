@@ -533,32 +533,50 @@ const PersonalDetailsForm = () => {
     }
   };
 
-  const isPhoneChanged = () => {
+  const isEmailChanged = () => {
+    if (!originalData) return false;
+    const current = (getValues().email || '').trim().toLowerCase();
+    const original = (originalData.email || '').trim().toLowerCase();
+    return current !== original;
+  };
+
+  // Foreign users verify via email, so a changed email must be verified too.
+  const isVerificationNeeded = () => {
     if (!originalData) return false;
     const v = getValues();
-    const key = `${v.countryCode}${v.phoneNumber}`;
+    const key = `${v.countryCode}${v.phoneNumber}|${(v.email || '').trim().toLowerCase()}`;
     if (verifiedPhoneRef.current === key) return false;
-    return (
+
+    const phoneChanged =
       v.phoneNumber !== originalData.phoneNumber ||
-      v.countryCode !== originalData.countryCode
-    );
+      v.countryCode !== originalData.countryCode;
+    const foreignEmailChanged = v.countryCode !== '+94' && isEmailChanged();
+
+    return phoneChanged || foreignEmailChanged;
   };
 
   const sendPhoneOtp = async () => {
     const v = getValues();
-    // For foreign numbers the code goes to the EXISTING account email,
-    // so ownership is proven by something that's already verified.
-    const emailTarget = originalData?.email || v.email;
+    const isForeign = v.countryCode !== '+94';
+    const emailChanged = isForeign && isEmailChanged();
+
+    // Email changed → send to the NEW email (proves the user owns it).
+    // Only phone changed → send to the existing, already-verified email.
+    const emailTarget = emailChanged ? v.email : (originalData?.email || v.email);
 
     setIsLoading(true);
     try {
-      const res = await sendOTPInSignup(v.phoneNumber, v.countryCode, { email: emailTarget });
+      const res = await sendOTPInSignup(v.phoneNumber, v.countryCode, {
+        email: emailTarget,
+        isUpdate: true,
+        isEmailChange: emailChanged,
+      });
       if (!res?.referenceId) throw new Error('Failed to send verification code');
 
       setOtpReferenceId(res.referenceId);
       setOtpTarget({ phoneCode: v.countryCode, phoneNumber: v.phoneNumber, email: emailTarget });
       setSuccessMessage(
-        v.countryCode !== '+94'
+        isForeign
           ? `Verification code has been sent to ${emailTarget}`
           : `OTP code has been sent to ${v.countryCode}${v.phoneNumber}`,
       );
@@ -582,8 +600,8 @@ const PersonalDetailsForm = () => {
     const valid = await trigger();
     if (!valid) return;
 
-    if (isPhoneChanged()) {
-      await sendPhoneOtp();   // save happens after OTP succeeds
+    if (isVerificationNeeded()) {
+      await sendPhoneOtp();
     } else {
       await handleProfileUpdate();
     }
@@ -591,7 +609,7 @@ const PersonalDetailsForm = () => {
 
   const handleOTPVerified = async () => {
     const v = getValues();
-    verifiedPhoneRef.current = `${v.countryCode}${v.phoneNumber}`;
+    verifiedPhoneRef.current = `${v.countryCode}${v.phoneNumber}|${(v.email || '').trim().toLowerCase()}`;
     setShowOTP(false);
     await handleProfileUpdate();
   };

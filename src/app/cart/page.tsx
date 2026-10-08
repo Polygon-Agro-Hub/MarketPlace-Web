@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
-import { Plus, Minus, Trash, ShoppingCart, X, ChevronLeft, ChevronRight, Trophy, Info } from "lucide-react";
+import { Plus, Minus, Trash, ShoppingCart, X, ChevronLeft, ChevronRight, Trophy } from "lucide-react";
 import TopNavigation from "@/components/top-navigation/TopNavigation";
 import {
   getUserCart,
@@ -30,6 +30,7 @@ import { getCartInfo } from "@/services/auth-service";
 import SuccessPopup from "@/components/toast-messages/success-message";
 import invalidPackageIcon from "../../../public/invalid-package.png";
 import socketService from "@/services/socketService";
+import { FaInfoCircle } from "react-icons/fa";
 
 interface PackageItem {
   name: string;
@@ -1972,7 +1973,7 @@ const Page: React.FC = () => {
 
               {/* Price difference notice */}
               <div className="flex items-start gap-1.5 rounded-lg bg-[#FFF5E9] px-3 py-3 mb-4 text-[12px] leading-relaxed text-[#31111D]">
-                <Info size={12} className="mt-[2px] flex-shrink-0" />
+                <FaInfoCircle className="mt-[3px] flex-shrink-0 text-[12px]" />
                 <p>
                   Please note that the total amount on the delivery date may
                   differ from the amount shown on the order date. If there is

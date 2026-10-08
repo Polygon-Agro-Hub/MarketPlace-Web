@@ -582,13 +582,13 @@ export const sendOTPInSignup = async (
     message?: string;
     source?: string;
     email?: string;
+    isUpdate?: boolean;      // true = profile update flow, false/undefined = registration
+    isEmailChange?: boolean; // true = `email` is a NEW address the OTP must go to
   },
 ): Promise<OTPServiceResponse> => {
-
+  // ── Foreign numbers: OTP goes to email ──────────────────────────────────
   if (countryCode !== "+94") {
-
     const emailTarget = options?.email;
-
 
     if (!emailTarget) {
       console.error("❌ No email provided for international number");
@@ -598,11 +598,12 @@ export const sendOTPInSignup = async (
     }
 
     try {
-
       const response = await axios.post("/auth/send-otp-email", {
         email: emailTarget,
         phoneNumber: phoneNumber.replace(/\s+/g, ""),
         phoneCode: countryCode,
+        isUpdate: options?.isUpdate ?? false,
+        isEmailChange: options?.isEmailChange ?? false,
       });
 
       const resData = response.data;
@@ -626,6 +627,7 @@ export const sendOTPInSignup = async (
     }
   }
 
+  // ── +94 numbers: OTP goes via SMS (flags don't apply here) ──────────────
   try {
     const formattedPhone = phoneNumber.replace(/\s+/g, "");
     const fullPhoneNumber = `${countryCode}${formattedPhone}`;
