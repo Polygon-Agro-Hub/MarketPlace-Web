@@ -45,7 +45,7 @@ export default function AccountPage() {
           {selectedMenu === "deleteAccount" && (
             <DeleteAccount
               onBack={() => setSelectedMenu("personalDetails")}
-              onClearNegativeBalance={() => router.push("/your-settle-balance-route")}
+              onClearNegativeBalance={() => router.push("/clear-balance-page/")}
             />
           )}
         </div>

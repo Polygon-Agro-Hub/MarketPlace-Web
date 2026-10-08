@@ -105,8 +105,7 @@ const DeleteAccount: React.FC<DeleteAccountProps> = ({
 
     const handleClearBalance = () => {
         if (onClearNegativeBalance) onClearNegativeBalance();
-        // TODO: navigate to your payment / settle-balance page, e.g.
-        // else router.push("/account/settle-credit");
+        else router.push("/clear-balance-page/");
     };
 
     const blockedByOrders = eligibility?.hasPendingOrders;

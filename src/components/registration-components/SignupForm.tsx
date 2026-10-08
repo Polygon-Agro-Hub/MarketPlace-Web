@@ -573,12 +573,13 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
         setShowRestorePopup(false);
         setLinkedAccount(null);
         setRestoreConfirmed(false);
-        setFormData(getInitialFormData());
-        setErrors({});
+        setFormData((prev) => ({ ...prev, nicNumber: "" }));
+        setErrors((prev) => {
+            const next = { ...prev };
+            delete next.nicNumber;
+            return next;
+        });
         setSuccess(null);
-        setIsPasswordValid(false);
-        setShowPassword(false);
-        setShowConfirmPassword(false);
     };
 
     const completeSignup = async (skipSuccessPopup: boolean = false) => {
