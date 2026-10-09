@@ -360,6 +360,25 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
             </div>
           </li>
 
+           {/* Card Details */}
+          <li
+            onClick={() => handleMenuClick("cardDetails")}
+            className="cursor-pointer"
+          >
+            <div
+              className={`${rowBase} ${isActive("cardDetails") ? "bg-[#DDDDDD]" : ""}`}
+            >
+              <div className={iconBox} style={iconShadow}>
+                <FaLocationDot
+                  className={
+                    isActive("cardDetails") ? ICON_ACTIVE : ICON_INACTIVE
+                  }
+                />
+              </div>
+              <span className={labelClass}>Saved Debit / Credit Card</span>
+            </div>
+          </li>
+
           {/* Delete Account */}
           <li
             onClick={() => handleMenuClick("deleteAccount")}

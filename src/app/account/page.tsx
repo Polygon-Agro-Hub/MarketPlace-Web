@@ -9,6 +9,7 @@ import ViewMyList from "@/components/profile/ViewMyList";
 import AddMoreItems from "@/components/profile/AddMoreItems";
 import DeleteAccount from "@/components/profile/DeleteAccount";
 import { useRouter } from 'next/navigation';
+import CardDetails from "@/components/profile/CardDetails";
 
 export default function AccountPage() {
   const [selectedMenu, setSelectedMenu] = useState("personalDetails");
@@ -35,6 +36,7 @@ export default function AccountPage() {
           {selectedMenu === "Complaints" && <ReportComplaintForm />}
           {selectedMenu === "reportComplaint" && <ReportComplaintForm />}
           {selectedMenu === "ComplaintHistory" && <ComplaintsHistory />}
+          {selectedMenu === "cardDetails" && <CardDetails />}
           {selectedMenu === "ExcludedItemList" && <ViewMyList />}
           {selectedMenu === "ViewMyList" && (
             <ViewMyList setSelectedMenu={setSelectedMenu} />
