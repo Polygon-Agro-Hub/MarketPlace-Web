@@ -27,6 +27,7 @@ import cashPaymentIcon from "../../../public/cashicon.png";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faLock } from "@fortawesome/free-solid-svg-icons";
 import Loader from "@/components/loader-spinner/Loader";
+import { PaymentGatewayFactory } from "@/services/payment/payment.factory";
 
 const PAYMENT_SESSION_KEY = "paymentSessionExpiresAt";
 const PAYMENT_SESSION_DURATION_MS = 5 * 60 * 1000;
@@ -75,15 +76,6 @@ const Page: React.FC = () => {
   const isFinalizeImdt = checkoutDetails?.isFinalizeImdt === 1;
   const [showUnavailableModal, setShowUnavailableModal] = useState(false);
   const [cashPaymentLimit, setCashPaymentLimit] = useState<number>(2000); // sensible default while loading
-  const [cardDetails, setCardDetails] = useState({
-    cardNumber: "",
-    nameOnCard: "",
-    expirationDate: "",
-    cvv: "",
-  });
-  const [expirationDateError, setExpirationDateError] = useState("");
-  const [cardNumberError, setCardNumberError] = useState("");
-  const [cvvError, setCvvError] = useState("");
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
   const orderSubmittedRef = useRef(false);
 
@@ -173,50 +165,6 @@ const Page: React.FC = () => {
     }
   }, []);
 
-  const validateExpirationDate = (value: string): string => {
-    if (!value) return "";
-    if (!/^\d{2}\/\d{2}$/.test(value)) return "";
-
-    const [monthStr, yearStr] = value.split("/");
-    const month = parseInt(monthStr, 10);
-    const year = parseInt(yearStr, 10);
-
-    if (month < 1 || month > 12) {
-      return "Please enter a valid month (01-12).";
-    }
-
-    const now = new Date();
-    const currentMonth = now.getMonth() + 1;
-    const currentYear = now.getFullYear() % 100;
-
-    if (year < currentYear || (year === currentYear && month < currentMonth)) {
-      return "This card has expired. Please enter a valid expiration date.";
-    }
-
-    return "";
-  };
-
-  const validateCardNumber = (formattedValue: string): string => {
-    const digitsOnly = formattedValue.replace(/\s/g, "");
-    if (!digitsOnly) return "";
-    if (digitsOnly.length !== 16) {
-      return "Card number must be exactly 16 digits.";
-    }
-    return "";
-  };
-
-  const validateCvv = (value: string): string => {
-    if (!value) return "";
-    if (!/^\d{3}$/.test(value)) {
-      return "CVV must be exactly 3 digits.";
-    }
-    return "";
-  };
-
-
-  const handleCardInputChange = (field: string, value: string) => {
-    setCardDetails((prev) => ({ ...prev, [field]: value }));
-  };
 
 
   const prepareOrderPayload = (): OrderPayload => {
@@ -422,13 +370,6 @@ const Page: React.FC = () => {
         throw new Error(cartValidation.error);
       }
 
-      if (!isFullyCoveredByCredit && paymentMethod === "card") {
-        const { cardNumber, nameOnCard, expirationDate, cvv } = cardDetails;
-        if (!cardNumber || !nameOnCard || !expirationDate || !cvv) {
-          throw new Error("Please fill in all card details.");
-        }
-      }
-
       const payload = prepareOrderPayload();
       const validation = validateOrderData(payload);
       if (!validation.isValid) {
@@ -438,6 +379,23 @@ const Page: React.FC = () => {
         return;
       }
 
+      // If paying via card and not 100% covered by credit, initiate Payments.lk hosted checkout
+      if (!isFullyCoveredByCredit && paymentMethod === "card") {
+        const adapter = PaymentGatewayFactory.getAdapter("payments_lk");
+        const session = await adapter.initiatePayment({
+          orderPayload: payload,
+          token,
+        });
+
+        if (session && session.checkoutUrl) {
+          window.location.href = session.checkoutUrl;
+          return;
+        } else {
+          throw new Error("Could not obtain checkout URL from payment gateway.");
+        }
+      }
+
+      // Otherwise (Cash on Delivery or 100% Credit), place order directly
       const result = await submitOrderToBackend(payload, token);
 
       if (result.status && result.processOrderId) {
@@ -557,13 +515,7 @@ const Page: React.FC = () => {
   const canConfirmOrder = (): boolean => {
     if (isSubmitting || orderSubmitted) return false;
     if (isFullyCoveredByCredit) return true; // credit alone covers everything
-
-    if (paymentMethod === "card") {
-      const { cardNumber, nameOnCard, expirationDate, cvv } = cardDetails;
-      const fieldsFilled = Boolean(cardNumber && nameOnCard && expirationDate && cvv);
-      const noValidationErrors = !cardNumberError && !expirationDateError && !cvvError;
-      return fieldsFilled && noValidationErrors;
-    }
+    if (paymentMethod === "card") return true; // Hosted gateway checkout on Payments.lk
     return paymentMethod === "cash" && showCashOption;
   };
 
@@ -824,94 +776,20 @@ const Page: React.FC = () => {
                   </div>
 
                   {paymentMethod === "card" && (
-                    <div className="p-5 border-t border-gray-200 bg-gray-50/30">
-                      <div className="space-y-4">
-                        <div>
-                          <input
-                            type="text"
-                            placeholder="Enter Card Number"
-                            value={cardDetails.cardNumber}
-                            onChange={(e) => {
-                              const value = e.target.value.replace(/[^0-9]/g, "");
-                              const formattedValue = value.replace(/(\d{4})(?=\d)/g, "$1 ");
-                              if (value.length <= 16) {
-                                handleCardInputChange("cardNumber", formattedValue);
-                                setCardNumberError(validateCardNumber(formattedValue));
-                              }
-                            }}
-                            onBlur={(e) => {
-                              setCardNumberError(validateCardNumber(e.target.value));
-                            }}
-                            maxLength={19}
-                            className={`w-full p-3 border rounded-lg bg-white text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200 ${cardNumberError ? "border-red-400" : "border-gray-200"
-                              }`}
-                          />
-                          {cardNumberError && (
-                            <p className="text-red-600 text-xs mt-1">{cardNumberError}</p>
-                          )}
+                    <div className="p-4 sm:p-5 border-t border-gray-200 bg-gray-50/50">
+                      <div className="flex items-start gap-3.5">
+                        <div className="w-9 h-9 rounded-full bg-[#F5F3FD] border border-[#E0D7F7] flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <FontAwesomeIcon icon={faLock} className="w-4 h-4 text-[#3E206D]" />
                         </div>
-                        <input
-                          type="text"
-                          placeholder="Enter Name on Card"
-                          value={cardDetails.nameOnCard}
-                          onChange={(e) => {
-                            let value = e.target.value;
-                            if (value.startsWith(" ")) value = value.trimStart();
-                            value = value.replace(/[^a-zA-Z\s]/g, "");
-                            value = value.replace(/\b\w/g, (char) => char.toUpperCase());
-                            handleCardInputChange("nameOnCard", value);
-                          }}
-                          className="w-full p-3 border border-gray-200 rounded-lg bg-white text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
-                        />
-                        <div className="flex gap-4">
-                          <div className="w-2/3">
-                            <input
-                              type="text"
-                              placeholder="Enter Expiration Date (MM/YY)"
-                              value={cardDetails.expirationDate}
-                              onChange={(e) => {
-                                const digitsOnly = e.target.value.replace(/[^0-9]/g, "").slice(0, 4);
-                                const formattedValue =
-                                  digitsOnly.length > 2
-                                    ? `${digitsOnly.slice(0, 2)}/${digitsOnly.slice(2)}`
-                                    : digitsOnly;
-
-                                handleCardInputChange("expirationDate", formattedValue);
-                                setExpirationDateError(validateExpirationDate(formattedValue));
-                              }}
-                              onBlur={(e) => {
-                                setExpirationDateError(validateExpirationDate(e.target.value));
-                              }}
-                              maxLength={5}
-                              className={`w-full p-3 border rounded-lg bg-white text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200 ${expirationDateError ? "border-red-400" : "border-gray-200"
-                                }`}
-                            />
-                            {expirationDateError && (
-                              <p className="text-red-600 text-xs mt-1">{expirationDateError}</p>
-                            )}
-                          </div>
-                          <div className="w-1/3">
-                            <input
-                              type="text"
-                              placeholder="Enter CVV"
-                              value={cardDetails.cvv}
-                              onChange={(e) => {
-                                const value = e.target.value.replace(/[^0-9]/g, "");
-                                if (value.length <= 3) {
-                                  handleCardInputChange("cvv", value);
-                                  setCvvError(validateCvv(value));
-                                }
-                              }}
-                              onBlur={(e) => {
-                                setCvvError(validateCvv(e.target.value));
-                              }}
-                              maxLength={3}
-                              className={`w-full p-3 border rounded-lg bg-white text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200 ${cvvError ? "border-red-400" : "border-gray-200"
-                                }`}
-                            />
-                            {cvvError && (
-                              <p className="text-red-600 text-xs mt-1">{cvvError}</p>
-                            )}
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900">
+                            Secure Online Payment via Payments.lk
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                            You will be redirected to the official Payments.lk hosted checkout page to complete your payment securely with Visa or Mastercard. No card details are stored on our servers.
+                          </p>
+                          <div className="flex items-center gap-2 mt-3 text-xs font-medium text-[#1B7331] bg-[#F6FCF5] border border-[#AEC9AB] rounded-lg px-3 py-1.5 w-fit">
+                            <span>✓ PCI-DSS Level 1 Secure Checkout</span>
                           </div>
                         </div>
                       </div>
@@ -1172,10 +1050,14 @@ const Page: React.FC = () => {
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     ></path>
                   </svg>
-                  Processing Order...
+                  {paymentMethod === "card" && !isFullyCoveredByCredit
+                    ? "Redirecting to Payment Gateway..."
+                    : "Processing Order..."}
                 </>
               ) : orderSubmitted ? (
                 "Order Submitted"
+              ) : paymentMethod === "card" && !isFullyCoveredByCredit ? (
+                "Proceed to Payment"
               ) : (
                 "Confirm Order"
               )}
