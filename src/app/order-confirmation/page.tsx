@@ -1,7 +1,7 @@
 "use client";
 
 import React, { Suspense, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
 import {
@@ -19,6 +19,7 @@ import UpdatedOrderSummary, {
 import ViewOrderComponent from "@/components/order-confirmation-components/ViewOrderComponent";
 import {
   getOrderConfirmation,
+  confirmOrder,
   type OrderConfirmationData,
 } from "@/services/retail-service";
 
@@ -71,7 +72,7 @@ const PaymentMethodCard: React.FC<{
 
 const OrderConfirmationContent = () => {
   const searchParams = useSearchParams();
-  const processedOrderId = searchParams.get("processedOrderId"); 
+  const processedOrderId = searchParams.get("processedOrderId");
   const token = useSelector((state: RootState) => state.auth.token);
 
   const [order, setOrder] = useState<OrderConfirmationData | null>(null);
@@ -79,8 +80,12 @@ const OrderConfirmationContent = () => {
   const [error, setError] = useState<string | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
 
+  const router = useRouter();
+  const [submitting, setSubmitting] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+
   useEffect(() => {
-    if (!processedOrderId || !token) return; 
+    if (!processedOrderId || !token) return;
     let cancelled = false;
 
     setLoading(true);
@@ -104,6 +109,31 @@ const OrderConfirmationContent = () => {
     };
   }, [processedOrderId, token]);
 
+  useEffect(() => {
+    if (!processedOrderId || !token || !order || order.isConfirmed) return;
+    if (searchParams.get("returned") !== "1") return;
+
+    let tries = 0;
+    const id = setInterval(async () => {
+      tries += 1;
+      try {
+        const fresh = await getOrderConfirmation(token, processedOrderId);
+        setOrder(fresh);
+        if (fresh.isConfirmed || tries >= 10) clearInterval(id);
+      } catch {
+        clearInterval(id);
+      }
+    }, 3000);
+
+    return () => clearInterval(id);
+  }, [processedOrderId, token, order?.isConfirmed, searchParams]);
+
+  useEffect(() => {
+    if (searchParams.get("returned") === "1" && order?.isConfirmed) {
+      router.replace("/");
+    }
+  }, [order?.isConfirmed, searchParams, router]);
+
   if (loading) {
     return (
       <div className="flex justify-center py-16">
@@ -122,11 +152,31 @@ const OrderConfirmationContent = () => {
     );
   }
 
-  // TODO: confirm / cancel API calls (separate step)
-  const handleConfirm = () =>
-    console.log("Order confirmed", order.invoiceNumber);
-  const handleCancel = () =>
-    console.log("Order cancelled", order.invoiceNumber);
+  const handleConfirm = async () => {
+    if (!token || !processedOrderId || submitting) return;
+    try {
+      setSubmitting(true);
+      setActionError(null);
+
+      const result = await confirmOrder(token, processedOrderId);
+
+      if (result.paymentUrl) {
+        window.location.href = result.paymentUrl;
+        return;
+      }
+
+      router.push("/");
+    } catch (err: any) {
+      setActionError(
+        err?.message || "Could not confirm your order. Please try again.",
+      );
+      setSubmitting(false);
+    }
+  };
+
+  function handleCancel(): void {
+    throw new Error("Function not implemented.");
+  }
 
   return (
     <main className="mx-auto w-full max-w-[1200px] px-4 py-8 sm:px-6 lg:px-8">
@@ -219,11 +269,18 @@ const OrderConfirmationContent = () => {
 
         {/* Right: summary + payment method */}
         <aside className="space-y-4">
-          <UpdatedOrderSummary
-            data={order.summary}
-            onConfirm={handleConfirm}
-            onCancel={handleCancel}
-          />
+          {order.isConfirmed ? (
+            <div className="rounded-3xl bg-green-50 p-5 text-sm text-green-800">
+              This order has already been confirmed.
+            </div>
+          ) : (
+            <UpdatedOrderSummary
+              data={order.summary}
+              onConfirm={handleConfirm}
+              onCancel={handleCancel}
+              submitting={submitting}
+            />
+          )}
           <PaymentMethodCard
             paymentType={order.summary.paymentType}
             fulfillmentType={order.summary.fulfillmentType}
