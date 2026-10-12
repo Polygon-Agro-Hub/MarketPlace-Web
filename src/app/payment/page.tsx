@@ -28,6 +28,9 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faLock } from "@fortawesome/free-solid-svg-icons";
 import Loader from "@/components/loader-spinner/Loader";
 import { PaymentGatewayFactory } from "@/services/payment/payment.factory";
+import { getCheckoutScheduleInfo } from "@/services/product-service";
+import { sendSms } from "@/services/product-service";
+import { buildOrderPlacedSms } from "@/utils/order-sms";
 
 const PAYMENT_SESSION_KEY = "paymentSessionExpiresAt";
 const PAYMENT_SESSION_DURATION_MS = 5 * 60 * 1000;
@@ -356,6 +359,32 @@ const Page: React.FC = () => {
     return { isValid: true };
   };
 
+  const notifyOrderPlaced = (
+    result: any,
+    earliestDate: string | null,
+    isReviewPackage: boolean,
+    smsPhone: { code: string; number: string } | null,
+  ) => {
+    if (!smsPhone) {
+      console.warn("No account phone number available, skipping order SMS");
+      return;
+    }
+
+    const message = buildOrderPlacedSms({
+      scheduleType: checkoutDetails.scheduleType || "One Time",
+      deliveryDate: checkoutDetails.deliveryDate || null,
+      earliestDate,
+      isReviewPackage,
+      payMode: isFullyCoveredByCredit ? "credit" : paymentMethod,
+      invNo: result?.invNo ?? result?.invoiceNo ?? null,
+    });
+
+    if (!message) return;
+
+    // Fire and forget: an SMS failure must never block the order
+    void sendSms(smsPhone.code, smsPhone.number, message);
+  };
+
   const handleSubmitOrder = async (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
@@ -379,7 +408,9 @@ const Page: React.FC = () => {
         return;
       }
 
-      // If paying via card and not 100% covered by credit, initiate Payments.lk hosted checkout
+      // If paying via card and not 100% covered by credit, initiate Payments.lk hosted checkout.
+      // NOTE: no SMS is sent here. The user leaves the page, so the card SMS
+      // messages must be sent from the payment-return page or the webhook.
       if (!isFullyCoveredByCredit && paymentMethod === "card") {
         const adapter = PaymentGatewayFactory.getAdapter("payments_lk");
         const session = await adapter.initiatePayment({
@@ -396,6 +427,27 @@ const Page: React.FC = () => {
       }
 
       // Otherwise (Cash on Delivery or 100% Credit), place order directly
+
+      // Capture SMS inputs BEFORE placing the order (the cart is cleared afterwards
+      // and the 6 PM cutoff can shift the earliest schedule date)
+      const hasPackages = (cartItems.packages?.length ?? 0) > 0;
+      const isReviewPackage = hasPackages && !isFinalizeImdt;
+
+      let earliestDate: string | null = null;
+      let smsPhone: { code: string; number: string } | null = null;
+      try {
+        const info = await getCheckoutScheduleInfo(token);
+        earliestDate = info?.data?.earliestDate ?? null;
+        if (info?.data?.phoneNumber) {
+          smsPhone = {
+            code: info.data.phoneCode || "+94",
+            number: info.data.phoneNumber,
+          };
+        }
+      } catch (e) {
+        console.error("Could not read schedule info for SMS:", e);
+      }
+
       const result = await submitOrderToBackend(payload, token);
 
       if (result.status && result.processOrderId) {
@@ -403,7 +455,9 @@ const Page: React.FC = () => {
         setOrderSubmitted(true);
         localStorage.removeItem("deliveryCharge");
         sessionStorage.removeItem(PAYMENT_SESSION_KEY);
-        localStorage.removeItem("deliveryCharge");
+
+        // Send the order SMS (does not block the success modal)
+        notifyOrderPlaced(result, earliestDate, isReviewPackage, smsPhone);
 
         setIsError(false);
         setModalMessage("Your order has been placed.");

@@ -823,6 +823,9 @@ export interface CheckoutScheduleInfo {
   note: string;
   rangeText: string;
   oneTimePackages: CheckoutOneTimePackage[];
+  phoneCode: string;           // e.g. "+94"
+  phoneNumber: string | null;
+
 }
 
 export interface CheckoutScheduleInfoResponse {
@@ -856,8 +859,8 @@ export const getCheckoutScheduleInfo = async (
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          `Failed with status ${error.response.status}`,
+        error.response.data?.error ||
+        `Failed with status ${error.response.status}`,
       );
     } else if (error.request) {
       throw new Error("No response received from server");
@@ -866,5 +869,41 @@ export const getCheckoutScheduleInfo = async (
         error.message || "An error occurred while fetching schedule info",
       );
     }
+  }
+};
+
+
+export const sendSms = async (
+  phoneCode: string,
+  phoneNumber: string,
+  message: string,
+  source: string = "Polygon",
+): Promise<boolean> => {
+  try {
+    const digits = (phoneNumber || "").replace(/\D/g, "");
+    if (!digits || !message) return false;
+
+    console.log(`Sending SMS to ${phoneCode}${digits}: "${message}"`);
+
+    const response = await fetch("/api/shoutout/message", { // was /api/shoutout/send
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        source,
+        transport: "sms",
+        content: { sms: message },
+        destination: `${phoneCode || "+94"}${digits}`,
+      }),
+    });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      console.error("SMS send failed:", response.status, data);
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.error("SMS send error:", error);
+    return false;
   }
 };
