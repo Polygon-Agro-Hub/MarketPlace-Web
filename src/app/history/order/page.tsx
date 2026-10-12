@@ -490,7 +490,7 @@ export default function OrderHistoryPage() {
           <>
             <div className="flex flex-row justify-between items-center mb-6 space-x-2 lg:mx-[72px]">
               <h1 className="text-sm lg:text-xl font-bold">
-                Your Orders ({orders.length.toString().padStart(2, "0")})
+                Your Orders ({orders.length === 0 ? "0" : orders.length.toString().padStart(2, "0")})
               </h1>
               <div className="relative w-[140px] sm:w-[180px]">
                 <Select
@@ -557,22 +557,23 @@ export default function OrderHistoryPage() {
               </div>
             </div>
 
+            <div className="lg:mx-[72px] mb-4">
+              <div className="flex items-start gap-2 rounded-xl bg-[#FFF5E9] px-4 py-3 text-xs lg:text-sm text-[#31111D]">
+                <FaInfoCircle className="mt-[3px] flex-shrink-0 text-[12px]" />
+                <p>
+                  Please note that the total amount on the delivery date may differ from
+                  the amount shown on the order date. If there is any price difference,
+                  the final amount applicable on the delivery date will be charged later.
+                </p>
+              </div>
+            </div>
+
             {filterLoading ? (
               <div className="flex flex-col items-center justify-center h-[50vh] text-center">
                 <Loader isVisible={true} />
               </div>
             ) : orders.length > 0 ? (
               <div className="lg:mx-[72px] space-y-4">
-                {/* Price difference notice */}
-                <div className="flex items-start gap-2 rounded-xl bg-[#FFF5E9] px-4 py-3 text-xs lg:text-sm text-[#31111D]">
-                  <FaInfoCircle className="mt-[3px] flex-shrink-0 text-[12px]" />
-                  <p>
-                    Please note that the total amount on the delivery date may differ from
-                    the amount shown on the order date. If there is any price difference,
-                    the final amount applicable on the delivery date will be charged later.
-                  </p>
-                </div>
-
                 {orders.map((order) => (
                   <div
                     key={order.orderId}

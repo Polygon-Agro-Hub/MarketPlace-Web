@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
-import { Plus, Minus, Trash, ShoppingCart, X, ChevronLeft, ChevronRight, Trophy, Info } from "lucide-react";
+import { Plus, Minus, Trash, ShoppingCart, X, ChevronLeft, ChevronRight, Trophy } from "lucide-react";
 import TopNavigation from "@/components/top-navigation/TopNavigation";
 import {
   getUserCart,
@@ -30,11 +30,18 @@ import { getCartInfo } from "@/services/auth-service";
 import SuccessPopup from "@/components/toast-messages/success-message";
 import invalidPackageIcon from "../../../public/invalid-package.png";
 import socketService from "@/services/socketService";
+import { FaInfoCircle, FaClock } from "react-icons/fa";
 
 interface PackageItem {
   name: string;
   quantity: number;
   hasSpecialBadge: boolean;
+}
+
+interface SeasonalNotice {
+  title: string;
+  message: string;
+  date: string;
 }
 
 interface CartPackage {
@@ -49,6 +56,9 @@ interface CartPackage {
   items: PackageItem[];
   status?: string;
   isValid?: number;
+  packageType?: "One Time" | "Recurring";
+  endDate?: string;
+  seasonalNotice?: SeasonalNotice | null;
 }
 
 interface CartItem {
@@ -1049,6 +1059,26 @@ const Page: React.FC = () => {
       </div>
     </div>
   );
+
+  const SeasonalNoticeBox: React.FC<{ notice: SeasonalNotice; compact?: boolean }> = ({
+    notice,
+    compact = false,
+  }) => (
+    <div
+      className={`rounded-lg bg-[#E4FFE4] ${compact ? "px-3 py-2.5 mb-3" : "px-4 py-3 mb-4"
+        } w-full lg:w-fit lg:max-w-full`}
+    >
+      <p className="flex items-center gap-2 text-sm font-semibold text-black mb-0.5">
+        <FaClock size={14} />
+        {notice.title}
+      </p>
+      <p className={`text-black ${compact ? "text-xs" : "text-[13px]"}`}>
+        This package will no longer be available for delivery after this date :{" "}
+        <span className="font-bold">{notice.date}</span>. We appreciate your
+        understanding and support.
+      </p>
+    </div>
+  );
   // Mobile Product Card Component
   const MobileProductCard: React.FC<{
     item: CartItem;
@@ -1782,6 +1812,10 @@ const Page: React.FC = () => {
                             {pkg.totalItems} {pkg.totalItems === 1 ? "Item" : "Items"}
                           </p>
 
+                          {pkg.seasonalNotice && (
+                            <SeasonalNoticeBox notice={pkg.seasonalNotice} compact />
+                          )}
+
                           {/* Price */}
                           <div className="flex justify-between items-center mb-3 pb-3 border-b border-gray-100">
                             <span className="text-sm text-gray-500">Package Price</span>
@@ -1852,6 +1886,10 @@ const Page: React.FC = () => {
                         </span>
                       </div>
                     </div>
+
+                    {pkg.seasonalNotice && (
+                      <SeasonalNoticeBox notice={pkg.seasonalNotice} />
+                    )}
 
                     <div className="bg-white border border-gray-200 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-sm">
                       <div className="grid grid-cols-2 pb-3 sm:pb-4 mb-3 sm:mb-4 border-b border-gray-200">
@@ -1962,7 +2000,7 @@ const Page: React.FC = () => {
                   </div>
                 )}
 
-                             <div className="border-t border-gray-200 pt-2">
+                <div className="border-t border-gray-200 pt-2">
                   <div className="flex justify-between text-[20px] text-[#414347] font-semibold">
                     <p>Grand Total</p>
                     <p>Rs. {formatPrice(dynamicSummary.finalTotal)}</p>
@@ -1972,7 +2010,7 @@ const Page: React.FC = () => {
 
               {/* Price difference notice */}
               <div className="flex items-start gap-1.5 rounded-lg bg-[#FFF5E9] px-3 py-3 mb-4 text-[12px] leading-relaxed text-[#31111D]">
-                <Info size={12} className="mt-[2px] flex-shrink-0" />
+                <FaInfoCircle className="mt-[3px] flex-shrink-0 text-[12px]" />
                 <p>
                   Please note that the total amount on the delivery date may
                   differ from the amount shown on the order date. If there is

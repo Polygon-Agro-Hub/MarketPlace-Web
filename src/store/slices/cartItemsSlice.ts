@@ -26,7 +26,13 @@ interface PackageItem {
   hasSpecialBadge: boolean;
 }
 
-interface CartPackage {
+export interface SeasonalNotice {
+  title: string;
+  message: string;
+  date: string;
+}
+
+export interface CartPackage {
   id: number;
   cartItemId: number;
   packageName: string;
@@ -38,6 +44,9 @@ interface CartPackage {
   items: PackageItem[];
   status?: string;
   isValid?: number;
+  packageType?: "One Time" | "Recurring";
+  endDate?: string;
+  seasonalNotice?: SeasonalNotice | null;
 }
 
 interface AdditionalItems {
