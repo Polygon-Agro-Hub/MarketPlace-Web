@@ -9,7 +9,7 @@ export type PaymentType =
   | "CARD" // Saved card
   | "CASH_CREDIT" // Credit balance + cash
   | "CARD_CREDIT" // Credit balance + saved card
-  | "FULLY_CREDIT"; // Credit balance = full total 
+  | "FULLY_CREDIT"; // Credit balance = full total
 
 export interface SavedCard {
   brand: CardBrand;
@@ -23,18 +23,19 @@ export interface OrderSummaryData {
   alaCarteTotal?: number;
   discount?: number;
   couponDiscount?: number;
-  deliveryFee?: number; 
+  deliveryFee?: number;
   couponApplied?: boolean;
   total: number;
-  creditApplied?: number; 
-  savedCard?: SavedCard; 
-  chargeAmount?: number; 
+  creditApplied?: number;
+  savedCard?: SavedCard;
+  chargeAmount?: number;
 }
 
 interface UpdatedOrderSummaryProps {
   data: OrderSummaryData;
   onConfirm?: () => void;
   onCancel?: () => void;
+  submitting?: boolean;
 }
 
 export const formatMoney = (amount: number) =>
@@ -72,6 +73,7 @@ const UpdatedOrderSummary: React.FC<UpdatedOrderSummaryProps> = ({
   data,
   onConfirm,
   onCancel,
+  submitting = false,
 }) => {
   const {
     fulfillmentType,
@@ -206,20 +208,15 @@ const UpdatedOrderSummary: React.FC<UpdatedOrderSummaryProps> = ({
       )}
 
       {/* Notice - saved card (CARD / CARD + CREDIT) */}
-      {isCard && savedCard && (
+      {isCard && cardCharge > 0 && (
         <div className="mt-5 rounded-lg bg-indigo-50 px-3 py-3">
           <p className="text-sm text-gray-800">
-            You will be charged <strong>{formatMoney(cardCharge)}</strong> upon
-            clicking confirm using the saved card number.
+            You will be redirected to the secure payment gateway to pay{" "}
+            <strong>{formatMoney(cardCharge)}</strong> upon clicking confirm.
           </p>
-          <div className="mt-2 flex items-center gap-2 rounded bg-white px-3 py-1.5 text-xs text-gray-800">
-            <CardBrandLogo brand={savedCard.brand} />
-            <span className="capitalize">
-              {savedCard.brand === "mastercard" ? "Master" : savedCard.brand}
-            </span>
-            <span className="tracking-widest">●●●●</span>
-            <span>{savedCard.last4}</span>
-          </div>
+          <p className="mt-1 text-xs text-gray-500">
+            Supports Visa and Mastercard debit/credit cards.
+          </p>
         </div>
       )}
 
@@ -235,10 +232,11 @@ const UpdatedOrderSummary: React.FC<UpdatedOrderSummaryProps> = ({
         <button
           type="button"
           onClick={onConfirm}
+          disabled={submitting}
           className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-[#3E206D] py-3 text-sm font-semibold text-white transition-colors hover:bg-[#2f1854] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3E206D] focus-visible:ring-offset-2"
         >
-          Confirm &amp; Accept My Order
-          <ArrowRight className="h-4 w-4" />
+          {submitting ? "Processing..." : "Confirm & Accept My Order"}
+          {!submitting && <ArrowRight className="h-4 w-4" />}
         </button>
       </div>
     </section>

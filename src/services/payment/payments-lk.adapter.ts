@@ -89,13 +89,26 @@ export class PaymentsLkAdapter implements IPaymentGatewayAdapter {
         },
       });
 
-      if (response.data && response.data.status) {
+      const responseBody = response.data;
+      const result = responseBody?.data ?? responseBody;
+
+      if (responseBody?.status && result) {
+        const sessionStatus = String(
+          result.sessionStatus ?? result.status ?? ""
+        ).toLowerCase();
+        const isCompleted =
+          result.isCompleted === true ||
+          result.completed === true ||
+          ["success", "successful", "completed", "paid"].includes(
+            sessionStatus
+          );
+
         return {
-          isCompleted: Boolean(response.data.isCompleted),
-          orderId: response.data.orderId,
-          invoiceNumber: response.data.invoiceNumber,
-          amount: response.data.amount,
-          sessionStatus: response.data.sessionStatus,
+          isCompleted,
+          orderId: result.orderId ?? result.processedOrderId,
+          invoiceNumber: result.invoiceNumber,
+          amount: result.amount,
+          sessionStatus: result.sessionStatus ?? result.status,
         };
       }
 
