@@ -1,12 +1,17 @@
 "use client";
 
-import React, { useEffect, useState, Suspense } from "react";
+import React, { useEffect, useRef, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "@/store";
 import { updateCartInfo } from "@/store/slices/authSlice";
 import { getCartInfo } from "@/services/auth-service";
 import { PaymentGatewayFactory } from "@/services/payment/payment.factory";
+import {
+  getCheckoutScheduleInfo,
+  sendSms,
+} from "@/services/product-service";
+import { buildConfirmedSms, splitSmsPhone } from "@/utils/order-sms";
 import { CheckCircle2, XCircle, Loader2, ArrowRight, RefreshCw } from "lucide-react";
 
 const PaymentReturnContent = () => {
@@ -28,6 +33,7 @@ const PaymentReturnContent = () => {
   const [invoiceNumber, setInvoiceNumber] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [countdown, setCountdown] = useState(4);
+  const confirmationSmsSent = useRef(false);
 
   useEffect(() => {
     if (isSuccess && orderId) {
@@ -100,6 +106,33 @@ const PaymentReturnContent = () => {
           setInvoiceNumber(result.invoiceNumber || null);
           setIsSuccess(true);
           setLoading(false);
+
+          const paidInvoiceNumber = result.invoiceNumber;
+          if (!confirmationSmsSent.current && paidInvoiceNumber) {
+            confirmationSmsSent.current = true;
+            void (async () => {
+              try {
+                const scheduleInfo = await getCheckoutScheduleInfo(activeToken);
+                const phone = splitSmsPhone(
+                  scheduleInfo.data.phoneNumber,
+                );
+                const message = buildConfirmedSms(paidInvoiceNumber);
+
+                if (phone) {
+                  await sendSms(phone.code, phone.number, message);
+                } else {
+                  console.warn(
+                    "Payment succeeded but no phone number was available for confirmation SMS",
+                  );
+                }
+              } catch (smsError) {
+                console.error(
+                  "Failed to send payment confirmation SMS:",
+                  smsError,
+                );
+              }
+            })();
+          }
 
           // Clear cart state
           try {

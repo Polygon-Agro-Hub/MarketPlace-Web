@@ -7,6 +7,13 @@ import { parseDateStr, formatOrderDate } from "@/utils/schedule";
 export const PROCESSING_OFFSET_DAYS = 3;
 
 export type PayMode = "cash" | "card" | "credit"; // cash = Cash or Cash+Credit, card = Card or Card+Credit, credit = Full Credit
+export type ConfirmationPaymentType =
+  | "COD"
+  | "COP"
+  | "CASH_CREDIT"
+  | "CARD"
+  | "CARD_CREDIT"
+  | "FULLY_CREDIT";
 
 export interface OrderSmsContext {
   scheduleType: string;            // only "One Time" is covered by the flowchart
@@ -29,6 +36,41 @@ const requestIntro = (date: Date): string =>
 // "Order confirmed" SMS. Also use this after payment succeeds / the customer accepts.
 export const buildConfirmedSms = (invNo: string | number): string =>
   `Dear Customer, your order : ${invNo} is confirmed. Thank you for ordering with Polygon!`;
+
+export interface OrderConfirmationSmsContext {
+  paymentType: ConfirmationPaymentType;
+  invNo?: string | number | null;
+  paymentCompleted?: boolean;
+}
+
+// Cash/credit orders are confirmed immediately. Card orders are confirmed
+// only after the payment gateway reports a successful payment.
+export const buildOrderConfirmationSms = (
+  ctx: OrderConfirmationSmsContext,
+): string | null => {
+  if (!ctx.invNo) return null;
+
+  const isCardPayment =
+    ctx.paymentType === "CARD" || ctx.paymentType === "CARD_CREDIT";
+  if (isCardPayment && !ctx.paymentCompleted) return null;
+
+  return buildConfirmedSms(ctx.invNo);
+};
+
+export const splitSmsPhone = (
+  phone: string | null | undefined,
+): { code: string; number: string } | null => {
+  const value = (phone ?? "").replace(/[^\d+]/g, "");
+  if (!value) return null;
+
+  if (value.startsWith("+94")) {
+    return { code: "+94", number: value.slice(3).replace(/^0/, "") };
+  }
+  if (value.startsWith("94")) {
+    return { code: "+94", number: value.slice(2).replace(/^0/, "") };
+  }
+  return { code: "+94", number: value.replace(/^0/, "") };
+};
 
 // SMS to send right after the order is placed.
 // Returns null when no SMS should be sent at this moment.

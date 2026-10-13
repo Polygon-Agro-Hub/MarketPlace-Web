@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense, useEffect, useState } from "react";
+import React, { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/store";
@@ -27,6 +27,11 @@ import {
 } from "@/services/retail-service";
 import { getCartInfo } from "@/services/auth-service";
 import { updateCartInfo } from "@/store/slices/authSlice";
+import { sendSms } from "@/services/product-service";
+import {
+  buildOrderConfirmationSms,
+  splitSmsPhone,
+} from "@/utils/order-sms";
 
 const getPaymentPill = (
   paymentType: PaymentType,
@@ -91,6 +96,22 @@ const OrderConfirmationContent = () => {
   const [actionError, setActionError] = useState<string | null>(null);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [successVisible, setSuccessVisible] = useState(false);
+  const confirmationSmsSent = useRef(false);
+
+  const notifyOrderConfirmed = (paymentCompleted: boolean) => {
+    if (confirmationSmsSent.current || !order) return;
+
+    const message = buildOrderConfirmationSms({
+      paymentType: order.summary.paymentType,
+      invNo: order.invoiceNumber,
+      paymentCompleted,
+    });
+    const phone = splitSmsPhone(order.details.receiver.phones[0]);
+    if (!message || !phone) return;
+
+    confirmationSmsSent.current = true;
+    void sendSms(phone.code, phone.number, message);
+  };
 
   useEffect(() => {
     if (!processedOrderId || !token) return;
@@ -139,9 +160,10 @@ const OrderConfirmationContent = () => {
   useEffect(() => {
     if (searchParams.get("returned") === "1" && order?.isConfirmed) {
       setSubmitting(false);
+      notifyOrderConfirmed(true);
       setSuccessVisible(true);
     }
-  }, [order?.isConfirmed, searchParams]);
+  }, [order?.isConfirmed, searchParams, order]);
 
   if (loading) {
     return (
@@ -174,6 +196,7 @@ const OrderConfirmationContent = () => {
         return;
       }
 
+      notifyOrderConfirmed(true);
       setSuccessVisible(true);
     } catch (err: any) {
       setActionError(

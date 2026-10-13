@@ -1,7 +1,5 @@
-// app/api/shoutout/message/route.ts
 import { NextResponse } from "next/server";
 
-// Plain (non-OTP) messages API. The OTP route (/otpservice/send) only accepts text with {{code}}.
 const SHOUTOUT_MESSAGE_URL = "https://api.getshoutout.com/coreservice/messages";
 
 export async function POST(request: Request) {
@@ -28,6 +26,13 @@ export async function POST(request: Request) {
 
     const apiKey =
       process.env.SHOUTOUT_API_KEY || process.env.NEXT_PUBLIC_SHOUTOUT_API_KEY;
+
+    if (!apiKey) {
+      return NextResponse.json(
+        { message: "ShoutOut API key is not configured" },
+        { status: 500 },
+      );
+    }
 
     const response = await fetch(SHOUTOUT_MESSAGE_URL, {
       method: "POST",
