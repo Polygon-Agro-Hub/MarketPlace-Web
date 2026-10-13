@@ -165,3 +165,16 @@ export const confirmOrder = async (
     throw error.response?.data || { message: "Failed to confirm order." };
   }
 };
+
+export const cancelOrder = async (token: string, processedOrderId: string) => {
+  try {
+    const res = await axios.post(
+      `/retail-order/order-confirmation/${processedOrderId}/cancel`,
+      {},
+      { headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` } }
+    );
+    return res.data.data;
+  } catch (error: any) {
+    throw error.response?.data || { message: "Failed to cancel order." };
+  }
+};

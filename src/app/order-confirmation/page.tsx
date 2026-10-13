@@ -2,7 +2,7 @@
 
 import React, { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/store";
 import {
   BadgeCheck,
@@ -17,11 +17,16 @@ import UpdatedOrderSummary, {
   type PaymentType,
 } from "@/components/order-confirmation-components/UpdatedOrderSummary";
 import ViewOrderComponent from "@/components/order-confirmation-components/ViewOrderComponent";
+import { CancelOrderPopup } from "@/components/toast-messages/cancel-order-popup";
+import SuccessPopup from "@/components/toast-messages/success-message";
 import {
+  cancelOrder,
   getOrderConfirmation,
   confirmOrder,
   type OrderConfirmationData,
 } from "@/services/retail-service";
+import { getCartInfo } from "@/services/auth-service";
+import { updateCartInfo } from "@/store/slices/authSlice";
 
 const getPaymentPill = (
   paymentType: PaymentType,
@@ -74,6 +79,7 @@ const OrderConfirmationContent = () => {
   const searchParams = useSearchParams();
   const processedOrderId = searchParams.get("processedOrderId");
   const token = useSelector((state: RootState) => state.auth.token);
+  const dispatch = useDispatch();
 
   const [order, setOrder] = useState<OrderConfirmationData | null>(null);
   const [loading, setLoading] = useState(!!processedOrderId);
@@ -83,6 +89,8 @@ const OrderConfirmationContent = () => {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [successVisible, setSuccessVisible] = useState(false);
 
   useEffect(() => {
     if (!processedOrderId || !token) return;
@@ -130,9 +138,10 @@ const OrderConfirmationContent = () => {
 
   useEffect(() => {
     if (searchParams.get("returned") === "1" && order?.isConfirmed) {
-      router.replace("/");
+      setSubmitting(false);
+      setSuccessVisible(true);
     }
-  }, [order?.isConfirmed, searchParams, router]);
+  }, [order?.isConfirmed, searchParams]);
 
   if (loading) {
     return (
@@ -165,7 +174,7 @@ const OrderConfirmationContent = () => {
         return;
       }
 
-      router.push("/");
+      setSuccessVisible(true);
     } catch (err: any) {
       setActionError(
         err?.message || "Could not confirm your order. Please try again.",
@@ -174,9 +183,35 @@ const OrderConfirmationContent = () => {
     }
   };
 
-  function handleCancel(): void {
-    throw new Error("Function not implemented.");
-  }
+  const handleCancel = () => {
+    setActionError(null);
+    setCancelOpen(true);
+  };
+
+  const handleCancelConfirm = async () => {
+    if (!token || !processedOrderId || submitting) return;
+
+    try {
+      setSubmitting(true);
+      setActionError(null);
+      await cancelOrder(token, processedOrderId);
+      try {
+        const updatedCartInfo = await getCartInfo(token);
+        dispatch(updateCartInfo(updatedCartInfo));
+      } catch (balanceError) {
+        console.error("Failed to refresh credit balance after cancellation:", balanceError);
+      }
+      setCancelOpen(false);
+      router.replace("/");
+    } catch (err: any) {
+      setActionError(
+        err?.message || "Could not cancel your order. Please try again.",
+      );
+      throw err;
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <main className="mx-auto w-full max-w-[1200px] px-4 py-8 sm:px-6 lg:px-8">
@@ -212,6 +247,11 @@ const OrderConfirmationContent = () => {
           </p>
         </div>
       </div>
+      {actionError && (
+        <p role="alert" className="mt-3 text-sm text-red-600">
+          {actionError}
+        </p>
+      )}
 
       {/* Two columns */}
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_360px] lg:items-start">
@@ -294,6 +334,20 @@ const OrderConfirmationContent = () => {
         onClose={() => setDetailsOpen(false)}
         details={order.details}
         summary={order.summary}
+      />
+
+      <CancelOrderPopup
+        open={cancelOpen}
+        creditAmount={order.summary.creditApplied}
+        onClose={() => setCancelOpen(false)}
+        onConfirm={handleCancelConfirm}
+      />
+
+      <SuccessPopup
+        isVisible={successVisible}
+        title="Order confirmed successfully!"
+        description="Your order has been confirmed."
+        onClose={() => router.replace("/")}
       />
     </main>
   );

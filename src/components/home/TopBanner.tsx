@@ -8,6 +8,7 @@ import { useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 import { RootState } from "@/store";
 import { ArrowRight, Check, Clock, Package, ShoppingBag } from "lucide-react";
+import Image from "next/image";
 
 interface Slide {
   id: number;
@@ -215,7 +216,7 @@ const TopBanner: React.FC = () => {
               aria-hidden="true"
               className="mt-3 hidden items-center gap-3 rounded-xl bg-[#EFE4FF] px-3 py-3 sm:flex"
             >
-              <Package className="h-8 w-8 shrink-0 text-[#B5834F]" />
+              <Image src="/images/delivery_box_parcel.png" alt="Package" width={32} height={32} />
 
               <div className="relative flex flex-1 items-start">
                 {/* connecting line */}
