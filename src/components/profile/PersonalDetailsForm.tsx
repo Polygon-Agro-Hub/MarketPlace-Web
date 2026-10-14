@@ -570,6 +570,9 @@ const PersonalDetailsForm = () => {
         email: emailTarget,
         isUpdate: true,
         isEmailChange: emailChanged,
+        existingEmail: originalData?.email,
+        existingPhoneCode: originalData?.countryCode,
+        existingPhoneNumber: originalData?.phoneNumber,
       });
       if (!res?.referenceId) throw new Error('Failed to send verification code');
 
