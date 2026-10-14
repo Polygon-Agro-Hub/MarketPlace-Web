@@ -28,6 +28,7 @@ interface FormState {
   companycenterId?: any;
   isFinalizeImdt: number;
   saveAs: string;
+  earliestPossibleDate: string | null;
 }
 
 const initialState: FormState = {
@@ -58,6 +59,7 @@ const initialState: FormState = {
   companycenterId: null,
   isFinalizeImdt: 0,
   saveAs: '',
+  earliestPossibleDate: null,
 };
 
 const checkoutSlice = createSlice({

@@ -43,6 +43,16 @@ const formatTimer = (totalSeconds: number): string => {
   return `${m}:${s}`;
 };
 
+// Normalises "YYYY-MM-DD" or an ISO string to a local "YYYY-MM-DD"
+const toDateStr = (value?: string | null): string | null => {
+  if (!value) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+
 const Page: React.FC = () => {
   const router = useRouter();
   const NavArray = [
@@ -81,6 +91,8 @@ const Page: React.FC = () => {
   const [cashPaymentLimit, setCashPaymentLimit] = useState<number>(2000); // sensible default while loading
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
   const orderSubmittedRef = useRef(false);
+  const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
 
   useEffect(() => {
     // Cancel a pending clear scheduled by a Strict Mode fake-unmount
@@ -269,6 +281,12 @@ const Page: React.FC = () => {
     return `${formattedInteger}.${decimalPart}`;
   };
 
+  const isImmediate = isFinalizeImdt === true || String(isFinalizeImdt) === 'true';
+
+  const cashUnavailableMessage = isImmediate
+    ? 'Pay by cash is not available for immediate package finalization.'
+    : `Pay By Cash is available only for orders equal to or less than Rs. ${formatPrice(cashPaymentLimit)}`;
+
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) return;
 
@@ -408,15 +426,18 @@ const Page: React.FC = () => {
         return;
       }
 
-      // If paying via card and not 100% covered by credit, initiate Payments.lk hosted checkout.
+      // Payment gateway ONLY when the order is scheduled for the earliest possible date
+      // (card selected, not fully covered by credit, schedule date === earliestPossibleDate).
       // NOTE: no SMS is sent here. The user leaves the page, so the card SMS
       // messages must be sent from the payment-return page or the webhook.
-      if (!isFullyCoveredByCredit && paymentMethod === "card") {
+      if (shouldUseGateway) {
         const adapter = PaymentGatewayFactory.getAdapter("payments_lk");
         const session = await adapter.initiatePayment({
           orderPayload: payload,
           token,
         });
+
+        console.log("Payments.lk checkout session:", session);
 
         if (session && session.checkoutUrl) {
           window.location.href = session.checkoutUrl;
@@ -426,7 +447,8 @@ const Page: React.FC = () => {
         }
       }
 
-      // Otherwise (Cash on Delivery or 100% Credit), place order directly
+      // All other cases (cash, 100% credit, or schedule date != earliest possible date):
+      // place the order directly through submitOrderToBackend
 
       // Capture SMS inputs BEFORE placing the order (the cart is cleared afterwards
       // and the 6 PM cutoff can shift the earliest schedule date)
@@ -469,6 +491,11 @@ const Page: React.FC = () => {
         } catch (cartError) {
           console.error("Error fetching cart info:", cartError);
         }
+
+        // Everything succeeded: send the customer to their orders after a short pause
+        redirectTimerRef.current = setTimeout(() => {
+          router.push("/history/order");
+        }, 2500);
       } else {
         throw new Error("Invalid response from server");
       }
@@ -549,6 +576,21 @@ const Page: React.FC = () => {
   const creditApplied = useCredit ? Math.min(creditBalance, displayValues.grandTotal) : 0;
   const remainingAfterCredit = displayValues.grandTotal - creditApplied;
   const isFullyCoveredByCredit = useCredit && remainingAfterCredit === 0;
+  const isRecurringSchedule = (checkoutDetails.scheduleType || "One Time") !== "One Time";
+  const scheduleDateStr = toDateStr(
+    isRecurringSchedule
+      ? checkoutDetails.sheduleDate
+      : checkoutDetails.deliveryDate || checkoutDetails.sheduleDate
+  );
+  const earliestPossibleDateStr = toDateStr(checkoutDetails.earliestPossibleDate);
+
+  // Gateway only when the order is scheduled for the earliest possible date
+  const isEarliestDateOrder =
+    !!scheduleDateStr && !!earliestPossibleDateStr && scheduleDateStr === earliestPossibleDateStr;
+
+    // console.log("isEarliestDateOrder:", isEarliestDateOrder, "scheduleDateStr:", scheduleDateStr, "earliestPossibleDateStr:", earliestPossibleDateStr);
+
+  const shouldUseGateway = !isFullyCoveredByCredit && paymentMethod === "card" && isEarliestDateOrder;
   const showCashOption = displayValues.grandTotal <= cashPaymentLimit && !isFinalizeImdt;
 
   useEffect(() => {
@@ -808,77 +850,89 @@ const Page: React.FC = () => {
                   Select Payment Method
                 </h1>
 
-                {/* Credit/Debit Card */}
-                <div className="mb-5 border border-gray-200 rounded-xl overflow-hidden">
-                  <div
-                    className="p-4 flex justify-between items-center cursor-pointer bg-white hover:bg-gray-50 transition"
-                    onClick={() => setPaymentMethod("card")}
-                  >
-                    <div className="flex items-center">
-                      <div
-                        className={`w-5 h-5 rounded-full ${paymentMethod === "card"
-                          ? "bg-[#3E206D] border-2 border-[#3E206D] ring-2 ring-purple-100"
-                          : "border border-gray-400"
-                          }`}
-                      />
-                      <span className="ml-3 text-base font-medium">Credit / Debit Card</span>
-                    </div>
-                    <div className="flex space-x-2">
-                      <Image src={Visa} alt="Visa" className="w-auto h-6 object-cover" />
-                      <Image src={MasterCard} alt="MasterCard" className="w-auto h-6 object-cover" />
-                    </div>
+                {/* Credit / Debit Card */}
+                <div
+                  onClick={() => setPaymentMethod("card")}
+                  className={`mb-4 flex items-center gap-4 rounded-lg border px-5 py-4 cursor-pointer transition bg-white ${paymentMethod === "card"
+                      ? "border-[#3E206D]"
+                      : "border-gray-300 hover:bg-gray-50"
+                    }`}
+                >
+                  {/* Radio */}
+                  <div className="w-5 h-5 rounded-full border-2 border-[#3E206D] flex items-center justify-center flex-shrink-0">
+                    {paymentMethod === "card" && (
+                      <div className="w-2.5 h-2.5 rounded-full bg-[#3E206D]" />
+                    )}
                   </div>
 
-                  {paymentMethod === "card" && (
-                    <div className="p-4 sm:p-5 border-t border-gray-200 bg-gray-50/50">
-                      <div className="flex items-start gap-3.5">
-                        <div className="w-9 h-9 rounded-full bg-[#F5F3FD] border border-[#E0D7F7] flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <FontAwesomeIcon icon={faLock} className="w-4 h-4 text-[#3E206D]" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-gray-900">
-                            Secure Online Payment via Payments.lk
-                          </p>
-                          <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                            You will be redirected to the official Payments.lk hosted checkout page to complete your payment securely with Visa or Mastercard. No card details are stored on our servers.
-                          </p>
-                          <div className="flex items-center gap-2 mt-3 text-xs font-medium text-[#1B7331] bg-[#F6FCF5] border border-[#AEC9AB] rounded-lg px-3 py-1.5 w-fit">
-                            <span>✓ PCI-DSS Level 1 Secure Checkout</span>
-                          </div>
-                        </div>
-                      </div>
+                  {/* Title + subtitle */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-base font-medium text-gray-900">Credit / Debit Card</span>
+                      <span className="text-xs font-medium text-[#1B7A4B] bg-[#E8F8F0] border border-[#B7E8D0] rounded-full px-2.5 py-0.5">
+                        Instant
+                      </span>
                     </div>
-                  )}
+                    <p className="text-sm text-gray-500 mt-0.5">
+                      Pay securely via IPG Gateway with Visa, Mastercard, or Amex
+                    </p>
+                  </div>
+
+                  {/* Card logos */}
+                  <div className="hidden sm:flex items-center gap-4 pr-4 lg:pr-16 flex-shrink-0">
+                    {/* Visa */}
+                    <svg width="60" height="20" viewBox="0 0 60 20" aria-label="Visa">
+                      <text
+                        x="0"
+                        y="17"
+                        fontFamily="Arial, Helvetica, sans-serif"
+                        fontSize="22"
+                        fontWeight="900"
+                        fontStyle="italic"
+                        fill="#1434CB"
+                        letterSpacing="-1"
+                      >
+                        VISA
+                      </text>
+                    </svg>
+                    {/* Mastercard */}
+                    <svg width="40" height="26" viewBox="0 0 40 26" aria-label="Mastercard">
+                      <circle cx="13" cy="13" r="12" fill="#EB001B" />
+                      <circle cx="27" cy="13" r="12" fill="#F79E1B" />
+                    </svg>
+                  </div>
                 </div>
 
                 {/* Pay by Cash */}
-                <div className="border border-gray-200 rounded-xl overflow-hidden">
+                <div>
                   <div
-                    className={`p-4 flex items-center transition ${showCashOption ? "cursor-pointer bg-white hover:bg-gray-50" : "bg-gray-50 cursor-not-allowed"
-                      }`}
                     onClick={() => showCashOption && setPaymentMethod("cash")}
+                    className={`flex items-center gap-4 rounded-lg border px-5 py-4 transition ${showCashOption
+                        ? `cursor-pointer bg-white hover:bg-gray-50 ${paymentMethod === "cash" ? "border-[#3E206D]" : "border-gray-300"
+                        }`
+                        : "bg-gray-50 border-gray-200 cursor-not-allowed"
+                      }`}
                   >
-                    <div className="flex items-center">
-                      <div
-                        className={`w-5 h-5 rounded-full ${paymentMethod === "cash" && showCashOption
-                          ? "bg-[#3E206D] border-2 border-[#3E206D] ring-2 ring-purple-100"
-                          : "border border-gray-400"
-                          }`}
-                      />
-                      <span className={`ml-3 text-base font-medium ${!showCashOption ? "text-gray-400" : ""}`}>
-                        Pay by Cash
-                      </span>
-                      {!showCashOption && (
-                        <span className="ml-3 text-xs font-medium text-red-500 bg-red-50 px-2 py-1 rounded-md">
-                          Not Available
-                        </span>
+                    <div
+                      className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${showCashOption ? "border-[#3E206D]" : "border-gray-300"
+                        }`}
+                    >
+                      {paymentMethod === "cash" && showCashOption && (
+                        <div className="w-2.5 h-2.5 rounded-full bg-[#3E206D]" />
                       )}
                     </div>
+                    <span className={`text-base font-medium ${!showCashOption ? "text-gray-400" : "text-gray-900"}`}>
+                      Pay by Cash
+                    </span>
+                    {!showCashOption && (
+                      <span className="text-xs font-medium text-red-500 bg-red-50 px-2 py-1 rounded-md">
+                        Not Available
+                      </span>
+                    )}
                   </div>
 
-
                   {paymentMethod === "cash" && showCashOption && (
-                    <div className="p-5 border-t border-gray-200 bg-gray-50/30">
+                    <div className="mt-2 rounded-lg border border-gray-200 bg-gray-50/30 p-5">
                       <div className="text-gray-700 space-y-3">
                         <div className="flex gap-2">
                           <span className="flex-shrink-0">-</span>
@@ -903,17 +957,13 @@ const Page: React.FC = () => {
               </>
             )}
             {!showCashOption && !isFullyCoveredByCredit && (
-              <div className=" pb-4 mt-4">
+              <div className="pb-4 mt-4">
                 <div className="flex items-start gap-2 bg-[#F5F8FD] border border-[#E1E8F8] rounded-lg p-3 text-sm text-[#41519E]">
                   <svg className="w-4 h-4 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none">
                     <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" />
                     <path d="M12 8v.01M12 11v5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                   </svg>
-                  <span>
-                    {isFinalizeImdt
-                      ? "Pay by cash is not available for immediate package finalization."
-                      : `Pay By Cash is available only for orders equal to or less than Rs. ${formatPrice(cashPaymentLimit)}`}
-                  </span>
+                  <span>{cashUnavailableMessage}</span>
                 </div>
               </div>
             )}

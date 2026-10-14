@@ -21,12 +21,16 @@ export class PaymentsLkAdapter implements IPaymentGatewayAdapter {
       throw new Error("Authentication required to initiate payment");
     }
 
+    console.log("[PaymentsLkAdapter] Initiating payment with payload:", orderPayload);
+
     try {
+      console.log("[PaymentsLkAdapter] initiate timeout = 60000");
       const response = await axios.post("/payment/initiate", orderPayload, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
+        timeout: 60000,
       });
 
       if (response.data && response.data.status && response.data.data) {
@@ -54,6 +58,14 @@ export class PaymentsLkAdapter implements IPaymentGatewayAdapter {
         customErr.code = "ITEMS_UNAVAILABLE";
         throw customErr;
       }
+
+      // Friendlier message for timeouts instead of "timeout of 60000ms exceeded"
+      if (error.code === "ECONNABORTED" || /timeout/i.test(error.message || "")) {
+        throw new Error(
+          "The payment gateway is taking longer than expected. Please wait a moment and check your orders before trying again."
+        );
+      }
+
       const message =
         responseData?.message ||
         responseData?.error ||
@@ -62,7 +74,6 @@ export class PaymentsLkAdapter implements IPaymentGatewayAdapter {
       throw new Error(message);
     }
   }
-
   async checkOrderStatus(
     reference: string,
     token: string,
