@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { packageAddToCart } from '@/services/product-service';
 import { getCartInfo } from '@/services/auth-service';
@@ -36,6 +36,84 @@ interface PackageProps {
   onShowLoginPopup: () => void;
   isSingleCardMobile?: boolean;
 }
+
+/**
+ * Shows text centered on a single line.
+ * If the text is wider than its container (i.e. it would wrap to 2 lines),
+ * it scrolls slowly as a marquee so the user can read the full name.
+ */
+const MarqueeText: React.FC<{ text: string; className?: string }> = ({ text, className = '' }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const measureRef = useRef<HTMLSpanElement>(null);
+  const [isOverflowing, setIsOverflowing] = useState(false);
+
+  useEffect(() => {
+    const check = () => {
+      if (!containerRef.current || !measureRef.current) return;
+      setIsOverflowing(measureRef.current.offsetWidth > containerRef.current.clientWidth + 1);
+    };
+
+    check();
+
+    const observer = new ResizeObserver(check);
+    if (containerRef.current) observer.observe(containerRef.current);
+    if (measureRef.current) observer.observe(measureRef.current);
+
+    return () => observer.disconnect();
+  }, [text]);
+
+  // Slower for longer names (minimum 8s per loop)
+  const duration = Math.max(8, text.length * 0.25);
+
+  return (
+    <div
+      ref={containerRef}
+      className={`relative w-full overflow-hidden whitespace-nowrap ${className}`}
+      title={text}
+    >
+      {/* Hidden element used only to measure the real single-line text width */}
+      <span
+        ref={measureRef}
+        aria-hidden="true"
+        className="invisible absolute left-0 top-0 inline-block whitespace-nowrap pointer-events-none"
+      >
+        {text}
+      </span>
+
+      {isOverflowing ? (
+        <div
+          className="pkg-marquee-track"
+          style={{ animationDuration: `${duration}s` }}
+        >
+          <span className="pr-8">{text}</span>
+          <span className="pr-8" aria-hidden="true">{text}</span>
+        </div>
+      ) : (
+        <span className="block text-center">{text}</span>
+      )}
+
+      <style>{`
+        @keyframes pkg-marquee {
+          from { transform: translateX(0); }
+          to   { transform: translateX(-50%); }
+        }
+        .pkg-marquee-track {
+          display: inline-flex;
+          width: max-content;
+          animation-name: pkg-marquee;
+          animation-timing-function: linear;
+          animation-iteration-count: infinite;
+        }
+        .pkg-marquee-track:hover {
+          animation-play-state: paused;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .pkg-marquee-track { animation: none; }
+        }
+      `}</style>
+    </div>
+  );
+};
 
 const PackageCard: React.FC<PackageProps> = ({
   packageItem,
@@ -156,9 +234,10 @@ const PackageCard: React.FC<PackageProps> = ({
 
           {/* Content */}
           <div className="flex flex-col items-center justify-center w-full flex-grow px-2 min-h-[80px] mt-2">
-            <p className="font-bold text-sm lg:text-xl text-center line-clamp-2 leading-tight mb-2">
-              {packageItem.displayName}
-            </p>
+            <MarqueeText
+              text={packageItem.displayName}
+              className="font-bold text-sm lg:text-xl leading-tight mb-2"
+            />
             <p className="text-[#3E206D] text-xs sm:text-lg font-bold">
               Rs. {formatPrice(packageItem.subTotal)}
             </p>

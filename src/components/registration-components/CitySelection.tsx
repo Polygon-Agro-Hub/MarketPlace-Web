@@ -187,7 +187,10 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
                         <div className="border border-[#8639FF] rounded-xl p-4 mb-4" ref={dropdownRef}>
 
                             <div className="flex items-center gap-2 mb-3">
-                                <FontAwesomeIcon icon={faLocationDot} style={{ fontSize: 16 }} className="text-[#4A4A4A]" />
+                                <FontAwesomeIcon
+                                    icon={faLocationDot}
+                                    className="w-4 h-4 text-[#4A4A4A]"
+                                />
                                 <span className="text-sm font-semibold text-[#3E206D]">Select Your City</span>
                             </div>
 

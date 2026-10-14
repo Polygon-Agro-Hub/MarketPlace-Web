@@ -377,6 +377,7 @@ export const submitOrderToBackend = async (
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
+      timeout: 120000,
     });
 
     return response.data;

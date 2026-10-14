@@ -3,8 +3,10 @@
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
+import { PaymentGatewayFactory } from "@/services/payment/payment.factory";
+import ErrorPopup from "@/components/toast-messages/error-message";
 import walletIllustration from "../../../public/wallet-illustration.png";
 import payNowIllustration from "../../../public/pay-now-illustration.png";
 import visaLogo from "../../../public/icons/Visa-Logo.png";
@@ -16,14 +18,18 @@ import {
   faReceipt,
   faMedal,
 } from "@fortawesome/free-solid-svg-icons";
+import { creditBalancePayment } from "@/services/auth-service";
 
 export default function ClearBalancePage() {
   const router = useRouter();
+  const token = useSelector((state: RootState) => state.auth.token);
   const cartState = useSelector((state: RootState) => state.auth.cart) || {
     creditBalance: 0,
   };
 
   const creditBalance = cartState.creditBalance ?? 0;
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     if (creditBalance >= 0) {
@@ -31,12 +37,45 @@ export default function ClearBalancePage() {
     }
   }, [creditBalance, router]);
 
-  const handlePayNow = () => {
-    router.push("/clear-balance-page/payment");
+  const handlePayNow = async () => {
+    if (!token) {
+      setErrorMessage("You need to be signed in to complete this payment.");
+      return;
+    }
+
+    const amountToPay = Math.abs(Number(creditBalance));
+    if (!Number.isFinite(amountToPay) || amountToPay <= 0) {
+      setErrorMessage("There is no outstanding credit balance to pay.");
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const session = await creditBalancePayment(token, amountToPay);
+
+      // Store for the return page to poll / display
+      sessionStorage.setItem("creditBalancePaymentAmount", String(amountToPay));
+      sessionStorage.setItem(
+        "creditBalancePaymentReference",
+        session.reference,
+      );
+
+      window.location.assign(session.checkoutUrl);
+    } catch (error: any) {
+      setErrorMessage(error.message || "Unable to start the payment.");
+      setIsProcessing(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
+      <ErrorPopup
+        isVisible={Boolean(errorMessage)}
+        onClose={() => setErrorMessage("")}
+        title="Payment Error"
+        description={errorMessage}
+      />
+
       {/* Breadcrumb */}
       <div className="px-4 sm:px-8 pt-6 pb-2">
         <nav className="flex items-center gap-2 text-sm text-gray-400">
@@ -75,7 +114,11 @@ export default function ClearBalancePage() {
 
         {/* Amount */}
         <p className="text-3xl font-bold mb-4" style={{ color: "#FF0000" }}>
-          - Rs. {Math.abs(creditBalance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          - Rs.{" "}
+          {Math.abs(creditBalance).toLocaleString("en-US", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}
         </p>
 
         {/* Description */}
@@ -292,21 +335,22 @@ export default function ClearBalancePage() {
           <div className="flex-shrink-0 flex flex-col items-center gap-3 w-full sm:w-auto">
             <button
               onClick={handlePayNow}
-              className="font-medium text-sm px-20 py-2 rounded-lg transition-colors whitespace-nowrap cursor-pointer text-[#FFFFFF] w-full sm:w-auto"
+              disabled={isProcessing}
+              className="font-medium text-sm px-20 py-2 rounded-lg transition-colors whitespace-nowrap cursor-pointer text-[#FFFFFF] w-full sm:w-auto disabled:cursor-not-allowed disabled:opacity-70"
               style={{
                 backgroundColor: "#3E206D",
                 boxShadow: "0px 2px 5px 0px rgba(0, 0, 0, 0.1)",
               }}
               onMouseEnter={(e) =>
-              ((e.target as HTMLButtonElement).style.backgroundColor =
-                "#1e1b5b")
+                ((e.target as HTMLButtonElement).style.backgroundColor =
+                  "#1e1b5b")
               }
               onMouseLeave={(e) =>
-              ((e.target as HTMLButtonElement).style.backgroundColor =
-                "#3E206D")
+                ((e.target as HTMLButtonElement).style.backgroundColor =
+                  "#3E206D")
               }
             >
-              Pay Now with Card
+              {isProcessing ? "Redirecting to payment..." : "Pay Now with Card"}
             </button>
 
             <div className="flex items-center gap-2">

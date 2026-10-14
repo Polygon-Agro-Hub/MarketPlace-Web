@@ -34,6 +34,7 @@ import {
   generateScheduledOrderDates,
 } from "@/utils/schedule";
 import OrderListModal from "@/components/checkout/OrderListModal";
+import { getCheckoutScheduleInfo, CheckoutScheduleInfo } from "@/services/product-service";
 
 const OpenStreetMap = dynamic(
   () => import("@/components/open-map/OpenStreetMap"),
@@ -182,6 +183,29 @@ const fieldLabels: Record<string, string> = {
   validPeriod: "Valid Period",
 };
 
+const ScheduleNotice: React.FC<{ info: CheckoutScheduleInfo | null }> = ({ info }) => {
+  if (!info) return null;
+
+  // Text before the colon in the range line is bold-styled in your design; the dates are bold
+  return (
+    <div
+      className={`mb-6 rounded-xl px-4 py-3 border ${info.isSchedulable
+        ? "bg-[#FFF3E8] border-[#FFE3CC]"
+        : "bg-[#FEF2F2] border-[#FECACA]"
+        }`}
+    >
+      <p className="text-[13px] text-[#414347]">
+        <span className="font-bold">Note : </span>
+        {info.note}
+      </p>
+      <p className="mt-1 flex items-center gap-2 text-[13px] text-[#414347]">
+        <span className="w-2 h-2 rounded-full bg-orange-500 flex-shrink-0" />
+        {info.rangeText}
+      </p>
+    </div>
+  );
+};
+
 const Page: React.FC = () => {
   const NavArray = [
     { name: "Cart", path: "/cart", status: true },
@@ -254,6 +278,8 @@ const Page: React.FC = () => {
 
   const [showOrderListModal, setShowOrderListModal] = useState(false);
   const [generatedOrders, setGeneratedOrders] = useState<Date[]>([]);
+  const [scheduleInfo, setScheduleInfo] = useState<CheckoutScheduleInfo | null>(null);
+  const [loadingScheduleInfo, setLoadingScheduleInfo] = useState(true);
 
   const isReadOnly =
     formData.deliveryMethod === "home" &&
@@ -272,6 +298,28 @@ const Page: React.FC = () => {
   const [twoRowHeight, setTwoRowHeight] = useState<number | null>(null);
 
   const [allCityResults, setAllCityResults] = useState<CityResult[]>([]);
+  const scheduleInfoRef = useRef<CheckoutScheduleInfo | null>(null);
+  const fetchScheduleInfo = async (): Promise<CheckoutScheduleInfo | null> => {
+    try {
+      const res = await getCheckoutScheduleInfo(token);
+      if (res.status) {
+        setScheduleInfo(res.data);
+        scheduleInfoRef.current = res.data;
+        return res.data;
+      }
+    } catch (error: any) {
+      console.error("Failed to fetch schedule info:", error);
+      setErrorMsg(error.message || "Failed to load scheduling information.");
+      setShowErrorPopup(true);
+    } finally {
+      setLoadingScheduleInfo(false);
+    }
+    return null;
+  };
+
+  useEffect(() => {
+    if (token) fetchScheduleInfo();
+  }, [token]);
 
   useEffect(() => {
     const fetchCityAvailability = async () => {
@@ -526,7 +574,13 @@ const Page: React.FC = () => {
   };
 
   const handleViewOrders = () => {
-    const dates = generateScheduledOrderDates(formData.scheduleType, formData.selectedDays, formData.validPeriod);
+    const dates = generateScheduledOrderDates(
+      formData.scheduleType,
+      formData.selectedDays,
+      formData.validPeriod,
+      scheduleInfo?.earliestDate,
+      scheduleInfo?.latestDate,
+    );
     setGeneratedOrders(dates);
     setShowOrderListModal(true);
   };
@@ -922,11 +976,36 @@ const Page: React.FC = () => {
     }
   };
 
+  const isUndeliverable = useMemo(() => {
+    if (!scheduleInfo) return false;
+
+    // Server says no date is possible (package expires too soon)
+    if (!scheduleInfo.isSchedulable) return true;
+
+    // Recurring: no order date survives the expiry cutoff
+    if (
+      formData.scheduleType !== "One Time" &&
+      formData.selectedDays.length > 0 &&
+      formData.validPeriod
+    ) {
+      const dates = generateScheduledOrderDates(
+        formData.scheduleType,
+        formData.selectedDays,
+        formData.validPeriod,
+        scheduleInfo.earliestDate,
+        scheduleInfo.latestDate,
+      );
+      return dates.length === 0;
+    }
+
+    return false;
+  }, [scheduleInfo, formData.scheduleType, formData.selectedDays, formData.validPeriod]);
+
   const isFormValid = (): boolean => {
     const isHomeDelivery = formData.deliveryMethod === "home";
     const isPickup = formData.deliveryMethod === "pickup";
     const isApartment = formData.buildingType === "Apartment";
-
+    if (isUndeliverable) return false;
     // Check for duplicate phone numbers
     if (duplicatePhoneError) {
       return false;
@@ -999,7 +1078,7 @@ const Page: React.FC = () => {
 
   useEffect(() => {
     setIsFormValidState(isFormValid());
-  }, [formData, errors]);
+  }, [formData, errors, scheduleInfo, isUndeliverable]);
 
   const handleCitySelect = (cityName: string) => {
     // Find the city in the full availability list (auth-service) — source of truth for availability
@@ -1086,17 +1165,29 @@ const Page: React.FC = () => {
       case "timeSlot":
         return !trimmed ? `${fieldLabels.timeSlot} is required.` : "";
 
-      case "deliveryDate":
-        if (formData.scheduleType !== "One Time") return ""; // handled by selectedDays/validPeriod instead
+      case "deliveryDate": {
+        if (formData.scheduleType !== "One Time") return "";
         if (!value) return `${fieldLabels.deliveryDate} is required.`;
 
+        if (scheduleInfo) {
+          const dateStr = value.toString(); // "YYYY-MM-DD" from <input type="date">
+          if (dateStr < scheduleInfo.earliestDate) {
+            return `Please select a date from ${scheduleInfo.earliestDate} onward (${scheduleInfo.gapDays}-day gap required).`;
+          }
+          if (scheduleInfo.latestDate && dateStr > scheduleInfo.latestDate) {
+            return `Please select a date on or before ${scheduleInfo.latestDate}.`;
+          }
+          return "";
+        }
+
+        // Fallback if schedule info hasn't loaded
         const selectedDate = new Date(value.toString());
         const minDate = getMinDeliveryDate();
         selectedDate.setHours(0, 0, 0, 0);
-
-        if (selectedDate < minDate) {
-          return "Please select a date at least 3 days from today.";
-        }
+        return selectedDate < minDate
+          ? "Please select a date at least 3 days from today."
+          : "";
+      }
         return "";
 
       case "selectedDays":
@@ -1181,6 +1272,37 @@ const Page: React.FC = () => {
     setSuccessMsg("");
     setErrorMsg("");
 
+    // 1. Re-fetch: the 6 PM cutoff may have passed while the page was open
+    const latestInfo = (await fetchScheduleInfo()) ?? scheduleInfoRef.current;
+
+    // 2. A package in the cart expires too soon, so no date is possible
+    if (latestInfo && !latestInfo.isSchedulable) {
+      Swal.fire({
+        icon: "error",
+        title: "No delivery dates available",
+        text: latestInfo.rangeText,
+      });
+      return;
+    }
+
+    // 3. One-time: the chosen date must still be inside the allowed range
+    if (
+      latestInfo &&
+      formData.scheduleType === "One Time" &&
+      formData.deliveryDate &&
+      (formData.deliveryDate < latestInfo.earliestDate ||
+        (latestInfo.latestDate && formData.deliveryDate > latestInfo.latestDate))
+    ) {
+      setFormDataLocal((prev) => ({ ...prev, deliveryDate: "" }));
+      Swal.fire({
+        icon: "warning",
+        title: "Schedule dates updated",
+        text: `Your selected date is no longer available. ${latestInfo.rangeText}`,
+      });
+      return;
+    }
+
+    // 4. Standard form validation
     if (!validateForm()) {
       Swal.fire({
         icon: "error",
@@ -1190,6 +1312,27 @@ const Page: React.FC = () => {
       return;
     }
 
+    // 5. Recurring: make sure at least one order date survives the expiry cutoff
+    if (formData.scheduleType !== "One Time") {
+      const dates = generateScheduledOrderDates(
+        formData.scheduleType,
+        formData.selectedDays,
+        formData.validPeriod,
+        latestInfo?.earliestDate,
+        latestInfo?.latestDate,
+      );
+
+      if (dates.length === 0) {
+        Swal.fire({
+          icon: "error",
+          title: "No valid order dates",
+          text: "Your selected day(s) fall after a package in your cart expires. Please choose a different day.",
+        });
+        return;
+      }
+    }
+
+    // 6. Package handling popup, then payment
     if (hasPackages) {
       setShowPackagePopup(true);
       return;
@@ -1259,7 +1402,14 @@ const Page: React.FC = () => {
       }
 
       dispatch(resetFormData());
-      const scheduledOrderDates = generateScheduledOrderDates(formData.scheduleType, formData.selectedDays, formData.validPeriod);
+      const scheduledOrderDates = // handleViewOrders AND proceedToPayment
+        generateScheduledOrderDates(
+          formData.scheduleType,
+          formData.selectedDays,
+          formData.validPeriod,
+          scheduleInfo?.earliestDate,
+          scheduleInfo?.latestDate,
+        );
 
 
 
@@ -1269,23 +1419,31 @@ const Page: React.FC = () => {
             ? scheduledOrderDates[0].toISOString()
             : null,
           validPeriod: formData.validPeriod,
-          selectedDays: selectedDaysToSend, 
+          selectedDays: selectedDaysToSend,
         }
         : {
           sheduleDate: formData.deliveryDate
             ? new Date(formData.deliveryDate).toISOString()
             : null,
-          validPeriod: null,   
-          selectedDays: null,                        
+          validPeriod: null,
+          selectedDays: null,
         };
 
       dispatch(
         setFormData({
           ...dataToSubmit,
           ...recurringPayload,
+          earliestPossibleDate: getMinDateStr(), // NEW
           isFinalizeImdt: hasPackages && packageHandlingOption === "finalize" ? 1 : 0,
         } as any),
       );
+
+      console.log("Form data dispatched to Redux:", {
+        ...dataToSubmit,
+        ...recurringPayload,
+        earliestPossibleDate: getMinDateStr(),
+        isFinalizeImdt: hasPackages && packageHandlingOption === "finalize" ? 1 : 0,
+      });
 
       localStorage.setItem("deliveryCharge", deliveryCharge.toString());
 
@@ -1357,7 +1515,11 @@ const Page: React.FC = () => {
             />
           )}
           {showOrderListModal && (
-            <OrderListModal orders={generatedOrders} onClose={() => setShowOrderListModal(false)} />
+            <OrderListModal
+              orders={generatedOrders}
+              scheduleInfo={scheduleInfo}
+              onClose={() => setShowOrderListModal(false)}
+            />
           )}
           <TopNavigation NavArray={NavArray} />
 
@@ -2235,6 +2397,7 @@ const Page: React.FC = () => {
                 ))}
               </div>
               <div className="border-t border-dashed border-gray-300 my-4" />
+              {!loadingScheduleInfo && <ScheduleNotice info={scheduleInfo} />}
 
               {formData.scheduleType === "One Time" ? (
                 <div className="flex md:flex-row flex-col gap-4 mb-6">
@@ -2312,24 +2475,7 @@ const Page: React.FC = () => {
                           colorScheme: "light",
                         }}
                         value={formData.deliveryDate}
-                        onChange={(e) => {
-                          const selectedValue = e.target.value;
-                          // Additional client-side validation
-                          if (selectedValue) {
-                            const selectedDate = new Date(selectedValue);
-                            const minDate = getMinDeliveryDate();
-                            selectedDate.setHours(0, 0, 0, 0);
-
-                            if (selectedDate >= minDate) {
-                              handleFieldChange("deliveryDate", selectedValue);
-                            } else {
-                              // Don't update the field value, just trigger validation error
-                              handleFieldChange("deliveryDate", selectedValue);
-                            }
-                          } else {
-                            handleFieldChange("deliveryDate", selectedValue);
-                          }
-                        }}
+                        onChange={(e) => handleFieldChange("deliveryDate", e.target.value)}
                         onClick={(e) => {
                           // Ensure the date picker opens on click (Chrome, Edge, Safari)
                           const target = e.target as HTMLInputElement;
@@ -2344,7 +2490,8 @@ const Page: React.FC = () => {
                             }
                           }
                         }}
-                        min={getMinDateStr()}
+                        min={scheduleInfo?.earliestDate ?? getMinDateStr()}
+                        max={scheduleInfo?.latestDate ?? undefined}
                       />
 
                       {/* Custom Calendar Icon */}
