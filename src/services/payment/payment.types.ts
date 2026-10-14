@@ -45,5 +45,6 @@ export interface IPaymentGatewayAdapter {
     invoiceNumber?: string;
     amount?: number;
     sessionStatus?: string;
+    newBalance?: number; 
   }>;
 }

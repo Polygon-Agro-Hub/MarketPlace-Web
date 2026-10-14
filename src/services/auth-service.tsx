@@ -1606,6 +1606,61 @@ export const updateCreditBalance = async (
   }
 };
 
+export interface CreditBalanceCheckout {
+  checkoutUrl: string;
+  reference: string;
+  sessionId: string;
+  amount: number;
+  currency: string;
+}
+
+export const creditBalancePayment = async (
+  token: string,
+  amount: number,
+): Promise<CreditBalanceCheckout> => {
+  try {
+    const response = await axios.post(
+      "/user/credit-balance-payment", 
+      { amount },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+
+    const data = response.data;
+    if (
+      response.status >= 200 &&
+      response.status < 300 &&
+      data?.status &&
+      data?.checkoutUrl
+    ) {
+      return {
+        checkoutUrl: data.checkoutUrl,
+        reference: data.reference,
+        sessionId: data.sessionId,
+        amount: Number(data.amount ?? amount),
+        currency: data.currency ?? "LKR",
+      };
+    }
+
+    throw new Error(data?.message || "Failed to start credit balance payment");
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(
+        error.response.data?.message ||
+          error.response.data?.error ||
+          `Credit balance payment failed with status ${error.response.status}`,
+      );
+    }
+    throw new Error(
+      error.message || "An error occurred while processing credit balance payment",
+    );
+  }
+};
+
 interface UpdatePasswordByNicPayload {
   nicNumber: string;
   password: string;
