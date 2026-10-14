@@ -28,10 +28,8 @@ import {
 import { getCartInfo } from "@/services/auth-service";
 import { updateCartInfo } from "@/store/slices/authSlice";
 import { sendSms } from "@/services/product-service";
-import {
-  buildOrderConfirmationSms,
-  splitSmsPhone,
-} from "@/utils/order-sms";
+import { buildOrderConfirmationSms, splitSmsPhone } from "@/utils/order-sms";
+import Loader from "@/components/loader-spinner/Loader";
 
 const getPaymentPill = (
   paymentType: PaymentType,
@@ -167,8 +165,8 @@ const OrderConfirmationContent = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-16">
-        <div className="animate-pulse text-gray-600">Loading your order...</div>
+      <div className="flex h-[70vh] flex-col items-center justify-center text-center">
+        <Loader isVisible={true} />
       </div>
     );
   }
@@ -222,7 +220,10 @@ const OrderConfirmationContent = () => {
         const updatedCartInfo = await getCartInfo(token);
         dispatch(updateCartInfo(updatedCartInfo));
       } catch (balanceError) {
-        console.error("Failed to refresh credit balance after cancellation:", balanceError);
+        console.error(
+          "Failed to refresh credit balance after cancellation:",
+          balanceError,
+        );
       }
       setCancelOpen(false);
       router.replace("/");

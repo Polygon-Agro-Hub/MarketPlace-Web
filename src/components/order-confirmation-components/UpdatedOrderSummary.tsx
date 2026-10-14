@@ -93,6 +93,9 @@ const UpdatedOrderSummary: React.FC<UpdatedOrderSummaryProps> = ({
   const hasCredit = creditApplied > 0;
   const remaining = Math.max(total - creditApplied, 0);
 
+  const hasDiscount = discount !== undefined || couponDiscount !== undefined;
+  const showRemainingLabel = hasDiscount && !hasCredit;
+
   const showDeliveryFee =
     fulfillmentType === "delivery" && deliveryFee !== undefined;
   const payWhen = fulfillmentType === "delivery" ? "delivery" : "pickup";
@@ -158,8 +161,14 @@ const UpdatedOrderSummary: React.FC<UpdatedOrderSummaryProps> = ({
 
       {/* Total */}
       <div className="mt-4 flex items-center justify-between border-t border-gray-200 pt-4">
-        <span className="text-sm font-semibold text-gray-900">Total</span>
-        <span className="text-xl font-bold text-gray-900">
+        <span className="text-sm font-bold text-[#0F172A]">
+          {showRemainingLabel ? "Remaining to Pay" : "Total"}
+        </span>
+        <span
+          className={`text-xl font-bold ${
+            showRemainingLabel ? "text-[#3E206D]" : "text-[#0F172A]"
+          }`}
+        >
           {formatMoney(total)}
         </span>
       </div>
@@ -208,7 +217,7 @@ const UpdatedOrderSummary: React.FC<UpdatedOrderSummaryProps> = ({
       )}
 
       {/* Notice - saved card (CARD / CARD + CREDIT) */}
-      {isCard && cardCharge > 0 && (
+      {/* {isCard && cardCharge > 0 && (
         <div className="mt-5 rounded-lg bg-indigo-50 px-3 py-3">
           <p className="text-sm text-gray-800">
             You will be redirected to the secure payment gateway to pay{" "}
@@ -218,7 +227,7 @@ const UpdatedOrderSummary: React.FC<UpdatedOrderSummaryProps> = ({
             Supports Visa and Mastercard debit/credit cards.
           </p>
         </div>
-      )}
+      )} */}
 
       {/* Actions */}
       <div className="mt-5 space-y-2">
