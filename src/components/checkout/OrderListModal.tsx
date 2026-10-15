@@ -16,6 +16,14 @@ const formatExpiry = (dateStr: string): string => {
   return d.toLocaleDateString("en-US", opts);
 };
 
+// Date -> "YYYY-MM-DD" using local date parts (avoids the UTC shift from toISOString)
+const toDateStr = (d: Date): string => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
+
 export default function OrderListModal({ orders, scheduleInfo, onClose }: Props) {
   const noOrders = orders.length === 0;
 
@@ -27,6 +35,12 @@ export default function OrderListModal({ orders, scheduleInfo, onClose }: Props)
 
   // No orders because a one-time package expires too soon
   const blockedByExpiry = noOrders && !!limitingPackage;
+
+  // The 1st order is paid today, but only when it falls on the earliest available date
+  const firstOrderIsEarliest =
+    !noOrders &&
+    !!scheduleInfo?.earliestDate &&
+    toDateStr(orders[0]) === scheduleInfo.earliestDate;
 
   return (
     <div className="fixed inset-0 z-[70] bg-black/70 flex items-center justify-center p-4">
@@ -81,7 +95,7 @@ export default function OrderListModal({ orders, scheduleInfo, onClose }: Props)
                     <p className="text-[#414347]">:</p>
                     <p className="text-[#414347]">{formatOrderDate(date)}</p>
                   </div>
-                  {idx === 0 && (
+                  {idx === 0 && firstOrderIsEarliest && (
                     <div className="mt-2 flex justify-center">
                       <div className="px-5 py-3 rounded-[10px] border border-[#6156FF] bg-white text-[#6156FF] text-xs font-medium text-center">
                         You only need to pay for this 1st order today.

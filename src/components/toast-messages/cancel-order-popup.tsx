@@ -8,7 +8,7 @@ interface CancelOrderPopupProps {
   logo?: React.ReactNode;
 }
 
-const CONFIRM_WORD = "DELETE";
+const CONFIRM_WORD = "CANCEL";
 
 export const CancelOrderPopup = ({
   open,
@@ -54,7 +54,6 @@ export const CancelOrderPopup = ({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      onClick={onClose}
       role="presentation"
     >
       <div
@@ -155,7 +154,10 @@ export const CancelOrderPopup = ({
           id="cancel-order-confirm"
           type="text"
           value={value}
-          onChange={(e) => setValue(e.target.value)}
+          onChange={(e) => {
+            const formattedValue = e.target.value.replace(/\s/g, "").toUpperCase();
+            setValue(formattedValue);
+          }}
           onPaste={(e) => e.preventDefault()}
           onCopy={(e) => e.preventDefault()}
           onCut={(e) => e.preventDefault()}
@@ -204,16 +206,3 @@ export const CancelOrderPopup = ({
     </div>
   );
 };
-
-/* Usage:
-
-const [open, setOpen] = useState(false)
-
-<CancelOrderPopup
-  open={open}
-  creditAmount={1480}
-  onClose={() => setOpen(false)}
-  onConfirm={async () => { await cancelOrder(id); setOpen(false) }}
-  logo={<img src="/logo.png" alt="" className="h-full w-full object-cover" />}
-/>
-*/

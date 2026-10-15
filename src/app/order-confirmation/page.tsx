@@ -28,10 +28,8 @@ import {
 import { getCartInfo } from "@/services/auth-service";
 import { updateCartInfo } from "@/store/slices/authSlice";
 import { sendSms } from "@/services/product-service";
-import {
-  buildOrderConfirmationSms,
-  splitSmsPhone,
-} from "@/utils/order-sms";
+import { buildOrderConfirmationSms, splitSmsPhone } from "@/utils/order-sms";
+import Loader from "@/components/loader-spinner/Loader";
 
 const getPaymentPill = (
   paymentType: PaymentType,
@@ -96,6 +94,7 @@ const OrderConfirmationContent = () => {
   const [actionError, setActionError] = useState<string | null>(null);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [successVisible, setSuccessVisible] = useState(false);
+  const [cancelSuccessVisible, setCancelSuccessVisible] = useState(false);
   const confirmationSmsSent = useRef(false);
 
   const notifyOrderConfirmed = (paymentCompleted: boolean) => {
@@ -167,8 +166,8 @@ const OrderConfirmationContent = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-16">
-        <div className="animate-pulse text-gray-600">Loading your order...</div>
+      <div className="flex h-[70vh] flex-col items-center justify-center text-center">
+        <Loader isVisible={true} />
       </div>
     );
   }
@@ -192,7 +191,7 @@ const OrderConfirmationContent = () => {
       const result = await confirmOrder(token, processedOrderId);
 
       if (result.paymentUrl) {
-        window.location.href = result.paymentUrl;
+        router.replace(result.paymentUrl);
         return;
       }
 
@@ -222,10 +221,13 @@ const OrderConfirmationContent = () => {
         const updatedCartInfo = await getCartInfo(token);
         dispatch(updateCartInfo(updatedCartInfo));
       } catch (balanceError) {
-        console.error("Failed to refresh credit balance after cancellation:", balanceError);
+        console.error(
+          "Failed to refresh credit balance after cancellation:",
+          balanceError,
+        );
       }
       setCancelOpen(false);
-      router.replace("/");
+      setCancelSuccessVisible(true);
     } catch (err: any) {
       setActionError(
         err?.message || "Could not cancel your order. Please try again.",
@@ -370,6 +372,17 @@ const OrderConfirmationContent = () => {
         isVisible={successVisible}
         title="Order confirmed successfully!"
         description="Your order has been confirmed."
+        onClose={() => router.replace("/")}
+      />
+
+      <SuccessPopup
+        isVisible={cancelSuccessVisible}
+        title="Order cancelled successfully!"
+        description={
+          order.summary.creditApplied
+            ? "Your order has been cancelled and your credit balance has been refunded."
+            : "Your order has been cancelled."
+        }
         onClose={() => router.replace("/")}
       />
     </main>

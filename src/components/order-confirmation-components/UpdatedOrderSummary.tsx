@@ -29,6 +29,7 @@ export interface OrderSummaryData {
   creditApplied?: number;
   savedCard?: SavedCard;
   chargeAmount?: number;
+  refundAmount?: number;
 }
 
 interface UpdatedOrderSummaryProps {
@@ -89,9 +90,14 @@ const UpdatedOrderSummary: React.FC<UpdatedOrderSummaryProps> = ({
     chargeAmount,
   } = data;
 
-  const creditApplied = Math.min(data.creditApplied ?? 0, total);
-  const hasCredit = creditApplied > 0;
+  const rawCredit = data.creditApplied ?? 0;
+  const creditApplied = Math.min(rawCredit, total);
+  const refundAmount = data.refundAmount ?? Math.max(rawCredit - total, 0);
+  const hasCredit = rawCredit > 0;
   const remaining = Math.max(total - creditApplied, 0);
+
+  const hasDiscount = discount !== undefined || couponDiscount !== undefined;
+  const showRemainingLabel = hasDiscount && !hasCredit;
 
   const showDeliveryFee =
     fulfillmentType === "delivery" && deliveryFee !== undefined;
@@ -100,14 +106,15 @@ const UpdatedOrderSummary: React.FC<UpdatedOrderSummaryProps> = ({
   const isCashOnly = paymentType === "COD" || paymentType === "COP";
   const isCard = paymentType === "CARD" || paymentType === "CARD_CREDIT";
 
+  const isRefundNote = paymentType === "FULLY_CREDIT" && refundAmount > 0;
+
   const remainingNote =
     paymentType === "CASH_CREDIT"
       ? `Payable upon ${payWhen}`
-      : paymentType === "FULLY_CREDIT"
+      : paymentType === "FULLY_CREDIT" && !isRefundNote
         ? "You've paid the full amount using your wallet. You won't be charged again."
         : null;
 
-  // Card eken charge wenna amount eka
   const cardCharge = chargeAmount ?? remaining;
 
   return (
@@ -158,8 +165,14 @@ const UpdatedOrderSummary: React.FC<UpdatedOrderSummaryProps> = ({
 
       {/* Total */}
       <div className="mt-4 flex items-center justify-between border-t border-gray-200 pt-4">
-        <span className="text-sm font-semibold text-gray-900">Total</span>
-        <span className="text-xl font-bold text-gray-900">
+        <span className="text-sm font-bold text-[#0F172A]">
+          {showRemainingLabel ? "Remaining to Pay" : "Total"}
+        </span>
+        <span
+          className={`text-xl font-bold ${
+            showRemainingLabel ? "text-[#3E206D]" : "text-[#0F172A]"
+          }`}
+        >
           {formatMoney(total)}
         </span>
       </div>
@@ -172,25 +185,33 @@ const UpdatedOrderSummary: React.FC<UpdatedOrderSummaryProps> = ({
               <Wallet className="h-3.5 w-3.5" aria-hidden="true" />
               Credit Balance Applied
             </span>
-            <span className="text-xs font-semibold text-green-800">
-              - {formatMoney(creditApplied)}
+            <span className="text-xs font-semibold text-green-800 whitespace-nowrap">
+              - {formatMoney(refundAmount > 0 ? rawCredit : creditApplied)}
             </span>
           </div>
 
-          <div className="mt-5 flex items-start justify-between">
-            <div className="max-w-[60%]">
+          <div className="mt-5">
+            <div className="flex items-center justify-between">
               <p className="text-sm font-semibold text-gray-900">
                 Remaining to Pay
               </p>
-              {remainingNote && (
-                <p className="mt-1 text-[10px] text-gray-500">
+              <span className="text-2xl font-bold text-[#3E206D]">
+                {formatMoney(remaining)}
+              </span>
+            </div>
+
+            {isRefundNote ? (
+              <p className="mt-1 text-xs text-gray-500">
+                Once you accept the order, {formatMoney(refundAmount)} will be
+                refunded to your credit balance.
+              </p>
+            ) : (
+              remainingNote && (
+                <p className="mt-1 max-w-[60%] text-[11px] text-gray-500">
                   {remainingNote}
                 </p>
-              )}
-            </div>
-            <span className="text-2xl font-bold text-[#3E206D]">
-              {formatMoney(remaining)}
-            </span>
+              )
+            )}
           </div>
         </>
       )}
@@ -208,7 +229,7 @@ const UpdatedOrderSummary: React.FC<UpdatedOrderSummaryProps> = ({
       )}
 
       {/* Notice - saved card (CARD / CARD + CREDIT) */}
-      {isCard && cardCharge > 0 && (
+      {/* {isCard && cardCharge > 0 && (
         <div className="mt-5 rounded-lg bg-indigo-50 px-3 py-3">
           <p className="text-sm text-gray-800">
             You will be redirected to the secure payment gateway to pay{" "}
@@ -218,14 +239,14 @@ const UpdatedOrderSummary: React.FC<UpdatedOrderSummaryProps> = ({
             Supports Visa and Mastercard debit/credit cards.
           </p>
         </div>
-      )}
+      )} */}
 
       {/* Actions */}
       <div className="mt-5 space-y-2">
         <button
           type="button"
           onClick={onCancel}
-          className="w-full cursor-pointer rounded-lg border border-red-500 bg-white py-2.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+          className="w-full cursor-pointer shadow-md rounded-lg border border-red-500 bg-white py-2.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
         >
           Cancel My Order
         </button>
@@ -233,7 +254,7 @@ const UpdatedOrderSummary: React.FC<UpdatedOrderSummaryProps> = ({
           type="button"
           onClick={onConfirm}
           disabled={submitting}
-          className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-[#3E206D] py-3 text-sm font-semibold text-white transition-colors hover:bg-[#2f1854] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3E206D] focus-visible:ring-offset-2"
+          className="flex w-full cursor-pointer shadow-md items-center justify-center gap-1.5 rounded-lg bg-[#3E206D] py-3 text-sm font-semibold text-white transition-colors hover:bg-[#2f1854] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3E206D] focus-visible:ring-offset-2"
         >
           {submitting ? "Processing..." : "Confirm & Accept My Order"}
           {!submitting && <ArrowRight className="h-4 w-4" />}
