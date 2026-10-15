@@ -1433,9 +1433,17 @@ const Page: React.FC = () => {
         setFormData({
           ...dataToSubmit,
           ...recurringPayload,
+          earliestPossibleDate: getMinDateStr(), // NEW
           isFinalizeImdt: hasPackages && packageHandlingOption === "finalize" ? 1 : 0,
         } as any),
       );
+
+      console.log("Form data dispatched to Redux:", {
+        ...dataToSubmit,
+        ...recurringPayload,
+        earliestPossibleDate: getMinDateStr(),
+        isFinalizeImdt: hasPackages && packageHandlingOption === "finalize" ? 1 : 0,
+      });
 
       localStorage.setItem("deliveryCharge", deliveryCharge.toString());
 

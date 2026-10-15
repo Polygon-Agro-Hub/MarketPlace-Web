@@ -1,8 +1,8 @@
 "use client";
 
-import React, { Suspense, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { useSelector } from "react-redux";
+import React, { Suspense, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/store";
 import {
   BadgeCheck,
@@ -17,10 +17,19 @@ import UpdatedOrderSummary, {
   type PaymentType,
 } from "@/components/order-confirmation-components/UpdatedOrderSummary";
 import ViewOrderComponent from "@/components/order-confirmation-components/ViewOrderComponent";
+import { CancelOrderPopup } from "@/components/toast-messages/cancel-order-popup";
+import SuccessPopup from "@/components/toast-messages/success-message";
 import {
+  cancelOrder,
   getOrderConfirmation,
+  confirmOrder,
   type OrderConfirmationData,
 } from "@/services/retail-service";
+import { getCartInfo } from "@/services/auth-service";
+import { updateCartInfo } from "@/store/slices/authSlice";
+import { sendSms } from "@/services/product-service";
+import { buildOrderConfirmationSms, splitSmsPhone } from "@/utils/order-sms";
+import Loader from "@/components/loader-spinner/Loader";
 
 const getPaymentPill = (
   paymentType: PaymentType,
@@ -71,16 +80,40 @@ const PaymentMethodCard: React.FC<{
 
 const OrderConfirmationContent = () => {
   const searchParams = useSearchParams();
-  const processedOrderId = searchParams.get("processedOrderId"); 
+  const processedOrderId = searchParams.get("processedOrderId");
   const token = useSelector((state: RootState) => state.auth.token);
+  const dispatch = useDispatch();
 
   const [order, setOrder] = useState<OrderConfirmationData | null>(null);
   const [loading, setLoading] = useState(!!processedOrderId);
   const [error, setError] = useState<string | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
 
+  const router = useRouter();
+  const [submitting, setSubmitting] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [successVisible, setSuccessVisible] = useState(false);
+  const [cancelSuccessVisible, setCancelSuccessVisible] = useState(false);
+  const confirmationSmsSent = useRef(false);
+
+  const notifyOrderConfirmed = (paymentCompleted: boolean) => {
+    if (confirmationSmsSent.current || !order) return;
+
+    const message = buildOrderConfirmationSms({
+      paymentType: order.summary.paymentType,
+      invNo: order.invoiceNumber,
+      paymentCompleted,
+    });
+    const phone = splitSmsPhone(order.details.receiver.phones[0]);
+    if (!message || !phone) return;
+
+    confirmationSmsSent.current = true;
+    void sendSms(phone.code, phone.number, message);
+  };
+
   useEffect(() => {
-    if (!processedOrderId || !token) return; 
+    if (!processedOrderId || !token) return;
     let cancelled = false;
 
     setLoading(true);
@@ -104,10 +137,37 @@ const OrderConfirmationContent = () => {
     };
   }, [processedOrderId, token]);
 
+  useEffect(() => {
+    if (!processedOrderId || !token || !order || order.isConfirmed) return;
+    if (searchParams.get("returned") !== "1") return;
+
+    let tries = 0;
+    const id = setInterval(async () => {
+      tries += 1;
+      try {
+        const fresh = await getOrderConfirmation(token, processedOrderId);
+        setOrder(fresh);
+        if (fresh.isConfirmed || tries >= 10) clearInterval(id);
+      } catch {
+        clearInterval(id);
+      }
+    }, 3000);
+
+    return () => clearInterval(id);
+  }, [processedOrderId, token, order?.isConfirmed, searchParams]);
+
+  useEffect(() => {
+    if (searchParams.get("returned") === "1" && order?.isConfirmed) {
+      setSubmitting(false);
+      notifyOrderConfirmed(true);
+      setSuccessVisible(true);
+    }
+  }, [order?.isConfirmed, searchParams, order]);
+
   if (loading) {
     return (
-      <div className="flex justify-center py-16">
-        <div className="animate-pulse text-gray-600">Loading your order...</div>
+      <div className="flex h-[70vh] flex-col items-center justify-center text-center">
+        <Loader isVisible={true} />
       </div>
     );
   }
@@ -122,11 +182,61 @@ const OrderConfirmationContent = () => {
     );
   }
 
-  // TODO: confirm / cancel API calls (separate step)
-  const handleConfirm = () =>
-    console.log("Order confirmed", order.invoiceNumber);
-  const handleCancel = () =>
-    console.log("Order cancelled", order.invoiceNumber);
+  const handleConfirm = async () => {
+    if (!token || !processedOrderId || submitting) return;
+    try {
+      setSubmitting(true);
+      setActionError(null);
+
+      const result = await confirmOrder(token, processedOrderId);
+
+      if (result.paymentUrl) {
+        router.replace(result.paymentUrl);
+        return;
+      }
+
+      notifyOrderConfirmed(true);
+      setSuccessVisible(true);
+    } catch (err: any) {
+      setActionError(
+        err?.message || "Could not confirm your order. Please try again.",
+      );
+      setSubmitting(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setActionError(null);
+    setCancelOpen(true);
+  };
+
+  const handleCancelConfirm = async () => {
+    if (!token || !processedOrderId || submitting) return;
+
+    try {
+      setSubmitting(true);
+      setActionError(null);
+      await cancelOrder(token, processedOrderId);
+      try {
+        const updatedCartInfo = await getCartInfo(token);
+        dispatch(updateCartInfo(updatedCartInfo));
+      } catch (balanceError) {
+        console.error(
+          "Failed to refresh credit balance after cancellation:",
+          balanceError,
+        );
+      }
+      setCancelOpen(false);
+      setCancelSuccessVisible(true);
+    } catch (err: any) {
+      setActionError(
+        err?.message || "Could not cancel your order. Please try again.",
+      );
+      throw err;
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <main className="mx-auto w-full max-w-[1200px] px-4 py-8 sm:px-6 lg:px-8">
@@ -162,6 +272,11 @@ const OrderConfirmationContent = () => {
           </p>
         </div>
       </div>
+      {actionError && (
+        <p role="alert" className="mt-3 text-sm text-red-600">
+          {actionError}
+        </p>
+      )}
 
       {/* Two columns */}
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_360px] lg:items-start">
@@ -219,11 +334,18 @@ const OrderConfirmationContent = () => {
 
         {/* Right: summary + payment method */}
         <aside className="space-y-4">
-          <UpdatedOrderSummary
-            data={order.summary}
-            onConfirm={handleConfirm}
-            onCancel={handleCancel}
-          />
+          {order.isConfirmed ? (
+            <div className="rounded-3xl bg-green-50 p-5 text-sm text-green-800">
+              This order has already been confirmed.
+            </div>
+          ) : (
+            <UpdatedOrderSummary
+              data={order.summary}
+              onConfirm={handleConfirm}
+              onCancel={handleCancel}
+              submitting={submitting}
+            />
+          )}
           <PaymentMethodCard
             paymentType={order.summary.paymentType}
             fulfillmentType={order.summary.fulfillmentType}
@@ -237,6 +359,31 @@ const OrderConfirmationContent = () => {
         onClose={() => setDetailsOpen(false)}
         details={order.details}
         summary={order.summary}
+      />
+
+      <CancelOrderPopup
+        open={cancelOpen}
+        creditAmount={order.summary.creditApplied}
+        onClose={() => setCancelOpen(false)}
+        onConfirm={handleCancelConfirm}
+      />
+
+      <SuccessPopup
+        isVisible={successVisible}
+        title="Order confirmed successfully!"
+        description="Your order has been confirmed."
+        onClose={() => router.replace("/")}
+      />
+
+      <SuccessPopup
+        isVisible={cancelSuccessVisible}
+        title="Order cancelled successfully!"
+        description={
+          order.summary.creditApplied
+            ? "Your order has been cancelled and your credit balance has been refunded."
+            : "Your order has been cancelled."
+        }
+        onClose={() => router.replace("/")}
       />
     </main>
   );

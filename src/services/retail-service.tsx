@@ -45,6 +45,16 @@ export interface SavedAddress {
   city: string | null;
 }
 
+// export interface OrderConfirmationData {
+//   invoiceNumber: string;
+//   placedAt: string;
+//   statusLabel: string;
+//   confirmBefore: string;
+//   schedule: { date: string; timeSlot: string };
+//   summary: OrderSummaryData;
+//   details: OrderDetailsData;
+// }
+
 export interface OrderConfirmationData {
   invoiceNumber: string;
   placedAt: string;
@@ -53,38 +63,41 @@ export interface OrderConfirmationData {
   schedule: { date: string; timeSlot: string };
   summary: OrderSummaryData;
   details: OrderDetailsData;
-}
- 
-export interface OrderConfirmationData {
-  invoiceNumber: string;
-  placedAt: string;
-  statusLabel: string;
-  confirmBefore: string;
-  schedule: { date: string; timeSlot: string };
-  summary: OrderSummaryData;
-  details: OrderDetailsData;
+  isConfirmed: boolean;
 }
 
 export interface PendingConfirmationOrder {
-  processOrderId: number; 
+  processOrderId: number;
   invoiceNumber: string;
-  visibleSince: string; 
+  visibleSince: string;
   status: string;
-  updatedAt: string; 
-  msUntilClose: number; 
+  updatedAt: string;
+  msUntilClose: number;
+}
+
+export interface ConfirmOrderResult {
+  paymentUrl?: string; // card payment: payments.lk page eka
+  confirmed?: boolean; // cash / fully credit: direct confirm una
 }
 
 export const getRecentOrderAddress = async (token: string | null) => {
   try {
-    const response = await axios.get("/retail-order/fetch-recent-order-address", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
+    const response = await axios.get(
+      "/retail-order/fetch-recent-order-address",
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
       },
-    });
+    );
     return response.data;
   } catch (error: any) {
-    throw error.response?.data || { message: "Failed to fetch recent order address." };
+    throw (
+      error.response?.data || {
+        message: "Failed to fetch recent order address.",
+      }
+    );
   }
 };
 
@@ -98,25 +111,30 @@ export const getSavedAddresses = async (token: string | null) => {
     });
     return response.data;
   } catch (error: any) {
-    throw error.response?.data || { message: "Failed to fetch saved addresses." };
+    throw (
+      error.response?.data || { message: "Failed to fetch saved addresses." }
+    );
   }
 };
 
 export const getOrderConfirmation = async (
   token: string,
-  processedOrderId: string
+  processedOrderId: string,
 ): Promise<OrderConfirmationData> => {
-  const res = await axios.get(`/retail-order/order-confirmation/${processedOrderId}`, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
+  const res = await axios.get(
+    `/retail-order/order-confirmation/${processedOrderId}`,
+    {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
     },
-  });
+  );
   return res.data.data;
 };
- 
+
 export const getPendingConfirmationOrder = async (
-  token: string
+  token: string,
 ): Promise<PendingConfirmationOrder | null> => {
   const res = await axios.get(`/retail-order/pending-confirmation`, {
     headers: {
@@ -125,4 +143,38 @@ export const getPendingConfirmationOrder = async (
     },
   });
   return res.data.data ?? null;
+};
+
+export const confirmOrder = async (
+  token: string,
+  processedOrderId: string,
+): Promise<ConfirmOrderResult> => {
+  try {
+    const res = await axios.post(
+      `/retail-order/order-confirmation/${processedOrderId}/confirm`,
+      {},
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+    return res.data.data;
+  } catch (error: any) {
+    throw error.response?.data || { message: "Failed to confirm order." };
+  }
+};
+
+export const cancelOrder = async (token: string, processedOrderId: string) => {
+  try {
+    const res = await axios.post(
+      `/retail-order/order-confirmation/${processedOrderId}/cancel`,
+      {},
+      { headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` } }
+    );
+    return res.data.data;
+  } catch (error: any) {
+    throw error.response?.data || { message: "Failed to cancel order." };
+  }
 };

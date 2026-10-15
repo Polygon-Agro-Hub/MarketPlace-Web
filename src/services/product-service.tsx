@@ -885,7 +885,7 @@ export const sendSms = async (
 
     console.log(`Sending SMS to ${phoneCode}${digits}: "${message}"`);
 
-    const response = await fetch("/api/shoutout/message", { // was /api/shoutout/send
+    const response = await fetch("/api/shoutout/message", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

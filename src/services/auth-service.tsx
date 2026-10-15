@@ -407,8 +407,8 @@ export const verifyUserDetails = async (
       const resData = error.response.data;
       throw new Error(
         resData?.message ||
-          resData?.error ||
-          `Verification failed with status ${error.response.status}`,
+        resData?.error ||
+        `Verification failed with status ${error.response.status}`,
       );
     } else if (error.request) {
       throw new Error(
@@ -584,6 +584,10 @@ export const sendOTPInSignup = async (
     email?: string;
     isUpdate?: boolean;      // true = profile update flow, false/undefined = registration
     isEmailChange?: boolean; // true = `email` is a NEW address the OTP must go to
+    // Current account values, shown as the "Existing ..." line in update emails
+    existingEmail?: string;
+    existingPhoneCode?: string;
+    existingPhoneNumber?: string;
   },
 ): Promise<OTPServiceResponse> => {
   // ── Foreign numbers: OTP goes to email ──────────────────────────────────
@@ -604,6 +608,9 @@ export const sendOTPInSignup = async (
         phoneCode: countryCode,
         isUpdate: options?.isUpdate ?? false,
         isEmailChange: options?.isEmailChange ?? false,
+        existingEmail: options?.existingEmail,
+        existingPhoneCode: options?.existingPhoneCode,
+        existingPhoneNumber: options?.existingPhoneNumber,
       });
 
       const resData = response.data;
@@ -1599,6 +1606,61 @@ export const updateCreditBalance = async (
   }
 };
 
+export interface CreditBalanceCheckout {
+  checkoutUrl: string;
+  reference: string;
+  sessionId: string;
+  amount: number;
+  currency: string;
+}
+
+export const creditBalancePayment = async (
+  token: string,
+  amount: number,
+): Promise<CreditBalanceCheckout> => {
+  try {
+    const response = await axios.post(
+      "/user/credit-balance-payment", 
+      { amount },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+
+    const data = response.data;
+    if (
+      response.status >= 200 &&
+      response.status < 300 &&
+      data?.status &&
+      data?.checkoutUrl
+    ) {
+      return {
+        checkoutUrl: data.checkoutUrl,
+        reference: data.reference,
+        sessionId: data.sessionId,
+        amount: Number(data.amount ?? amount),
+        currency: data.currency ?? "LKR",
+      };
+    }
+
+    throw new Error(data?.message || "Failed to start credit balance payment");
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(
+        error.response.data?.message ||
+          error.response.data?.error ||
+          `Credit balance payment failed with status ${error.response.status}`,
+      );
+    }
+    throw new Error(
+      error.message || "An error occurred while processing credit balance payment",
+    );
+  }
+};
+
 interface UpdatePasswordByNicPayload {
   nicNumber: string;
   password: string;
@@ -1652,7 +1714,7 @@ export interface DeleteAccountEligibility {
   hasNegativeCredit: boolean;
   creditBalance: number;
 }
- 
+
 export const fetchDeleteAccountEligibility = async (
   token: string,
 ): Promise<DeleteAccountEligibility> => {
@@ -1660,16 +1722,16 @@ export const fetchDeleteAccountEligibility = async (
     if (!token) {
       throw new Error("You are not authenticated. Please log in first.");
     }
- 
+
     const response = await axios.get("/auth/delete-account/eligibility", {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
     });
- 
+
     const resData: ApiResponse<DeleteAccountEligibility> = response.data;
- 
+
     if (resData.status && resData.data) {
       return resData.data;
     }
@@ -1678,8 +1740,8 @@ export const fetchDeleteAccountEligibility = async (
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          `Eligibility check failed with status ${error.response.status}`,
+        error.response.data?.error ||
+        `Eligibility check failed with status ${error.response.status}`,
       );
     } else if (error.request) {
       throw new Error(
@@ -1692,7 +1754,7 @@ export const fetchDeleteAccountEligibility = async (
     }
   }
 };
- 
+
 export const deleteAccount = async (
   token: string,
 ): Promise<{ message: string }> => {
@@ -1700,14 +1762,14 @@ export const deleteAccount = async (
     if (!token) {
       throw new Error("You are not authenticated. Please log in first.");
     }
- 
+
     const response = await axios.delete("/auth/delete-account", {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
     });
- 
+
     if (
       response.status >= 200 &&
       response.status < 300 &&
@@ -1720,8 +1782,8 @@ export const deleteAccount = async (
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          `Account deletion failed with status ${error.response.status}`,
+        error.response.data?.error ||
+        `Account deletion failed with status ${error.response.status}`,
       );
     } else if (error.request) {
       throw new Error(
