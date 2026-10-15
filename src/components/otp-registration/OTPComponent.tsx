@@ -11,6 +11,14 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCircleInfo } from "@fortawesome/free-solid-svg-icons";
 import { faEnvelope } from "@fortawesome/free-solid-svg-icons";
 
+
+
+export type SendOtpExtras = Pick<
+  NonNullable<Parameters<typeof sendOTPInSignup>[2]>,
+  "isUpdate" | "isEmailChange" | "existingEmail" | "existingPhoneCode" | "existingPhoneNumber"
+>;
+
+
 interface OTPComponentProps {
   phoneNumber: string;
   phoneCode: string;
@@ -34,6 +42,7 @@ interface OTPComponentProps {
   backLabel?: string;
   /** Message shown when onVerificationSuccess throws. */
   successFailMessage?: string;
+  sendOtpExtras?: SendOtpExtras;
 }
 
 export default function OTPComponent({
@@ -53,6 +62,7 @@ export default function OTPComponent({
   redirectOnSuccess = "/signin",
   backLabel = "Back to Registration",
   successFailMessage = "Account creation failed. Please try again.",
+  sendOtpExtras,
 }: OTPComponentProps) {
   const router = useRouter();
 
@@ -171,7 +181,10 @@ export default function OTPComponent({
     setIsResending(true);
     try {
       const phone = phoneNumber.substring(phoneCode.length);
-      const res = await sendOTPInSignup(phone, phoneCode, { email });
+      const res = await sendOTPInSignup(phone, phoneCode, {
+        email,
+        ...sendOtpExtras,
+      });
       if (res.referenceId) {
         onResendOTP(res.referenceId);
 

@@ -13,12 +13,13 @@ import ErrorPopup from '@/components/toast-messages/error-message';
 import Loader from '@/components/loader-spinner/Loader';
 import { createPortal } from 'react-dom';
 import { fetchProfile, updateProfile, updatePassword, sendOTPInSignup } from '@/services/auth-service';
-import OTPComponent from '@/components/otp-registration/OTPComponent';
+import OTPComponent, { SendOtpExtras } from '@/components/otp-registration/OTPComponent';
 import { updateUser } from '@/store/slices/authSlice';
 import PhoneCodeDropdown, {
   validatePhoneNumber,
   getMaxPhoneLength,
 } from '@/components/registration-components/PhoneCodeDropdown';
+
 
 const schema = yup.object().shape({
   title: yup.string().required('Title is required'),
@@ -299,8 +300,13 @@ const PersonalDetailsForm = () => {
   const [countryCode, setCountryCode] = useState("+94");
   const [showOTP, setShowOTP] = useState(false);
   const [otpReferenceId, setOtpReferenceId] = useState('');
-  const [otpTarget, setOtpTarget] = useState<{ phoneCode: string; phoneNumber: string; email: string } | null>(null);
   const verifiedPhoneRef = useRef<string | null>(null); // so a failed save doesn't force a second OTP
+  const [otpTarget, setOtpTarget] = useState<{
+    phoneCode: string;
+    phoneNumber: string;
+    email: string;
+    extras: SendOtpExtras;
+  } | null>(null);
 
   const {
     register,
@@ -559,25 +565,31 @@ const PersonalDetailsForm = () => {
     const v = getValues();
     const isForeign = v.countryCode !== '+94';
     const emailChanged = isForeign && isEmailChanged();
-
-    // Email changed → send to the NEW email (proves the user owns it).
-    // Only phone changed → send to the existing, already-verified email.
     const emailTarget = emailChanged ? v.email : (originalData?.email || v.email);
+
+    const extras: SendOtpExtras = {
+      isUpdate: true,
+      isEmailChange: emailChanged,
+      existingEmail: originalData?.email,
+      existingPhoneCode: originalData?.countryCode,
+      existingPhoneNumber: originalData?.phoneNumber,
+    };
 
     setIsLoading(true);
     try {
       const res = await sendOTPInSignup(v.phoneNumber, v.countryCode, {
         email: emailTarget,
-        isUpdate: true,
-        isEmailChange: emailChanged,
-        existingEmail: originalData?.email,
-        existingPhoneCode: originalData?.countryCode,
-        existingPhoneNumber: originalData?.phoneNumber,
+        ...extras,
       });
       if (!res?.referenceId) throw new Error('Failed to send verification code');
 
       setOtpReferenceId(res.referenceId);
-      setOtpTarget({ phoneCode: v.countryCode, phoneNumber: v.phoneNumber, email: emailTarget });
+      setOtpTarget({
+        phoneCode: v.countryCode,
+        phoneNumber: v.phoneNumber,
+        email: emailTarget,
+        extras,
+      });
       setSuccessMessage(
         isForeign
           ? `Verification code has been sent to ${emailTarget}`
@@ -1227,6 +1239,7 @@ const PersonalDetailsForm = () => {
               onVerificationFailure={() => setShowOTP(false)}
               onResendOTP={(id) => setOtpReferenceId(id)}
               onOTPExpired={() => { }}
+              sendOtpExtras={otpTarget.extras}
             />
           </div>,
           document.body,
