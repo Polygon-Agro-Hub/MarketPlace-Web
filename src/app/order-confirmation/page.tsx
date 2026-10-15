@@ -191,7 +191,7 @@ const OrderConfirmationContent = () => {
       const result = await confirmOrder(token, processedOrderId);
 
       if (result.paymentUrl) {
-        window.location.replace(result.paymentUrl);
+        router.replace(result.paymentUrl);
         return;
       }
 
