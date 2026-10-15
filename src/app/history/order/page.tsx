@@ -238,6 +238,21 @@ export default function OrderHistoryPage() {
   const modalContentRef = useRef<HTMLDivElement>(null);
   const mainRef = useRef<HTMLElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const user = useSelector((state: RootState) => state.auth.user);
+  const homeUrl = user?.buyerType === "Wholesale" ? "/wholesale/home" : "/";
+
+  useEffect(() => {
+    // Only after a gateway card payment
+    if (sessionStorage.getItem("cameFromGateway") !== "1") return;
+
+    const warn = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = ""; // required by Chrome to show the dialog
+    };
+
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, []);
 
   // ── Detect mobile/desktop and set limit ──
   useEffect(() => {
