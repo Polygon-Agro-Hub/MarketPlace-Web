@@ -94,6 +94,7 @@ const OrderConfirmationContent = () => {
   const [actionError, setActionError] = useState<string | null>(null);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [successVisible, setSuccessVisible] = useState(false);
+  const [cancelSuccessVisible, setCancelSuccessVisible] = useState(false);
   const confirmationSmsSent = useRef(false);
 
   const notifyOrderConfirmed = (paymentCompleted: boolean) => {
@@ -226,7 +227,7 @@ const OrderConfirmationContent = () => {
         );
       }
       setCancelOpen(false);
-      router.replace("/");
+      setCancelSuccessVisible(true);
     } catch (err: any) {
       setActionError(
         err?.message || "Could not cancel your order. Please try again.",
@@ -371,6 +372,17 @@ const OrderConfirmationContent = () => {
         isVisible={successVisible}
         title="Order confirmed successfully!"
         description="Your order has been confirmed."
+        onClose={() => router.replace("/")}
+      />
+
+      <SuccessPopup
+        isVisible={cancelSuccessVisible}
+        title="Order cancelled successfully!"
+        description={
+          order.summary.creditApplied
+            ? "Your order has been cancelled and your credit balance has been refunded."
+            : "Your order has been cancelled."
+        }
         onClose={() => router.replace("/")}
       />
     </main>
