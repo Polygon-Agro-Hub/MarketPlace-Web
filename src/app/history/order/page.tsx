@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import Image from "next/image";
-import { FaAngleDown } from "react-icons/fa";
+import { FaAngleDown, FaInfoCircle } from "react-icons/fa";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
 import {
@@ -138,6 +138,7 @@ const ALLOWED_ORDER_STATUSES = [
   "hold",
   "return",
   "return received",
+  "cancelled",
 ];
 
 const getStatusClass = (status: string): string => {
@@ -163,12 +164,13 @@ const getStatusClass = (status: string): string => {
     case "return":
     case "return received":
       return "bg-[#FFDCDA] text-[#FF1100]";
-    case "cancelled":
-      return "bg-[#FEE2E2] text-[#DC2626]";
     case "one time":
       return "bg-[#DBEAFE] text-[#2563EB]";
+    case "cancelled":
+      return "bg-[#F2F2F2] text-[#454545]";
     default:
       return "bg-[#F3F4F6] text-[#4B5563]";
+
   }
 };
 
@@ -176,6 +178,9 @@ const getDisplayStatus = (status: string): string => {
   if (status.toLowerCase() === "return received") return "Return";
   return status;
 };
+
+const isCancelled = (status: string): boolean =>
+  status.toLowerCase() === "cancelled";
 
 function formatAmount(amount: string | number, decimals: number = 2): string {
   if (amount === null || amount === undefined || amount === "N/A") {
@@ -233,6 +238,21 @@ export default function OrderHistoryPage() {
   const modalContentRef = useRef<HTMLDivElement>(null);
   const mainRef = useRef<HTMLElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const user = useSelector((state: RootState) => state.auth.user);
+  const homeUrl = user?.buyerType === "Wholesale" ? "/wholesale/home" : "/";
+
+  useEffect(() => {
+    // Only after a gateway card payment
+    if (sessionStorage.getItem("cameFromGateway") !== "1") return;
+
+    const warn = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = ""; // required by Chrome to show the dialog
+    };
+
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, []);
 
   // ── Detect mobile/desktop and set limit ──
   useEffect(() => {
@@ -485,7 +505,7 @@ export default function OrderHistoryPage() {
           <>
             <div className="flex flex-row justify-between items-center mb-6 space-x-2 lg:mx-[72px]">
               <h1 className="text-sm lg:text-xl font-bold">
-                Your Orders ({orders.length.toString().padStart(2, "0")})
+                Your Orders ({orders.length === 0 ? "0" : orders.length.toString().padStart(2, "0")})
               </h1>
               <div className="relative w-[140px] sm:w-[180px]">
                 <Select
@@ -552,6 +572,17 @@ export default function OrderHistoryPage() {
               </div>
             </div>
 
+            <div className="lg:mx-[72px] mb-4">
+              <div className="flex items-start gap-2 rounded-xl bg-[#FFF5E9] px-4 py-3 text-xs lg:text-sm text-[#31111D]">
+                <FaInfoCircle className="mt-[3px] flex-shrink-0 text-[12px]" />
+                <p>
+                  Please note that the total amount on the delivery date may differ from
+                  the amount shown on the order date. If there is any price difference,
+                  the final amount applicable on the delivery date will be charged later.
+                </p>
+              </div>
+            </div>
+
             {filterLoading ? (
               <div className="flex flex-col items-center justify-center h-[50vh] text-center">
                 <Loader isVisible={true} />
@@ -591,17 +622,17 @@ export default function OrderHistoryPage() {
                         >
                           View Order
                         </button>
-                        <button
-                          onClick={() =>
-                            router.push(
-                              `/history/invoice?orderId=${order.orderId}`,
-                            )
-                          }
-                          className="bg-[rgb(255,255,255)] border text-xs lg:text-sm cursor-pointer border-[rgb(209,213,219)] rounded-lg px-4 py-1.5 hover:bg-[rgb(62,32,109)] hover:text-[rgb(255,255,255)]"
-                          disabled={isFetchingDetails}
-                        >
-                          View Invoice
-                        </button>
+                        {!isCancelled(order.status) && (
+                          <button
+                            onClick={() =>
+                              router.push(`/history/invoice?orderId=${order.orderId}`)
+                            }
+                            className="bg-[rgb(255,255,255)] border text-xs lg:text-sm cursor-pointer border-[rgb(209,213,219)] rounded-lg px-4 py-1.5 hover:bg-[rgb(62,32,109)] hover:text-[rgb(255,255,255)]"
+                            disabled={isFetchingDetails}
+                          >
+                            View Invoice
+                          </button>
+                        )}
                       </div>
                     </div>
 
@@ -639,17 +670,17 @@ export default function OrderHistoryPage() {
                         >
                           View Order
                         </button>
-                        <button
-                          onClick={() =>
-                            router.push(
-                              `/history/invoice?orderId=${order.orderId}`,
-                            )
-                          }
-                          className="w-full bg-[rgb(255,255,255)] border text-sm cursor-pointer border-[rgb(209,213,219)] rounded-lg px-4 py-2.5 hover:bg-[rgb(62,32,109)] hover:text-[rgb(255,255,255)] transition-colors"
-                          disabled={isFetchingDetails}
-                        >
-                          View Invoice
-                        </button>
+                        {!isCancelled(order.status) && (
+                          <button
+                            onClick={() =>
+                              router.push(`/history/invoice?orderId=${order.orderId}`)
+                            }
+                            className="w-full bg-[rgb(255,255,255)] border text-sm cursor-pointer border-[rgb(209,213,219)] rounded-lg px-4 py-2.5 hover:bg-[rgb(62,32,109)] hover:text-[rgb(255,255,255)] transition-colors"
+                            disabled={isFetchingDetails}
+                          >
+                            View Invoice
+                          </button>
+                        )}
                       </div>
                     </div>
 

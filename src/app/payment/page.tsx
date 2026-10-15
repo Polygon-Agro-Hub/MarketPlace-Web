@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, MouseEvent } from "react";
+import React, { useState, useEffect, useRef, MouseEvent } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import TopNavigation from "@/components/top-navigation/TopNavigation";
@@ -27,6 +27,31 @@ import cashPaymentIcon from "../../../public/cashicon.png";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faLock } from "@fortawesome/free-solid-svg-icons";
 import Loader from "@/components/loader-spinner/Loader";
+import { PaymentGatewayFactory } from "@/services/payment/payment.factory";
+import { getCheckoutScheduleInfo } from "@/services/product-service";
+import { sendSms } from "@/services/product-service";
+import { buildOrderPlacedSms } from "@/utils/order-sms";
+
+const PAYMENT_SESSION_KEY = "paymentSessionExpiresAt";
+const PAYMENT_SESSION_DURATION_MS = 5 * 60 * 1000;
+
+let pendingSessionClear: ReturnType<typeof setTimeout> | null = null;
+
+const formatTimer = (totalSeconds: number): string => {
+  const m = Math.floor(totalSeconds / 60).toString().padStart(2, "0");
+  const s = (totalSeconds % 60).toString().padStart(2, "0");
+  return `${m}:${s}`;
+};
+
+// Normalises "YYYY-MM-DD" or an ISO string to a local "YYYY-MM-DD"
+const toDateStr = (value?: string | null): string | null => {
+  if (!value) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
 
 const Page: React.FC = () => {
   const router = useRouter();
@@ -64,15 +89,72 @@ const Page: React.FC = () => {
   const isFinalizeImdt = checkoutDetails?.isFinalizeImdt === 1;
   const [showUnavailableModal, setShowUnavailableModal] = useState(false);
   const [cashPaymentLimit, setCashPaymentLimit] = useState<number>(2000); // sensible default while loading
-  const [cardDetails, setCardDetails] = useState({
-    cardNumber: "",
-    nameOnCard: "",
-    expirationDate: "",
-    cvv: "",
-  });
-  const [expirationDateError, setExpirationDateError] = useState("");
-  const [cardNumberError, setCardNumberError] = useState("");
-  const [cvvError, setCvvError] = useState("");
+  const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
+  const orderSubmittedRef = useRef(false);
+  const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [awaitingPayment, setAwaitingPayment] = useState(false);
+
+
+  useEffect(() => {
+    sessionStorage.removeItem("cameFromGateway"); // a new payment attempt starts fresh
+  }, []);
+
+
+  useEffect(() => {
+    // Cancel a pending clear scheduled by a Strict Mode fake-unmount
+    if (pendingSessionClear) {
+      clearTimeout(pendingSessionClear);
+      pendingSessionClear = null;
+    }
+
+    const navEntry = performance.getEntriesByType("navigation")[0] as
+      | PerformanceNavigationTiming
+      | undefined;
+    const isReload = navEntry?.type === "reload";
+
+    // Reuse the saved expiry only on a browser refresh; otherwise start fresh
+    let expiresAt = isReload ? Number(sessionStorage.getItem(PAYMENT_SESSION_KEY)) : 0;
+    if (!expiresAt || Number.isNaN(expiresAt)) {
+      expiresAt = Date.now() + PAYMENT_SESSION_DURATION_MS;
+    }
+    sessionStorage.setItem(PAYMENT_SESSION_KEY, expiresAt.toString());
+
+    const handleExpire = () => {
+      sessionStorage.removeItem(PAYMENT_SESSION_KEY);
+      router.replace("/cart");
+    };
+
+    const tick = () => {
+      if (orderSubmittedRef.current) {
+        clearInterval(interval);
+        return;
+      }
+      const secondsLeft = Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000));
+      setRemainingSeconds(secondsLeft);
+      if (secondsLeft <= 0) {
+        clearInterval(interval);
+        handleExpire();
+      }
+    };
+
+    const interval = setInterval(tick, 1000);
+    tick();
+
+    return () => {
+      clearInterval(interval);
+      // Deferred so an immediate remount (Strict Mode) can cancel it.
+      // A real navigation away has no remount, so the key gets cleared.
+      pendingSessionClear = setTimeout(() => {
+        sessionStorage.removeItem(PAYMENT_SESSION_KEY);
+        pendingSessionClear = null;
+      }, 0);
+    };
+  }, [router]);
+
+  useEffect(() => {
+    orderSubmittedRef.current = orderSubmitted;
+  }, [orderSubmitted]);
+
 
   useEffect(() => {
     if (!token) return;
@@ -104,50 +186,6 @@ const Page: React.FC = () => {
     }
   }, []);
 
-  const validateExpirationDate = (value: string): string => {
-    if (!value) return "";
-    if (!/^\d{2}\/\d{2}$/.test(value)) return "";
-
-    const [monthStr, yearStr] = value.split("/");
-    const month = parseInt(monthStr, 10);
-    const year = parseInt(yearStr, 10);
-
-    if (month < 1 || month > 12) {
-      return "Please enter a valid month (01-12).";
-    }
-
-    const now = new Date();
-    const currentMonth = now.getMonth() + 1;
-    const currentYear = now.getFullYear() % 100;
-
-    if (year < currentYear || (year === currentYear && month < currentMonth)) {
-      return "This card has expired. Please enter a valid expiration date.";
-    }
-
-    return "";
-  };
-
-  const validateCardNumber = (formattedValue: string): string => {
-    const digitsOnly = formattedValue.replace(/\s/g, "");
-    if (!digitsOnly) return "";
-    if (digitsOnly.length !== 16) {
-      return "Card number must be exactly 16 digits.";
-    }
-    return "";
-  };
-
-  const validateCvv = (value: string): string => {
-    if (!value) return "";
-    if (!/^\d{3}$/.test(value)) {
-      return "CVV must be exactly 3 digits.";
-    }
-    return "";
-  };
-
-
-  const handleCardInputChange = (field: string, value: string) => {
-    setCardDetails((prev) => ({ ...prev, [field]: value }));
-  };
 
 
   const prepareOrderPayload = (): OrderPayload => {
@@ -176,6 +214,17 @@ const Page: React.FC = () => {
     const remainingAmount = finalGrandTotal - creditAppliedAmount;
 
     const effectivePaymentMethod = isFullyCoveredByCredit ? "card" : paymentMethod;
+
+    // Credit + card, but the date isn't the earliest possible date → no gateway payment now,
+    // so nothing is paid by money at order time; only the credit is paid.
+    // Card selected, money still owed, but no gateway at checkout (date ≠ earliest)
+    // → nothing is paid by card now.
+    const isCardPaymentDeferred =
+      paymentMethod === "card" &&
+      remainingAmount > 0 &&
+      !isEarliestDateOrder;
+
+    const moneyPaid = isCardPaymentDeferred ? 0 : remainingAmount;
 
     let finalCheckoutDetails: any = {
       deliveryMethod: checkoutDetails.deliveryMethod || "home",
@@ -237,7 +286,7 @@ const Page: React.FC = () => {
       deliveryCharge: effectiveDeliveryCharge,
       isCreditApplied: useCredit,
       creditPaid: Number(creditAppliedAmount) || 0,
-      moneyPaid: Number(remainingAmount) || 0,
+      moneyPaid: Number(moneyPaid) || 0,   // was Number(remainingAmount)
       isFinalizeImdt: checkoutDetails.isFinalizeImdt === 1 ? 1 : 0,
     };
   };
@@ -248,6 +297,12 @@ const Page: React.FC = () => {
     const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     return `${formattedInteger}.${decimalPart}`;
   };
+
+  const isImmediate = isFinalizeImdt === true || String(isFinalizeImdt) === 'true';
+
+  const cashUnavailableMessage = isImmediate
+    ? 'Pay by cash is not available for immediate package finalization.'
+    : `Pay By Cash is available only for orders equal to or less than Rs. ${formatPrice(cashPaymentLimit)}`;
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) return;
@@ -339,9 +394,36 @@ const Page: React.FC = () => {
     return { isValid: true };
   };
 
+  const notifyOrderPlaced = (
+    result: any,
+    earliestDate: string | null,
+    isReviewPackage: boolean,
+    smsPhone: { code: string; number: string } | null,
+  ) => {
+    if (!smsPhone) {
+      console.warn("No account phone number available, skipping order SMS");
+      return;
+    }
+
+    const message = buildOrderPlacedSms({
+      scheduleType: checkoutDetails.scheduleType || "One Time",
+      deliveryDate: checkoutDetails.deliveryDate || null,
+      earliestDate,
+      isReviewPackage,
+      payMode: isFullyCoveredByCredit ? "credit" : paymentMethod,
+      invNo: result?.invNo ?? result?.invoiceNo ?? null,
+    });
+
+    if (!message) return;
+
+    // Fire and forget: an SMS failure must never block the order
+    void sendSms(smsPhone.code, smsPhone.number, message);
+  };
+
   const handleSubmitOrder = async (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
+    let gatewayTab: Window | null = null;
 
     try {
       if (!token) {
@@ -353,13 +435,6 @@ const Page: React.FC = () => {
         throw new Error(cartValidation.error);
       }
 
-      if (!isFullyCoveredByCredit && paymentMethod === "card") {
-        const { cardNumber, nameOnCard, expirationDate, cvv } = cardDetails;
-        if (!cardNumber || !nameOnCard || !expirationDate || !cvv) {
-          throw new Error("Please fill in all card details.");
-        }
-      }
-
       const payload = prepareOrderPayload();
       const validation = validateOrderData(payload);
       if (!validation.isValid) {
@@ -369,12 +444,50 @@ const Page: React.FC = () => {
         return;
       }
 
+      if (shouldUseGateway) {
+        const adapter = PaymentGatewayFactory.getAdapter("payments_lk");
+        const session = await adapter.initiatePayment({ orderPayload: payload, token });
+
+        if (session?.checkoutUrl) {
+          window.location.replace(session.checkoutUrl);
+          return;
+        }
+        throw new Error("Could not obtain checkout URL from payment gateway.");
+      }
+
+      // All other cases (cash, 100% credit, or schedule date != earliest possible date):
+      // place the order directly through submitOrderToBackend
+
+      // Capture SMS inputs BEFORE placing the order (the cart is cleared afterwards
+      // and the 6 PM cutoff can shift the earliest schedule date)
+      const hasPackages = (cartItems.packages?.length ?? 0) > 0;
+      const isReviewPackage = hasPackages && !isFinalizeImdt;
+
+      let earliestDate: string | null = null;
+      let smsPhone: { code: string; number: string } | null = null;
+      try {
+        const info = await getCheckoutScheduleInfo(token);
+        earliestDate = info?.data?.earliestDate ?? null;
+        if (info?.data?.phoneNumber) {
+          smsPhone = {
+            code: info.data.phoneCode || "+94",
+            number: info.data.phoneNumber,
+          };
+        }
+      } catch (e) {
+        console.error("Could not read schedule info for SMS:", e);
+      }
+
       const result = await submitOrderToBackend(payload, token);
 
       if (result.status && result.processOrderId) {
         setOrderId(result.processOrderId);
         setOrderSubmitted(true);
         localStorage.removeItem("deliveryCharge");
+        sessionStorage.removeItem(PAYMENT_SESSION_KEY);
+
+        // Send the order SMS (does not block the success modal)
+        notifyOrderPlaced(result, earliestDate, isReviewPackage, smsPhone);
 
         setIsError(false);
         setModalMessage("Your order has been placed.");
@@ -386,11 +499,17 @@ const Page: React.FC = () => {
         } catch (cartError) {
           console.error("Error fetching cart info:", cartError);
         }
+
+        // Everything succeeded: send the customer to their orders after a short pause
+        redirectTimerRef.current = setTimeout(() => {
+          router.replace("/history/order");
+        }, 2500);
       } else {
         throw new Error("Invalid response from server");
       }
     } catch (error: any) {
       console.error("Error submitting order:", error);
+      setAwaitingPayment(false);
 
       if (error.code === "ITEMS_UNAVAILABLE") {
         setShowUnavailableModal(true);
@@ -466,7 +585,23 @@ const Page: React.FC = () => {
   const creditApplied = useCredit ? Math.min(creditBalance, displayValues.grandTotal) : 0;
   const remainingAfterCredit = displayValues.grandTotal - creditApplied;
   const isFullyCoveredByCredit = useCredit && remainingAfterCredit === 0;
+  const isRecurringSchedule = (checkoutDetails.scheduleType || "One Time") !== "One Time";
+  const scheduleDateStr = toDateStr(
+    isRecurringSchedule
+      ? checkoutDetails.sheduleDate
+      : checkoutDetails.deliveryDate || checkoutDetails.sheduleDate
+  );
+  const earliestPossibleDateStr = toDateStr(checkoutDetails.earliestPossibleDate);
+
+  // Gateway only when the order is scheduled for the earliest possible date
+  const isEarliestDateOrder =
+    !!scheduleDateStr && !!earliestPossibleDateStr && scheduleDateStr === earliestPossibleDateStr;
+
+  // console.log("isEarliestDateOrder:", isEarliestDateOrder, "scheduleDateStr:", scheduleDateStr, "earliestPossibleDateStr:", earliestPossibleDateStr);
+
+  const shouldUseGateway = !isFullyCoveredByCredit && paymentMethod === "card" && isEarliestDateOrder;
   const showCashOption = displayValues.grandTotal <= cashPaymentLimit && !isFinalizeImdt;
+  const isCashExpanded = paymentMethod === "cash" && showCashOption;
 
   useEffect(() => {
     if (!showCashOption && paymentMethod === "cash") {
@@ -486,13 +621,7 @@ const Page: React.FC = () => {
   const canConfirmOrder = (): boolean => {
     if (isSubmitting || orderSubmitted) return false;
     if (isFullyCoveredByCredit) return true; // credit alone covers everything
-
-    if (paymentMethod === "card") {
-      const { cardNumber, nameOnCard, expirationDate, cvv } = cardDetails;
-      const fieldsFilled = Boolean(cardNumber && nameOnCard && expirationDate && cvv);
-      const noValidationErrors = !cardNumberError && !expirationDateError && !cvvError;
-      return fieldsFilled && noValidationErrors;
-    }
+    if (paymentMethod === "card") return true; // Hosted gateway checkout on Payments.lk
     return paymentMethod === "cash" && showCashOption;
   };
 
@@ -587,6 +716,25 @@ const Page: React.FC = () => {
       )}
 
       <TopNavigation NavArray={NavArray} />
+
+      {remainingSeconds !== null && (
+        <div className="mt-4">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#C9B8F0] bg-[#F5F3FD] px-4 py-1.5 text-xs sm:text-sm text-[#3E206D]">
+            <span
+              className={`h-2 w-2 rounded-full ${remainingSeconds <= 60 ? "bg-red-500 animate-pulse" : "bg-[#3E206D]"
+                }`}
+            />
+            <span className="font-semibold">
+              Session expires in:{" "}
+              <span className={remainingSeconds <= 60 ? "text-red-600" : ""}>
+                {formatTimer(remainingSeconds)}
+              </span>
+            </span>
+            <span className="text-gray-400">|</span>
+            <span>Please complete payment</span>
+          </div>
+        </div>
+      )}
 
       {/* Two Column Layout - Matches the image exactly */}
       <div className="flex flex-col lg:flex-row gap-6 mt-6 lg:mt-8">
@@ -712,159 +860,98 @@ const Page: React.FC = () => {
                   Select Payment Method
                 </h1>
 
-                {/* Credit/Debit Card */}
-                <div className="mb-5 border border-gray-200 rounded-xl overflow-hidden">
-                  <div
-                    className="p-4 flex justify-between items-center cursor-pointer bg-white hover:bg-gray-50 transition"
-                    onClick={() => setPaymentMethod("card")}
-                  >
-                    <div className="flex items-center">
-                      <div
-                        className={`w-5 h-5 rounded-full ${paymentMethod === "card"
-                          ? "bg-[#3E206D] border-2 border-[#3E206D] ring-2 ring-purple-100"
-                          : "border border-gray-400"
-                          }`}
-                      />
-                      <span className="ml-3 text-base font-medium">Credit / Debit Card</span>
-                    </div>
-                    <div className="flex space-x-2">
-                      <Image src={Visa} alt="Visa" className="w-auto h-6 object-cover" />
-                      <Image src={MasterCard} alt="MasterCard" className="w-auto h-6 object-cover" />
-                    </div>
+                {/* Credit / Debit Card */}
+                <div
+                  onClick={() => setPaymentMethod("card")}
+                  className={`mb-4 flex items-center gap-4 rounded-lg border px-5 py-4 cursor-pointer transition bg-white ${paymentMethod === "card"
+                    ? "border-[#3E206D]"
+                    : "border-gray-300 hover:bg-gray-50"
+                    }`}
+                >
+                  {/* Radio */}
+                  <div className="w-5 h-5 rounded-full border-2 border-[#3E206D] flex items-center justify-center flex-shrink-0">
+                    {paymentMethod === "card" && (
+                      <div className="w-2.5 h-2.5 rounded-full bg-[#3E206D]" />
+                    )}
                   </div>
 
-                  {paymentMethod === "card" && (
-                    <div className="p-5 border-t border-gray-200 bg-gray-50/30">
-                      <div className="space-y-4">
-                        <div>
-                          <input
-                            type="text"
-                            placeholder="Enter Card Number"
-                            value={cardDetails.cardNumber}
-                            onChange={(e) => {
-                              const value = e.target.value.replace(/[^0-9]/g, "");
-                              const formattedValue = value.replace(/(\d{4})(?=\d)/g, "$1 ");
-                              if (value.length <= 16) {
-                                handleCardInputChange("cardNumber", formattedValue);
-                                setCardNumberError(validateCardNumber(formattedValue));
-                              }
-                            }}
-                            onBlur={(e) => {
-                              setCardNumberError(validateCardNumber(e.target.value));
-                            }}
-                            maxLength={19}
-                            className={`w-full p-3 border rounded-lg bg-white text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200 ${cardNumberError ? "border-red-400" : "border-gray-200"
-                              }`}
-                          />
-                          {cardNumberError && (
-                            <p className="text-red-600 text-xs mt-1">{cardNumberError}</p>
-                          )}
-                        </div>
-                        <input
-                          type="text"
-                          placeholder="Enter Name on Card"
-                          value={cardDetails.nameOnCard}
-                          onChange={(e) => {
-                            let value = e.target.value;
-                            if (value.startsWith(" ")) value = value.trimStart();
-                            value = value.replace(/[^a-zA-Z\s]/g, "");
-                            value = value.replace(/\b\w/g, (char) => char.toUpperCase());
-                            handleCardInputChange("nameOnCard", value);
-                          }}
-                          className="w-full p-3 border border-gray-200 rounded-lg bg-white text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
-                        />
-                        <div className="flex gap-4">
-                          <div className="w-2/3">
-                            <input
-                              type="text"
-                              placeholder="Enter Expiration Date (MM/YY)"
-                              value={cardDetails.expirationDate}
-                              onChange={(e) => {
-                                const digitsOnly = e.target.value.replace(/[^0-9]/g, "").slice(0, 4);
-                                const formattedValue =
-                                  digitsOnly.length > 2
-                                    ? `${digitsOnly.slice(0, 2)}/${digitsOnly.slice(2)}`
-                                    : digitsOnly;
-
-                                handleCardInputChange("expirationDate", formattedValue);
-                                setExpirationDateError(validateExpirationDate(formattedValue));
-                              }}
-                              onBlur={(e) => {
-                                setExpirationDateError(validateExpirationDate(e.target.value));
-                              }}
-                              maxLength={5}
-                              className={`w-full p-3 border rounded-lg bg-white text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200 ${expirationDateError ? "border-red-400" : "border-gray-200"
-                                }`}
-                            />
-                            {expirationDateError && (
-                              <p className="text-red-600 text-xs mt-1">{expirationDateError}</p>
-                            )}
-                          </div>
-                          <div className="w-1/3">
-                            <input
-                              type="text"
-                              placeholder="Enter CVV"
-                              value={cardDetails.cvv}
-                              onChange={(e) => {
-                                const value = e.target.value.replace(/[^0-9]/g, "");
-                                if (value.length <= 3) {
-                                  handleCardInputChange("cvv", value);
-                                  setCvvError(validateCvv(value));
-                                }
-                              }}
-                              onBlur={(e) => {
-                                setCvvError(validateCvv(e.target.value));
-                              }}
-                              maxLength={3}
-                              className={`w-full p-3 border rounded-lg bg-white text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200 ${cvvError ? "border-red-400" : "border-gray-200"
-                                }`}
-                            />
-                            {cvvError && (
-                              <p className="text-red-600 text-xs mt-1">{cvvError}</p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
+                  {/* Title + subtitle */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-base font-medium text-gray-900">Credit / Debit Card</span>
+                      <span className="text-xs font-medium text-[#1B7A4B] bg-[#E8F8F0] border border-[#B7E8D0] rounded-full px-2.5 py-0.5">
+                        Instant
+                      </span>
                     </div>
-                  )}
+                    <p className="text-sm text-gray-500 mt-0.5">
+                      Pay securely via IPG Gateway with Visa, Mastercard, or Amex
+                    </p>
+                  </div>
+
+                  {/* Card logos */}
+                  <div className="hidden sm:flex items-center gap-4 pr-4 lg:pr-16 flex-shrink-0">
+                    {/* Visa */}
+                    <svg width="60" height="20" viewBox="0 0 60 20" aria-label="Visa">
+                      <text
+                        x="0"
+                        y="17"
+                        fontFamily="Arial, Helvetica, sans-serif"
+                        fontSize="22"
+                        fontWeight="900"
+                        fontStyle="italic"
+                        fill="#1434CB"
+                        letterSpacing="-1"
+                      >
+                        VISA
+                      </text>
+                    </svg>
+                    {/* Mastercard */}
+                    <svg width="40" height="26" viewBox="0 0 40 26" aria-label="Mastercard">
+                      <circle cx="13" cy="13" r="12" fill="#EB001B" />
+                      <circle cx="27" cy="13" r="12" fill="#F79E1B" />
+                    </svg>
+                  </div>
                 </div>
 
                 {/* Pay by Cash */}
-                <div className="border border-gray-200 rounded-xl overflow-hidden">
+                <div>
                   <div
-                    className={`p-4 flex items-center transition ${showCashOption ? "cursor-pointer bg-white hover:bg-gray-50" : "bg-gray-50 cursor-not-allowed"
-                      }`}
                     onClick={() => showCashOption && setPaymentMethod("cash")}
+                    className={`flex items-center gap-4 border px-5 py-4 transition ${isCashExpanded ? "rounded-t-lg" : "rounded-lg"
+                      } ${showCashOption
+                        ? `cursor-pointer bg-white hover:bg-gray-50 ${paymentMethod === "cash" ? "border-[#3E206D]" : "border-gray-300"
+                        }`
+                        : "bg-gray-50 border-gray-200 cursor-not-allowed"
+                      }`}
                   >
-                    <div className="flex items-center">
-                      <div
-                        className={`w-5 h-5 rounded-full ${paymentMethod === "cash" && showCashOption
-                          ? "bg-[#3E206D] border-2 border-[#3E206D] ring-2 ring-purple-100"
-                          : "border border-gray-400"
-                          }`}
-                      />
-                      <span className={`ml-3 text-base font-medium ${!showCashOption ? "text-gray-400" : ""}`}>
-                        Pay by Cash
-                      </span>
-                      {!showCashOption && (
-                        <span className="ml-3 text-xs font-medium text-red-500 bg-red-50 px-2 py-1 rounded-md">
-                          Not Available
-                        </span>
+                    <div
+                      className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${showCashOption ? "border-[#3E206D]" : "border-gray-300"
+                        }`}
+                    >
+                      {paymentMethod === "cash" && showCashOption && (
+                        <div className="w-2.5 h-2.5 rounded-full bg-[#3E206D]" />
                       )}
                     </div>
+                    <span className={`text-base font-medium ${!showCashOption ? "text-gray-400" : "text-gray-900"}`}>
+                      Pay by Cash
+                    </span>
+                    {!showCashOption && (
+                      <span className="text-xs font-medium text-red-500 bg-red-50 px-2 py-1 rounded-md">
+                        Not Available
+                      </span>
+                    )}
                   </div>
 
-
-                  {paymentMethod === "cash" && showCashOption && (
-                    <div className="p-5 border-t border-gray-200 bg-gray-50/30">
+                  {isCashExpanded && (
+                    <div className="rounded-b-lg border border-t-0 border-[#3E206D] bg-gray-50/30 p-5">
                       <div className="text-gray-700 space-y-3">
                         <div className="flex gap-2">
                           <span className="flex-shrink-0">-</span>
-                          <span>You may pay in cash to our courier upon receiving your parcel at the doorstep.</span>
+                          <span>You can pay in cash upon doorstep delivery or at our centre when collecting your parcel.</span>
                         </div>
                         <div className="flex gap-2">
                           <span className="flex-shrink-0">-</span>
-                          <span>Before agreeing to receive the parcel, check if your delivery status has been updated to "Out of Delivery".</span>
+                          <span>Before agreeing to receive the parcel, check if your delivery status has been updated to “Out of Delivery” or “Ready to Pickup”.</span>
                         </div>
                         <div className="flex gap-2">
                           <span className="flex-shrink-0">-</span>
@@ -872,7 +959,7 @@ const Page: React.FC = () => {
                         </div>
                         <div className="flex gap-2">
                           <span className="flex-shrink-0">-</span>
-                          <span>Before you make the payment to the courier, confirm your order number, sender information, and tracking number on the parcel.</span>
+                          <span>Before you make the payment to the courier, confirm your order number, sender information and order number on the parcel.</span>
                         </div>
                       </div>
                     </div>
@@ -881,17 +968,13 @@ const Page: React.FC = () => {
               </>
             )}
             {!showCashOption && !isFullyCoveredByCredit && (
-              <div className=" pb-4 mt-4">
+              <div className="pb-4 mt-4">
                 <div className="flex items-start gap-2 bg-[#F5F8FD] border border-[#E1E8F8] rounded-lg p-3 text-sm text-[#41519E]">
                   <svg className="w-4 h-4 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none">
                     <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" />
                     <path d="M12 8v.01M12 11v5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                   </svg>
-                  <span>
-                    {isFinalizeImdt
-                      ? "Pay by cash is not available for immediate package finalization."
-                      : `Pay By Cash is available only for orders equal to or less than Rs. ${formatPrice(cashPaymentLimit)}`}
-                  </span>
+                  <span>{cashUnavailableMessage}</span>
                 </div>
               </div>
             )}
@@ -1082,10 +1165,14 @@ const Page: React.FC = () => {
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     ></path>
                   </svg>
-                  Processing Order...
+                  {paymentMethod === "card" && !isFullyCoveredByCredit
+                    ? "Redirecting to Payment Gateway..."
+                    : "Processing Order..."}
                 </>
               ) : orderSubmitted ? (
                 "Order Submitted"
+              ) : paymentMethod === "card" && !isFullyCoveredByCredit ? (
+                "Proceed to Payment"
               ) : (
                 "Confirm Order"
               )}

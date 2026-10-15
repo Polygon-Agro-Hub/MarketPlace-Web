@@ -173,10 +173,14 @@ const ReportComplaintForm: React.FC<ReportComplaintFormProps> = ({ complaint }) 
   const { token, user } = useSelector((state: RootState) => state.auth);
   const userId = user?.id;
 
-  const categoryOptions = categories.map((cat) => ({
-    value: cat.id.toString(),
-    label: cat.categoryEnglish
-  }));
+  const categoryOptions = categories
+    .map((cat) => ({
+      value: cat.id.toString(),
+      label: cat.categoryEnglish,
+    }))
+    .sort((a, b) =>
+      a.label.localeCompare(b.label, undefined, { sensitivity: 'base' })
+    );
   useEffect(() => {
     const loadCategories = async () => {
       setIsLoading(true);

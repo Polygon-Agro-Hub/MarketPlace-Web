@@ -278,36 +278,33 @@ function getPaymentStatusInfo(
     rows.push({ label, amount, status });
   };
 
-  if (hasCreditPaid) {
-    push("Credit Balance Used", creditPaidNum, "paid");
-
-    if (remainingAfterCredit > 0.01) {
+  const pushRemaining = (amount: number) => {
+    if (isCardPayment) {
       if (isPaid) {
-        if (isCardPayment) {
-          push("Online Transferred Amount", remainingAfterCredit, "paid");
-        } else {
-          push(cashLabel, remainingAfterCredit, "paid");
-        }
-      } else if (isPickup) {
-        push("Cash On Pickup", remainingAfterCredit, "pending");
+        push("Online Transferred Amount", amount, "paid");
       } else {
-        push("Cash On Delivery", remainingAfterCredit, "pending");
-        showDeliveryNote = !isFreeDelivery;
+        push("Online Transferred Amount (Pending)", amount, "pending");
       }
+      return;
     }
-  } else {
+
     if (isPaid) {
-      if (isCardPayment) {
-        push("Online Transferred Amount", grandTotal, "paid");
-      } else {
-        push(cashLabel, grandTotal, "paid");
-      }
+      push(cashLabel, amount, "paid");
     } else if (isPickup) {
-      push("Cash On Pickup", grandTotal, "pending");
+      push("Cash On Pickup", amount, "pending");
     } else {
-      push("Cash On Delivery", grandTotal, "pending");
+      push("Cash On Delivery", amount, "pending");
       showDeliveryNote = !isFreeDelivery;
     }
+  };
+
+  if (hasCreditPaid) {
+    push("Credit Balance Used", creditPaidNum, "paid");
+    if (remainingAfterCredit > 0.01) {
+      pushRemaining(remainingAfterCredit);
+    }
+  } else {
+    pushRemaining(grandTotal);
   }
 
   return { rows, showDeliveryNote };

@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { setCartDetails } from "@/store/slices/cartSlice";
 import { useState } from "react";
 import PaymentMethodPopup from "../payment-popup/paymentMethodPopup";
-import { setCartItems } from "@/store/slices/cartItemsSlice";
+import { setCartData } from "@/store/slices/cartItemsSlice";
 import { RootState } from "@/store";
 import { submitPayment } from "@/services/retail-order-service";
 import SuccessPopup from "@/components/toast-messages/success-message-with-button";
@@ -45,7 +45,7 @@ const OrderSummary = ({
       discountAmount,
       paymentMethod,
       cartId: String(cartId),
-      items,
+      items: cartData?.items || [],
       checkoutDetails: storedFormData,
     };
 
@@ -75,13 +75,7 @@ const OrderSummary = ({
       );
 
       if (cartData) {
-        dispatch(
-          setCartItems({
-            cartId: cartData.cartId,
-            additionalItems: cartData.additionalItems,
-            packageItems: cartData.packageItems,
-          }),
-        );
+        dispatch(setCartData(cartData as any));
       }
 
       setShowPopup(true);

@@ -1,11 +1,16 @@
 // utils/schedule.ts
 export const dayOptions = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 
-export const validPeriodOptions = Array.from({ length: 11 }, (_, i) => {
-  const week = i + 2;
-  const padded = String(week).padStart(2, "0");
-  return { value: padded, label: `${padded} weeks` };
-});
+export const MAX_RECURRING_WEEKS = 4; // 28 days
+
+export const validPeriodOptions = Array.from(
+  { length: MAX_RECURRING_WEEKS - 1 },
+  (_, i) => {
+    const week = i + 2;
+    const padded = String(week).padStart(2, "0");
+    return { value: padded, label: `${padded} weeks` };
+  },
+);
 
 export const dayNameToIndex: Record<string, number> = {
   Su: 0, Mo: 1, Tu: 2, We: 3, Th: 4, Fr: 5, Sa: 6,
@@ -29,9 +34,15 @@ export const BUILDING_TYPE_OPTIONS = [
   { value: "House", label: "House" },
 ];
 
+// Parse "YYYY-MM-DD" as a local date (avoids new Date("YYYY-MM-DD") UTC shifting)
+export const parseDateStr = (dateStr: string): Date => {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d, 0, 0, 0, 0);
+};
+
 export const getMinDeliveryDate = (): Date => {
   const now = new Date();
-  const extraDays = now.getHours() >= 18 ? 4 : 3;
+  const extraDays = now.getHours() >= 18 ? 4 : 3; // gap + 1
   const minDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + extraDays);
   minDate.setHours(0, 0, 0, 0);
   return minDate;
@@ -42,8 +53,12 @@ export const getMinDateStr = (): string => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
 
-// Before 6 PM: 3 days out minimum. After 6 PM: 4 days out, pushed off weekends.
-export const getMinRecurringDate = (): Date => {
+// If the server's earliestDate is provided, use it. Otherwise fall back to the local rule.
+export const getMinRecurringDate = (earliestDate?: string | null): Date => {
+  if (earliestDate) return parseDateStr(earliestDate);
+
+  // ---- fallback (unchanged logic) ----
+  // Before 6 PM: 3 days out minimum. After 6 PM: 4 days out, pushed off weekends.
   const now = new Date();
   const base = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   base.setHours(0, 0, 0, 0);
@@ -74,9 +89,12 @@ export const generateScheduledOrderDates = (
   scheduleType: string,
   selectedDays: string[],
   validPeriod: string,
+  earliestDate?: string | null, // lower bound from server
+  latestDate?: string | null,   // upper bound from server (null = no one-time package)
 ): Date[] => {
-  const weeks = parseInt(validPeriod, 10) || 0;
-  const minDate = getMinRecurringDate();
+  const weeks = Math.min(parseInt(validPeriod, 10) || 0, MAX_RECURRING_WEEKS);
+  const minDate = getMinRecurringDate(earliestDate);
+  const maxDate = latestDate ? parseDateStr(latestDate) : null;
   const dates: Date[] = [];
 
   const daysToUse =
@@ -89,6 +107,7 @@ export const generateScheduledOrderDates = (
     for (let i = 0; i < weeks; i++) {
       const d = new Date(first);
       d.setDate(d.getDate() + i * 7);
+      if (maxDate && d > maxDate) break; // never schedule after a package expires
       dates.push(d);
     }
   });
@@ -96,6 +115,7 @@ export const generateScheduledOrderDates = (
   dates.sort((a, b) => a.getTime() - b.getTime());
   return dates;
 };
+
 
 export const getOrdinal = (n: number): string => {
   const s = ["th", "st", "nd", "rd"];

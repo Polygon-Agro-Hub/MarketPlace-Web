@@ -45,6 +45,7 @@ export const submitPayment = async (payload: PaymentPayload) => {
       headers: {
         "Content-Type": "application/json",
       },
+      timeout: 120000,
     });
     return response.data;
   } catch (error: any) {

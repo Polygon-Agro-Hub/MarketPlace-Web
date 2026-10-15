@@ -11,12 +11,15 @@ import { RootState } from '@/store';
 import SuccessPopup from '@/components/toast-messages/success-message';
 import ErrorPopup from '@/components/toast-messages/error-message';
 import Loader from '@/components/loader-spinner/Loader';
-import { fetchProfile, updateProfile, updatePassword } from '@/services/auth-service';
+import { createPortal } from 'react-dom';
+import { fetchProfile, updateProfile, updatePassword, sendOTPInSignup } from '@/services/auth-service';
+import OTPComponent, { SendOtpExtras } from '@/components/otp-registration/OTPComponent';
 import { updateUser } from '@/store/slices/authSlice';
 import PhoneCodeDropdown, {
   validatePhoneNumber,
   getMaxPhoneLength,
 } from '@/components/registration-components/PhoneCodeDropdown';
+
 
 const schema = yup.object().shape({
   title: yup.string().required('Title is required'),
@@ -295,6 +298,15 @@ const PersonalDetailsForm = () => {
   const [buyerType, setBuyerType] = useState<string>('');
   const dispatch = useDispatch();
   const [countryCode, setCountryCode] = useState("+94");
+  const [showOTP, setShowOTP] = useState(false);
+  const [otpReferenceId, setOtpReferenceId] = useState('');
+  const verifiedPhoneRef = useRef<string | null>(null); // so a failed save doesn't force a second OTP
+  const [otpTarget, setOtpTarget] = useState<{
+    phoneCode: string;
+    phoneNumber: string;
+    email: string;
+    extras: SendOtpExtras;
+  } | null>(null);
 
   const {
     register,
@@ -525,6 +537,96 @@ const PersonalDetailsForm = () => {
         setPreviewURL(URL.createObjectURL(file));
       }
     }
+  };
+
+  const isEmailChanged = () => {
+    if (!originalData) return false;
+    const current = (getValues().email || '').trim().toLowerCase();
+    const original = (originalData.email || '').trim().toLowerCase();
+    return current !== original;
+  };
+
+  // Foreign users verify via email, so a changed email must be verified too.
+  const isVerificationNeeded = () => {
+    if (!originalData) return false;
+    const v = getValues();
+    const key = `${v.countryCode}${v.phoneNumber}|${(v.email || '').trim().toLowerCase()}`;
+    if (verifiedPhoneRef.current === key) return false;
+
+    const phoneChanged =
+      v.phoneNumber !== originalData.phoneNumber ||
+      v.countryCode !== originalData.countryCode;
+    const foreignEmailChanged = v.countryCode !== '+94' && isEmailChanged();
+
+    return phoneChanged || foreignEmailChanged;
+  };
+
+  const sendPhoneOtp = async () => {
+    const v = getValues();
+    const isForeign = v.countryCode !== '+94';
+    const emailChanged = isForeign && isEmailChanged();
+    const emailTarget = emailChanged ? v.email : (originalData?.email || v.email);
+
+    const extras: SendOtpExtras = {
+      isUpdate: true,
+      isEmailChange: emailChanged,
+      existingEmail: originalData?.email,
+      existingPhoneCode: originalData?.countryCode,
+      existingPhoneNumber: originalData?.phoneNumber,
+    };
+
+    setIsLoading(true);
+    try {
+      const res = await sendOTPInSignup(v.phoneNumber, v.countryCode, {
+        email: emailTarget,
+        ...extras,
+      });
+      if (!res?.referenceId) throw new Error('Failed to send verification code');
+
+      setOtpReferenceId(res.referenceId);
+      setOtpTarget({
+        phoneCode: v.countryCode,
+        phoneNumber: v.phoneNumber,
+        email: emailTarget,
+        extras,
+      });
+      setSuccessMessage(
+        isForeign
+          ? `Verification code has been sent to ${emailTarget}`
+          : `OTP code has been sent to ${v.countryCode}${v.phoneNumber}`,
+      );
+      setShowSuccessPopup(true);
+      setShowOTP(true);
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Failed to send verification code');
+      setShowErrorPopup(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSaveClick = async (e: React.MouseEvent) => {
+    e.preventDefault(); // prevents the native form submit / page reload
+    if (!token) {
+      setErrorMessage('You are not authenticated. Please login first.');
+      setShowErrorPopup(true);
+      return;
+    }
+    const valid = await trigger();
+    if (!valid) return;
+
+    if (isVerificationNeeded()) {
+      await sendPhoneOtp();
+    } else {
+      await handleProfileUpdate();
+    }
+  };
+
+  const handleOTPVerified = async () => {
+    const v = getValues();
+    verifiedPhoneRef.current = `${v.countryCode}${v.phoneNumber}|${(v.email || '').trim().toLowerCase()}`;
+    setShowOTP(false);
+    await handleProfileUpdate();
   };
 
   const handleProfileUpdate = async () => {
@@ -1107,7 +1209,7 @@ const PersonalDetailsForm = () => {
                 ? 'bg-gray-400 cursor-not-allowed opacity-50'
                 : 'bg-[#3E206D] hover:bg-[#341a5a] cursor-pointer'
                 }`}
-              onClick={handleProfileUpdate}
+              onClick={handleSaveClick}
               disabled={isLoading || hasErrors || isPasswordFieldsIncomplete()}
             >
               Save
@@ -1115,6 +1217,33 @@ const PersonalDetailsForm = () => {
           </div>
         </div>
       </form>
+      {showOTP && otpTarget && typeof document !== 'undefined' &&
+        createPortal(
+          <div className="fixed inset-0 z-[100] overflow-auto bg-[#EEEEF5]">
+            <OTPComponent
+              phoneNumber={`${otpTarget.phoneCode}${otpTarget.phoneNumber}`}
+              phoneCode={otpTarget.phoneCode}
+              email={otpTarget.email}
+              referenceId={otpReferenceId}
+              mode={otpTarget.phoneCode !== '+94' ? 'email' : 'phone'}
+              contactValue={
+                otpTarget.phoneCode !== '+94'
+                  ? otpTarget.email
+                  : `${otpTarget.phoneCode}${otpTarget.phoneNumber}`
+              }
+              initialTimer={otpTarget.phoneCode !== '+94' ? 240 : 60}
+              redirectOnSuccess={null}
+              backLabel="Back to Profile"
+              successFailMessage="Could not update your profile. Please try again."
+              onVerificationSuccess={handleOTPVerified}
+              onVerificationFailure={() => setShowOTP(false)}
+              onResendOTP={(id) => setOtpReferenceId(id)}
+              onOTPExpired={() => { }}
+              sendOtpExtras={otpTarget.extras}
+            />
+          </div>,
+          document.body,
+        )}
     </div>
   );
 };

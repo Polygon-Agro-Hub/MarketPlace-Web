@@ -802,3 +802,108 @@ export async function deleteIncludedItems(
     }
   }
 }
+
+
+export interface CheckoutOneTimePackage {
+  packageId: number;
+  packageName: string;
+  quantity: number;
+  endDate: string;          // "YYYY-MM-DD"
+  lastDeliveryDate: string; // "YYYY-MM-DD" (endDate - gapDays)
+}
+
+export interface CheckoutScheduleInfo {
+  hasOneTimePackages: boolean;
+  isAfterCutoff: boolean;
+  gapDays: number;                 // 2 or 3
+  earliestDate: string;            // "YYYY-MM-DD" -> min selectable date
+  latestDate: string | null;       // "YYYY-MM-DD" -> max selectable date (null = no limit)
+  isSchedulable: boolean;
+  limitingPackageId: number | null;
+  note: string;
+  rangeText: string;
+  oneTimePackages: CheckoutOneTimePackage[];
+  phoneCode: string;           // e.g. "+94"
+  phoneNumber: string | null;
+
+}
+
+export interface CheckoutScheduleInfoResponse {
+  status: boolean;
+  message: string;
+  data: CheckoutScheduleInfo;
+}
+
+export const getCheckoutScheduleInfo = async (
+  token: string | null,
+): Promise<CheckoutScheduleInfoResponse> => {
+  if (!token) {
+    throw new Error("Authentication required");
+  }
+
+  try {
+    const response = await axios.get("/product/checkout/schedule-info", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (response.status >= 200 && response.status < 300) {
+      return response.data;
+    }
+    throw new Error(
+      response.data?.message || "Failed to fetch checkout schedule info",
+    );
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(
+        error.response.data?.message ||
+        error.response.data?.error ||
+        `Failed with status ${error.response.status}`,
+      );
+    } else if (error.request) {
+      throw new Error("No response received from server");
+    } else {
+      throw new Error(
+        error.message || "An error occurred while fetching schedule info",
+      );
+    }
+  }
+};
+
+
+export const sendSms = async (
+  phoneCode: string,
+  phoneNumber: string,
+  message: string,
+  source: string = "Polygon",
+): Promise<boolean> => {
+  try {
+    const digits = (phoneNumber || "").replace(/\D/g, "");
+    if (!digits || !message) return false;
+
+    console.log(`Sending SMS to ${phoneCode}${digits}: "${message}"`);
+
+    const response = await fetch("/api/shoutout/message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        source,
+        transport: "sms",
+        content: { sms: message },
+        destination: `${phoneCode || "+94"}${digits}`,
+      }),
+    });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      console.error("SMS send failed:", response.status, data);
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.error("SMS send error:", error);
+    return false;
+  }
+};

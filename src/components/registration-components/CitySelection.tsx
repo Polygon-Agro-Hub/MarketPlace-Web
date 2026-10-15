@@ -187,7 +187,10 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
                         <div className="border border-[#8639FF] rounded-xl p-4 mb-4" ref={dropdownRef}>
 
                             <div className="flex items-center gap-2 mb-3">
-                                <FontAwesomeIcon icon={faLocationDot} style={{ fontSize: 16 }} className="text-[#4A4A4A]" />
+                                <FontAwesomeIcon
+                                    icon={faLocationDot}
+                                    className="w-4 h-4 text-[#4A4A4A]"
+                                />
                                 <span className="text-sm font-semibold text-[#3E206D]">Select Your City</span>
                             </div>
 
@@ -300,7 +303,7 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
                         <div className="flex justify-center mb-6">
                             <div className="flex items-center gap-2 bg-[#F2F2F6] rounded-full px-4 py-1.5">
                                 <FontAwesomeIcon icon={faPhone} className="w-[13px] h-[13px] text-[#4C5160]" />
-                                <span className="text-xs font-medium font-[500] text-[#4C5160]">Hotline : +94 770111999</span>
+                                <span className="text-xs font-medium font-[500] text-[#4C5160]">Hotline : 011 431 3433</span>
                             </div>
                         </div>
 
