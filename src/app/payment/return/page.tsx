@@ -177,10 +177,8 @@ const PaymentReturnContent = () => {
   }, [reference, statusParam, checkoutId, token, dispatch]);
 
   const successDescription = [
-    "Thank you for your purchase. Your payment was processed securely via Payments.lk.",
-    orderId ? `Order ID: #${orderId}.` : "",
-    invoiceNumber ? `Invoice No: ${invoiceNumber}.` : "",
-    "Taking you to your orders...",
+    "Thank you for your purchase. Your payment was processed securely.",
+    invoiceNumber ? `Your Invoice No: ${invoiceNumber}.` : "",
   ]
     .filter(Boolean)
     .join(" ");
