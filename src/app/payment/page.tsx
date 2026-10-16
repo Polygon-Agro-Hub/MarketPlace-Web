@@ -99,6 +99,12 @@ const Page: React.FC = () => {
     sessionStorage.removeItem("cameFromGateway"); // a new payment attempt starts fresh
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
+    };
+  }, []);
+
 
   useEffect(() => {
     // Cancel a pending clear scheduled by a Strict Mode fake-unmount
@@ -405,9 +411,13 @@ const Page: React.FC = () => {
       return;
     }
 
+    // First order's date: the server's date if returned, otherwise the date chosen at checkout
+    const firstOrderDate =
+      toDateStr(result?.data?.processOrders?.[0]?.sheduleDate) ?? scheduleDateStr;
+
     const message = buildOrderPlacedSms({
       scheduleType: checkoutDetails.scheduleType || "One Time",
-      deliveryDate: checkoutDetails.deliveryDate || null,
+      deliveryDate: firstOrderDate,   // was: checkoutDetails.deliveryDate || null
       earliestDate,
       isReviewPackage,
       payMode: isFullyCoveredByCredit ? "credit" : paymentMethod,
@@ -416,7 +426,6 @@ const Page: React.FC = () => {
 
     if (!message) return;
 
-    // Fire and forget: an SMS failure must never block the order
     void sendSms(smsPhone.code, smsPhone.number, message);
   };
 
@@ -525,7 +534,15 @@ const Page: React.FC = () => {
     }
   };
 
+  const cancelAutoRedirect = () => {
+    if (redirectTimerRef.current) {
+      clearTimeout(redirectTimerRef.current);
+      redirectTimerRef.current = null;
+    }
+  };
+
   const handleModalClose = () => {
+    cancelAutoRedirect();
     setIsModalOpen(false);
     if (!isError) {
       router.push(getHomeUrl());
@@ -533,6 +550,7 @@ const Page: React.FC = () => {
   };
 
   const handleViewInvoice = () => {
+    cancelAutoRedirect();
     setIsModalOpen(false);
     if (orderId) {
       router.push(`/history/invoice/?orderId=${orderId}`);

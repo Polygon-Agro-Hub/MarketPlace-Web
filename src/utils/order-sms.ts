@@ -75,7 +75,7 @@ export const splitSmsPhone = (
 // SMS to send right after the order is placed.
 // Returns null when no SMS should be sent at this moment.
 export const buildOrderPlacedSms = (ctx: OrderSmsContext): string | null => {
-  if (ctx.scheduleType !== "One Time" || !ctx.deliveryDate) return null;
+   if (!ctx.deliveryDate) return null;
 
   // Pre-made package + Review Before Delivery -> request goes out on Processing Date + 1
   if (ctx.isReviewPackage) {
