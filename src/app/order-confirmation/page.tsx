@@ -27,7 +27,7 @@ import {
 } from "@/services/retail-service";
 import { getCartInfo } from "@/services/auth-service";
 import { updateCartInfo } from "@/store/slices/authSlice";
-import { sendSms } from "@/services/product-service";
+import { sendSms, getCheckoutScheduleInfo } from "@/services/product-service";
 import { buildOrderConfirmationSms, splitSmsPhone } from "@/utils/order-sms";
 import Loader from "@/components/loader-spinner/Loader";
 
@@ -97,19 +97,28 @@ const OrderConfirmationContent = () => {
   const [cancelSuccessVisible, setCancelSuccessVisible] = useState(false);
   const confirmationSmsSent = useRef(false);
 
-  const notifyOrderConfirmed = (paymentCompleted: boolean) => {
-    if (confirmationSmsSent.current || !order) return;
+  const notifyOrderConfirmed = async (paymentCompleted: boolean) => {
+    if (confirmationSmsSent.current || !order || !token) return;
 
     const message = buildOrderConfirmationSms({
       paymentType: order.summary.paymentType,
       invNo: order.invoiceNumber,
       paymentCompleted,
     });
-    const phone = splitSmsPhone(order.details.receiver.phones[0]);
-    if (!message || !phone) return;
+    if (!message) return;
 
     confirmationSmsSent.current = true;
-    void sendSms(phone.code, phone.number, message);
+    try {
+      const info = await getCheckoutScheduleInfo(token);
+      if (!info?.data?.phoneNumber) return;
+      void sendSms(
+        info.data.phoneCode || "+94",
+        info.data.phoneNumber,
+        message,
+      );
+    } catch (e) {
+      console.warn("Confirmation SMS skipped:", e);
+    }
   };
 
   useEffect(() => {
