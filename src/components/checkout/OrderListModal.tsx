@@ -46,7 +46,7 @@ export default function OrderListModal({ orders, scheduleInfo, onClose }: Props)
     <div className="fixed inset-0 z-[70] bg-black/70 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl w-full max-w-md p-5 sm:p-6">
         <h3 className="text-center font-bold text-lg text-[#252525] mb-4 pb-3 border-b border-[#DBD0F4]">
-          Your Order List ({String(orders.length).padStart(2, "0")} Orders)
+          Your Order List ({noOrders ? "0" : String(orders.length).padStart(2, "0")} Orders)
         </h3>
 
         {/* Gap note + available range (only when there are orders to show) */}
@@ -69,7 +69,7 @@ export default function OrderListModal({ orders, scheduleInfo, onClose }: Props)
             <p>
               We&apos;re sorry, but we&apos;re unable to fulfill your request at this time.
               Unfortunately, there are no available dates within the next two weeks, and your
-              package expires on {formatExpiry(limitingPackage!.endDate)}.
+              package expires on {formatExpiry(limitingPackage!.lastDeliveryDate)}.
             </p>
             <p className="mt-4">
               We apologize for the inconvenience and appreciate your understanding.
