@@ -80,7 +80,7 @@ export const buildOrderPlacedSms = (ctx: OrderSmsContext): string | null => {
   // Pre-made package + Review Before Delivery -> request goes out on Processing Date + 1
   if (ctx.isReviewPackage) {
     const requestDate = shift(ctx.deliveryDate, -PROCESSING_OFFSET_DAYS + 1);
-    return `${requestIntro(requestDate)} Please pay by 6:00 PM to confirm your order, or it will be cancelled.`;
+    return `${requestIntro(requestDate)} Please review and accept your order by 6:00 PM or it will be canceled.`;
   }
 
   // A la carte, or package + Finalize Immediately
