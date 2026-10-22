@@ -1,7 +1,7 @@
 // utils/order-sms.ts
 import { parseDateStr, formatOrderDate } from "@/utils/schedule";
 
-// ASSUMPTION (confirm with your team): Processing Date = delivery date - 3 days.
+// ASSUMPTION (confirm with your team): Processing Date = delivery date - 3 days. 
 // Derived from the 2-day gap rule and the "review 2 days before delivery" copy
 // (Processing Date + 1 = delivery date - 2). Change this one constant if it differs.
 export const PROCESSING_OFFSET_DAYS = 3;

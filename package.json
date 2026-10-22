@@ -28,6 +28,7 @@
     "jwt-decode": "^4.0.0",
     "leaflet": "^1.9.4",
     "lodash": "^4.17.21",
+    "lottie-react": "^3.1.2",
     "lucide": "^0.507.0",
     "lucide-react": "^0.508.0",
     "my-app": "file:",

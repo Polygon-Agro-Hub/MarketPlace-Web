@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 import Select, { ActionMeta, SingleValue } from "react-select";
 import Loader from "@/components/loader-spinner/Loader";
 import cart from "../../../../public/images/History.jpg";
+import { markOrderSuccess, SUCCESS_ROUTE } from "@/utils/order-success";
 
 // Define interfaces based on the API responses
 interface DetailedItem {
@@ -242,17 +243,32 @@ export default function OrderHistoryPage() {
   const homeUrl = user?.buyerType === "Wholesale" ? "/wholesale/home" : "/";
 
   useEffect(() => {
-    // Only after a gateway card payment
-    if (sessionStorage.getItem("cameFromGateway") !== "1") return;
+    if (sessionStorage.getItem("blockBackOnOrderHistory") !== "1") return;
 
-    const warn = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = ""; // required by Chrome to show the dialog
+    let armed = false;
+
+    const arm = () => {
+      if (armed) return;
+      armed = true;
+      // keep Next's own history.state so its router stays happy
+      history.pushState(history.state, "", window.location.href);
     };
 
-    window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, []);
+    const onPop = () => {
+      if (!armed) return;
+      markOrderSuccess();
+      router.replace(SUCCESS_ROUTE);
+    };
+
+    const events = ["pointerdown", "keydown", "touchstart"] as const;
+    events.forEach((e) => window.addEventListener(e, arm, { once: true }));
+    window.addEventListener("popstate", onPop);
+
+    return () => {
+      events.forEach((e) => window.removeEventListener(e, arm));
+      window.removeEventListener("popstate", onPop);
+    };
+  }, [router]);
 
   // ── Detect mobile/desktop and set limit ──
   useEffect(() => {
