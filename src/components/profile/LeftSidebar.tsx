@@ -7,6 +7,7 @@ import {
   FaExclamationTriangle,
   FaTasks,
   FaTrash,
+  FaCreditCard,
 } from "react-icons/fa";
 import { FaLocationDot } from "react-icons/fa6";
 import { useRouter } from "next/navigation";
@@ -199,12 +200,11 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                 <div className="flex flex-col w-full cursor-pointer">
                   <div
                     onClick={handleExcludeClick}
-                    className={`${rowBase} ${
-                      isActive("ExcludedItemList") &&
-                      !["ViewMyList", "AddMoreItems"].includes(selectedMenu)
+                    className={`${rowBase} ${isActive("ExcludedItemList") &&
+                        !["ViewMyList", "AddMoreItems"].includes(selectedMenu)
                         ? "bg-[#D2D2D2]"
                         : "bg-transparent"
-                    }`}
+                      }`}
                   >
                     <div className={iconBox} style={iconShadow}>
                       <FaTasks
@@ -218,23 +218,20 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
                   {excludeSubmenuOpen && (
                     <div
-                      className={`flex flex-col ${
-                        isDesktop
+                      className={`flex flex-col ${isDesktop
                           ? "mt-1 w-full pb-2"
                           : "absolute left-[70px] top-[1px] w-[200px] shadow-lg z-10 bg-[#DDDDDD] justify-center rounded-md"
-                      }`}
+                        }`}
                     >
                       <div
                         onClick={() => handleSubMenuClick("ViewMyList")}
-                        className={`${subRowBase} ${
-                          isDesktop
+                        className={`${subRowBase} ${isDesktop
                             ? "py-2 justify-start"
                             : "justify-center h-[51px]"
-                        } ${
-                          isActive("ViewMyList")
+                          } ${isActive("ViewMyList")
                             ? "bg-[#D2D2D2] font-[700] text-[#111]"
                             : "text-[#233242] font-[500]"
-                        }`}
+                          }`}
                         style={{ whiteSpace: "nowrap" }}
                       >
                         <span
@@ -245,15 +242,13 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                       </div>
                       <div
                         onClick={() => handleSubMenuClick("AddMoreItems")}
-                        className={`${subRowBase} ${
-                          isDesktop
+                        className={`${subRowBase} ${isDesktop
                             ? "py-2 justify-start"
                             : "justify-center h-[47px] border-t border-[#C1C1C1]"
-                        } ${
-                          isActive("AddMoreItems")
+                          } ${isActive("AddMoreItems")
                             ? "bg-[#D2D2D2] font-[700] text-[#111]"
                             : "text-[#233242] font-[500]"
-                        }`}
+                          }`}
                         style={{
                           whiteSpace: "nowrap",
                           overflow: "hidden",
@@ -281,14 +276,13 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
               <div className="flex flex-col w-full cursor-pointer">
                 <div
                   onClick={handleComplaintClick}
-                  className={`${rowBase} ${
-                    isActive("complaints") &&
-                    !["reportComplaint", "ComplaintHistory"].includes(
-                      selectedMenu,
-                    )
+                  className={`${rowBase} ${isActive("complaints") &&
+                      !["reportComplaint", "ComplaintHistory"].includes(
+                        selectedMenu,
+                      )
                       ? "bg-[#D2D2D2]"
                       : "bg-transparent"
-                  }`}
+                    }`}
                 >
                   <div className={iconBox} style={iconShadow}>
                     <FaExclamationTriangle
@@ -302,23 +296,20 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
                 {complaintSubmenuOpen && (
                   <div
-                    className={`flex flex-col ${
-                      isDesktop
+                    className={`flex flex-col ${isDesktop
                         ? "mt-1 w-full pb-2"
                         : "absolute left-[70px] top-[1px] w-[200px] shadow-lg z-10 bg-[#DDDDDD] justify-center rounded-md"
-                    }`}
+                      }`}
                   >
                     <div
                       onClick={() => handleSubMenuClick("reportComplaint")}
-                      className={`${subRowBase} ${
-                        isDesktop
+                      className={`${subRowBase} ${isDesktop
                           ? "py-2 justify-start"
                           : "justify-center h-[51px]"
-                      } ${
-                        isActive("reportComplaint")
+                        } ${isActive("reportComplaint")
                           ? "bg-[#D2D2D2] font-[700] text-[#111]"
                           : "text-[#233242] font-[500]"
-                      }`}
+                        }`}
                       style={{
                         whiteSpace: "nowrap",
                         overflow: "hidden",
@@ -333,15 +324,13 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                     </div>
                     <div
                       onClick={() => handleSubMenuClick("ComplaintHistory")}
-                      className={`${subRowBase} ${
-                        isDesktop
+                      className={`${subRowBase} ${isDesktop
                           ? "py-2 justify-start"
                           : "justify-center h-[47px] border-t border-[#C1C1C1]"
-                      } ${
-                        isActive("ComplaintHistory")
+                        } ${isActive("ComplaintHistory")
                           ? "bg-[#D2D2D2] font-[700] text-[#111]"
                           : "text-[#233242] font-[500]"
-                      }`}
+                        }`}
                       style={{
                         whiteSpace: "nowrap",
                         overflow: "hidden",
@@ -360,7 +349,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
             </div>
           </li>
 
-           {/* Card Details */}
+          {/* Card Details */}
           <li
             onClick={() => handleMenuClick("cardDetails")}
             className="cursor-pointer"
@@ -369,7 +358,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
               className={`${rowBase} ${isActive("cardDetails") ? "bg-[#DDDDDD]" : ""}`}
             >
               <div className={iconBox} style={iconShadow}>
-                <FaLocationDot
+                <FaCreditCard
                   className={
                     isActive("cardDetails") ? ICON_ACTIVE : ICON_INACTIVE
                   }

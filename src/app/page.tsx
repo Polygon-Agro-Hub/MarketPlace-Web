@@ -121,12 +121,8 @@ function HomeContent() {
     }
   }, [searchTerm]);
 
-  // NEW: Real-time catalog subscription. Whenever the backend broadcasts a
-  // catalog change (admin panel enabled/disabled/created/edited a package),
-  // re-run the same fetch this component already uses — no manual refresh.
-  useEffect(() => {
+ useEffect(() => {
     const unsubscribe = socketService.onCatalogUpdate((data) => {
-      console.log("📦 Real-time catalog update received:", data);
       fetchAllPackages(searchTerm);
     });
 

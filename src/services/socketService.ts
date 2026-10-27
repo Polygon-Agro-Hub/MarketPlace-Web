@@ -17,8 +17,6 @@ class SocketService {
       autoConnect: true,
       auth: (cb) => cb({ token: this.authToken }), // read fresh on every (re)connect
     });
-
-    this.socket.on("connect", () => console.log("✅ Socket connected"));
     this.socket.on("connect_error", (err) =>
       console.error("❌ Socket connection error:", err.message),
     );

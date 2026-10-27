@@ -1438,13 +1438,6 @@ const Page: React.FC = () => {
         } as any),
       );
 
-      console.log("Form data dispatched to Redux:", {
-        ...dataToSubmit,
-        ...recurringPayload,
-        earliestPossibleDate: getMinDateStr(),
-        isFinalizeImdt: hasPackages && packageHandlingOption === "finalize" ? 1 : 0,
-      });
-
       localStorage.setItem("deliveryCharge", deliveryCharge.toString());
 
       await new Promise((resolve) => setTimeout(resolve, 2500));

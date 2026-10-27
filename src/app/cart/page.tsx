@@ -353,10 +353,18 @@ const Page: React.FC = () => {
           );
         const cartHasOnlyInvalidItems = !hasValidPackages && !hasAdditionalItems;
 
+        const freshSummary = computeSummaryFrom(
+          response.packages,
+          filteredAdditionalItems,
+          initialUnitSelection,
+        );
+
         dispatch(
           updateCartInfo({
-            price: cartHasOnlyInvalidItems ? 0 : authCart.price,
-            count: cartHasOnlyInvalidItems ? 0 : authCart.count,
+            price: cartHasOnlyInvalidItems
+              ? 0
+              : parseFloat(freshSummary.finalTotal.toFixed(2)),
+            count: cartHasOnlyInvalidItems ? 0 : freshSummary.totalItems,
             creditBalance: response.cart?.creditBalance ?? 0,
           }),
         );

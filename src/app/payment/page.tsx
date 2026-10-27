@@ -614,9 +614,6 @@ const Page: React.FC = () => {
   // Gateway only when the order is scheduled for the earliest possible date
   const isEarliestDateOrder =
     !!scheduleDateStr && !!earliestPossibleDateStr && scheduleDateStr === earliestPossibleDateStr;
-
-  // console.log("isEarliestDateOrder:", isEarliestDateOrder, "scheduleDateStr:", scheduleDateStr, "earliestPossibleDateStr:", earliestPossibleDateStr);
-
   const shouldUseGateway = !isFullyCoveredByCredit && paymentMethod === "card" && isEarliestDateOrder;
   const showCashOption = displayValues.grandTotal <= cashPaymentLimit && !isFinalizeImdt;
   const isCashExpanded = paymentMethod === "cash" && showCashOption;

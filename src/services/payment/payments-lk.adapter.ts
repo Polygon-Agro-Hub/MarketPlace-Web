@@ -21,10 +21,7 @@ export class PaymentsLkAdapter implements IPaymentGatewayAdapter {
       throw new Error("Authentication required to initiate payment");
     }
 
-    console.log("[PaymentsLkAdapter] Initiating payment with payload:", orderPayload);
-
     try {
-      console.log("[PaymentsLkAdapter] initiate timeout = 60000");
       const response = await axios.post("/payment/initiate", orderPayload, {
         headers: {
           "Content-Type": "application/json",
