@@ -270,6 +270,28 @@ const Page: React.FC = () => {
   const [showPackagePopup, setShowPackagePopup] = useState(false);
   const [packageHandlingOption, setPackageHandlingOption] = useState<"review" | "finalize">("review");
   const cartPackages = useSelector((state: RootState) => state.cartItems.packages);
+  const isWholesale = useSelector((state: RootState) =>
+    (state.auth.user?.buyerType ?? "").toLowerCase().includes("wholesale"),
+  );
+  console.log("buyer type:", useSelector((state: RootState) => state.auth.user?.buyerType));
+
+  console.log("isWholesale:", isWholesale);
+  // Default building type used whenever a fresh form is created
+  const defaultBuildingType = isWholesale ? "House" : "Apartment";
+
+  const buildingTypeOptions = useMemo(() => {
+    if (isWholesale && addressMode === "new") {
+      return BUILDING_TYPE_OPTIONS.filter((o: any) => o.value !== "Apartment");
+    }
+    return BUILDING_TYPE_OPTIONS;
+  }, [isWholesale, addressMode]);
+
+  // Fresh-form factory (replaces direct use of initialFormState for resets)
+  const getFreshForm = (deliveryMethod: string): FormData => ({
+    ...initialFormState,
+    deliveryMethod,
+    buildingType: defaultBuildingType,
+  });
   const userNearestCity = useSelector(
     (state: RootState) => state.auth.user?.nearesCity,
   ) as string | null | undefined;
@@ -666,10 +688,7 @@ const Page: React.FC = () => {
         } else {
           setAddressMode("new");
           setSelectedCity(null);
-          setFormDataLocal((prev) => ({
-            ...initialFormState,
-            deliveryMethod: prev.deliveryMethod,
-          }));
+          setFormDataLocal((prev) => getFreshForm(prev.deliveryMethod));
           setDeliveryCharge(0);
         }
       }
@@ -775,10 +794,7 @@ const Page: React.FC = () => {
       setSelectedAddressKey(null);
       setSelectedCity(null);
       setCityNotAvailable(false);
-      setFormDataLocal((prev) => ({
-        ...initialFormState,
-        deliveryMethod: prev.deliveryMethod,
-      }));
+      setFormDataLocal((prev) => getFreshForm(prev.deliveryMethod));
       setDeliveryCharge(0);
     }
   };
@@ -910,6 +926,16 @@ const Page: React.FC = () => {
 
   const handleFieldChange = (field: keyof FormData, value: string | number) => {
     if (isReadOnly && readOnlyFields.includes(field)) return;
+
+    // Wholesale users cannot choose Apartment for a new address
+    if (
+      isWholesale &&
+      addressMode === "new" &&
+      field === "buildingType" &&
+      value === "Apartment"
+    ) {
+      return;
+    }
     // Update the form state
     setFormDataLocal((prev) => ({ ...prev, [field]: value }));
 
@@ -1205,9 +1231,11 @@ const Page: React.FC = () => {
           ? `${fieldLabels.validPeriod} is required.`
           : "";
 
-      // Address fields - only required for home delivery
       case "buildingType":
-        return isHomeDelivery && !trimmed ? `${fieldLabels.buildingType} is required.` : "";
+        if (isHomeDelivery && !trimmed) return `${fieldLabels.buildingType} is required.`;
+        if (isWholesale && addressMode === "new" && trimmed === "Apartment")
+          return "Apartment is not available for wholesale accounts.";
+        return "";
 
       case "buildingName":
       case "buildingNo":
@@ -1610,6 +1638,7 @@ const Page: React.FC = () => {
                           {savedAddresses.map((addr, index) => {
                             const isSelected = selectedAddressKey === addr.addressKey;
 
+
                             const summary =
                               addr.buildingType === "Apartment"
                                 ? [
@@ -1942,11 +1971,9 @@ const Page: React.FC = () => {
                               Building type *
                             </label>
                             <CustomDropdown
-                              options={BUILDING_TYPE_OPTIONS}
+                              options={buildingTypeOptions}   // was BUILDING_TYPE_OPTIONS
                               selectedValue={formData.buildingType}
-                              onSelect={(value) =>
-                                handleFieldChange("buildingType", value)
-                              }
+                              onSelect={(value) => handleFieldChange("buildingType", value)}
                               placeholder="Building type"
                               disabled={isReadOnly}
                             />

@@ -229,7 +229,7 @@ export default function SetPasswordForm() {
                                             value={formData.nicNumber}
                                             onChange={handleChange}
                                             onBlur={(e) => checkNicOnBlur(e.target.value)}
-                                            placeholder="Your NIC Number"
+                                            placeholder="Your NIC Number / Passport ID"
                                             maxLength={12}
                                             autoComplete="off"
                                             className={`h-11 w-full border rounded-md px-4 py-2 pr-10 focus:outline-none focus:ring-1 ${getInputClass(
