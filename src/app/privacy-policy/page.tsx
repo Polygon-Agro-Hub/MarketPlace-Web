@@ -398,8 +398,39 @@ export default function PrivacyPolicy() {
           </Panel>
         </Section>
 
-        {/* 07 */}
-        <Section number="07" title="Children's Privacy">
+
+        {/* new 07 */}
+        <Section number="07" title="Refund & Cancellation Policy">
+          <Panel>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
+              <InfoCard title="Order Cancellation by the Customer" className="min-h-[120px]">
+                - You may cancel an order before it is processing through the App.<br />
+                - Once an order has been dispatched or is out for delivery, it may not be possible to cancel it.<br />
+                - Orders paid via Cash on Delivery / Cash on Pickup that are cancelled before dispatch will not be charged.<br />
+              </InfoCard>
+              <InfoCard title="Refund Method — Polygon Wallet" className="min-h-[120px]">
+                - Where an order is cancelled and a refund is due, the refund amount will be credited to your Polygon Wallet in the App.<br />
+                - The Polygon Wallet balance can be used for future orders on Polygon.<br />
+                - Refunds will be credited back within 24 hours.<br />
+                - Customers will get refund updated in their wallet only.<br />
+              </InfoCard>
+              <InfoCard title="Cancellation by Polygon" className="min-h-[120px]">
+                - If Polygon is unable to fulfill an order (e.g., item unavailable, delivery area issue, or operational reasons), we will notify you and credit the applicable amount to your Polygon Wallet.<br />
+                - For card payments, those will be credited back to customer’s Polygon wallet.<br />
+              </InfoCard>
+              <InfoCard title="Damaged, Missing, or Incorrect Items" className="min-h-[120px]">
+                - If you receive damaged, missing, or incorrect items, please report it within [2 hours] of delivery with supporting photos via the App or by calling 011 431 3433.<br />
+                - Verified claims will be resolved by crediting the value of the affected items to your Polygon Wallet.<br />              
+              </InfoCard>
+              <InfoCard title="Non-Refundable Situations" className="min-h-[120px]">
+                Orders already delivered and accepted is not refundable.              
+              </InfoCard>
+            </div>
+          </Panel>
+        </Section>
+
+        {/* 08 */}
+        <Section number="08" title="Children's Privacy">
           <p className="text-base leading-relaxed text-[#475569]">
             Our App is not intended for use by children under the age of 13 (or
             16 in certain jurisdictions). We do not knowingly collect personally
@@ -409,8 +440,8 @@ export default function PrivacyPolicy() {
           </p>
         </Section>
 
-        {/* 08 */}
-        <Section number="08" title="Changes to This Privacy Policy">
+        {/* 09 */}
+        <Section number="09" title="Changes to This Privacy Policy">
           <p className="text-base leading-relaxed text-[#475569]">
             We may update our Privacy Policy from time to time to reflect
             changes in our practices or for other operational, legal, or
@@ -420,8 +451,8 @@ export default function PrivacyPolicy() {
           </p>
         </Section>
 
-        {/* 09 */}
-        <Section number="09" title="Contact Us">
+        {/* 10 */}
+        <Section number="10" title="Contact Us">
           <p className="text-base leading-relaxed text-[#64748B] mb-4">
             If you have any questions or concerns about this Privacy Policy or
             our data practices, please contact us at:
