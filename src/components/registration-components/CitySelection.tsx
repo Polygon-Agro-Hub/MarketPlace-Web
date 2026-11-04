@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import Image from "next/image";
 import {
     ChevronDown,
@@ -18,6 +18,13 @@ type CityStatus = "idle" | "not-found" | "available" | "unavailable";
 interface CitySelectionProps {
     onCityConfirmed: (city: CityResult) => void;
 }
+
+// Available cities first (A–Z), then Coming Soon cities (A–Z)
+const sortCities = (cities: CityResult[]): CityResult[] =>
+  [...cities].sort((a, b) => {
+    if (a.isAvailable !== b.isAvailable) return a.isAvailable ? -1 : 1;
+    return a.city.localeCompare(b.city, undefined, { sensitivity: "base" });
+  });
 
 export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
     const [searchTerm, setSearchTerm] = useState("");
@@ -142,7 +149,7 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
     const canConfirm = selectedCity !== null && selectedCity.isAvailable;
     const isConfirmDisabled = status === "unavailable" || status === "not-found";
     const showSpinner = isSearching || isLoadingAll;
-    const displayList = results;
+    const displayList = useMemo(() => sortCities(results), [results]);
 
     return (
         <div className="flex lg:bg-[#EEE9F5] justify-center items-center w-full min-h-screen lg:py-10 lg:px-2">
