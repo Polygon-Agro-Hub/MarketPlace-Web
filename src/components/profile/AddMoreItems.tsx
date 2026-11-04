@@ -22,6 +22,7 @@ import { Info } from "lucide-react";
 import HeartIcon from "../../../public/icons/heart-solid.png";
 import CancerIcon from "../../../public/icons/xmark-solid.png";
 import BoxIcon from "../../../public/icons/box-solid.png";
+import NeedHelpLink from "@/components/profile/NeedHelpLink";
 
 type IncludeState = "include" | "none";
 type ExcludeState = "exclude" | "none";
@@ -308,6 +309,8 @@ const UpdatePreferences = ({ setSelectedMenu }: UpdatePreferencesProps) => {
         <br className="hidden sm:block" /> An item cannot be both preferred and
         excluded.
       </p>
+
+      <NeedHelpLink className="mb-5" />
 
       <div className="flex flex-col items-center">
         <div className="w-full max-w-5xl">

@@ -2,18 +2,23 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import Image from "next/image";
-import { FaAngleDown, FaInfoCircle } from "react-icons/fa";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
-import {
-  getOrderHistory,
-  getOrderDetails,
-} from "@/services/retail-order-service";
 import { useRouter } from "next/navigation";
 import Select, { ActionMeta, SingleValue } from "react-select";
 import Loader from "@/components/loader-spinner/Loader";
 import cart from "../../../../public/images/History.jpg";
 import { markOrderSuccess, SUCCESS_ROUTE } from "@/utils/order-success";
+import { getOrderHistory, getOrderDetails, getOrderComplaint } from "@/services/retail-order-service";
+import type { OrderComplaint } from "@/services/retail-order-service";
+import { FaAngleDown, FaInfoCircle, FaQuestionCircle, FaHourglassHalf } from "react-icons/fa";
+import SuccessPopup from "@/components/toast-messages/success-message";
+import {
+  ReportComplaintModal,
+  ViewComplaintModal,
+  ComplaintReplyModal,
+  COMPLAINT_STATUS,
+} from "@/components/complaints/OrderComplaintModals";
 
 // Define interfaces based on the API responses
 interface DetailedItem {
@@ -69,6 +74,8 @@ interface OrderSummary {
   orderPlaced: string;
   status: string;
   createdAt: Date;
+  canComplain: number;
+  complaintStatus: string | null;
 }
 
 interface DetailedOrder {
@@ -295,9 +302,13 @@ export default function OrderHistoryPage() {
           : "N/A",
         status: order.processStatus || "Pending",
         createdAt: new Date(order.createdAt || order.scheduleDate),
+        canComplain: Number(order.canComplain) || 0,
+        complaintStatus: order.complaintStatus
+          ? String(order.complaintStatus).toLowerCase()
+          : null,
       }))
       .filter((order) =>
-        ALLOWED_ORDER_STATUSES.includes(order.status.toLowerCase()),
+        ALLOWED_ORDER_STATUSES.includes(order.status.toLowerCase())
       );
 
   // ── Reset + initial fetch whenever filter or limit changes ──
@@ -509,6 +520,76 @@ export default function OrderHistoryPage() {
     }
   };
 
+
+  const [reportOrder, setReportOrder] = useState<OrderSummary | null>(null);
+  const [complaintView, setComplaintView] = useState<{
+    type: "view" | "reply";
+    loading: boolean;
+    data: OrderComplaint | null;
+    error: string | null;
+  } | null>(null);
+  const [showComplaintSuccess, setShowComplaintSuccess] = useState(false);
+
+  const openComplaint = async (order: OrderSummary, type: "view" | "reply") => {
+    if (!token) return;
+    setComplaintView({ type, loading: true, data: null, error: null });
+    try {
+      const data = await getOrderComplaint(token, order.orderId);
+      setComplaintView({ type, loading: false, data, error: null });
+    } catch (err: any) {
+      setComplaintView({
+        type,
+        loading: false,
+        data: null,
+        error: err.message || "Failed to load complaint.",
+      });
+    }
+  };
+
+  const handleComplaintSubmitted = () => {
+    if (reportOrder) {
+      const id = reportOrder.orderId;
+      // Flip the button to "Complaint Under Review" without refetching the list
+      setOrders((prev) =>
+        prev.map((o) => (o.orderId === id ? { ...o, complaintStatus: COMPLAINT_STATUS.OPENED } : o)),
+      );
+    }
+    setReportOrder(null);
+    setShowComplaintSuccess(true);
+  };
+
+  const renderComplaintButton = (order: OrderSummary, mobile = false) => {
+    const size = mobile ? "w-full text-sm px-4 py-2.5" : "text-xs lg:text-sm px-4 py-1.5";
+    const base = `flex items-center justify-center gap-2 border rounded-lg cursor-pointer transition-colors ${size}`;
+    const light = `${base} bg-white border-[rgb(209,213,219)] hover:bg-[rgb(62,32,109)] hover:text-white`;
+
+    if (order.complaintStatus === COMPLAINT_STATUS.CLOSED) {
+      return (
+        <button
+          onClick={() => openComplaint(order, "reply")}
+          className={`${base} bg-black border-black text-white hover:bg-[#222]`}
+        >
+          <FaInfoCircle /> View Complaint Reply
+        </button>
+      );
+    }
+    if (order.complaintStatus === COMPLAINT_STATUS.OPENED) {
+      return (
+        <button onClick={() => openComplaint(order, "view")} className={light}>
+          <FaHourglassHalf /> Complaint Under Review
+        </button>
+      );
+    }
+    if (!order.complaintStatus && order.canComplain === 1) {
+      return (
+        <button onClick={() => setReportOrder(order)} className={light}>
+          <FaQuestionCircle /> Report an Issue
+        </button>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-[rgb(255,255,255)] relative">
       <Loader isVisible={loading} />
@@ -612,7 +693,8 @@ export default function OrderHistoryPage() {
                     style={{ borderColor: "rgb(215,215,215)" }}
                   >
                     {/* ── DESKTOP TOP ROW ── */}
-                    <div className="hidden sm:grid grid-cols-5 gap-4 p-4 bg-[rgb(248,248,248)] text-xs lg:text-sm">
+                    {/* ── DESKTOP TOP ROW ── */}
+                    <div className="hidden sm:grid grid-cols-[1fr_1fr_1fr_auto] gap-4 p-4 bg-[rgb(248,248,248)] text-xs lg:text-sm items-center">
                       <div>
                         <span className="text-[rgb(107,114,128)]">
                           Scheduled Date:
@@ -629,8 +711,9 @@ export default function OrderHistoryPage() {
                         </span>
                         <p className="font-medium">#{order.invoiceNo}</p>
                       </div>
-                      <div />
-                      <div className="flex gap-2 justify-end">
+                      <div className="flex flex-nowrap gap-2 justify-end whitespace-nowrap">
+                        {renderComplaintButton(order)}
+
                         <button
                           onClick={() => fetchDetailedOrder(order.orderId)}
                           className="bg-[rgb(255,255,255)] border text-xs lg:text-sm cursor-pointer border-[rgb(209,213,219)] rounded-lg px-4 py-1.5 hover:bg-[rgb(62,32,109)] hover:text-[rgb(255,255,255)]"
@@ -679,6 +762,7 @@ export default function OrderHistoryPage() {
                         </p>
                       </div>
                       <div className="flex flex-col gap-2 pt-1">
+                        {renderComplaintButton(order, true)}
                         <button
                           onClick={() => fetchDetailedOrder(order.orderId)}
                           className="w-full bg-[rgb(255,255,255)] border text-sm cursor-pointer border-[rgb(209,213,219)] rounded-lg px-4 py-2.5 hover:bg-[rgb(62,32,109)] hover:text-[rgb(255,255,255)] transition-colors"
@@ -841,6 +925,34 @@ export default function OrderHistoryPage() {
           </div>
         </div>
       )}
+      <ReportComplaintModal
+        isOpen={!!reportOrder}
+        invoiceNo={reportOrder?.invoiceNo ?? ""}
+        onClose={() => setReportOrder(null)}
+        onSubmitted={handleComplaintSubmitted}
+      />
+      <ViewComplaintModal
+        isOpen={complaintView?.type === "view"}
+        loading={!!complaintView?.loading}
+        complaint={complaintView?.data ?? null}
+        error={complaintView?.error ?? null}
+        onClose={() => setComplaintView(null)}
+      />
+      <ComplaintReplyModal
+        isOpen={complaintView?.type === "reply"}
+        loading={!!complaintView?.loading}
+        complaint={complaintView?.data ?? null}
+        error={complaintView?.error ?? null}
+        onClose={() => setComplaintView(null)}
+      />
+      <SuccessPopup
+        isVisible={showComplaintSuccess}
+        onClose={() => setShowComplaintSuccess(false)}
+        title="Complaint Submitted"
+        description="Your complaint has been sent. We'll get back to you soon."
+        duration={3000}
+      />
+
     </div>
   );
 }

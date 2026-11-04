@@ -82,6 +82,9 @@ export default function OTPComponent({
   const [isResending, setIsResending] = useState(false);
   const [showResendSuccessPopup, setShowResendSuccessPopup] = useState(false);
 
+  // Remembers the last code that was submitted, so auto-verify never re-sends the same code
+  const lastSubmittedRef = useRef<string | null>(null);
+
   // ── Timers (absolute timestamps, so throttled tabs can't skew the countdown) ──
   const [expiresAt, setExpiresAt] = useState(() => Date.now() + validitySeconds * 1000);
   const [resendAt, setResendAt] = useState(() => Date.now() + cooldownSeconds * 1000);
@@ -144,6 +147,8 @@ export default function OTPComponent({
     const code = otp.join("");
     if (code.length !== 5) { setIsError(true); setModalMessage("Please enter all 5 digits."); setIsModalOpen(true); return; }
     if (isOtpExpired || !referenceId) { setIsError(true); setModalMessage("OTP has expired. Please request a new one."); setIsModalOpen(true); return; }
+
+    lastSubmittedRef.current = code; // remember this code so auto-verify doesn't retry it
     setIsVerifying(true);
     try {
       const response = await verifyOTP(code, referenceId);
@@ -176,6 +181,22 @@ export default function OTPComponent({
     } finally { setIsVerifying(false); }
   };
 
+  // Auto-verify as soon as all 5 digits are entered
+  useEffect(() => {
+    if (!isOtpComplete || isVerifying || isVerified || isOtpExpired || isModalOpen) return;
+
+    const code = otp.join("");
+    if (lastSubmittedRef.current === code) return; // this exact code was already tried
+
+    handleVerify();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [otp, isOtpComplete, isVerifying, isVerified, isOtpExpired, isModalOpen]);
+
+  // Allow a new attempt once the user edits the code
+  useEffect(() => {
+    if (!isOtpComplete) lastSubmittedRef.current = null;
+  }, [isOtpComplete]);
+
   const handleResendOTP = async () => {
     if (disabledResend || isResending) return;
     setIsResending(true);
@@ -198,6 +219,7 @@ export default function OTPComponent({
         setResendAt(current + cooldownSeconds * 1000);
         setServerExpired(false);
         setOtp(["", "", "", "", ""]);
+        lastSubmittedRef.current = null; // allow auto-verify for the new code
         setShowResendSuccessPopup(true);
         inputsRef.current[0]?.focus();
       } else { throw new Error(`Failed to resend ${isEmail ? "email" : "OTP"}`); }

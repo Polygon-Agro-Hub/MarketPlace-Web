@@ -17,6 +17,7 @@ import Lottie from "react-lottie";
 import addNewAnimation from "../../assets/animations/GoViMartAddNew.json";
 import HeartIcon from "../../../public/icons/heart-solid.png";
 import CancerIcon from "../../../public/icons/xmark-solid.png";
+import NeedHelpLink from "@/components/profile/NeedHelpLink";
 
 interface Item {
   displayName: string;
@@ -409,6 +410,8 @@ const ViewMyList = ({ setSelectedMenu }: ViewMyListProps) => {
         <br />
         You can update your preferences anytime.
       </p>
+
+      <NeedHelpLink className="mb-6" />
 
       {error && (
         <p className="text-center text-red-500 text-sm mb-3">{error}</p>

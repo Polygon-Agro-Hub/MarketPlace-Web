@@ -7,9 +7,9 @@ export type PaymentType =
   | "COD" // Cash on delivery
   | "COP" // Cash on pickup
   | "CARD" // Saved card
-  | "CASH_CREDIT" // Credit balance + cash
-  | "CARD_CREDIT" // Credit balance + saved card
-  | "FULLY_CREDIT"; // Credit balance = full total
+  | "CASH_CREDIT" // Polygon Wallet + cash
+  | "CARD_CREDIT" // Polygon Wallet + saved card
+  | "FULLY_CREDIT"; // Polygon Wallet = full total
 
 export interface SavedCard {
   brand: CardBrand;
@@ -177,13 +177,13 @@ const UpdatedOrderSummary: React.FC<UpdatedOrderSummaryProps> = ({
         </span>
       </div>
 
-      {/* Credit balance + remaining to pay */}
+      {/* Polygon Wallet + remaining to pay */}
       {hasCredit && (
         <>
           <div className="mt-3 flex items-center justify-between rounded-lg border border-green-200 bg-green-50 px-3 py-2">
             <span className="flex items-center gap-2 text-xs font-semibold text-green-800">
               <Wallet className="h-3.5 w-3.5" aria-hidden="true" />
-              Credit Balance Applied
+              Polygon Wallet Applied
             </span>
             <span className="text-xs font-semibold text-green-800 whitespace-nowrap">
               - {formatMoney(refundAmount > 0 ? rawCredit : creditApplied)}
@@ -203,7 +203,7 @@ const UpdatedOrderSummary: React.FC<UpdatedOrderSummaryProps> = ({
             {isRefundNote ? (
               <p className="mt-1 text-xs text-gray-500">
                 Once you accept the order, {formatMoney(refundAmount)} will be
-                refunded to your credit balance.
+                refunded to your Polygon Wallet.
               </p>
             ) : (
               remainingNote && (
