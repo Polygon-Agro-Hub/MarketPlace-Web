@@ -7,8 +7,11 @@ import { Loader2 } from "lucide-react";
 import { RootState } from "@/store";
 import { updateCartInfo } from "@/store/slices/authSlice";
 import { getCartInfo } from "@/services/auth-service";
-import { getOrderConfirmation } from "@/services/retail-service";
-import { sendSms } from "@/services/product-service";
+import {
+  getOrderConfirmation,
+  type OrderConfirmationData,
+} from "@/services/retail-service";
+import { sendSms, getCheckoutScheduleInfo } from "@/services/product-service";
 import { buildOrderConfirmationSms, splitSmsPhone } from "@/utils/order-sms";
 import SuccessPopup from "@/components/toast-messages/success-message";
 import ErrorPopup from "@/components/toast-messages/error-message";
@@ -33,6 +36,7 @@ const OrderConfirmationReturnContent = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const [popupOpen, setPopupOpen] = useState(isCancelled);
   const smsSent = useRef(false);
+  const orderRef = useRef<OrderConfirmationData | null>(null);
 
   const reference = searchParams.get("reference") || "";
   const checkoutId =
@@ -49,6 +53,12 @@ const OrderConfirmationReturnContent = () => {
     }
 
     if (!token) return;
+
+    getOrderConfirmation(token, processedOrderId)
+      .then((o) => {
+        orderRef.current = o;
+      })
+      .catch(() => {});
 
     let attempts = 0;
     let stopped = false;
@@ -71,19 +81,36 @@ const OrderConfirmationReturnContent = () => {
 
           if (!smsSent.current) {
             smsSent.current = true;
-            try {
-              const order = await getOrderConfirmation(token, processedOrderId);
-              const message = buildOrderConfirmationSms({
-                paymentType: order.summary.paymentType,
-                invNo: order.invoiceNumber,
-                paymentCompleted: true,
-              });
-              const phone = splitSmsPhone(order.details.receiver.phones[0]);
-              if (message && phone)
-                void sendSms(phone.code, phone.number, message);
-            } catch (e) {
-              console.warn("Confirmation SMS skipped:", e);
-            }
+            void (async () => {
+              try {
+                const order =
+                  orderRef.current ??
+                  (await getOrderConfirmation(token, processedOrderId));
+
+                const message = buildOrderConfirmationSms({
+                  paymentType: order.summary.paymentType,
+                  invNo: order.invoiceNumber,
+                  paymentCompleted: true,
+                });
+                if (!message) return;
+
+                const info = await getCheckoutScheduleInfo(token);
+                if (!info?.data?.phoneNumber) {
+                  console.warn(
+                    "No account phone number available, skipping SMS",
+                  );
+                  return;
+                }
+
+                await sendSms(
+                  info.data.phoneCode || "+94",
+                  info.data.phoneNumber,
+                  message,
+                );
+              } catch (e) {
+                console.warn("Confirmation SMS skipped:", e);
+              }
+            })();
           }
 
           try {

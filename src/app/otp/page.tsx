@@ -26,6 +26,8 @@ export default function Page() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [isResending, setIsResending] = useState(false);
 
+  // Remembers the last code that was submitted, so auto-verify never re-sends the same code
+  const lastSubmittedRef = useRef<string | null>(null);
 
   useEffect(() => {
     // Load referenceId, phone number, and country code from localStorage
@@ -177,6 +179,7 @@ export default function Page() {
       return;
     }
 
+    lastSubmittedRef.current = code; // remember this code so auto-verify doesn't retry it
     setIsVerifying(true); // Disable button
 
     try {
@@ -235,6 +238,23 @@ export default function Page() {
     }
   };
 
+  // Auto-verify as soon as all 5 digits are entered
+  useEffect(() => {
+    if (!isOtpComplete || isVerifying || isVerified || isOtpExpired || isModalOpen) return;
+    if (!referenceId) return;
+
+    const code = otp.join('');
+    if (lastSubmittedRef.current === code) return; // this exact code was already tried
+
+    handleVerify();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [otp, isOtpComplete, isVerifying, isVerified, isOtpExpired, isModalOpen, referenceId]);
+
+  // Allow a new attempt once the user edits the code
+  useEffect(() => {
+    if (!isOtpComplete) lastSubmittedRef.current = null;
+  }, [isOtpComplete]);
+
   const handleResendOTP = async () => {
     // Prevent duplicate clicks and check if already disabled
     if (disabledResend || isResending) return;
@@ -261,6 +281,7 @@ export default function Page() {
         setDisabledResend(true);
         setIsOtpExpired(false); // Reset expiration status
         setOtp(['', '', '', '', '']); // Clear current OTP inputs
+        lastSubmittedRef.current = null; // allow auto-verify for the new code
 
         // Reset modal states properly before showing success message
         setIsVerified(false); // Reset verification status

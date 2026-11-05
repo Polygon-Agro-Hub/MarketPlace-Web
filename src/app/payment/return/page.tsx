@@ -15,6 +15,7 @@ import { buildConfirmedSms, splitSmsPhone } from "@/utils/order-sms";
 import { Loader2 } from "lucide-react";
 import SuccessPopup from "@/components/toast-messages/success-message";
 import ErrorPopup from "@/components/toast-messages/error-message";
+import { markOrderSuccess, SUCCESS_ROUTE } from "@/utils/order-success";
 
 const PAYMENT_SESSION_KEY = "paymentSessionExpiresAt";
 const REDIRECT_DELAY_MS = 3000;
@@ -40,15 +41,13 @@ const PaymentReturnContent = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const confirmationSmsSent = useRef(false);
+  const redirectedRef = useRef(false);
 
   // Auto-redirect to the orders page after the success popup has been shown
+  // Redirect only once the user has clicked something (needed for the Back block to work)
   useEffect(() => {
-    if (!(isSuccess && orderId)) return;
-    const timer = setTimeout(() => {
-      router.push(ORDERS_ROUTE);
-    }, REDIRECT_DELAY_MS);
-    return () => clearTimeout(timer);
-  }, [isSuccess, orderId, router]);
+    sessionStorage.setItem("cameFromGateway", "1");
+  }, [router]);
 
   const getEffectiveToken = (): string | null => {
     if (token) return token;
@@ -106,6 +105,10 @@ const PaymentReturnContent = () => {
           localStorage.removeItem("deliveryCharge");
           sessionStorage.removeItem(PAYMENT_SESSION_KEY);
 
+          // Card payment finished: used by the payment-page guard and the order-history Back block
+          sessionStorage.setItem("orderJustCompleted", "1");
+          sessionStorage.setItem("blockBackOnOrderHistory", "1");
+
           const paidInvoiceNumber = result.invoiceNumber;
           if (!confirmationSmsSent.current && paidInvoiceNumber) {
             confirmationSmsSent.current = true;
@@ -141,11 +144,10 @@ const PaymentReturnContent = () => {
             console.warn("Failed to refresh cart count:", e);
           }
 
-          setOrderId(result.orderId);
-          setInvoiceNumber(result.invoiceNumber || null);
-          setIsSuccess(true);
-          setIsModalOpen(true);
-          setLoading(false);
+          if (redirectedRef.current) return;   // the 1.5s poll can overlap itself
+          redirectedRef.current = true;
+          markOrderSuccess();
+          router.replace(SUCCESS_ROUTE);       // keep the spinner until the success page takes over
         } else if (attempts >= maxAttempts) {
           if (pollInterval) clearInterval(pollInterval);
           setLoading(false);
@@ -176,10 +178,8 @@ const PaymentReturnContent = () => {
   }, [reference, statusParam, checkoutId, token, dispatch]);
 
   const successDescription = [
-    "Thank you for your purchase. Your payment was processed securely via Payments.lk.",
-    orderId ? `Order ID: #${orderId}.` : "",
-    invoiceNumber ? `Invoice No: ${invoiceNumber}.` : "",
-    "Taking you to your orders...",
+    "Thank you for your purchase. Your payment was processed securely.",
+    invoiceNumber ? `Your Invoice No: ${invoiceNumber}.` : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -206,9 +206,10 @@ const PaymentReturnContent = () => {
       {/* Success: order placed */}
       <SuccessPopup
         isVisible={isModalOpen && isSuccess && !!orderId}
+        // Success popup
         onClose={() => {
           setIsModalOpen(false);
-          router.push(ORDERS_ROUTE);
+          router.replace(ORDERS_ROUTE);          // was push
         }}
         title="Order Placed Successfully!"
         description={successDescription}
@@ -218,16 +219,17 @@ const PaymentReturnContent = () => {
       {/* Error: cancelled payment, confirmation timeout, or server error */}
       <ErrorPopup
         isVisible={isModalOpen && !isSuccess}
+        // Error / cancel popup
         onClose={() => {
           setIsModalOpen(false);
-          router.push(isCancelled ? "/cart" : ORDERS_ROUTE);
+          router.replace(isCancelled ? "/cart" : ORDERS_ROUTE);   // was push
         }}
         title={isCancelled ? "Payment Cancelled" : "Payment Processing"}
         description={
           isCancelled
             ? "You cancelled the payment on Payments.lk. No charges were made."
             : errorMessage ||
-              "Your transaction has been submitted. It may take a moment for the order status to update."
+            "Your transaction has been submitted. It may take a moment for the order status to update."
         }
       />
     </div>

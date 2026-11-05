@@ -34,7 +34,6 @@ export const BUILDING_TYPE_OPTIONS = [
   { value: "House", label: "House" },
 ];
 
-// Parse "YYYY-MM-DD" as a local date (avoids new Date("YYYY-MM-DD") UTC shifting)
 export const parseDateStr = (dateStr: string): Date => {
   const [y, m, d] = dateStr.split("-").map(Number);
   return new Date(y, m - 1, d, 0, 0, 0, 0);
@@ -42,7 +41,7 @@ export const parseDateStr = (dateStr: string): Date => {
 
 export const getMinDeliveryDate = (): Date => {
   const now = new Date();
-  const extraDays = now.getHours() >= 18 ? 4 : 3; // gap + 1
+  const extraDays = now.getHours() >= 18 ? 4 : 3;
   const minDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + extraDays);
   minDate.setHours(0, 0, 0, 0);
   return minDate;
@@ -53,12 +52,8 @@ export const getMinDateStr = (): string => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
 
-// If the server's earliestDate is provided, use it. Otherwise fall back to the local rule.
 export const getMinRecurringDate = (earliestDate?: string | null): Date => {
   if (earliestDate) return parseDateStr(earliestDate);
-
-  // ---- fallback (unchanged logic) ----
-  // Before 6 PM: 3 days out minimum. After 6 PM: 4 days out, pushed off weekends.
   const now = new Date();
   const base = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   base.setHours(0, 0, 0, 0);
@@ -89,8 +84,8 @@ export const generateScheduledOrderDates = (
   scheduleType: string,
   selectedDays: string[],
   validPeriod: string,
-  earliestDate?: string | null, // lower bound from server
-  latestDate?: string | null,   // upper bound from server (null = no one-time package)
+  earliestDate?: string | null,
+  latestDate?: string | null,
 ): Date[] => {
   const weeks = Math.min(parseInt(validPeriod, 10) || 0, MAX_RECURRING_WEEKS);
   const minDate = getMinRecurringDate(earliestDate);
@@ -107,7 +102,7 @@ export const generateScheduledOrderDates = (
     for (let i = 0; i < weeks; i++) {
       const d = new Date(first);
       d.setDate(d.getDate() + i * 7);
-      if (maxDate && d > maxDate) break; // never schedule after a package expires
+      if (maxDate && d > maxDate) break;
       dates.push(d);
     }
   });

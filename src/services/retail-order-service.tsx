@@ -173,3 +173,25 @@ export const getInvoice = async (
     );
   }
 };
+
+export interface OrderComplaint {
+  id: number;
+  refId: string;
+  category: string;
+  description: string;
+  reply: string | null;
+  status: string;
+  replyTime: string | null;
+  createdAt: string;
+  images: { id: number; url: string }[];
+}
+
+export const getOrderComplaint = async (token: string, orderId: string): Promise<OrderComplaint> => {
+  const response = await axios.get(`/retail-order/complaint/${orderId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.data?.status) {
+    throw new Error(response.data?.message || "Failed to load complaint.");
+  }
+  return response.data.data;
+};

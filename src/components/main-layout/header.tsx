@@ -116,7 +116,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
     return () => clearInterval(interval);
   }, [token, tokenExpiration, pathname]);
 
-  // Real-time credit balance
+  // Real-time Polygon Wallet
 useEffect(() => {
   if (!token || !isTokenValid) {
     socketService.setAuthToken(null); // logged out -> back to guest socket
@@ -608,7 +608,7 @@ useEffect(() => {
                             margin: 0,
                           }}
                         >
-                          Credit Balance
+                          Polygon Wallet
                         </p>
                         <p
                           style={{

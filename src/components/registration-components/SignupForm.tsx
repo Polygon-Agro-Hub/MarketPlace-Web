@@ -1,7 +1,7 @@
 "use client";
-import React, { useState, FormEvent } from "react";
+import React, { useState, useRef, FormEvent } from "react";
+import { Eye, EyeOff, Loader2, IdCard, BookOpen, Upload, Trash2, FileText, Image as ImageIcon, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
 import {
     sendOTPInSignup,
     signup,
@@ -36,7 +36,11 @@ type FormErrors = {
     general?: string;
     companyName?: string;
     companyPhoneNumber?: string;
+    brFile?: string;
 };
+
+const BR_ALLOWED_TYPES = ["image/jpeg", "image/png", "application/pdf"];
+const BR_MAX_SIZE = 5 * 1024 * 1024;
 
 type PhoneCode = {
     code: string;
@@ -168,6 +172,7 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
         lastName: "",
         phoneCode: "+94",
         phoneNumber: "",
+        docType: "NIC" as "NIC" | "PASS",
         nicNumber: "",
         email: "",
         password: "",
@@ -182,6 +187,9 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
     });
 
     const [formData, setFormData] = useState(getInitialFormData);
+    const [brFile, setBrFile] = useState<File | null>(null);
+    const [isDragging, setIsDragging] = useState(false);
+    const brInputRef = useRef<HTMLInputElement>(null);
 
     const checkPhoneLive = (
         fieldName: "phoneNumber" | "companyPhoneNumber",
@@ -229,17 +237,66 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
         });
     };
 
+    const handleDocTypeChange = (type: "NIC" | "PASS") => {
+        if (type === formData.docType) return;
+        setFormData((prev) => ({ ...prev, docType: type, nicNumber: "" }));
+        setErrors((prev) => {
+            const next = { ...prev };
+            delete next.nicNumber;
+            return next;
+        });
+        setLinkedAccount(null);
+        setRestoreConfirmed(false);
+    };
+
+    const handleBrSelect = (file?: File | null) => {
+        if (!file) return;
+
+        if (!BR_ALLOWED_TYPES.includes(file.type)) {
+            setErrors((prev) => ({ ...prev, brFile: "Only JPG, PNG or PDF files are allowed" }));
+            return;
+        }
+        if (file.size > BR_MAX_SIZE) {
+            setErrors((prev) => ({ ...prev, brFile: "File size must be 5MB or less" }));
+            return;
+        }
+
+        setBrFile(file);
+        setErrors((prev) => {
+            const next = { ...prev };
+            delete next.brFile;
+            return next;
+        });
+    };
+
+    const handleBrRemove = () => {
+        setBrFile(null);
+        if (brInputRef.current) brInputRef.current.value = "";
+    };
+
+    const handleBrPreview = () => {
+        if (!brFile) return;
+        window.open(URL.createObjectURL(brFile), "_blank");
+    };
+
+    const formatFileSize = (bytes: number) => `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+
     const checkNicOnBlur = (nic: string) => {
         if (!nic) return;
 
-        const isValid = /^(\d{9}V|\d{12})$/.test(nic);
+        const isPassport = formData.docType === "PASS";
+        const isValid = isPassport
+            ? /^[A-Z0-9]{6,12}$/.test(nic)
+            : /^(\d{9}V|\d{12})$/.test(nic);
 
         setErrors((prev) => {
             const newErrors = { ...prev };
             if (!isValid) {
-                newErrors.nicNumber = nic.includes("V")
-                    ? "NIC must be 9 digits followed by V"
-                    : "NIC must be exactly 12 digits";
+                newErrors.nicNumber = isPassport
+                    ? "Enter a valid Passport ID (6-12 letters/numbers)"
+                    : nic.includes("V")
+                        ? "NIC must be 9 digits followed by V"
+                        : "NIC must be exactly 12 digits";
             } else {
                 delete newErrors.nicNumber;
             }
@@ -317,16 +374,23 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
         }
 
         if (name === "nicNumber") {
-            const raw = value.toUpperCase().replace(/[^0-9V]/g, "");
-            const hasV = raw.includes("V");
-            let digits = raw.replace(/V/g, "");
-
-            if (hasV) {
-                digits = digits.slice(0, 9);
-                processedValue = digits + "V";
+            if (formData.docType === "PASS") {
+                processedValue = value
+                    .toUpperCase()
+                    .replace(/[^A-Z0-9]/g, "")
+                    .slice(0, 12);
             } else {
-                digits = digits.slice(0, 12);
-                processedValue = digits;
+                const raw = value.toUpperCase().replace(/[^0-9V]/g, "");
+                const hasV = raw.includes("V");
+                let digits = raw.replace(/V/g, "");
+
+                if (hasV) {
+                    digits = digits.slice(0, 9);
+                    processedValue = digits + "V";
+                } else {
+                    digits = digits.slice(0, 12);
+                    processedValue = digits;
+                }
             }
             if (linkedAccount) {
                 setLinkedAccount(null);
@@ -410,7 +474,12 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
             newErrors.phoneNumber = phoneError;
         }
         if (!formData.nicNumber) {
-            newErrors.nicNumber = "NIC number is required";
+            newErrors.nicNumber =
+                formData.docType === "PASS" ? "Passport ID is required" : "NIC number is required";
+        } else if (formData.docType === "PASS") {
+            if (!/^[A-Z0-9]{6,12}$/.test(formData.nicNumber)) {
+                newErrors.nicNumber = "Enter a valid Passport ID (6-12 letters/numbers)";
+            }
         } else if (!/^(\d{9}V|\d{12})$/.test(formData.nicNumber)) {
             newErrors.nicNumber = "Enter a valid NIC (9 digits + V, or 12 digits)";
         }
@@ -484,6 +553,9 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
             if (companyPhoneError) {
                 newErrors.companyPhoneNumber = companyPhoneError;
             }
+            if (!brFile) {
+                newErrors.brFile = "Business registration document is required";
+            }
         }
 
         if (!formData.agreeToTerms)
@@ -528,6 +600,7 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
                 formData.phoneNumber,
                 formData.phoneCode,
                 formData.nicNumber,
+                formData.docType,
             );
 
             if (verifyRes.deletedAccount) {
@@ -591,7 +664,8 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
                 companyPhoneCode: isHome ? "" : formData.companyPhoneCode,
                 companyPhoneNumber: isHome ? "" : formData.companyPhoneNumber,
                 buyerType: isHome ? "Retail" : "Wholesale",
-                restoreAccount: restoreConfirmed && !!linkedAccount,   // NEW
+                restoreAccount: restoreConfirmed && !!linkedAccount,
+                brFile: isHome ? null : brFile,
             });
             if (skipSuccessPopup) {
                 router.push("/signin");
@@ -621,7 +695,8 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
                 companyPhoneCode: isHome ? "" : formData.companyPhoneCode,
                 companyPhoneNumber: isHome ? "" : formData.companyPhoneNumber,
                 buyerType: isHome ? "Retail" : "Wholesale",
-                restoreAccount: restoreConfirmed && !!linkedAccount, // ADD THIS
+                restoreAccount: restoreConfirmed && !!linkedAccount,
+                brFile: isHome ? null : brFile,
             });
             setLoading(false);
         } catch (err: any) {
@@ -889,82 +964,102 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
                                     </div>
                                 </div>
 
-                                <div className="flex flex-col md:flex-row md:space-x-3 space-y-4 md:space-y-0">
-                                    <div className="flex flex-row w-full md:w-1/2 space-x-3">
-                                        <div className="w-42 md:w-28">
-                                            <PhoneCodeDropdown
-                                                selectedValue={formData.phoneCode}
-                                                onSelect={(value) => {
-                                                    handleChange({
-                                                        target: { name: "phoneCode", value },
-                                                    } as React.ChangeEvent<HTMLSelectElement>);
-                                                    checkPhoneLive("phoneNumber", value, formData.phoneNumber);
-                                                }}
-                                                className="cursor-pointer"
-                                            />
-                                        </div>
-
-                                        <div className="w-3/4 md:w-7/9">
-                                            <input
-                                                type="text"
-                                                name="phoneNumber"
-                                                value={formData.phoneNumber}
-                                                onChange={handleChange}
-                                                onKeyPress={(e) => {
-                                                    if (!/[\d]/.test(e.key) && e.key !== "Backspace") {
-                                                        e.preventDefault();
-                                                    }
-                                                }}
-                                                onPaste={(e) => {
-                                                    e.preventDefault();
-                                                    const pastedText = e.clipboardData.getData("text");
-                                                    const filteredText = pastedText.replace(/[^\d]/g, "");
-                                                    handleChange({
-                                                        target: { name: "phoneNumber", value: filteredText },
-                                                    } as React.ChangeEvent<HTMLInputElement>);
-                                                }}
-                                                placeholder="Phone number"
-                                                className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass("phoneNumber")}`}
-                                                maxLength={getMaxPhoneLength(formData.phoneCode)}
-                                            />
-                                            {errors.phoneNumber && (
-                                                <p className="mt-1 text-sm text-red-600">{errors.phoneNumber}</p>
-                                            )}
-                                        </div>
+                                {/* Phone row */}
+                                <div className="flex flex-row w-full space-x-3">
+                                    <div className="w-28 flex-shrink-0">
+                                        <PhoneCodeDropdown
+                                            selectedValue={formData.phoneCode}
+                                            onSelect={(value) => {
+                                                handleChange({
+                                                    target: { name: "phoneCode", value },
+                                                } as React.ChangeEvent<HTMLSelectElement>);
+                                                checkPhoneLive("phoneNumber", value, formData.phoneNumber);
+                                            }}
+                                            className="cursor-pointer"
+                                        />
                                     </div>
 
-                                    <div className="w-full md:w-1/2">
-                                        <div className="relative">
-                                            <input
-                                                type="text"
-                                                name="nicNumber"
-                                                value={formData.nicNumber}
-                                                onChange={handleChange}
-                                                onBlur={(e) => checkNicOnBlur(e.target.value)}
-                                                placeholder="NIC Number"
-                                                className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${linkedAccount
-                                                    ? "bg-[#F1E8FF] border-[#3E206D] focus:ring-[#3E206D] pr-24"
-                                                    : getInputClass("nicNumber")
-                                                    }`}
-                                                maxLength={12}
-                                            />
-                                            {linkedAccount && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setShowRestorePopup(true)}
-                                                    className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5 rounded-full bg-black pl-1.5 pr-3 py-1 text-xs font-medium text-white cursor-pointer"
-                                                >
-                                                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-white text-[10px] font-bold text-black">
-                                                        !
-                                                    </span>
-                                                    Linked
-                                                </button>
-                                            )}
-                                        </div>
-                                        {errors.nicNumber && (
-                                            <p className="mt-1 text-sm text-red-600">{errors.nicNumber}</p>
+                                    <div className="flex-1">
+                                        <input
+                                            type="text"
+                                            name="phoneNumber"
+                                            value={formData.phoneNumber}
+                                            onChange={handleChange}
+                                            onKeyPress={(e) => {
+                                                if (!/[\d]/.test(e.key) && e.key !== "Backspace") {
+                                                    e.preventDefault();
+                                                }
+                                            }}
+                                            onPaste={(e) => {
+                                                e.preventDefault();
+                                                const pastedText = e.clipboardData.getData("text");
+                                                const filteredText = pastedText.replace(/[^\d]/g, "");
+                                                handleChange({
+                                                    target: { name: "phoneNumber", value: filteredText },
+                                                } as React.ChangeEvent<HTMLInputElement>);
+                                            }}
+                                            placeholder="Phone number"
+                                            className={`h-10 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 ${getInputClass("phoneNumber")}`}
+                                            maxLength={getMaxPhoneLength(formData.phoneCode)}
+                                        />
+                                        {errors.phoneNumber && (
+                                            <p className="mt-1 text-sm text-red-600">{errors.phoneNumber}</p>
                                         )}
                                     </div>
+                                </div>
+
+                                {/* NIC / Passport card (its own full-width block) */}
+                                <div className="w-full border border-gray-300 rounded-xl p-3 md:p-4">
+                                    <div className="flex bg-gray-100 rounded-lg p-1 mb-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDocTypeChange("NIC")}
+                                            className={`flex-1 flex items-center justify-center gap-2 py-2 px-2 rounded-md text-xs md:text-sm font-medium whitespace-nowrap transition-colors ${formData.docType === "NIC" ? "bg-[#3E206D] text-white" : "text-gray-600"
+                                                }`}
+                                        >
+                                            <IdCard className="w-4 h-4 flex-shrink-0" />
+                                            National ID (NIC)
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDocTypeChange("PASS")}
+                                            className={`flex-1 flex items-center justify-center gap-2 py-2 px-2 rounded-md text-xs md:text-sm font-medium whitespace-nowrap transition-colors ${formData.docType === "PASS" ? "bg-[#3E206D] text-white" : "text-gray-600"
+                                                }`}
+                                        >
+                                            <BookOpen className="w-4 h-4 flex-shrink-0" />
+                                            Passport ID
+                                        </button>
+                                    </div>
+
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            name="nicNumber"
+                                            value={formData.nicNumber}
+                                            onChange={handleChange}
+                                            onBlur={(e) => checkNicOnBlur(e.target.value)}
+                                            placeholder={
+                                                formData.docType === "PASS"
+                                                    ? "Passport ID"
+                                                    : "National Identity Card (NIC) Number"
+                                            }
+                                            className={`h-10 w-full border rounded-md px-3 py-2 pr-20 focus:outline-none focus:ring-1 ${linkedAccount && restoreConfirmed
+                                                ? "bg-purple-100 border-[#3E206D]"
+                                                : getInputClass("nicNumber")
+                                                }`}
+                                        />
+                                        {linkedAccount && restoreConfirmed && (
+                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 bg-black text-white text-xs rounded-full px-2 py-0.5">
+                                                Linked
+                                            </span>
+                                        )}
+                                    </div>
+                                    <p className="mt-2 text-xs text-gray-500">
+                                        {formData.docType === "PASS" ? "e.g. N1234567" : "Format: 199012345678 or 901234567V"}
+                                    </p>
+                                    {errors.nicNumber && (
+                                        <p className="mt-1 text-sm text-red-600">{errors.nicNumber}</p>
+                                    )}
                                 </div>
 
                                 {formData.phoneCode !== "+94" && (
@@ -1187,6 +1282,75 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
                                                         )}
                                                     </div>
                                                 </div>
+
+                                            </div>
+                                            <div className="mt-4 border border-gray-200 bg-gray-50 rounded-xl p-3">
+                                                <div className="flex items-center gap-2 mb-3">
+                                                    <span className="text-xs font-semibold text-gray-700 uppercase">
+                                                        Business Registration (BR)
+                                                    </span>
+                                                    <span className="text-[10px] border border-purple-300 text-purple-700 bg-white rounded px-1.5 py-0.5">
+                                                        Business Only
+                                                    </span>
+                                                </div>
+
+                                                <input
+                                                    ref={brInputRef}
+                                                    type="file"
+                                                    accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
+                                                    className="hidden"
+                                                    onChange={(e) => handleBrSelect(e.target.files?.[0])}
+                                                />
+
+                                                {!brFile ? (
+                                                    <div
+                                                        onClick={() => brInputRef.current?.click()}
+                                                        onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                                                        onDragLeave={() => setIsDragging(false)}
+                                                        onDrop={(e) => {
+                                                            e.preventDefault();
+                                                            setIsDragging(false);
+                                                            handleBrSelect(e.dataTransfer.files?.[0]);
+                                                        }}
+                                                        className={`flex flex-col items-center justify-center gap-1 border-2 border-dashed rounded-lg py-6 cursor-pointer bg-white transition-colors ${isDragging ? "border-[#3E206D] bg-purple-50" : "border-gray-300"
+                                                            }`}
+                                                    >
+                                                        <Upload className="w-5 h-5 text-gray-700" />
+                                                        <span className="text-sm font-medium text-[#3E206D] underline">
+                                                            Click to browse or drag and drop
+                                                        </span>
+                                                        <span className="text-xs text-gray-400">
+                                                            Supported formats: JPG, PNG, or PDF (Max 5MB)
+                                                        </span>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center gap-3 border border-green-300 bg-white rounded-lg p-3">
+                                                        <div className="w-10 h-10 rounded-md bg-red-50 flex items-center justify-center flex-shrink-0">
+                                                            {brFile.type === "application/pdf" ? (
+                                                                <FileText className="w-5 h-5 text-red-500" />
+                                                            ) : (
+                                                                <ImageIcon className="w-5 h-5 text-red-500" />
+                                                            )}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center gap-2 flex-wrap">
+                                                                <span className="text-sm font-medium truncate max-w-[180px]">{brFile.name}</span>
+                                                                <span className="flex items-center gap-1 text-[11px] text-green-700 bg-green-50 border border-green-200 rounded px-1.5 py-0.5">
+                                                                    <CheckCircle2 className="w-3 h-3" /> Uploaded
+                                                                </span>
+                                                            </div>
+                                                            <span className="text-xs text-gray-400">{formatFileSize(brFile.size)}</span>
+                                                        </div>
+                                                        <button type="button" onClick={handleBrPreview} className="p-1 text-gray-700 hover:text-[#3E206D]">
+                                                            <Eye className="w-4 h-4" />
+                                                        </button>
+                                                        <button type="button" onClick={handleBrRemove} className="p-1 text-red-500 hover:text-red-700">
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                )}
+
+                                                {errors.brFile && <p className="mt-2 text-sm text-red-600">{errors.brFile}</p>}
                                             </div>
                                         </div>
                                     </div>

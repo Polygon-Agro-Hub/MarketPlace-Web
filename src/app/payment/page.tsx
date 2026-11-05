@@ -92,6 +92,18 @@ const Page: React.FC = () => {
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
   const orderSubmittedRef = useRef(false);
   const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [awaitingPayment, setAwaitingPayment] = useState(false);
+
+
+  useEffect(() => {
+    sessionStorage.removeItem("cameFromGateway"); // a new payment attempt starts fresh
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
+    };
+  }, []);
 
 
   useEffect(() => {
@@ -209,6 +221,17 @@ const Page: React.FC = () => {
 
     const effectivePaymentMethod = isFullyCoveredByCredit ? "card" : paymentMethod;
 
+    // Credit + card, but the date isn't the earliest possible date → no gateway payment now,
+    // so nothing is paid by money at order time; only the credit is paid.
+    // Card selected, money still owed, but no gateway at checkout (date ≠ earliest)
+    // → nothing is paid by card now.
+    const isCardPaymentDeferred =
+      paymentMethod === "card" &&
+      remainingAmount > 0 &&
+      !isEarliestDateOrder;
+
+    const moneyPaid = isCardPaymentDeferred ? 0 : remainingAmount;
+
     let finalCheckoutDetails: any = {
       deliveryMethod: checkoutDetails.deliveryMethod || "home",
       title: checkoutDetails.title || "",
@@ -269,7 +292,7 @@ const Page: React.FC = () => {
       deliveryCharge: effectiveDeliveryCharge,
       isCreditApplied: useCredit,
       creditPaid: Number(creditAppliedAmount) || 0,
-      moneyPaid: Number(remainingAmount) || 0,
+      moneyPaid: Number(moneyPaid) || 0,   // was Number(remainingAmount)
       isFinalizeImdt: checkoutDetails.isFinalizeImdt === 1 ? 1 : 0,
     };
   };
@@ -388,9 +411,13 @@ const Page: React.FC = () => {
       return;
     }
 
+    // First order's date: the server's date if returned, otherwise the date chosen at checkout
+    const firstOrderDate =
+      toDateStr(result?.data?.processOrders?.[0]?.sheduleDate) ?? scheduleDateStr;
+
     const message = buildOrderPlacedSms({
       scheduleType: checkoutDetails.scheduleType || "One Time",
-      deliveryDate: checkoutDetails.deliveryDate || null,
+      deliveryDate: firstOrderDate,   // was: checkoutDetails.deliveryDate || null
       earliestDate,
       isReviewPackage,
       payMode: isFullyCoveredByCredit ? "credit" : paymentMethod,
@@ -399,13 +426,13 @@ const Page: React.FC = () => {
 
     if (!message) return;
 
-    // Fire and forget: an SMS failure must never block the order
     void sendSms(smsPhone.code, smsPhone.number, message);
   };
 
   const handleSubmitOrder = async (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
+    let gatewayTab: Window | null = null;
 
     try {
       if (!token) {
@@ -426,25 +453,15 @@ const Page: React.FC = () => {
         return;
       }
 
-      // Payment gateway ONLY when the order is scheduled for the earliest possible date
-      // (card selected, not fully covered by credit, schedule date === earliestPossibleDate).
-      // NOTE: no SMS is sent here. The user leaves the page, so the card SMS
-      // messages must be sent from the payment-return page or the webhook.
       if (shouldUseGateway) {
         const adapter = PaymentGatewayFactory.getAdapter("payments_lk");
-        const session = await adapter.initiatePayment({
-          orderPayload: payload,
-          token,
-        });
+        const session = await adapter.initiatePayment({ orderPayload: payload, token });
 
-        console.log("Payments.lk checkout session:", session);
-
-        if (session && session.checkoutUrl) {
-          window.location.href = session.checkoutUrl;
+        if (session?.checkoutUrl) {
+          window.location.replace(session.checkoutUrl);
           return;
-        } else {
-          throw new Error("Could not obtain checkout URL from payment gateway.");
         }
+        throw new Error("Could not obtain checkout URL from payment gateway.");
       }
 
       // All other cases (cash, 100% credit, or schedule date != earliest possible date):
@@ -494,13 +511,14 @@ const Page: React.FC = () => {
 
         // Everything succeeded: send the customer to their orders after a short pause
         redirectTimerRef.current = setTimeout(() => {
-          router.push("/history/order");
+          router.replace("/history/order");
         }, 2500);
       } else {
         throw new Error("Invalid response from server");
       }
     } catch (error: any) {
       console.error("Error submitting order:", error);
+      setAwaitingPayment(false);
 
       if (error.code === "ITEMS_UNAVAILABLE") {
         setShowUnavailableModal(true);
@@ -516,7 +534,15 @@ const Page: React.FC = () => {
     }
   };
 
+  const cancelAutoRedirect = () => {
+    if (redirectTimerRef.current) {
+      clearTimeout(redirectTimerRef.current);
+      redirectTimerRef.current = null;
+    }
+  };
+
   const handleModalClose = () => {
+    cancelAutoRedirect();
     setIsModalOpen(false);
     if (!isError) {
       router.push(getHomeUrl());
@@ -524,6 +550,7 @@ const Page: React.FC = () => {
   };
 
   const handleViewInvoice = () => {
+    cancelAutoRedirect();
     setIsModalOpen(false);
     if (orderId) {
       router.push(`/history/invoice/?orderId=${orderId}`);
@@ -571,7 +598,7 @@ const Page: React.FC = () => {
 
   const creditBalance = Number(authCart?.creditBalance) || 0;
 
-  // Toggle state for "Use My Credit Balance"
+  // Toggle state for "Use My Polygon Wallet"
   const [useCredit, setUseCredit] = useState(false);
   const creditApplied = useCredit ? Math.min(creditBalance, displayValues.grandTotal) : 0;
   const remainingAfterCredit = displayValues.grandTotal - creditApplied;
@@ -587,11 +614,9 @@ const Page: React.FC = () => {
   // Gateway only when the order is scheduled for the earliest possible date
   const isEarliestDateOrder =
     !!scheduleDateStr && !!earliestPossibleDateStr && scheduleDateStr === earliestPossibleDateStr;
-
-    // console.log("isEarliestDateOrder:", isEarliestDateOrder, "scheduleDateStr:", scheduleDateStr, "earliestPossibleDateStr:", earliestPossibleDateStr);
-
   const shouldUseGateway = !isFullyCoveredByCredit && paymentMethod === "card" && isEarliestDateOrder;
   const showCashOption = displayValues.grandTotal <= cashPaymentLimit && !isFinalizeImdt;
+  const isCashExpanded = paymentMethod === "cash" && showCashOption;
 
   useEffect(() => {
     if (!showCashOption && paymentMethod === "cash") {
@@ -738,14 +763,14 @@ const Page: React.FC = () => {
                     <div className="w-16 h-16 flex items-center justify-center flex-shrink-0">
                       <Image
                         src={creditWalletImage}
-                        alt="Credit balance"
+                        alt="Polygon Wallet"
                         width={64}
                         height={64}
                         className="object-contain"
                       />
                     </div>
                     <div>
-                      <p className="text-[#252525] font-bold">Pay using your Credit Balance</p>
+                      <p className="text-[#252525] font-bold">Pay using your Polygon Wallet</p>
                       <p className="text-sm text-gray-500">Apply credit to reduce payment.</p>
                     </div>
                   </div>
@@ -761,7 +786,7 @@ const Page: React.FC = () => {
                           }`}
                       />
                     </button>
-                    <span className="text-sm font-semibold text-[#1B7331]">Use My Credit Balance</span>
+                    <span className="text-sm font-semibold text-[#1B7331]">Use My Polygon Wallet</span>
                   </div>
                 </div>
 
@@ -815,8 +840,8 @@ const Page: React.FC = () => {
                       <div>
                         <p className="text-sm font-semibold text-[#252525]">
                           {creditBalance > displayValues.grandTotal
-                            ? "Your Credit Balance is more than enough to pay for this order."
-                            : "Your Credit Balance is enough to pay for this order."}
+                            ? "Your Polygon Wallet is more than enough to pay for this order."
+                            : "Your Polygon Wallet is enough to pay for this order."}
                         </p>
                         <p className="text-xs text-[#5A6B5D]">
                           {creditBalance - creditApplied > 0 ? (
@@ -827,7 +852,7 @@ const Page: React.FC = () => {
                                   Math.max(0, (Number(creditBalance) || 0) - (Number(creditApplied) || 0))
                                 )}
                               </span>{" "}
-                              in your credit balance.
+                              in your Polygon Wallet.
                             </>
                           ) : (
                             "No additional payment is required."
@@ -854,8 +879,8 @@ const Page: React.FC = () => {
                 <div
                   onClick={() => setPaymentMethod("card")}
                   className={`mb-4 flex items-center gap-4 rounded-lg border px-5 py-4 cursor-pointer transition bg-white ${paymentMethod === "card"
-                      ? "border-[#3E206D]"
-                      : "border-gray-300 hover:bg-gray-50"
+                    ? "border-[#3E206D]"
+                    : "border-gray-300 hover:bg-gray-50"
                     }`}
                 >
                   {/* Radio */}
@@ -907,7 +932,8 @@ const Page: React.FC = () => {
                 <div>
                   <div
                     onClick={() => showCashOption && setPaymentMethod("cash")}
-                    className={`flex items-center gap-4 rounded-lg border px-5 py-4 transition ${showCashOption
+                    className={`flex items-center gap-4 border px-5 py-4 transition ${isCashExpanded ? "rounded-t-lg" : "rounded-lg"
+                      } ${showCashOption
                         ? `cursor-pointer bg-white hover:bg-gray-50 ${paymentMethod === "cash" ? "border-[#3E206D]" : "border-gray-300"
                         }`
                         : "bg-gray-50 border-gray-200 cursor-not-allowed"
@@ -931,16 +957,16 @@ const Page: React.FC = () => {
                     )}
                   </div>
 
-                  {paymentMethod === "cash" && showCashOption && (
-                    <div className="mt-2 rounded-lg border border-gray-200 bg-gray-50/30 p-5">
+                  {isCashExpanded && (
+                    <div className="rounded-b-lg border border-t-0 border-[#3E206D] bg-gray-50/30 p-5">
                       <div className="text-gray-700 space-y-3">
                         <div className="flex gap-2">
                           <span className="flex-shrink-0">-</span>
-                          <span>You may pay in cash to our courier upon receiving your parcel at the doorstep.</span>
+                          <span>You can pay in cash upon doorstep delivery or at our centre when collecting your parcel.</span>
                         </div>
                         <div className="flex gap-2">
                           <span className="flex-shrink-0">-</span>
-                          <span>Before agreeing to receive the parcel, check if your delivery status has been updated to "Out of Delivery".</span>
+                          <span>Before agreeing to receive the parcel, check if your delivery status has been updated to “Out of Delivery” or “Ready to Pickup”.</span>
                         </div>
                         <div className="flex gap-2">
                           <span className="flex-shrink-0">-</span>
@@ -948,7 +974,7 @@ const Page: React.FC = () => {
                         </div>
                         <div className="flex gap-2">
                           <span className="flex-shrink-0">-</span>
-                          <span>Before you make the payment to the courier, confirm your order number, sender information, and tracking number on the parcel.</span>
+                          <span>Before you make the payment to the courier, confirm your order number, sender information and order number on the parcel.</span>
                         </div>
                       </div>
                     </div>
@@ -1061,7 +1087,7 @@ const Page: React.FC = () => {
             </div>
 
             {/* Confirm Order Button */}
-            {/* Credit Applied - only show if there's a credit balance */}
+            {/* Credit Applied - only show if there's a Polygon Wallet */}
             {creditBalance > 0 && (
               <div className="flex justify-between items-center text-sm mb-3">
                 <span className="text-[#1C8732]">Credit Applied</span>
@@ -1071,7 +1097,7 @@ const Page: React.FC = () => {
               </div>
             )}
 
-            {/* Remaining Amount - only show if there's a credit balance */}
+            {/* Remaining Amount - only show if there's a Polygon Wallet */}
             {creditBalance > 0 && (
               <div className="flex justify-between items-center border border-[#E8E5F7] bg-[#F5F3FD] rounded-lg px-3 py-2 mb-3">
                 <span className="text-sm text-[#3E206D]">Remaining Amount</span>

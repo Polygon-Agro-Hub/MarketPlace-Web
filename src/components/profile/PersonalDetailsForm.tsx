@@ -13,12 +13,13 @@ import ErrorPopup from '@/components/toast-messages/error-message';
 import Loader from '@/components/loader-spinner/Loader';
 import { createPortal } from 'react-dom';
 import { fetchProfile, updateProfile, updatePassword, sendOTPInSignup } from '@/services/auth-service';
-import OTPComponent from '@/components/otp-registration/OTPComponent';
+import OTPComponent, { SendOtpExtras } from '@/components/otp-registration/OTPComponent';
 import { updateUser } from '@/store/slices/authSlice';
 import PhoneCodeDropdown, {
   validatePhoneNumber,
   getMaxPhoneLength,
 } from '@/components/registration-components/PhoneCodeDropdown';
+
 
 const schema = yup.object().shape({
   title: yup.string().required('Title is required'),
@@ -176,6 +177,30 @@ const schema = yup.object().shape({
     }),
 });
 
+
+const LOCKED_MESSAGE = 'Personal and company details cannot be edited.';
+
+const LockedTooltip = ({
+  locked,
+  children,
+  className = '',
+  message = LOCKED_MESSAGE,
+}: {
+  locked: boolean;
+  children: React.ReactNode;
+  className?: string;
+  message?: string;
+}) => (
+  <div className={`relative group ${className}`}>
+    {children}
+    {locked && (
+      <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 -top-8 z-30 whitespace-nowrap rounded-md bg-gray-800 px-2 py-1 text-xs text-white opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+        {message}
+      </span>
+    )}
+  </div>
+);
+
 type FormData = yup.InferType<typeof schema>;
 
 interface CustomDropdownProps {
@@ -186,9 +211,10 @@ interface CustomDropdownProps {
   options: { value: string; label: string; countryCode?: string }[];
   placeholder: string;
   onChange: (value: string) => void;
+  disabled?: boolean;
 }
 
-const CustomDropdown = ({ register, name, value, errors, options, placeholder, onChange }: CustomDropdownProps) => {
+const CustomDropdown = ({ register, name, value, errors, options, placeholder, onChange, disabled }: CustomDropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -203,6 +229,7 @@ const CustomDropdown = ({ register, name, value, errors, options, placeholder, o
   }, []);
 
   const handleSelect = (optionValue: string) => {
+    if (disabled) return;
     onChange(optionValue);
     setIsOpen(false);
   };
@@ -213,8 +240,9 @@ const CustomDropdown = ({ register, name, value, errors, options, placeholder, o
     <div className="relative cursor-pointer" ref={dropdownRef}>
       <input type="hidden" {...register(name)} value={value} />
       <div
-        className="appearance-none border border-[#CECECE] cursor-pointer rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm pr-8 flex items-center justify-between"
-        onClick={() => setIsOpen(!isOpen)}
+        className={`appearance-none border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm pr-8 flex items-center justify-between ${disabled ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'cursor-pointer'
+          }`}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
       >
         <span className="flex items-center gap-2">
           {selectedOption?.countryCode && (
@@ -299,19 +327,18 @@ const PersonalDetailsForm = () => {
   const [countryCode, setCountryCode] = useState("+94");
   const [showOTP, setShowOTP] = useState(false);
   const [otpReferenceId, setOtpReferenceId] = useState('');
-  const [otpTarget, setOtpTarget] = useState<{ phoneCode: string; phoneNumber: string; email: string } | null>(null);
   const verifiedPhoneRef = useRef<string | null>(null); // so a failed save doesn't force a second OTP
+  const [otpTarget, setOtpTarget] = useState<{
+    phoneCode: string;
+    phoneNumber: string;
+    email: string;
+    extras: SendOtpExtras;
+  } | null>(null);
+  const passwordOnlySchema = schema.pick(['currentPassword', 'newPassword', 'confirmPassword']);
+  const isWholesale = buyerType === 'Wholesale';
 
-  const {
-    register,
-    reset,
-    watch,
-    setValue,
-    getValues,
-    trigger,
-    formState: { errors },
-  } = useForm<FormData>({
-    resolver: yupResolver(schema, { context: { buyerType } }) as any,
+  const { register, reset, watch, setValue, getValues, trigger, formState: { errors } } = useForm<FormData>({
+    resolver: yupResolver(isWholesale ? passwordOnlySchema : schema, { context: { buyerType } }) as any,
     mode: 'onChange',
     reValidateMode: 'onChange',
     defaultValues: {
@@ -331,6 +358,9 @@ const PersonalDetailsForm = () => {
       confirmPassword: undefined,
     },
   });
+
+  const inputClass = `border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm ${isWholesale ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
+    }`;
 
   const titleValue = watch('title');
   const countryCodeValue = watch('countryCode');
@@ -542,7 +572,7 @@ const PersonalDetailsForm = () => {
 
   // Foreign users verify via email, so a changed email must be verified too.
   const isVerificationNeeded = () => {
-    if (!originalData) return false;
+    if (!originalData || isWholesale) return false;
     const v = getValues();
     const key = `${v.countryCode}${v.phoneNumber}|${(v.email || '').trim().toLowerCase()}`;
     if (verifiedPhoneRef.current === key) return false;
@@ -559,25 +589,31 @@ const PersonalDetailsForm = () => {
     const v = getValues();
     const isForeign = v.countryCode !== '+94';
     const emailChanged = isForeign && isEmailChanged();
-
-    // Email changed → send to the NEW email (proves the user owns it).
-    // Only phone changed → send to the existing, already-verified email.
     const emailTarget = emailChanged ? v.email : (originalData?.email || v.email);
+
+    const extras: SendOtpExtras = {
+      isUpdate: true,
+      isEmailChange: emailChanged,
+      existingEmail: originalData?.email,
+      existingPhoneCode: originalData?.countryCode,
+      existingPhoneNumber: originalData?.phoneNumber,
+    };
 
     setIsLoading(true);
     try {
       const res = await sendOTPInSignup(v.phoneNumber, v.countryCode, {
         email: emailTarget,
-        isUpdate: true,
-        isEmailChange: emailChanged,
-        existingEmail: originalData?.email,
-        existingPhoneCode: originalData?.countryCode,
-        existingPhoneNumber: originalData?.phoneNumber,
+        ...extras,
       });
       if (!res?.referenceId) throw new Error('Failed to send verification code');
 
       setOtpReferenceId(res.referenceId);
-      setOtpTarget({ phoneCode: v.countryCode, phoneNumber: v.phoneNumber, email: emailTarget });
+      setOtpTarget({
+        phoneCode: v.countryCode,
+        phoneNumber: v.phoneNumber,
+        email: emailTarget,
+        extras,
+      });
       setSuccessMessage(
         isForeign
           ? `Verification code has been sent to ${emailTarget}`
@@ -886,56 +922,62 @@ const PersonalDetailsForm = () => {
         <div className="flex flex-col md:flex-row md:gap-4 mb-6">
           <div className="md:w-[55%]">
             <div className="flex gap-4 md:gap-8">
-              <div className="relative w-[30%] md:w-[15%]">
+
+              <LockedTooltip locked={isWholesale} className="w-[30%] md:w-[15%]">
                 <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">Title</label>
                 <CustomDropdown
                   register={register}
                   name="title"
+                  disabled={isWholesale}
                   value={titleValue}
                   errors={errors}
                   options={titleOptions}
                   placeholder="Select Title"
                   onChange={(value) => setValue('title', value, { shouldValidate: true })}
                 />
-              </div>
-              <div className="w-[75%]">
-                <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">First Name</label>
+              </LockedTooltip>
+              <LockedTooltip locked={isWholesale} className="w-[75%]">
+                <label className="...">First Name</label>
                 <input
                   {...register('firstName')}
+                  readOnly={isWholesale}
                   onChange={(e) => {
+                    if (isWholesale) return;
                     const formattedValue = handleNameInput(e.target.value);
                     e.target.value = formattedValue;
                     setValue('firstName', formattedValue, { shouldValidate: true });
                   }}
                   onBlur={(e) => {
-                    const trimmedValue = e.target.value.trim();
-                    setValue('firstName', trimmedValue, { shouldValidate: true });
+                    if (isWholesale) return;
+                    setValue('firstName', e.target.value.trim(), { shouldValidate: true });
                   }}
-                  className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm"
+                  className={inputClass}
                   placeholder="Enter first name"
                 />
                 <p className="text-red-500 text-xs">{errors.firstName?.message}</p>
-              </div>
+              </LockedTooltip>
             </div>
           </div>
-          <div className="md:w-[48%] mt-4 md:mt-0">
+          <LockedTooltip locked={isWholesale} className="md:w-[48%] mt-4 md:mt-0">
             <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">Last Name</label>
             <input
               {...register('lastName')}
+              readOnly={isWholesale}
               onChange={(e) => {
+                if (isWholesale) return;
                 const formattedValue = handleNameInput(e.target.value);
                 e.target.value = formattedValue;
                 setValue('lastName', formattedValue, { shouldValidate: true });
               }}
               onBlur={(e) => {
-                const trimmedValue = e.target.value.trim();
-                setValue('lastName', trimmedValue, { shouldValidate: true });
+                if (isWholesale) return;
+                setValue('lastName', e.target.value.trim(), { shouldValidate: true });
               }}
-              className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm"
+              className={inputClass}
               placeholder="Enter last name"
             />
             <p className="text-red-500 text-xs">{errors.lastName?.message}</p>
-          </div>
+          </LockedTooltip>
         </div>
 
         {/* Contact Section */}
@@ -945,24 +987,25 @@ const PersonalDetailsForm = () => {
           Manage your account email address for the invoices.
         </p>
         <div className="flex flex-col md:flex-row gap-8 mb-6">
-          <div className="md:w-[60%]">
+          <LockedTooltip locked={isWholesale} className="md:w-[60%]">
             <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">Email</label>
             <input
               type="email"
               {...register('email')}
+              readOnly={isWholesale}
               onKeyDown={(e) => {
-                // Prevent spacebar key
                 if (e.key === ' ' || e.code === 'Space') {
                   e.preventDefault();
                 }
               }}
               onChange={(e) => {
+                if (isWholesale) return;
                 const cleanedValue = handleEmailInput(e.target.value);
                 e.target.value = cleanedValue;
                 setValue('email', cleanedValue, { shouldValidate: true });
               }}
               onPaste={(e) => {
-                // Handle paste - remove spaces from pasted content
+                if (isWholesale) return; // guard BEFORE preventDefault
                 e.preventDefault();
                 const pastedText = e.clipboardData.getData('text');
                 const cleanedText = pastedText.replace(/\s/g, '');
@@ -973,41 +1016,45 @@ const PersonalDetailsForm = () => {
                 const newValue = currentValue.substring(0, start) + cleanedText + currentValue.substring(end);
                 input.value = newValue;
                 setValue('email', newValue, { shouldValidate: true });
-                // Set cursor position after pasted text
                 const newCursorPos = start + cleanedText.length;
                 input.setSelectionRange(newCursorPos, newCursorPos);
               }}
-              className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm"
+              className={inputClass}
               placeholder="Enter email address"
             />
             <p className="text-red-500 text-xs">{errors.email?.message}</p>
-          </div>
+          </LockedTooltip>
           <div className="md:w-[56%]">
             <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">Phone Number</label>
             <div className="flex gap-4">
-              <div className="relative max-w-[40%] md:max-w-[26%]">
-                <PhoneCodeDropdown
-                  selectedValue={countryCodeValue}
-                  onSelect={(value) => {
-                    setValue('countryCode', value, { shouldValidate: true });
-                    trigger('phoneNumber');
-                  }}
-                />
+              <LockedTooltip locked={isWholesale} className="max-w-[40%] md:max-w-[26%]">
+                <div className={isWholesale ? 'pointer-events-none opacity-60' : ''}>
+                  <PhoneCodeDropdown
+                    selectedValue={countryCodeValue}
+                    onSelect={(value) => {
+                      if (isWholesale) return;
+                      setValue('countryCode', value, { shouldValidate: true });
+                      trigger('phoneNumber');
+                    }}
+                  />
+                </div>
                 <p className="text-red-500 text-xs">{errors.countryCode?.message}</p>
-              </div>
-              <div className="w-[60%] md:w-[70%]">
+              </LockedTooltip>
+              <LockedTooltip locked={isWholesale} className="w-[60%] md:w-[70%]">
                 <input
                   {...register('phoneNumber')}
+                  readOnly={isWholesale}
                   onChange={(e) => {
+                    if (isWholesale) return;
                     const formattedValue = handlePhoneInput(e.target.value, countryCodeValue);
                     e.target.value = formattedValue;
                     setValue('phoneNumber', formattedValue, { shouldValidate: true });
                   }}
-                  className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm"
+                  className={inputClass}
                   placeholder="Phone number"
                   maxLength={getMaxPhoneLength(countryCodeValue)}
                 />
-              </div>
+              </LockedTooltip>
             </div>
             <p className="text-red-500 text-xs mt-1">{errors.phoneNumber?.message}</p>
           </div>
@@ -1024,52 +1071,62 @@ const PersonalDetailsForm = () => {
 
             {/* Company Name */}
             <div className="flex flex-col md:flex-row gap-8 mb-6">
-              <div className="md:w-[60%]">
+              <LockedTooltip locked={isWholesale} className="md:w-[60%]">
                 <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">Name</label>
                 <input
                   type="text"
                   {...register('companyName')}
+                  readOnly={isWholesale}
                   onChange={(e) => {
+                    if (isWholesale) return;
                     const trimmedValue = handleGeneralInput(e.target.value);
                     e.target.value = trimmedValue;
                     setValue('companyName', trimmedValue, { shouldValidate: true });
                   }}
-                  className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm"
+                  className={inputClass}
                   placeholder="Enter company name"
                 />
                 <p className="text-red-500 text-xs">{errors.companyName?.message}</p>
-              </div>
+              </LockedTooltip>
 
               {/* Company Phone */}
-              <div className="md:w-[56%]">
+              <LockedTooltip locked={isWholesale} className="md:w-[56%]">
                 <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">Company Phone Number</label>
                 <div className="flex gap-4">
-                  <div className="relative w-[40%] md:w-[26%]">
-                    <PhoneCodeDropdown
-                      selectedValue={companyPhoneCodeValue as string}
-                      onSelect={(value) => {
-                        setValue('companyPhoneCode', value, { shouldValidate: true });
-                        trigger('companyPhone');
-                      }}
-                    />
+                  {/* Company phone code */}
+                  <div className="relative max-w-[40%] md:max-w-[26%]">
+                    <div className={isWholesale ? 'pointer-events-none opacity-60' : ''}>
+                      <PhoneCodeDropdown
+                        selectedValue={companyPhoneCodeValue as string}
+                        onSelect={(value) => {
+                          if (isWholesale) return;
+                          setValue('companyPhoneCode', value, { shouldValidate: true });
+                          trigger('companyPhone');
+                        }}
+                      />
+                    </div>
                     <p className="text-red-500 text-xs">{errors.companyPhoneCode?.message}</p>
                   </div>
+
+                  {/* Company phone number */}
                   <div className="w-[60%] md:w-[70%]">
                     <input
                       {...register('companyPhone')}
+                      readOnly={isWholesale}
                       onChange={(e) => {
+                        if (isWholesale) return;
                         const formattedValue = handlePhoneInput(e.target.value, companyPhoneCodeValue as string);
                         e.target.value = formattedValue;
                         setValue('companyPhone', formattedValue, { shouldValidate: true });
                       }}
-                      className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm"
+                      className={inputClass}
                       placeholder="e.g. 712345678"
                       maxLength={getMaxPhoneLength(companyPhoneCodeValue as string)}
                     />
                   </div>
                 </div>
                 <p className="text-red-500 text-xs mt-1">{errors.companyPhone?.message}</p>
-              </div>
+              </LockedTooltip>
             </div>
 
           </>
@@ -1227,6 +1284,7 @@ const PersonalDetailsForm = () => {
               onVerificationFailure={() => setShowOTP(false)}
               onResendOTP={(id) => setOtpReferenceId(id)}
               onOTPExpired={() => { }}
+              sendOtpExtras={otpTarget.extras}
             />
           </div>,
           document.body,
