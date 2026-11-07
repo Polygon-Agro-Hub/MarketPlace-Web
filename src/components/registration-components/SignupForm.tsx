@@ -1341,10 +1341,10 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
                                                             </div>
                                                             <span className="text-xs text-gray-400">{formatFileSize(brFile.size)}</span>
                                                         </div>
-                                                        <button type="button" onClick={handleBrPreview} className="p-1 text-gray-700 hover:text-[#3E206D]">
+                                                        <button type="button" onClick={handleBrPreview} className="p-1 text-gray-700 hover:text-[#3E206D] cursor-pointer">
                                                             <Eye className="w-4 h-4" />
                                                         </button>
-                                                        <button type="button" onClick={handleBrRemove} className="p-1 text-red-500 hover:text-red-700">
+                                                        <button type="button" onClick={handleBrRemove} className="p-1 text-red-500 hover:text-red-700 cursor-pointer">
                                                             <Trash2 className="w-4 h-4" />
                                                         </button>
                                                     </div>
