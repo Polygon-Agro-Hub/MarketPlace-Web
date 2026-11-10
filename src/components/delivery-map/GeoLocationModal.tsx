@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { MapPin, X, AlertCircle } from 'lucide-react';
@@ -10,6 +11,9 @@ L.Icon.Default.mergeOptions({
     iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
+
+// Hoisted so the default value keeps the same reference between renders
+const DEFAULT_CENTER: [number, number] = [6.9271, 79.8612];
 
 interface GeoLocationModalProps {
     isOpen: boolean;
@@ -24,7 +28,7 @@ const GeoLocationModal: React.FC<GeoLocationModalProps> = ({
     isOpen,
     onClose,
     onLocationSelect,
-    initialCenter = [6.9271, 79.8612],
+    initialCenter = DEFAULT_CENTER,
     savedLocation = null,
     viewOnly = false
 }) => {
@@ -36,13 +40,22 @@ const GeoLocationModal: React.FC<GeoLocationModalProps> = ({
     const [locationError, setLocationError] = useState<string>('');
     const [showSuccessModal, setShowSuccessModal] = useState(false);
 
+    // Use primitives as effect dependencies so a new array reference
+    // from the parent doesn't destroy and recreate the map on every render
+    const savedLat = savedLocation?.[0];
+    const savedLng = savedLocation?.[1];
+    const initialLat = initialCenter[0];
+    const initialLng = initialCenter[1];
+
     useEffect(() => {
         if (!isOpen || !mapRef.current) return;
 
-        const map = L.map(mapRef.current).setView(
-            savedLocation || initialCenter,
-            savedLocation ? 15 : 13
-        );
+        const hasSaved = savedLat !== undefined && savedLng !== undefined;
+        const center: [number, number] = hasSaved
+            ? [savedLat as number, savedLng as number]
+            : [initialLat, initialLng];
+
+        const map = L.map(mapRef.current).setView(center, hasSaved ? 15 : 13);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -51,8 +64,8 @@ const GeoLocationModal: React.FC<GeoLocationModalProps> = ({
         mapInstanceRef.current = map;
 
         // If there's a saved location, show it immediately
-        if (savedLocation) {
-            updateMarker(savedLocation[0], savedLocation[1]);
+        if (hasSaved) {
+            updateMarker(savedLat as number, savedLng as number, false);
         }
 
         // Only allow map clicks if not in viewOnly mode
@@ -64,24 +77,37 @@ const GeoLocationModal: React.FC<GeoLocationModalProps> = ({
             });
         }
 
+        // Make sure tiles render correctly after the modal has mounted
+        const resizeTimer = setTimeout(() => map.invalidateSize(), 100);
+
         return () => {
-            if (mapInstanceRef.current) {
-                mapInstanceRef.current.remove();
-                mapInstanceRef.current = null;
-            }
+            clearTimeout(resizeTimer);
+            map.remove();
+            mapInstanceRef.current = null;
             markerRef.current = null;
         };
-    }, [isOpen, savedLocation, initialCenter, viewOnly]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOpen, savedLat, savedLng, initialLat, initialLng, viewOnly]);
+
+    // Reset transient state whenever the modal closes
+    useEffect(() => {
+        if (!isOpen) {
+            setSelectedLocation(null);
+            setLocationError('');
+            setIsLocating(false);
+        }
+    }, [isOpen]);
 
     // Auto-close success modal after 5 seconds
     useEffect(() => {
         if (showSuccessModal) {
             const timer = setTimeout(() => {
                 handleSuccessModalClose();
-            }, 5000); // 5 seconds
+            }, 5000);
 
             return () => clearTimeout(timer);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [showSuccessModal]);
 
     const updateMarker = (lat: number, lng: number, showPopup: boolean = true) => {
@@ -179,13 +205,15 @@ const GeoLocationModal: React.FC<GeoLocationModalProps> = ({
         onClose();
     };
 
-    if (!isOpen) return null;
+    if (!isOpen || typeof document === 'undefined') return null;
 
-    return (
+    // Rendered through a portal so no parent stacking context
+    // (transform, filter, overflow, z-index) can trap it under the site header
+    return createPortal(
         <>
             {/* Success Modal */}
             {showSuccessModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[110] p-4">
                     <div className="bg-white p-6 sm:p-8 rounded-2xl text-center w-full max-w-md shadow-xl mx-4">
                         {/* Success Icon with Animation */}
                         <div className="flex justify-center mb-4">
@@ -251,8 +279,8 @@ const GeoLocationModal: React.FC<GeoLocationModalProps> = ({
             )}
 
             {/* Main Modal */}
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4 sm:flex sm:mt-10">
-                <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] sm:max-h-[80vh] overflow-hidden flex flex-col">
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-2 sm:p-4">
+                <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90dvh] sm:max-h-[80dvh] overflow-hidden flex flex-col">
                     {/* Header */}
                     <div className="flex justify-between items-center p-3 sm:p-4 border-b border-gray-200 flex-shrink-0">
                         <h2 className="text-base sm:text-xl font-bold text-[#252525]">
@@ -262,6 +290,7 @@ const GeoLocationModal: React.FC<GeoLocationModalProps> = ({
                             type="button"
                             onClick={onClose}
                             className="text-gray-500 hover:text-gray-700 transition-colors p-1 cursor-pointer"
+                            aria-label="Close"
                         >
                             <X size={20} className="sm:w-6 sm:h-6" />
                         </button>
@@ -324,7 +353,8 @@ const GeoLocationModal: React.FC<GeoLocationModalProps> = ({
                     </div>
                 </div>
             </div>
-        </>
+        </>,
+        document.body
     );
 };
 

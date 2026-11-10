@@ -817,12 +817,12 @@ useEffect(() => {
                     )}
                   </div>
                 )}
-                <Link
+                {/* <Link
                   href="/promotions"
                   className="py-4 px-6 border-b border-[#828282] hover:bg-purple-800 text-[#FFFFFF]"
                 >
                   Promotions
-                </Link>
+                </Link> */}
                 {isAuthenticated() && (
                   <Link
                     href="/history/order"

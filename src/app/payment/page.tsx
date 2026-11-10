@@ -791,29 +791,32 @@ const Page: React.FC = () => {
                 </div>
 
                 <div
-                  className={`grid grid-cols-2 gap-4 rounded-[10px] border p-4 ${useCredit
+                  className={`grid grid-cols-2 gap-2 sm:gap-4 rounded-[10px] border p-3 sm:p-4 ${useCredit
                     ? "bg-[#F6FCF5] border-[#AEC9AB]"
                     : "bg-gray-50 border-gray-200"
                     }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center flex-shrink-0">
-                      <WalletMinimal className="w-6 h-6" style={{ color: "#27AA48" }} />
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white flex items-center justify-center flex-shrink-0">
+                      <WalletMinimal className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: "#27AA48" }} />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <p className="text-xs text-gray-500">Credit Applied</p>
-                      <p className={`font-semibold ${useCredit ? "text-[#27AA48]" : "text-[#27AA48]"}`}>
-                        {useCredit ? ` Rs. ${formatPrice(creditApplied)}` : "0.00"}
+                      <p className="font-semibold text-sm sm:text-base text-[#27AA48] whitespace-nowrap">
+                        Rs. {formatPrice(creditApplied)}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 border-l border-gray-200 pl-4">
-                    <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center flex-shrink-0">
-                      <ReceiptText className="w-6 h-6 text-[#354052]" />
+
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0 border-l border-gray-200 pl-2 sm:pl-4">
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white flex items-center justify-center flex-shrink-0">
+                      <ReceiptText className="w-5 h-5 sm:w-6 sm:h-6 text-[#354052]" />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <p className="text-xs text-gray-500">Remaining to Pay</p>
-                      <p className="font-semibold text-gray-900">Rs. {formatPrice(remainingAfterCredit)}</p>
+                      <p className="font-semibold text-sm sm:text-base text-gray-900 whitespace-nowrap">
+                        Rs. {formatPrice(remainingAfterCredit)}
+                      </p>
                     </div>
                   </div>
                 </div>
