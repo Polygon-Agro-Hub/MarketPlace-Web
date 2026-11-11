@@ -15,6 +15,7 @@ import { buildConfirmedSms, splitSmsPhone } from "@/utils/order-sms";
 import { Loader2 } from "lucide-react";
 import SuccessPopup from "@/components/toast-messages/success-message";
 import ErrorPopup from "@/components/toast-messages/error-message";
+import { markOrderSuccess, SUCCESS_ROUTE } from "@/utils/order-success";
 
 const PAYMENT_SESSION_KEY = "paymentSessionExpiresAt";
 const REDIRECT_DELAY_MS = 3000;
@@ -40,6 +41,7 @@ const PaymentReturnContent = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const confirmationSmsSent = useRef(false);
+  const redirectedRef = useRef(false);
 
   // Auto-redirect to the orders page after the success popup has been shown
   // Redirect only once the user has clicked something (needed for the Back block to work)
@@ -142,11 +144,10 @@ const PaymentReturnContent = () => {
             console.warn("Failed to refresh cart count:", e);
           }
 
-          setOrderId(result.orderId);
-          setInvoiceNumber(result.invoiceNumber || null);
-          setIsSuccess(true);
-          setIsModalOpen(true);
-          setLoading(false);
+          if (redirectedRef.current) return;   // the 1.5s poll can overlap itself
+          redirectedRef.current = true;
+          markOrderSuccess();
+          router.replace(SUCCESS_ROUTE);       // keep the spinner until the success page takes over
         } else if (attempts >= maxAttempts) {
           if (pollInterval) clearInterval(pollInterval);
           setLoading(false);

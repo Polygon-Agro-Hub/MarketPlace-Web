@@ -1,7 +1,7 @@
 // utils/order-sms.ts
 import { parseDateStr, formatOrderDate } from "@/utils/schedule";
 
-// ASSUMPTION (confirm with your team): Processing Date = delivery date - 3 days.
+// ASSUMPTION (confirm with your team): Processing Date = delivery date - 3 days. 
 // Derived from the 2-day gap rule and the "review 2 days before delivery" copy
 // (Processing Date + 1 = delivery date - 2). Change this one constant if it differs.
 export const PROCESSING_OFFSET_DAYS = 3;
@@ -80,7 +80,7 @@ export const buildOrderPlacedSms = (ctx: OrderSmsContext): string | null => {
   // Pre-made package + Review Before Delivery -> request goes out on Processing Date + 1
   if (ctx.isReviewPackage) {
     const requestDate = shift(ctx.deliveryDate, -PROCESSING_OFFSET_DAYS + 1);
-    return `${requestIntro(requestDate)} Please pay by 6:00 PM to confirm your order, or it will be cancelled.`;
+    return `${requestIntro(requestDate)} Please review and accept your order by 6:00 PM or it will be canceled.`;
   }
 
   // A la carte, or package + Finalize Immediately

@@ -16,6 +16,23 @@ type FormErrors = {
     general?: string;
 };
 
+const NIC_REGEX = /^(\d{9}V|\d{12})$/;
+const PASSPORT_REGEX = /^[A-Z0-9]{6,12}$/;
+
+const getIdError = (id: string): string => {
+    if (!id) return "NIC / Passport ID is required";
+
+    // Valid if it matches either format
+    if (NIC_REGEX.test(id) || PASSPORT_REGEX.test(id)) return "";
+
+    // Helpful hints only when it matches neither
+    if (/^\d{9,12}V?$/.test(id) || /^\d+V$/.test(id)) {
+        return "NIC must be 9 digits followed by V, or 12 digits";
+    }
+
+    return "Enter a valid NIC or Passport ID (6-12 letters/numbers)";
+};
+
 export default function SetPasswordForm() {
     const router = useRouter();
     const [showNic, setShowNic] = useState(false);
@@ -42,19 +59,14 @@ export default function SetPasswordForm() {
         });
     };
 
-    const checkNicOnBlur = (nic: string) => {
-        if (!nic) return;
-        const isValid = /^(\d{9}V|\d{12})$/.test(nic);
+    const checkNicOnBlur = (id: string) => {
+        if (!id) return;
+        const error = getIdError(id);
 
         setErrors((prev) => {
             const newErrors = { ...prev };
-            if (!isValid) {
-                newErrors.nicNumber = nic.includes("V")
-                    ? "NIC must be 9 digits followed by V"
-                    : "NIC must be exactly 12 digits";
-            } else {
-                delete newErrors.nicNumber;
-            }
+            if (error) newErrors.nicNumber = error;
+            else delete newErrors.nicNumber;
             return newErrors;
         });
     };
@@ -72,17 +84,10 @@ export default function SetPasswordForm() {
         let processedValue = value;
 
         if (name === "nicNumber") {
-            const raw = value.toUpperCase().replace(/[^0-9V]/g, "");
-            const hasV = raw.includes("V");
-            let digits = raw.replace(/V/g, "");
-
-            if (hasV) {
-                digits = digits.slice(0, 9);
-                processedValue = digits + "V";
-            } else {
-                digits = digits.slice(0, 12);
-                processedValue = digits;
-            }
+            processedValue = value
+                .toUpperCase()
+                .replace(/[^A-Z0-9]/g, "")
+                .slice(0, 12);
         }
 
         setFormData((prev) => ({ ...prev, [name]: processedValue }));
@@ -102,11 +107,8 @@ export default function SetPasswordForm() {
     const validateForm = (): boolean => {
         const newErrors: FormErrors = {};
 
-        if (!formData.nicNumber) {
-            newErrors.nicNumber = "NIC number is required";
-        } else if (!/^(\d{9}V|\d{12})$/.test(formData.nicNumber)) {
-            newErrors.nicNumber = "Enter a valid NIC (9 digits + V, or 12 digits)";
-        }
+        const idError = getIdError(formData.nicNumber);
+        if (idError) newErrors.nicNumber = idError;
 
         if (!formData.password) {
             newErrors.password = "Password is required";
@@ -229,8 +231,9 @@ export default function SetPasswordForm() {
                                             value={formData.nicNumber}
                                             onChange={handleChange}
                                             onBlur={(e) => checkNicOnBlur(e.target.value)}
-                                            placeholder="Your NIC Number"
+                                            placeholder="Your NIC Number / Passport ID"
                                             maxLength={12}
+                                            spellCheck={false}
                                             autoComplete="off"
                                             className={`h-11 w-full border rounded-md px-4 py-2 pr-10 focus:outline-none focus:ring-1 ${getInputClass(
                                                 "nicNumber",

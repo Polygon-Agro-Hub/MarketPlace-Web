@@ -85,7 +85,7 @@ export const CreditBalancePill = ({
         {/* Text */}
         <div className="flex flex-col leading-tight">
           <span className="text-xs font-medium" style={{ color: "#4C4C4C" }}>
-            Credit Balance
+            Polygon Wallet
           </span>
           <span className="text-sm font-bold" style={{ color: accentColor }}>
             {isNegative ? "- " : ""}Rs. {formatPrice(creditBalance)}
@@ -131,7 +131,7 @@ export const CreditBalancePill = ({
             </div>
             <div>
               <p className="text-sm font-semibold" style={{ color: "#4C4C4C" }}>
-                Credit Balance
+                Polygon Wallet
               </p>
               <p className="text-sm font-bold" style={{ color: "#007E20" }}>
                 Rs. {formatPrice(creditBalance)}

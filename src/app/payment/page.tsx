@@ -598,7 +598,7 @@ const Page: React.FC = () => {
 
   const creditBalance = Number(authCart?.creditBalance) || 0;
 
-  // Toggle state for "Use My Credit Balance"
+  // Toggle state for "Use My Polygon Wallet"
   const [useCredit, setUseCredit] = useState(false);
   const creditApplied = useCredit ? Math.min(creditBalance, displayValues.grandTotal) : 0;
   const remainingAfterCredit = displayValues.grandTotal - creditApplied;
@@ -614,9 +614,6 @@ const Page: React.FC = () => {
   // Gateway only when the order is scheduled for the earliest possible date
   const isEarliestDateOrder =
     !!scheduleDateStr && !!earliestPossibleDateStr && scheduleDateStr === earliestPossibleDateStr;
-
-  // console.log("isEarliestDateOrder:", isEarliestDateOrder, "scheduleDateStr:", scheduleDateStr, "earliestPossibleDateStr:", earliestPossibleDateStr);
-
   const shouldUseGateway = !isFullyCoveredByCredit && paymentMethod === "card" && isEarliestDateOrder;
   const showCashOption = displayValues.grandTotal <= cashPaymentLimit && !isFinalizeImdt;
   const isCashExpanded = paymentMethod === "cash" && showCashOption;
@@ -766,14 +763,14 @@ const Page: React.FC = () => {
                     <div className="w-16 h-16 flex items-center justify-center flex-shrink-0">
                       <Image
                         src={creditWalletImage}
-                        alt="Credit balance"
+                        alt="Polygon Wallet"
                         width={64}
                         height={64}
                         className="object-contain"
                       />
                     </div>
                     <div>
-                      <p className="text-[#252525] font-bold">Pay using your Credit Balance</p>
+                      <p className="text-[#252525] font-bold">Pay using your Polygon Wallet</p>
                       <p className="text-sm text-gray-500">Apply credit to reduce payment.</p>
                     </div>
                   </div>
@@ -789,34 +786,37 @@ const Page: React.FC = () => {
                           }`}
                       />
                     </button>
-                    <span className="text-sm font-semibold text-[#1B7331]">Use My Credit Balance</span>
+                    <span className="text-sm font-semibold text-[#1B7331]">Use My Polygon Wallet</span>
                   </div>
                 </div>
 
                 <div
-                  className={`grid grid-cols-2 gap-4 rounded-[10px] border p-4 ${useCredit
+                  className={`grid grid-cols-2 gap-2 sm:gap-4 rounded-[10px] border p-3 sm:p-4 ${useCredit
                     ? "bg-[#F6FCF5] border-[#AEC9AB]"
                     : "bg-gray-50 border-gray-200"
                     }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center flex-shrink-0">
-                      <WalletMinimal className="w-6 h-6" style={{ color: "#27AA48" }} />
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white flex items-center justify-center flex-shrink-0">
+                      <WalletMinimal className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: "#27AA48" }} />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <p className="text-xs text-gray-500">Credit Applied</p>
-                      <p className={`font-semibold ${useCredit ? "text-[#27AA48]" : "text-[#27AA48]"}`}>
-                        {useCredit ? ` Rs. ${formatPrice(creditApplied)}` : "0.00"}
+                      <p className="font-semibold text-sm sm:text-base text-[#27AA48] whitespace-nowrap">
+                        Rs. {formatPrice(creditApplied)}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 border-l border-gray-200 pl-4">
-                    <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center flex-shrink-0">
-                      <ReceiptText className="w-6 h-6 text-[#354052]" />
+
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0 border-l border-gray-200 pl-2 sm:pl-4">
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white flex items-center justify-center flex-shrink-0">
+                      <ReceiptText className="w-5 h-5 sm:w-6 sm:h-6 text-[#354052]" />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <p className="text-xs text-gray-500">Remaining to Pay</p>
-                      <p className="font-semibold text-gray-900">Rs. {formatPrice(remainingAfterCredit)}</p>
+                      <p className="font-semibold text-sm sm:text-base text-gray-900 whitespace-nowrap">
+                        Rs. {formatPrice(remainingAfterCredit)}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -843,8 +843,8 @@ const Page: React.FC = () => {
                       <div>
                         <p className="text-sm font-semibold text-[#252525]">
                           {creditBalance > displayValues.grandTotal
-                            ? "Your Credit Balance is more than enough to pay for this order."
-                            : "Your Credit Balance is enough to pay for this order."}
+                            ? "Your Polygon Wallet is more than enough to pay for this order."
+                            : "Your Polygon Wallet is enough to pay for this order."}
                         </p>
                         <p className="text-xs text-[#5A6B5D]">
                           {creditBalance - creditApplied > 0 ? (
@@ -855,7 +855,7 @@ const Page: React.FC = () => {
                                   Math.max(0, (Number(creditBalance) || 0) - (Number(creditApplied) || 0))
                                 )}
                               </span>{" "}
-                              in your credit balance.
+                              in your Polygon Wallet.
                             </>
                           ) : (
                             "No additional payment is required."
@@ -1090,7 +1090,7 @@ const Page: React.FC = () => {
             </div>
 
             {/* Confirm Order Button */}
-            {/* Credit Applied - only show if there's a credit balance */}
+            {/* Credit Applied - only show if there's a Polygon Wallet */}
             {creditBalance > 0 && (
               <div className="flex justify-between items-center text-sm mb-3">
                 <span className="text-[#1C8732]">Credit Applied</span>
@@ -1100,7 +1100,7 @@ const Page: React.FC = () => {
               </div>
             )}
 
-            {/* Remaining Amount - only show if there's a credit balance */}
+            {/* Remaining Amount - only show if there's a Polygon Wallet */}
             {creditBalance > 0 && (
               <div className="flex justify-between items-center border border-[#E8E5F7] bg-[#F5F3FD] rounded-lg px-3 py-2 mb-3">
                 <span className="text-sm text-[#3E206D]">Remaining Amount</span>

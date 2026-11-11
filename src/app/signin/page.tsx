@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { login } from "@/services/auth-service";
+import { login, WholesaleStatus, WholesaleStatusInfo } from "@/services/auth-service";
+import WholesalePendingPopup from "@/components/login-components/WholesalePendingPopup";
+import WholesaleRejectedPopup from "@/components/login-components/WholesaleRejectedPopup";
 import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
 import { setCredentials } from "@/store/slices/authSlice";
@@ -29,6 +31,7 @@ const Page = () => {
   const [showErrorPopup, setShowErrorPopup] = useState(false);
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
+  const [wholesaleStatus, setWholesaleStatus] = useState<WholesaleStatus | null>(null);
 
   // Load saved credentials from localStorage on component mount
   useEffect(() => {
@@ -76,9 +79,7 @@ const Page = () => {
           setEmailError("");
         }
       } else {
-        setEmailError(
-          "Enter a valid email address or phone number",
-        );
+        setEmailError("Enter a valid email address or phone number");
         valid = false;
       }
     }
@@ -118,7 +119,11 @@ const Page = () => {
           localStorage.removeItem("rememberedPassword");
         }
 
-        if (data.userData.firstTimeUser === 0 && data.userData.isDashUser === 1 && data.userData.isPswUpdateed === 0) {
+        if (
+          data.userData.firstTimeUser === 0 &&
+          data.userData.isDashUser === 1 &&
+          data.userData.isPswUpdateed === 0
+        ) {
           // First-time dash user must set a new password first
           router.push("/dash-password-update");
         } else if (data.userData.buyerType === "Retail") {
@@ -134,6 +139,15 @@ const Page = () => {
         }
       }
     } catch (err: any) {
+      // Wholesale account is pending approval or was rejected:
+      // show the matching popup instead of the generic error popup.
+      if (err.wholesaleStatus) {
+        setWholesaleStatus(err.wholesaleStatus as WholesaleStatus);
+        setEmailError("");
+        setPasswordError("");
+        return; // `finally` still runs and resets isLoading
+      }
+
       setShowErrorPopup(true);
 
       const message = err.message;
@@ -181,7 +195,7 @@ const Page = () => {
   return (
     <div className="flex lg:bg-gray-100 justify-center items-center w-full min-h-screen lg:py-10 lg:px-2">
       <div className="flex w-full lg:max-w-7xl">
-       <div className="flex min-w-full mx-auto lg:shadow-lg rounded-lg bg-white overflow-auto lg:min-h-[800px]">
+        <div className="flex min-w-full mx-auto lg:shadow-lg rounded-lg bg-white overflow-auto lg:min-h-[800px]">
           <SuccessPopup
             isVisible={showSuccessPopup}
             onClose={() => setShowSuccessPopup(false)}
@@ -199,6 +213,21 @@ const Page = () => {
                   ? "Incorrect email/phone number, Please Try again"
                   : "User not found. Please check your credentials!"
             }
+          />
+
+          <WholesalePendingPopup
+            isOpen={wholesaleStatus?.type === "pending"}
+            info={wholesaleStatus?.info ?? null}
+            onClose={() => setWholesaleStatus(null)}
+          />
+
+          <WholesaleRejectedPopup
+            isOpen={wholesaleStatus?.type === "rejected"}
+            info={wholesaleStatus?.info ?? null}
+            email={email}
+            password={password}
+            onResubmitted={(info) => setWholesaleStatus({ type: "pending", info })}
+            onClose={() => setWholesaleStatus(null)}
           />
 
           {/* Left Panel (Login Form) */}

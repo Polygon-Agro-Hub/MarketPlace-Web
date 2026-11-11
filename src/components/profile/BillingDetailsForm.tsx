@@ -97,6 +97,7 @@ interface CustomDropdownProps {
   withSearch?: boolean;
   maxVisibleItems?: number;
   disabled?: boolean;
+  hideArrow?: boolean;
 }
 
 const CustomDropdown = ({
@@ -110,6 +111,7 @@ const CustomDropdown = ({
   withSearch = false,
   maxVisibleItems = 6,
   disabled = false,
+  hideArrow = false,
 }: CustomDropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -149,9 +151,11 @@ const CustomDropdown = ({
       <div
         className={`appearance-none border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px] pr-8 flex items-center justify-between ${disabled
           ? "bg-[#F3F4F6] cursor-not-allowed opacity-70"
-          : "cursor-pointer"
+          : hideArrow
+            ? "cursor-default"
+            : "cursor-pointer"
           }`}
-        onClick={() => !disabled && setIsOpen(!isOpen)}
+        onClick={() => !disabled && !hideArrow && setIsOpen(!isOpen)}
       >
         <span className="flex items-center gap-2">
           {selectedOption?.countryCode && (
@@ -163,7 +167,7 @@ const CustomDropdown = ({
           )}
           <span>{(value && selectedOption?.label) || placeholder}</span>
         </span>
-        {!disabled && (
+        {!disabled && !hideArrow && (
           <FaAngleDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none" />
         )}
       </div>
@@ -493,6 +497,9 @@ const BillingDetailsForm = () => {
   const [showDeleteSuccessPopup, setShowDeleteSuccessPopup] = useState(false);
   const [houseCityAvailable, setHouseCityAvailable] = useState(true);
   const [apartmentCityAvailable, setApartmentCityAvailable] = useState(true);
+  const isWholesale = useSelector((state: RootState) =>
+    (state.auth.user?.buyerType ?? "").toLowerCase().includes("wholesale"),
+  );
 
   useEffect(() => {
     setIsMounted(true);
@@ -614,7 +621,10 @@ const BillingDetailsForm = () => {
     setHasGeoLocation(false);
     setHouseCityAvailable(true);
     setApartmentCityAvailable(true);
-    reset(EMPTY_FORM);
+    reset({
+      ...EMPTY_FORM,
+      buildingType: isWholesale ? "house" : "",
+    });
   };
 
   const startEditAddress = (entry: UserAddressEntry) => {
@@ -717,7 +727,7 @@ const BillingDetailsForm = () => {
   const buildingTypeOptions = [
     { value: "house", label: "House" },
     { value: "apartment", label: "Apartment" },
-  ];
+  ].filter((o) => !(isWholesale && !selectedAddressId && o.value === "apartment"));
 
   const cityOptions = cities.map((c) => ({ value: c.city, label: c.city }));
 
@@ -858,7 +868,13 @@ const BillingDetailsForm = () => {
   }, [watch, initialFormData]);
 
   useEffect(() => {
-    register("buildingType", { required: "Building Type is required" });
+    register("buildingType", {
+      required: "Building Type is required",
+      validate: (value) =>
+        isWholesale && !selectedAddressIdRef.current && value === "apartment"
+          ? "Apartment is not available for wholesale accounts."
+          : true,
+    });
     register("saveAs", {
       required: "Save Address As is required",
       validate: (value) => {
@@ -934,7 +950,7 @@ const BillingDetailsForm = () => {
     register("phonecode1", { required: "Phone code is required" });
     register("geoLatitude");
     register("geoLongitude");
-  }, [register, buildingType, addressBook]);
+  }, [register, buildingType, addressBook, isWholesale]);
 
   const handleLocationSelect = (lat: number, lng: number) => {
     setValue("geoLatitude", lat, {
@@ -992,6 +1008,13 @@ const BillingDetailsForm = () => {
 
     if (!data.buildingType) {
       setErrorMessage("Please select a building type.");
+      setShowErrorPopup(true);
+      setIsLoading(false);
+      return;
+    }
+
+    if (isWholesale && !selectedAddressId && data.buildingType === "apartment") {
+      setErrorMessage("Apartment addresses are not available for wholesale accounts.");
       setShowErrorPopup(true);
       setIsLoading(false);
       return;
@@ -1555,11 +1578,18 @@ const BillingDetailsForm = () => {
                 register={register}
                 setValue={setValue}
                 name="buildingType"
-                value={buildingType}
+                value={watch("buildingType")}
                 errors={errors}
-                options={buildingTypeOptions}
-                placeholder="Select Building Type"
-                disabled={!!selectedAddressId}
+                options={
+                  isWholesale
+                    ? [{ value: "house", label: "House" }]
+                    : [
+                      { value: "house", label: "House" },
+                      { value: "apartment", label: "Apartment" },
+                    ]
+                }
+                placeholder="Select building type"
+                hideArrow={isWholesale}
               />
             </div>
 
