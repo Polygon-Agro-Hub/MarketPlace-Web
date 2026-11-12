@@ -87,6 +87,7 @@ export default function ExcludeItems() {
   const user = useSelector((state: RootState) => state.auth.user);
   const [skipping, setSkipping] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const isSearching = searchQuery.trim().length > 0;
 
   // ── Fetch ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -551,24 +552,27 @@ export default function ExcludeItems() {
         )}
 
         <div className="flex flex-col items-center gap-3 mt-6">
-          {hasChanges ? (
-            <button
-              onClick={handleContinue}
-              disabled={saving}
-              className={`${baseBtn} ${saving
-                  ? "bg-[#A9A9A9] text-white cursor-not-allowed"
-                  : "bg-[#3E206D] hover:bg-[#341a5a] text-white cursor-pointer"
-                }`}
-              aria-label="Save and continue"
-            >
-              {saving ? "Saving..." : "Save & Continue"}
-            </button>
-          ) : (
+          {/* Save & Continue: always visible, gray + disabled until there are changes */}
+          <button
+            type="button"
+            onClick={handleContinue}
+            disabled={!hasChanges || saving}
+            className={`${baseBtn} ${!hasChanges || saving
+                ? "bg-[#A9A9A9] text-white cursor-not-allowed"
+                : "bg-[#3E206D] hover:bg-[#341a5a] text-white cursor-pointer"
+              }`}
+            aria-label="Save and continue"
+          >
+            {saving ? "Saving..." : "Save & Continue"}
+          </button>
+
+          {/* Skip for now: hidden while searching */}
+          {!isSearching && (
             <button
               type="button"
               onClick={handleSkip}
-              disabled={skipping}
-              className={`${baseBtn} bg-[#3E206D] text-white ${skipping
+              disabled={skipping || saving}
+              className={`${baseBtn} bg-[#3E206D] text-white ${skipping || saving
                   ? "opacity-60 cursor-not-allowed"
                   : "hover:bg-[#341a5a] cursor-pointer"
                 }`}

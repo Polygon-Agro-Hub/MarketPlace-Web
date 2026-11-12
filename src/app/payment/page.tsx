@@ -411,18 +411,20 @@ const Page: React.FC = () => {
       return;
     }
 
-    // First order's date: the server's date if returned, otherwise the date chosen at checkout
     const firstOrderDate =
       toDateStr(result?.data?.processOrders?.[0]?.sheduleDate) ?? scheduleDateStr;
 
     const message = buildOrderPlacedSms({
       scheduleType: checkoutDetails.scheduleType || "One Time",
-      deliveryDate: firstOrderDate,   // was: checkoutDetails.deliveryDate || null
+      deliveryDate: firstOrderDate,
       earliestDate,
       isReviewPackage,
       payMode: isFullyCoveredByCredit ? "credit" : paymentMethod,
       invNo: result?.invNo ?? result?.invoiceNo ?? null,
+      buyerType: user?.buyerType, // from the existing top-level selector
     });
+
+    console.log("Order placed SMS message:", message);
 
     if (!message) return;
 
