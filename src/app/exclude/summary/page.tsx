@@ -19,6 +19,9 @@ import Lottie from "react-lottie";
 import addNewAnimation from "@/assets/animations/GoViMartAddNew.json";
 import HeartIcon from "../../../../public/icons/heart-solid.png";
 import CancerIcon from "../../../../public/icons/xmark-solid.png";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCircleInfo } from "@fortawesome/free-solid-svg-icons";
+import CustomizationHelpModal from "@/components/profile/CustomizationHelpModal";
 
 interface Item {
   displayName: string;
@@ -50,6 +53,7 @@ export default function ExcludedItems() {
   const [showSuccessPopup, setShowSuccessPopup] = useState<boolean>(false);
   const [successMessage, setSuccessMessage] = useState<string>("");
   const [continueLoading, setContinueLoading] = useState<boolean>(false);
+  const [showHelp, setShowHelp] = useState<boolean>(false);
 
   // ── Fetch ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -467,6 +471,7 @@ export default function ExcludedItems() {
       </div>
 
       {/* Heading */}
+      {/* Heading */}
       <div className="w-full flex flex-col items-center mb-6">
         <h2 className="text-[18px] md:text-[26px] font-semibold mb-2 text-center text-[#001535]">
           Review Your Preferences
@@ -476,6 +481,15 @@ export default function ExcludedItems() {
           <br />
           You can update your preferences anytime.
         </p>
+
+        <button
+          type="button"
+          onClick={() => setShowHelp(true)}
+          className="flex items-center gap-1.5 mt-3 text-[13px] md:text-[14px] font-medium text-[#1A73E8] underline cursor-pointer"
+        >
+          <FontAwesomeIcon icon={faCircleInfo} className="w-3.5 h-3.5" />
+          Need help?
+        </button>
       </div>
 
       {error && (
@@ -564,6 +578,10 @@ export default function ExcludedItems() {
           </div>
         </div>
       )}
+      <CustomizationHelpModal
+        isOpen={showHelp}
+        onClose={() => setShowHelp(false)}
+      />
     </div>
   );
 }

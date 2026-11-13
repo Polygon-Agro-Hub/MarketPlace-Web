@@ -882,9 +882,6 @@ export const sendSms = async (
   try {
     const digits = (phoneNumber || "").replace(/\D/g, "");
     if (!digits || !message) return false;
-
-    console.log(`Sending SMS to ${phoneCode}${digits}: "${message}"`);
-
     const response = await fetch("/api/shoutout/message", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

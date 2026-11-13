@@ -13,6 +13,7 @@ import {
   getIncludedItems,
   addIncludedItems,
   deleteIncludedItems,
+  updateUserStatus, // ← add
 } from "@/services/product-service";
 import { useRouter } from "next/navigation";
 import Lottie from "react-lottie";
@@ -21,6 +22,9 @@ import { Info } from "lucide-react";
 import HeartIcon from "../../../../public/icons/heart-solid.png";
 import CancerIcon from "../../../../public/icons/xmark-solid.png";
 import BoxIcon from "../../../../public/icons/box-solid.png";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCircleInfo } from "@fortawesome/free-solid-svg-icons";
+import CustomizationHelpModal from "@/components/profile/CustomizationHelpModal";
 
 interface Item {
   displayName: string;
@@ -80,6 +84,10 @@ export default function ExcludeItems() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const user = useSelector((state: RootState) => state.auth.user);
+  const [skipping, setSkipping] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
+  const isSearching = searchQuery.trim().length > 0;
 
   // ── Fetch ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -227,9 +235,58 @@ export default function ExcludeItems() {
     }
   };
 
+  const handleSkip = async () => {
+    if (!authToken || saving || skipping) return;
+    setSkipping(true);
+
+    try {
+      // Same as the summary page: mark the user's status before leaving
+      const statusResponse = await updateUserStatus(authToken);
+      if (!statusResponse.status) {
+        setError(statusResponse.message || "Failed to update user status.");
+        setTimeout(() => setError(null), 4000);
+        return;
+      }
+
+      const { isDashUser, isPswUpdateed, isMarketPlaceUser, buyerType } = user || {};
+
+      const goToHome = () => {
+        if (buyerType === "Retail") router.push("/");
+        else if (buyerType === "Wholesale") router.push("/wholesale/home");
+        else router.push("/signin");
+      };
+
+      if (isDashUser === 1 && isPswUpdateed === 0) {
+        // Dash user who hasn't set a password yet
+        router.push("/dash-password-update");
+      } else if (isDashUser === 1 && isPswUpdateed === 1) {
+        goToHome();
+      } else if (isMarketPlaceUser === 1 && isDashUser === 0) {
+        goToHome();
+      } else {
+        router.push("/signin"); // fallback
+      }
+    } catch (err: any) {
+      setError(err.message || "An unexpected error occurred.");
+      setTimeout(() => setError(null), 4000);
+    } finally {
+      setSkipping(false);
+    }
+  };
+
   const filteredItems = items.filter((item) =>
     item.displayName.toLowerCase().includes(searchQuery.trim().toLowerCase()),
   );
+
+  // True when any item differs from its saved state (across ALL items, not just the filtered/searched ones)
+  const hasChanges = items.some(
+    (i) =>
+      i.includeToggle !== i.includeOriginal ||
+      i.excludeToggle !== i.excludeOriginal,
+  );
+
+  const baseBtn =
+    "w-full max-w-xl h-12 rounded-lg font-semibold text-base md:text-lg transition-colors";
 
   // ── Render ────────────────────────────────────────────────────────
   return (
@@ -260,6 +317,15 @@ export default function ExcludeItems() {
         <br />
         An item cannot be both preferred and excluded.
       </p>
+
+      <button
+        type="button"
+        onClick={() => setShowHelp(true)}
+        className="flex items-center gap-1.5 mb-5 text-[13px] md:text-[14px] font-medium text-[#1A73E8] underline cursor-pointer"
+      >
+        <FontAwesomeIcon icon={faCircleInfo} className="w-3.5 h-3.5" />
+        Need help?
+      </button>
 
       <div className="w-full max-w-2xl">
         {/* Search */}
@@ -485,19 +551,39 @@ export default function ExcludeItems() {
           </div>
         )}
 
-        {/* Continue button — always enabled */}
-        <div className="flex justify-center">
+        <div className="flex flex-col items-center gap-3 mt-6">
+          {/* Save & Continue: always visible, gray + disabled until there are changes */}
           <button
+            type="button"
             onClick={handleContinue}
-            disabled={saving}
-            className={`w-full max-w-xl bg-[#3E206D] text-white p-2 rounded-lg mt-6 font-semibold text-base md:text-lg transition-opacity
-            ${saving ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}`}
-            aria-label="Continue"
+            disabled={!hasChanges || saving}
+            className={`${baseBtn} ${!hasChanges || saving
+                ? "bg-[#A9A9A9] text-white cursor-not-allowed"
+                : "bg-[#3E206D] hover:bg-[#341a5a] text-white cursor-pointer"
+              }`}
+            aria-label="Save and continue"
           >
-            {saving ? "Saving..." : "Continue"}
+            {saving ? "Saving..." : "Save & Continue"}
           </button>
+
+          {/* Skip for now: hidden while searching */}
+          {!isSearching && (
+            <button
+              type="button"
+              onClick={handleSkip}
+              disabled={skipping || saving}
+              className={`${baseBtn} bg-[#3E206D] text-white ${skipping || saving
+                  ? "opacity-60 cursor-not-allowed"
+                  : "hover:bg-[#341a5a] cursor-pointer"
+                }`}
+              aria-label="Skip for now"
+            >
+              {skipping ? "Please wait..." : "Skip for now"}
+            </button>
+          )}
         </div>
       </div>
+      <CustomizationHelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
     </div>
   );
 }

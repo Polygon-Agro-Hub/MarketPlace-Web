@@ -116,7 +116,7 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
     return () => clearInterval(interval);
   }, [token, tokenExpiration, pathname]);
 
-  // Real-time credit balance
+  // Real-time Polygon Wallet
 useEffect(() => {
   if (!token || !isTokenValid) {
     socketService.setAuthToken(null); // logged out -> back to guest socket
@@ -608,7 +608,7 @@ useEffect(() => {
                             margin: 0,
                           }}
                         >
-                          Credit Balance
+                          Polygon Wallet
                         </p>
                         <p
                           style={{
@@ -817,12 +817,12 @@ useEffect(() => {
                     )}
                   </div>
                 )}
-                <Link
+                {/* <Link
                   href="/promotions"
                   className="py-4 px-6 border-b border-[#828282] hover:bg-purple-800 text-[#FFFFFF]"
                 >
                   Promotions
-                </Link>
+                </Link> */}
                 {isAuthenticated() && (
                   <Link
                     href="/history/order"

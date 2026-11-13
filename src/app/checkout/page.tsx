@@ -270,6 +270,32 @@ const Page: React.FC = () => {
   const [showPackagePopup, setShowPackagePopup] = useState(false);
   const [packageHandlingOption, setPackageHandlingOption] = useState<"review" | "finalize">("review");
   const cartPackages = useSelector((state: RootState) => state.cartItems.packages);
+  const isWholesale = useSelector((state: RootState) =>
+    (state.auth.user?.buyerType ?? "").toLowerCase().includes("wholesale"),
+  );
+  console.log("buyer type:", useSelector((state: RootState) => state.auth.user?.buyerType));
+
+  console.log("isWholesale:", isWholesale);
+  // Default building type used whenever a fresh form is created
+  const defaultBuildingType = isWholesale ? "House" : "Apartment";
+
+  // Wholesale accounts can only ever use "House"
+  const resolveBuildingType = (type?: string | null) =>
+    isWholesale ? "House" : type || "Apartment";
+
+
+  useEffect(() => {
+    if (isWholesale && formData.buildingType !== "House") {
+      setFormDataLocal((prev) => ({ ...prev, buildingType: "House" }));
+    }
+  }, [isWholesale, formData.buildingType]);
+
+  // Fresh-form factory (replaces direct use of initialFormState for resets)
+  const getFreshForm = (deliveryMethod: string): FormData => ({
+    ...initialFormState,
+    deliveryMethod,
+    buildingType: defaultBuildingType,
+  });
   const userNearestCity = useSelector(
     (state: RootState) => state.auth.user?.nearesCity,
   ) as string | null | undefined;
@@ -666,10 +692,7 @@ const Page: React.FC = () => {
         } else {
           setAddressMode("new");
           setSelectedCity(null);
-          setFormDataLocal((prev) => ({
-            ...initialFormState,
-            deliveryMethod: prev.deliveryMethod,
-          }));
+          setFormDataLocal((prev) => getFreshForm(prev.deliveryMethod));
           setDeliveryCharge(0);
         }
       }
@@ -704,7 +727,7 @@ const Page: React.FC = () => {
 
     setFormDataLocal((prev) => ({
       ...prev,
-      buildingType: data.buildingType || "Apartment",
+      buildingType: resolveBuildingType(data.buildingType),
       title: data.title ? data.title.replace(/\./g, "") : "",
       fullName: data.fullName || "",
       phone1: data.phone1 || "",
@@ -775,10 +798,7 @@ const Page: React.FC = () => {
       setSelectedAddressKey(null);
       setSelectedCity(null);
       setCityNotAvailable(false);
-      setFormDataLocal((prev) => ({
-        ...initialFormState,
-        deliveryMethod: prev.deliveryMethod,
-      }));
+      setFormDataLocal((prev) => getFreshForm(prev.deliveryMethod));
       setDeliveryCharge(0);
     }
   };
@@ -809,7 +829,7 @@ const Page: React.FC = () => {
 
     setFormDataLocal((prev) => ({
       ...prev,
-      buildingType: addr.buildingType || "Apartment",
+      buildingType: resolveBuildingType(addr.buildingType),
       title: addr.title ? addr.title.replace(/\./g, "") : "",
       fullName: addr.fullName || "",
       phone1: addr.phone1 || "",
@@ -910,6 +930,16 @@ const Page: React.FC = () => {
 
   const handleFieldChange = (field: keyof FormData, value: string | number) => {
     if (isReadOnly && readOnlyFields.includes(field)) return;
+
+    // Wholesale users cannot choose Apartment for a new address
+    if (
+      isWholesale &&
+      addressMode === "new" &&
+      field === "buildingType" &&
+      value === "Apartment"
+    ) {
+      return;
+    }
     // Update the form state
     setFormDataLocal((prev) => ({ ...prev, [field]: value }));
 
@@ -950,7 +980,10 @@ const Page: React.FC = () => {
       if (value === "home") {
         setUsePreviousAddress(true);
         setSelectedPickupCenter(null);
-        handleAddressOptionChange("recent");
+
+        if (hasRecentAddress) handleAddressOptionChange("recent");
+        else if (hasPreviousAddress) handleAddressOptionChange("previous");
+        else handleAddressOptionChange("new");
       } else if (value === "pickup") {
         setUsePreviousAddress(false);
         setSelectedCity(null); // Clear city selection
@@ -967,9 +1000,8 @@ const Page: React.FC = () => {
           timeSlot: formData.timeSlot,
         };
 
-        setFormDataLocal((prev) => ({
-          ...initialFormState,
-          deliveryMethod: value as string,
+        setFormDataLocal(() => ({
+          ...getFreshForm(value as string),   // was ...initialFormState
           ...basicInfo,
         }));
       }
@@ -1205,9 +1237,11 @@ const Page: React.FC = () => {
           ? `${fieldLabels.validPeriod} is required.`
           : "";
 
-      // Address fields - only required for home delivery
       case "buildingType":
-        return isHomeDelivery && !trimmed ? `${fieldLabels.buildingType} is required.` : "";
+        if (isHomeDelivery && !trimmed) return `${fieldLabels.buildingType} is required.`;
+        if (isWholesale && addressMode === "new" && trimmed === "Apartment")
+          return "Apartment is not available for wholesale accounts.";
+        return "";
 
       case "buildingName":
       case "buildingNo":
@@ -1433,17 +1467,13 @@ const Page: React.FC = () => {
         setFormData({
           ...dataToSubmit,
           ...recurringPayload,
-          earliestPossibleDate: getMinDateStr(), // NEW
+          earliestPossibleDate:
+            scheduleInfoRef.current?.earliestDate ??
+            scheduleInfo?.earliestDate ??
+            getMinDateStr(),
           isFinalizeImdt: hasPackages && packageHandlingOption === "finalize" ? 1 : 0,
         } as any),
       );
-
-      console.log("Form data dispatched to Redux:", {
-        ...dataToSubmit,
-        ...recurringPayload,
-        earliestPossibleDate: getMinDateStr(),
-        isFinalizeImdt: hasPackages && packageHandlingOption === "finalize" ? 1 : 0,
-      });
 
       localStorage.setItem("deliveryCharge", deliveryCharge.toString());
 
@@ -1616,6 +1646,7 @@ const Page: React.FC = () => {
                         >
                           {savedAddresses.map((addr, index) => {
                             const isSelected = selectedAddressKey === addr.addressKey;
+
 
                             const summary =
                               addr.buildingType === "Apartment"
@@ -1944,23 +1975,28 @@ const Page: React.FC = () => {
                       {!isLoadingAddress && (
                         <div className="flex flex-wrap -mx-2">
                           {/* Building Type */}
+                          {/* Building Type */}
                           <div className="w-full md:w-1/2 px-2 mb-4">
                             <label className="block text-[#2E2E2E] font-semibold mb-1">
                               Building type *
                             </label>
-                            <CustomDropdown
-                              options={BUILDING_TYPE_OPTIONS}
-                              selectedValue={formData.buildingType}
-                              onSelect={(value) =>
-                                handleFieldChange("buildingType", value)
-                              }
-                              placeholder="Building type"
-                              disabled={isReadOnly}
-                            />
+
+                            {isWholesale ? (
+                              <div className="w-full h-[39px] border-2 border-[#F2F4F7] bg-[#F9FAFB] rounded-lg px-4 flex items-center text-base text-[#2E2E2E] cursor-default">
+                                House
+                              </div>
+                            ) : (
+                              <CustomDropdown
+                                options={BUILDING_TYPE_OPTIONS}
+                                selectedValue={formData.buildingType}
+                                onSelect={(value) => handleFieldChange("buildingType", value)}
+                                placeholder="Building type"
+                                disabled={isReadOnly}
+                              />
+                            )}
+
                             {errors.buildingType && (
-                              <p className="text-red-600 text-sm mt-1">
-                                {errors.buildingType}
-                              </p>
+                              <p className="text-red-600 text-sm mt-1">{errors.buildingType}</p>
                             )}
                           </div>
 
@@ -2447,32 +2483,41 @@ const Page: React.FC = () => {
                       <input
                         type="date"
                         className={`
-                            date-input 
-                            w-full 
-                            border 
-                            h-[39px] 
-                            border-gray-300 
-                            cursor-pointer 
-                            focus:outline-none 
-                            focus:ring-2 
-                            focus:ring-purple-600 
-                            rounded-lg 
-                            px-4 
-                            py-2 
-                            bg-white 
-                            pr-10
-                            [&::-webkit-calendar-picker-indicator]:opacity-0
-                            [&::-webkit-calendar-picker-indicator]:absolute
-                            [&::-webkit-calendar-picker-indicator]:right-0
-                            [&::-webkit-calendar-picker-indicator]:w-full
-                            [&::-webkit-calendar-picker-indicator]:h-full
-                            [&::-webkit-calendar-picker-indicator]:cursor-pointer
-                            [&::-webkit-calendar-picker-indicator]:z-[2]
-                            [&::-webkit-calendar-picker-indicator]:bg-transparent
-                            ${formData.deliveryDate ? "has-value" : ""}
-                          `}
+                        date-input
+                        block
+                        w-full
+                        min-w-0
+                        max-w-full
+                        appearance-none
+                        box-border
+                        border
+                        h-[39px]
+                        border-gray-300
+                        cursor-pointer
+                        focus:outline-none
+                        focus:ring-2
+                        focus:ring-purple-600
+                        rounded-lg
+                        px-4
+                        py-2
+                        bg-white
+                        pr-10
+                        [&::-webkit-calendar-picker-indicator]:opacity-0
+                        [&::-webkit-calendar-picker-indicator]:absolute
+                        [&::-webkit-calendar-picker-indicator]:right-0
+                        [&::-webkit-calendar-picker-indicator]:w-full
+                        [&::-webkit-calendar-picker-indicator]:h-full
+                        [&::-webkit-calendar-picker-indicator]:cursor-pointer
+                        [&::-webkit-calendar-picker-indicator]:z-[2]
+                        [&::-webkit-calendar-picker-indicator]:bg-transparent
+                        ${formData.deliveryDate ? "has-value" : ""}
+                      `}
                         style={{
                           colorScheme: "light",
+                          WebkitAppearance: "none",
+                          appearance: "none",
+                          minWidth: 0,
+                          maxWidth: "100%",
                         }}
                         value={formData.deliveryDate}
                         onChange={(e) => handleFieldChange("deliveryDate", e.target.value)}

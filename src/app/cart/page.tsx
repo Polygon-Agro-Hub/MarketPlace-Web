@@ -32,10 +32,17 @@ import invalidPackageIcon from "../../../public/invalid-package.png";
 import socketService from "@/services/socketService";
 import { FaInfoCircle, FaClock } from "react-icons/fa";
 
+interface MarketplaceItem {
+  id: number;
+  name: string;
+  quantity: number;
+}
+
 interface PackageItem {
   name: string;
   quantity: number;
   hasSpecialBadge: boolean;
+  marketplaceItems?: MarketplaceItem[];
 }
 
 interface SeasonalNotice {
@@ -92,6 +99,108 @@ interface ConfirmModal {
   id: number;
   selectedIds?: number[];
 }
+
+const PackageItemInfo = ({
+  item,
+  isMobile,
+}: {
+  item: PackageItem;
+  isMobile: boolean;
+}) => {
+  const [open, setOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const list = item.marketplaceItems ?? [];
+
+  // Close on outside tap (mobile)
+  useEffect(() => {
+    if (!open || !isMobile) return;
+    const handleOutside = (e: MouseEvent | TouchEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutside);
+    document.addEventListener("touchstart", handleOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleOutside);
+      document.removeEventListener("touchstart", handleOutside);
+    };
+  }, [open, isMobile]);
+
+  if (list.length === 0) return null;
+
+  return (
+    <div
+      className="relative inline-flex"
+      ref={wrapperRef}
+      onMouseEnter={() => !isMobile && setOpen(true)}
+      onMouseLeave={() => !isMobile && setOpen(false)}
+    >
+      <button
+        type="button"
+        onClick={() => isMobile && setOpen((o) => !o)}
+        onFocus={() => !isMobile && setOpen(true)}
+        onBlur={() => !isMobile && setOpen(false)}
+        aria-label={`What is included in ${item.name}`}
+        className="text-[#626D76] hover:text-[#3E206D] cursor-pointer"
+      >
+        <FaInfoCircle className="w-4 h-4" />
+      </button>
+
+      {open && (
+        // pl-3 / pt-2 (not margin) keeps the hover area continuous
+        // between the icon and the card, so it doesn't flicker closed.
+        <div
+          className={`absolute z-50 ${isMobile
+              ? "right-0 top-full pt-2"
+              : "left-full top-1/2 -translate-y-1/2 pl-3"
+            }`}
+        >
+          <div className="relative w-[260px] bg-white rounded-xl shadow-lg border border-[#EEEEEE] p-3">
+            {!isMobile && (
+              <span className="absolute -left-1.5 top-1/2 -translate-y-1/2 w-3 h-3 rotate-45 bg-white border-l border-b border-[#EEEEEE]" />
+            )}
+
+            <div className="flex items-start justify-between gap-2 pb-2 border-b border-[#F0F0F0]">
+              <div className="flex items-start gap-2">
+                <span className="w-5 h-5 rounded-full bg-[#E6F7EA] text-[#4CAF50] flex items-center justify-center text-[10px] flex-shrink-0 mt-0.5">
+                  ✓
+                </span>
+                <p className="text-[12px] font-semibold text-[#001535] leading-tight">
+                  What are included in {item.name}?
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                aria-label="Close"
+                className="text-[#626D76] hover:text-black cursor-pointer flex-shrink-0"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <p className="text-[11px] text-[#626D76] mt-2 leading-snug">
+              We include {item.quantity} of these products from time to time,
+              depending on the season.
+            </p>
+
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {list.map((m) => (
+                <span
+                  key={m.id}
+                  className="px-2.5 py-1 rounded-full bg-[#E6F7EA] text-[#2E7D32] text-[11px]"
+                >
+                  {m.name}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const Page: React.FC = () => {
   const NavArray = [
@@ -353,10 +462,18 @@ const Page: React.FC = () => {
           );
         const cartHasOnlyInvalidItems = !hasValidPackages && !hasAdditionalItems;
 
+        const freshSummary = computeSummaryFrom(
+          response.packages,
+          filteredAdditionalItems,
+          initialUnitSelection,
+        );
+
         dispatch(
           updateCartInfo({
-            price: cartHasOnlyInvalidItems ? 0 : authCart.price,
-            count: cartHasOnlyInvalidItems ? 0 : authCart.count,
+            price: cartHasOnlyInvalidItems
+              ? 0
+              : parseFloat(freshSummary.finalTotal.toFixed(2)),
+            count: cartHasOnlyInvalidItems ? 0 : freshSummary.totalItems,
             creditBalance: response.cart?.creditBalance ?? 0,
           }),
         );
@@ -1831,11 +1948,13 @@ const Page: React.FC = () => {
                               <span className="text-xs font-medium text-gray-400 uppercase tracking-wide text-right">Quantity</span>
                             </div>
                             {pkg.items.map((item, idx) => (
-                              <div key={idx} className="grid grid-cols-2 items-center">
-                                <span className="text-sm text-gray-900 font-medium">{item.name}</span>
-                                <span className="text-sm text-gray-900 font-medium text-right">
-                                  {String(item.quantity).padStart(2, "0")}
-                                </span>
+                              <div key={idx} className="flex items-center justify-between ...">
+                                <span>{item.name}</span>
+
+                                <div className="flex items-center gap-3">
+                                  <span>{String(item.quantity).padStart(2, "0")}</span>
+                                  <PackageItemInfo item={item} isMobile={isMobile} />
+                                </div>
                               </div>
                             ))}
                           </div>
@@ -1906,10 +2025,14 @@ const Page: React.FC = () => {
                             <span className="text-sm sm:text-base text-gray-900 font-medium truncate pr-1">
                               {item.name}
                             </span>
-                            <div className="text-right">
+                            <div className="flex items-center justify-end gap-3">
                               <span className="text-sm sm:text-base text-gray-900 font-medium">
                                 {String(item.quantity).padStart(2, "0")}
                               </span>
+                              {/* Fixed-width slot keeps quantities aligned even when a row has no icon */}
+                              <div className="w-4 h-4 flex items-center justify-center">
+                                <PackageItemInfo item={item} isMobile={isMobile} />
+                              </div>
                             </div>
                           </div>
                         ))}

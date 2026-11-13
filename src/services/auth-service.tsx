@@ -35,6 +35,8 @@ interface SignupPayload {
   city?: string;
   cityId?: number | null;
   restoreAccount?: boolean;
+  docType: "NIC" | "PASS";
+  brFile?: File | null;
 }
 
 interface SignupResponse {
@@ -299,9 +301,7 @@ const emailOtpReferenceIds = new Set<string>();
 export const login = async (payload: LoginPayload): Promise<LoginResponse> => {
   try {
     const response = await axios.post("/auth/login", payload, {
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
     });
 
     if (response.status >= 200 && response.status < 300) {
@@ -310,11 +310,24 @@ export const login = async (payload: LoginPayload): Promise<LoginResponse> => {
       throw new Error(response.data?.message || "Login failed");
     }
   } catch (error: any) {
+    console.log("LOGIN ERROR:", error, error?.response?.data); // temporary debug
+
     if (error.response) {
+      const d = error.response.data;
+
+      if (d?.code === "WHOLESALE_PENDING" || d?.code === "WHOLESALE_REJECTED") {
+        const e: any = new Error(d.message);
+        e.wholesaleStatus = {
+          type: d.code === "WHOLESALE_REJECTED" ? "rejected" : "pending",
+          info: d.data,
+        } as WholesaleStatus;
+        throw e;
+      }
+
       throw new Error(
-        error.response.data?.message ||
-        error.response.data?.error ||
-        `Login failed with status ${error.response.status}`,
+        d?.message ||
+          d?.error ||
+          `Login failed with status ${error.response.status}`,
       );
     } else if (error.request) {
       throw new Error(
@@ -345,10 +358,19 @@ export const signup = async (
       throw new Error("You must agree to the Terms & Conditions");
     }
 
-    const response = await axios.post("/auth/signup", payload, {
-      headers: {
-        "Content-Type": "application/json",
-      },
+    const { brFile, ...rest } = payload;
+    const fd = new FormData();
+    Object.entries(rest).forEach(([key, value]) => {
+      if (value === null || value === undefined) return;
+      fd.append(key, String(value));
+    });
+    if (brFile && payload.buyerType === "Wholesale") {
+      fd.append("brImage", brFile);
+    }
+
+    const response = await axios.post("/auth/signup", fd, {
+      headers: { "Content-Type": "multipart/form-data" },
+      timeout: 60000,
     });
 
     const resData = response.data;
@@ -378,16 +400,56 @@ export const signup = async (
   }
 };
 
+export interface WholesaleStatusInfo {
+  reference: string;
+  reviewStatus: "To Review" | "Reject";
+  submittedAt: string | null;
+  reviewedAt: string | null;
+  fileName: string | null;
+}
+
+export interface WholesaleStatus {
+  type: "pending" | "rejected";
+  info: WholesaleStatusInfo;
+}
+
+export const resubmitWholesaleBr = async (
+  email: string,
+  password: string,
+  file: File,
+): Promise<WholesaleStatusInfo> => {
+  try {
+    const fd = new FormData();
+    fd.append("email", email);
+    fd.append("password", password);
+    fd.append("brImage", file);
+
+    const response = await axios.post("/auth/resubmit-br", fd, {
+      headers: { "Content-Type": undefined },
+      timeout: 60000,
+    });
+
+    if (response.data?.status) return response.data.data;
+    throw new Error(response.data?.message || "Failed to resubmit documents");
+  } catch (error: any) {
+    if (error.response) {
+      throw new Error(error.response.data?.message || "Failed to resubmit documents");
+    }
+    throw new Error(error.message || "Failed to resubmit documents");
+  }
+};
+
 export const verifyUserDetails = async (
   email: string,
   phoneNumber: string,
   phoneCode: string,
   nicNumber: string,
+  docType: "NIC" | "PASS" = "NIC",
 ): Promise<VerifyUserDetailsResponse> => {
   try {
     const response = await axios.post(
       "/auth/verify-user-details",
-      { email, phoneNumber, phoneCode, nicNumber },
+      { email, phoneNumber, phoneCode, nicNumber, docType },
       { headers: { "Content-Type": "application/json" } },
     );
 
@@ -1620,7 +1682,7 @@ export const creditBalancePayment = async (
 ): Promise<CreditBalanceCheckout> => {
   try {
     const response = await axios.post(
-      "/user/credit-balance-payment", 
+      "/user/credit-balance-payment",
       { amount },
       {
         headers: {
@@ -1651,8 +1713,8 @@ export const creditBalancePayment = async (
     if (error.response) {
       throw new Error(
         error.response.data?.message ||
-          error.response.data?.error ||
-          `Credit balance payment failed with status ${error.response.status}`,
+        error.response.data?.error ||
+        `Credit balance payment failed with status ${error.response.status}`,
       );
     }
     throw new Error(
