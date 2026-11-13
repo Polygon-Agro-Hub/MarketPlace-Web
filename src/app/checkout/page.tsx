@@ -1467,7 +1467,10 @@ const Page: React.FC = () => {
         setFormData({
           ...dataToSubmit,
           ...recurringPayload,
-          earliestPossibleDate: getMinDateStr(), // NEW
+          earliestPossibleDate:
+            scheduleInfoRef.current?.earliestDate ??
+            scheduleInfo?.earliestDate ??
+            getMinDateStr(),
           isFinalizeImdt: hasPackages && packageHandlingOption === "finalize" ? 1 : 0,
         } as any),
       );
