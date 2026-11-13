@@ -97,6 +97,7 @@ interface CustomDropdownProps {
   withSearch?: boolean;
   maxVisibleItems?: number;
   disabled?: boolean;
+  hideArrow?: boolean;
 }
 
 const CustomDropdown = ({
@@ -110,6 +111,7 @@ const CustomDropdown = ({
   withSearch = false,
   maxVisibleItems = 6,
   disabled = false,
+  hideArrow = false,
 }: CustomDropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -149,9 +151,11 @@ const CustomDropdown = ({
       <div
         className={`appearance-none border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-[12px] md:text-[14px] pr-8 flex items-center justify-between ${disabled
           ? "bg-[#F3F4F6] cursor-not-allowed opacity-70"
-          : "cursor-pointer"
+          : hideArrow
+            ? "cursor-default"
+            : "cursor-pointer"
           }`}
-        onClick={() => !disabled && setIsOpen(!isOpen)}
+        onClick={() => !disabled && !hideArrow && setIsOpen(!isOpen)}
       >
         <span className="flex items-center gap-2">
           {selectedOption?.countryCode && (
@@ -163,7 +167,7 @@ const CustomDropdown = ({
           )}
           <span>{(value && selectedOption?.label) || placeholder}</span>
         </span>
-        {!disabled && (
+        {!disabled && !hideArrow && (
           <FaAngleDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none" />
         )}
       </div>
@@ -1574,11 +1578,18 @@ const BillingDetailsForm = () => {
                 register={register}
                 setValue={setValue}
                 name="buildingType"
-                value={buildingType}
+                value={watch("buildingType")}
                 errors={errors}
-                options={buildingTypeOptions}
-                placeholder="Select Building Type"
-                disabled={!!selectedAddressId}
+                options={
+                  isWholesale
+                    ? [{ value: "house", label: "House" }]
+                    : [
+                      { value: "house", label: "House" },
+                      { value: "apartment", label: "Apartment" },
+                    ]
+                }
+                placeholder="Select building type"
+                hideArrow={isWholesale}
               />
             </div>
 

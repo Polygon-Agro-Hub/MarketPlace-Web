@@ -966,7 +966,7 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
 
                                 {/* Phone row */}
                                 <div className="flex flex-row w-full space-x-3">
-                                    <div className="w-28 flex-shrink-0">
+                                   <div className="w-32 flex-shrink-0">
                                         <PhoneCodeDropdown
                                             selectedValue={formData.phoneCode}
                                             onSelect={(value) => {
@@ -1043,9 +1043,10 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
                                                     ? "Passport ID"
                                                     : "National Identity Card (NIC) Number"
                                             }
-                                            className={`h-10 w-full border rounded-md px-3 py-2 pr-20 focus:outline-none focus:ring-1 ${linkedAccount && restoreConfirmed
-                                                ? "bg-purple-100 border-[#3E206D]"
-                                                : getInputClass("nicNumber")
+                                            className={`h-10 w-full border rounded-md px-3 py-2 text-sm md:text-base placeholder:text-xs sm:placeholder:text-sm md:placeholder:text-base truncate focus:outline-none focus:ring-1 ${linkedAccount && restoreConfirmed ? "pr-20" : "pr-3"
+                                                } ${linkedAccount && restoreConfirmed
+                                                    ? "bg-purple-100 border-[#3E206D]"
+                                                    : getInputClass("nicNumber")
                                                 }`}
                                         />
                                         {linkedAccount && restoreConfirmed && (
@@ -1341,10 +1342,10 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
                                                             </div>
                                                             <span className="text-xs text-gray-400">{formatFileSize(brFile.size)}</span>
                                                         </div>
-                                                        <button type="button" onClick={handleBrPreview} className="p-1 text-gray-700 hover:text-[#3E206D]">
+                                                        <button type="button" onClick={handleBrPreview} className="p-1 text-gray-700 hover:text-[#3E206D] cursor-pointer">
                                                             <Eye className="w-4 h-4" />
                                                         </button>
-                                                        <button type="button" onClick={handleBrRemove} className="p-1 text-red-500 hover:text-red-700">
+                                                        <button type="button" onClick={handleBrRemove} className="p-1 text-red-500 hover:text-red-700 cursor-pointer">
                                                             <Trash2 className="w-4 h-4" />
                                                         </button>
                                                     </div>
@@ -1396,7 +1397,7 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
                                     )}
                                 </div>
 
-                                <div className="flex items-center mb-8 md:mb-8">
+                                {/* <div className="flex items-center mb-8 md:mb-8">
                                     <input
                                         type="checkbox"
                                         id="marketing"
@@ -1411,7 +1412,7 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
                                     >
                                         I would prefer receiving promotion E-mails
                                     </label>
-                                </div>
+                                </div> */}
 
                                 <button
                                     type="submit"

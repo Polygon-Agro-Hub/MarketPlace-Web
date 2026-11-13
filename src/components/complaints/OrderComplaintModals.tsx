@@ -3,10 +3,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useSelector } from "react-redux";
-import { FaCloudUploadAlt, FaTimes, FaPaperPlane, FaHourglassHalf, FaCommentDots, FaEnvelope } from "react-icons/fa";
+import { FaCloudUploadAlt, FaTimes, FaPaperPlane, FaHourglassHalf, FaCommentDots } from "react-icons/fa";
 import { RootState } from "@/store";
 import { submitComplaint } from "@/services/auth-service";
 import type { OrderComplaint } from "@/services/retail-order-service";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faMessage } from "@fortawesome/free-solid-svg-icons";
 
 /** Complaints raised from order history always use this category ("Complain about my order"). */
 export const ORDER_COMPLAINT_CATEGORY_ID = 1;
@@ -19,11 +21,12 @@ const MAX_SIZE = 5 * 1024 * 1024;
 
 /* ───────────────────────── helpers ───────────────────────── */
 
-// Renders stored text that contains <br/> as real line breaks, without using innerHTML
+// Renders stored text as real line breaks, without using innerHTML.
+// Handles both <br/> tags and raw newline characters (\n / \r\n).
 function Lines({ text }: { text: string }) {
     return (
         <>
-            {text.split(/<br\s*\/?>/i).map((line, i) => (
+            {text.split(/<br\s*\/?>|\r?\n/i).map((line, i) => (
                 <span key={i}>
                     {i > 0 && <br />}
                     {line}
@@ -197,6 +200,10 @@ export function ReportComplaintModal({
             return;
         }
 
+        // Convert the customer's newlines (paragraph breaks) to <br/> so the
+        // stored format is consistent with the invoice prefix line.
+        const formatted = text.trim().replace(/\r?\n/g, "<br/>");
+
         setSubmitting(true);
         setError(null);
         try {
@@ -205,7 +212,7 @@ export function ReportComplaintModal({
                 token,
                 complaintCategoryId: ORDER_COMPLAINT_CATEGORY_ID,
                 // Prefix links the complaint to the invoice; <br/> puts the customer's text on a new line
-                complaint: `Complaint regarding Invoice No : ${invoiceNo}<br/>${text.trim()}`,
+                complaint: `Complaint regarding Invoice No : ${invoiceNo}<br/>${formatted}`,
                 images,
                 imagesToDelete: [],
             });
@@ -340,7 +347,7 @@ export function ViewComplaintModal({
         ? [
             { icon: <FaPaperPlane />, active: true, title: "Complaint Submitted", text: "Your complaint has been submitted.", time: formatSent(complaint.createdAt) },
             { icon: <FaHourglassHalf />, active: true, title: "Under Review", text: "We are reviewing your complaint." },
-            { icon: <FaCommentDots />, active: false, title: "Pending Resolution", text: "Our team will get back to you soon." },
+            { icon: <FontAwesomeIcon icon={faMessage} className="text-black" />, active: false, title: "Pending Resolution", text: "Our team will get back to you soon." },
         ]
         : [];
 
@@ -454,7 +461,7 @@ export function ComplaintReplyModal({
                 {!loading && complaint && (
                     <div className="w-full border border-gray-300 rounded-md p-4 mb-4 max-h-60 overflow-y-auto">
                         <p className="text-sm mb-2">Dear {customerName},</p>
-                        <p className="text-sm mb-4 whitespace-pre-wrap break-words">
+                        <p className="text-sm mb-4 break-words">
                             {complaint.reply ? <Lines text={complaint.reply} /> : "No reply available yet."}
                         </p>
                         <p className="text-sm">Sincerely,</p>

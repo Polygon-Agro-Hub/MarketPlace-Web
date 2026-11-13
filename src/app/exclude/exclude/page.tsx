@@ -87,6 +87,7 @@ export default function ExcludeItems() {
   const user = useSelector((state: RootState) => state.auth.user);
   const [skipping, setSkipping] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const isSearching = searchQuery.trim().length > 0;
 
   // ── Fetch ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -277,9 +278,11 @@ export default function ExcludeItems() {
     item.displayName.toLowerCase().includes(searchQuery.trim().toLowerCase()),
   );
 
-  // True when at least one item is set to include or exclude
-  const hasSelection = items.some(
-    (i) => i.includeToggle === "include" || i.excludeToggle === "exclude",
+  // True when any item differs from its saved state (across ALL items, not just the filtered/searched ones)
+  const hasChanges = items.some(
+    (i) =>
+      i.includeToggle !== i.includeOriginal ||
+      i.excludeToggle !== i.excludeOriginal,
   );
 
   const baseBtn =
@@ -318,7 +321,6 @@ export default function ExcludeItems() {
       <button
         type="button"
         onClick={() => setShowHelp(true)}
-        onMouseEnter={() => setShowHelp(true)}
         className="flex items-center gap-1.5 mb-5 text-[13px] md:text-[14px] font-medium text-[#1A73E8] underline cursor-pointer"
       >
         <FontAwesomeIcon icon={faCircleInfo} className="w-3.5 h-3.5" />
@@ -550,10 +552,12 @@ export default function ExcludeItems() {
         )}
 
         <div className="flex flex-col items-center gap-3 mt-6">
+          {/* Save & Continue: always visible, gray + disabled until there are changes */}
           <button
+            type="button"
             onClick={handleContinue}
-            disabled={saving || skipping || !hasSelection}
-            className={`${baseBtn} ${saving || skipping || !hasSelection
+            disabled={!hasChanges || saving}
+            className={`${baseBtn} ${!hasChanges || saving
                 ? "bg-[#A9A9A9] text-white cursor-not-allowed"
                 : "bg-[#3E206D] hover:bg-[#341a5a] text-white cursor-pointer"
               }`}
@@ -562,18 +566,21 @@ export default function ExcludeItems() {
             {saving ? "Saving..." : "Save & Continue"}
           </button>
 
-          <button
-            type="button"
-            onClick={handleSkip}
-            disabled={saving || skipping}
-            className={`${baseBtn} ${saving || skipping
-                ? "bg-[#3E206D] opacity-60 text-white cursor-not-allowed"
-                : "bg-[#3E206D] hover:bg-[#341a5a] text-white cursor-pointer"
-              }`}
-            aria-label="Skip for now"
-          >
-            {skipping ? "Please wait..." : "Skip for now"}
-          </button>
+          {/* Skip for now: hidden while searching */}
+          {!isSearching && (
+            <button
+              type="button"
+              onClick={handleSkip}
+              disabled={skipping || saving}
+              className={`${baseBtn} bg-[#3E206D] text-white ${skipping || saving
+                  ? "opacity-60 cursor-not-allowed"
+                  : "hover:bg-[#341a5a] cursor-pointer"
+                }`}
+              aria-label="Skip for now"
+            >
+              {skipping ? "Please wait..." : "Skip for now"}
+            </button>
+          )}
         </div>
       </div>
       <CustomizationHelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
