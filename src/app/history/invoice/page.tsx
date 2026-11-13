@@ -71,6 +71,8 @@ interface InvoiceData {
   moneyPaid?: string | number | null;
   amountDue: string;
   isFreeDeliveryCoupon?: boolean;
+  isDashUser?: boolean;
+  serviceFee?: string | null;
   familyPackItems: InvoiceItem[];
   additionalItems: InvoiceItem[];
   familyPackTotal: string;
@@ -123,6 +125,14 @@ function formatQuantity(quantity: string | number, unit: string = ""): string {
 // Helper function to format item count - singular vs plural
 function formatItemCount(count: number): string {
   return count === 1 ? "01 Item" : `${count.toString().padStart(2, "0")} Items`;
+}
+
+function getAdditionalItemsLabel(
+  isDashUser: boolean | undefined,
+  buyerType: string,
+): string {
+  if (isDashUser) return "Custom Items";
+  return buyerType === "Wholesale" ? "Selected Items" : "Additional Items";
 }
 
 // Horizontal Scrollable Table Component with visible scroll indicators
@@ -373,7 +383,7 @@ function InvoiceView({
       <div className="mb-5 grid grid-cols-1 gap-3 lg:grid-cols-[1.15fr_0.85fr] lg:gap-10">
         <div className="order-2 lg:order-1">
           <p className="text-base font-semibold sm:text-lg">
-            Polygon Holdings (Private) Ltd
+            Polygon Holdings (Private) Limited
           </p>
           <div className="text-xs sm:text-sm">
             <p>No. 42/46, Nawam Mawatha, Colombo 02.</p>
@@ -603,7 +613,7 @@ function InvoiceView({
           <div>
             <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <h2 className="text-sm font-semibold sm:text-base">
-                {`${buyerType === "Wholesale" ? "Selected Items" : "Additional Items"} (${formatItemCount(invoice.additionalItems.length)})`}
+                {`${getAdditionalItemsLabel(invoice.isDashUser, buyerType)} (${formatItemCount(invoice.additionalItems.length)})`}
               </h2>
               <span className="text-lg font-semibold">
                 {formatCurrencyWithCommas(invoice.additionalItemsTotal)}
@@ -658,11 +668,11 @@ function InvoiceView({
               ) {
                 total += parseCurrency(invoice.familyPackTotal);
               }
-              if (
-                invoice.additionalItems &&
-                invoice.additionalItems.length > 0
-              ) {
+              if (invoice.additionalItems && invoice.additionalItems.length > 0) {
                 total += parseCurrency(invoice.additionalItemsTotal);
+              }
+              if (invoice.isDashUser && invoice.serviceFee != null) {
+                total += parseCurrency(invoice.serviceFee);
               }
               if (!invoice.deliveryMethod?.toLowerCase().includes("pickup")) {
                 total += parseCurrency(invoice.deliveryFee);
@@ -697,21 +707,24 @@ function InvoiceView({
                             </td>
                           </tr>
                         )}
-                      {invoice.additionalItems &&
-                        invoice.additionalItems.length > 0 && (
-                          <tr>
-                            <td className="p-2 text-[#212121]">
-                              {buyerType === "Wholesale"
-                                ? "Selected Items"
-                                : "Additional Items"}
-                            </td>
-                            <td className="p-2 text-right text-[#212121]">
-                              {formatCurrencyWithCommas(
-                                invoice.additionalItemsTotal,
-                              )}
-                            </td>
-                          </tr>
-                        )}
+                      {invoice.additionalItems && invoice.additionalItems.length > 0 && (
+                        <tr>
+                          <td className="p-2 text-[#212121]">
+                            {getAdditionalItemsLabel(invoice.isDashUser, buyerType)}
+                          </td>
+                          <td className="p-2 text-right text-[#212121]">
+                            {formatCurrencyWithCommas(invoice.additionalItemsTotal)}
+                          </td>
+                        </tr>
+                      )}
+                      {invoice.isDashUser && invoice.serviceFee != null && (
+                        <tr>
+                          <td className="p-2 text-[#212121]">Service Fee</td>
+                          <td className="p-2 text-right text-[#212121]">
+                            {formatCurrencyWithCommas(invoice.serviceFee)}
+                          </td>
+                        </tr>
+                      )}
                       {!invoice.deliveryMethod
                         ?.toLowerCase()
                         .includes("pickup") &&
@@ -754,16 +767,16 @@ function InvoiceView({
                         <tr key={idx}>
                           <td
                             className={`p-2 font-bold ${row.status === "paid"
-                                ? "text-green-600"
-                                : "text-amber-600"
+                              ? "text-green-600"
+                              : "text-amber-600"
                               }`}
                           >
                             {row.label}
                           </td>
                           <td
                             className={`p-2 text-right font-bold ${row.status === "paid"
-                                ? "text-green-600"
-                                : "text-amber-600"
+                              ? "text-green-600"
+                              : "text-amber-600"
                               }`}
                           >
                             {formatCurrencyWithCommas(row.amount)}
@@ -1045,7 +1058,7 @@ function InvoicePageContent() {
           {
             columns: [
               {
-                text: `${buyerType === "Wholesale" ? "Selected Items" : "Additional Items"} (${formatItemCount(invoice.additionalItems.length)})`,
+                text: `${getAdditionalItemsLabel(invoice.isDashUser, buyerType)} (${formatItemCount(invoice.additionalItems.length)})`,
                 bold: true,
                 fontSize: 9,
                 margin: [0, 8, 0, 4],
@@ -1150,13 +1163,25 @@ function InvoicePageContent() {
       subtotal += parseNum(invoice.additionalItemsTotal);
       grandTotalRows.push([
         {
-          text:
-            buyerType === "Wholesale" ? "Selected Items" : "Additional Items",
+          text: getAdditionalItemsLabel(invoice.isDashUser, buyerType),
           fontSize: 9,
           color: "#212121",
         },
         {
           text: formatCurrencyForPDF(invoice.additionalItemsTotal),
+          fontSize: 9,
+          alignment: "right",
+          color: "#212121",
+        },
+      ]);
+    }
+
+    if (invoice.isDashUser && invoice.serviceFee != null) {
+      subtotal += parseNum(invoice.serviceFee);
+      grandTotalRows.push([
+        { text: "Service Fee", fontSize: 9, color: "#212121" },
+        {
+          text: formatCurrencyForPDF(invoice.serviceFee),
           fontSize: 9,
           alignment: "right",
           color: "#212121",
@@ -1262,7 +1287,7 @@ function InvoicePageContent() {
           columns: [
             [
               {
-                text: "Polygon Holdings (Private) Ltd",
+                text: "Polygon Holdings (Private) Limited",
                 bold: true,
                 fontSize: 11,
               },
@@ -1697,6 +1722,11 @@ function InvoicePageContent() {
           moneyPaid: apiInvoice.moneyPaid,
           amountDue: parseCurrency(apiInvoice.amountDue),
           isFreeDeliveryCoupon: !!apiInvoice.isFreeDeliveryCoupon,
+          isDashUser: !!apiInvoice.isDashUser,
+          serviceFee:
+            apiInvoice.serviceFee !== null && apiInvoice.serviceFee !== undefined
+              ? parseCurrency(apiInvoice.serviceFee)
+              : null,
 
           familyPackItems: Array.isArray(apiInvoice.familyPackItems)
             ? apiInvoice.familyPackItems.map((item: any) => ({
