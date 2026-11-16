@@ -17,20 +17,15 @@ type FormErrors = {
 };
 
 const NIC_REGEX = /^(\d{9}V|\d{12})$/;
-const PASSPORT_REGEX = /^[A-Z0-9]{6,12}$/;
+const ID_REGEX = /^[A-Z0-9]{1,12}$/; // any length 1-12 (passport can be short)
 
 const getIdError = (id: string): string => {
     if (!id) return "NIC / Passport ID is required";
 
-    // Valid if it matches either format
-    if (NIC_REGEX.test(id) || PASSPORT_REGEX.test(id)) return "";
+    // Valid NIC, or any 1-12 letters/numbers (passport)
+    if (NIC_REGEX.test(id) || ID_REGEX.test(id)) return "";
 
-    // Helpful hints only when it matches neither
-    if (/^\d{9,12}V?$/.test(id) || /^\d+V$/.test(id)) {
-        return "NIC must be 9 digits followed by V, or 12 digits";
-    }
-
-    return "Enter a valid NIC or Passport ID (6-12 letters/numbers)";
+    return "Enter a valid NIC or Passport ID";
 };
 
 export default function SetPasswordForm() {
