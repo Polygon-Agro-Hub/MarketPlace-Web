@@ -24,6 +24,16 @@ const toDateStr = (d: Date): string => {
   return `${y}-${m}-${day}`;
 };
 
+// Range shown for seasonal (one-time) packages:
+//   start = earliest possible scheduled date
+//   end   = package expiry date - 2 days (lastDeliveryDate)
+const formatRangeDate = (dateStr: string): string =>
+  parseDateStr(dateStr).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+
 export default function OrderListModal({ orders, scheduleInfo, onClose }: Props) {
   const noOrders = orders.length === 0;
 
@@ -68,8 +78,7 @@ export default function OrderListModal({ orders, scheduleInfo, onClose }: Props)
           <div className="mb-5 rounded-lg bg-[#F1F2F7] px-5 py-5 text-center text-[#4A4A7A] text-sm sm:text-base leading-relaxed">
             <p>
               We&apos;re sorry, but we&apos;re unable to fulfill your request at this time.
-              Unfortunately, there are no available dates within the next two weeks, and your
-              package expires on {formatExpiry(limitingPackage!.lastDeliveryDate)}.
+              Unfortunately, there are no available dates within the next two weeks, and your package expires on {formatExpiry(limitingPackage!.endDate!)}.
             </p>
             <p className="mt-4">
               We apologize for the inconvenience and appreciate your understanding.

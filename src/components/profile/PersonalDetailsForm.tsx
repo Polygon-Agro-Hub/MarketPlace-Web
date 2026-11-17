@@ -323,6 +323,7 @@ const PersonalDetailsForm = () => {
   const [originalData, setOriginalData] = useState<any>(null);
   const [originalProfilePic, setOriginalProfilePic] = useState<string | null>(null);
   const [buyerType, setBuyerType] = useState<string>('');
+  const [nic, setNic] = useState<string>('');
   const dispatch = useDispatch();
   const [countryCode, setCountryCode] = useState("+94");
   const [showOTP, setShowOTP] = useState(false);
@@ -400,6 +401,7 @@ const PersonalDetailsForm = () => {
       try {
         const data = await fetchProfile({ token });
         setBuyerType(data.buyerType || '');
+        setNic(data.nic || '');
 
         const formData = {
           title: data.title || '',
@@ -937,7 +939,7 @@ const PersonalDetailsForm = () => {
                 />
               </LockedTooltip>
               <LockedTooltip locked={isWholesale} className="w-[75%]">
-                <label className="...">First Name</label>
+                <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">First Name</label>
                 <input
                   {...register('firstName')}
                   readOnly={isWholesale}
@@ -977,6 +979,22 @@ const PersonalDetailsForm = () => {
               placeholder="Enter last name"
             />
             <p className="text-red-500 text-xs">{errors.lastName?.message}</p>
+          </LockedTooltip>
+        </div>
+        {/* NIC / Passport ID (read-only) */}
+        <div className="md:w-[55%] mb-6">
+          <LockedTooltip locked={true} message="NIC / Passport ID cannot be edited.">
+            <label className="block text-[12px] md:text-[14px] font-medium text-[#626D76] mb-1">
+              NIC Number / Passport ID
+            </label>
+            <input
+              type="text"
+              value={nic}
+              readOnly
+              tabIndex={-1}
+              className="border border-[#CECECE] rounded-lg p-2 w-full h-[42px] text-xs sm:text-sm bg-gray-100 text-gray-500 cursor-not-allowed"
+              placeholder="Not provided"
+            />
           </LockedTooltip>
         </div>
 
