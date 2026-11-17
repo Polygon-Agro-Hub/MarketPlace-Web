@@ -56,7 +56,7 @@ interface ViewOrderComponentProps {
   open: boolean;
   onClose: () => void;
   details: OrderDetailsData;
-  summary: OrderSummaryData; 
+  summary: OrderSummaryData;
 }
 
 const pad2 = (n: number) => String(n).padStart(2, "0");
@@ -456,6 +456,14 @@ const ViewOrderComponent: React.FC<ViewOrderComponentProps> = ({
                       : "Delivery Fee"
                   }
                   value={`+ ${formatMoney(summary.deliveryFee)}`}
+                />
+              )}
+
+              {/* ✅ ADD THIS — Service Fee (Dash only) */}
+              {summary.serviceFee !== undefined && (
+                <PriceRow
+                  label="Service Fee"
+                  value={`+ ${formatMoney(summary.serviceFee)}`}
                 />
               )}
 
