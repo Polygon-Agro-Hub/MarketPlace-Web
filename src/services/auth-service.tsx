@@ -107,6 +107,25 @@ interface Profile {
   profileImageURL?: string;
 }
 
+interface Profile {
+  companyName: string;
+  buyerType?: string;
+  title: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneCode: string;
+  phoneNumber: string;
+  phoneCode2: string;
+  phoneNumber2: string;
+  companyPhoneCode: string;
+  companyPhone: string;
+  image?: string;
+  profileImageURL?: string;
+  nic?: string;          // add
+  docType?: string;      // add
+}
+
 interface ApiProfile {
   title: string;
   firstName: string;
@@ -122,7 +141,10 @@ interface ApiProfile {
   profileImageURL?: string;
   companyName?: string;
   buyerType?: string | "";
+  nic?: string | null;
+  docType?: "NIC" | "PASS" | string | null;
 }
+
 
 export interface CityOption {
   id: number;
@@ -845,6 +867,8 @@ export const fetchProfile = async (
           title: resData.data.title || "",
           companyName: resData.data.companyName || "",
           buyerType: resData.data.buyerType || "",
+          docType:resData.data.docType ||"",
+          nic:resData.data.nic || "",
         };
       } else {
         throw new Error(resData.message || "Invalid response format");
