@@ -580,7 +580,7 @@ const BillingDetailsForm = () => {
     const type = entry.buildingType?.toLowerCase();
     return {
       saveAs: entry.address?.saveAs || "",
-      billingTitle: entry.billingTitle || "",
+      billingTitle: normalizeTitle(entry.billingTitle || ""),
       billingName: entry.billingName || "",
       buildingType: type || "",
       houseNo: type === "house" ? entry.address?.houseNo || "" : "",
@@ -718,10 +718,10 @@ const BillingDetailsForm = () => {
   };
 
   const billingTitleOptions = [
-    { value: "Mr.", label: "Mr" },
-    { value: "Mrs.", label: "Mrs" },
-    { value: "Ms.", label: "Ms" },
-    { value: "Rev.", label: "Rev" },
+    { value: "Mr", label: "Mr" },
+    { value: "Mrs", label: "Mrs" },
+    { value: "Ms", label: "Ms" },
+    { value: "Rev", label: "Rev" },
   ];
 
   const buildingTypeOptions = [
@@ -895,7 +895,7 @@ const BillingDetailsForm = () => {
 
     register("houseNo", {
       validate: (value) =>
-        buildingType === "house" && !value ? "House No is required" : true,
+        buildingType === "house" && !value ? "Plot No is required" : true,
     });
     register("houseStreet", {
       validate: (value) =>
@@ -996,10 +996,10 @@ const BillingDetailsForm = () => {
 
     if (
       !data.billingTitle ||
-      !["Rev.", "Mr.", "Ms.", "Mrs."].includes(data.billingTitle)
+      !["Rev", "Mr", "Ms", "Mrs"].includes(data.billingTitle)
     ) {
       setErrorMessage(
-        "Please select a valid billing title ( Mr., Ms., or Mrs. ,Rev.).",
+        "Please select a valid billing title (Mr, Ms, Mrs, or Rev).",
       );
       setShowErrorPopup(true);
       setIsLoading(false);
@@ -1125,17 +1125,20 @@ const BillingDetailsForm = () => {
             : undefined,
     };
 
+    const phone2Trimmed = (data.phone2 || "").trim();
+    const hasPhone2 = phone2Trimmed.length > 0;
+
     try {
       const result = await saveBillingDetails({
         token,
         data: {
           addressId: selectedAddressId,
-          billingTitle: data.billingTitle,
+          billingTitle: normalizeTitle(data.billingTitle),
           billingName: data.billingName,
           phoneCode: data.phonecode1,
           phoneNumber: data.phone1,
-          phoneCode2: data.phonecode2,
-          phoneNumber2: data.phone2,
+          phoneCode2: hasPhone2 ? data.phonecode2 : null,
+          phoneNumber2: hasPhone2 ? phone2Trimmed : null,
           buildingType: data.buildingType,
           geoLatitude: data.geoLatitude,
           geoLongitude: data.geoLongitude,
@@ -1146,12 +1149,12 @@ const BillingDetailsForm = () => {
       const savedEntry: UserAddressEntry = {
         id: result.addressId,
         buildingType: result.buildingType,
-        billingTitle: data.billingTitle,
+        billingTitle: normalizeTitle(data.billingTitle),
         billingName: data.billingName,
         phoneCode: data.phonecode1,
         phoneNumber: data.phone1,
-        phoneCode2: data.phonecode2,
-        phoneNumber2: data.phone2,
+        phoneCode2: hasPhone2 ? data.phonecode2 : null,
+        phoneNumber2: hasPhone2 ? phone2Trimmed : null,
         geoLatitude: data.geoLatitude ?? undefined,
         geoLongitude: data.geoLongitude ?? undefined,
         address: { ...addressPayload, id: result.addressId },

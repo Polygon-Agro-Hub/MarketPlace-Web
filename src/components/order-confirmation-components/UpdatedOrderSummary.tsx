@@ -114,7 +114,7 @@ const UpdatedOrderSummary: React.FC<UpdatedOrderSummaryProps> = ({
     paymentType === "CASH_CREDIT"
       ? `Payable upon ${payWhen}`
       : paymentType === "FULLY_CREDIT" && !isRefundNote
-        ? "You've paid the full amount using your wallet. You won't be charged again."
+        ? "You've paid the full amount using your Polygon wallet. You won't be charged again."
         : null;
 
   const cardCharge = chargeAmount ?? remaining;

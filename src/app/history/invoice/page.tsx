@@ -247,16 +247,16 @@ function detectPaymentType(
   const fullyCoveredByCredit = hasCredit && creditPaid >= grandTotal - 0.01;
 
   if (fullyCoveredByCredit) {
-    return "Credit Balance";
+    return "Polygon Wallet";
   }
 
   if (payType === "Card") {
-    return hasCredit ? "Online Transfer + Credit Balance" : "Online Transfer";
+    return hasCredit ? "Online Transfer + Polygon Wallet" : "Online Transfer";
   }
 
   // Cash
   const base = isPickup ? "Cash on Pickup" : "Cash on Delivery";
-  return hasCredit ? `${base} + Credit Balance` : base;
+  return hasCredit ? `${base} + Polygon Wallet` : base;
 }
 
 interface PaymentStatusRow {
@@ -309,7 +309,7 @@ function getPaymentStatusInfo(
   };
 
   if (hasCreditPaid) {
-    push("Credit Balance Used", creditPaidNum, "paid");
+    push("Polygon Wallet Used", creditPaidNum, "paid");
     if (remainingAfterCredit > 0.01) {
       pushRemaining(remainingAfterCredit);
     }
@@ -429,7 +429,7 @@ function InvoiceView({
                   <div className="space-y-1">
                     {invoice.billingInfo.buildingType === "House" ? (
                       <>
-                        <p className="font-bold">House Address :</p>
+                        <p className="font-bold">Address :</p>
                         <p>
                           <span style={{ color: "#929292" }}>House No :</span>{" "}
                           {invoice.billingInfo.houseNo},
@@ -525,8 +525,9 @@ function InvoiceView({
           invoice.pickupInfo && (
             <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1.15fr_0.85fr] lg:gap-10">
               <div className="space-y-1">
-                <p className="font-bold">
-                  <span style={{ color: "#000000" }}>Centre :</span>{" "}
+                <p className="font-bold">Pickup Centre :</p>
+                <p>
+                  <span style={{ color: "#929292" }}>Centre :</span>{" "}
                   {invoice.pickupInfo.centerName || "N/A"}
                 </p>
                 <p>
@@ -717,14 +718,16 @@ function InvoiceView({
                           </td>
                         </tr>
                       )}
-                      {invoice.isDashUser && invoice.serviceFee != null && (
-                        <tr>
-                          <td className="p-2 text-[#212121]">Service Fee</td>
-                          <td className="p-2 text-right text-[#212121]">
-                            {formatCurrencyWithCommas(invoice.serviceFee)}
-                          </td>
-                        </tr>
-                      )}
+                      {invoice.isDashUser &&
+                        invoice.serviceFee != null &&
+                        parseCurrency(invoice.serviceFee) > 0 && (
+                          <tr>
+                            <td className="p-2 text-[#212121]">Service Fee</td>
+                            <td className="p-2 text-right text-[#212121]">
+                              {formatCurrencyWithCommas(invoice.serviceFee)}
+                            </td>
+                          </tr>
+                        )}
                       {!invoice.deliveryMethod
                         ?.toLowerCase()
                         .includes("pickup") &&
@@ -1176,7 +1179,11 @@ function InvoicePageContent() {
       ]);
     }
 
-    if (invoice.isDashUser && invoice.serviceFee != null) {
+    if (
+      invoice.isDashUser &&
+      invoice.serviceFee != null &&
+      parseNum(invoice.serviceFee) > 0
+    ) {
       subtotal += parseNum(invoice.serviceFee);
       grandTotalRows.push([
         { text: "Service Fee", fontSize: 9, color: "#212121" },
@@ -1188,7 +1195,6 @@ function InvoicePageContent() {
         },
       ]);
     }
-
     // Add delivery fee if not pickup — label changed to "Delivery Charges"
     if (
       !invoice.deliveryMethod?.toLowerCase().includes("pickup") &&
@@ -1349,7 +1355,7 @@ function InvoicePageContent() {
           if (!isPickupTbl) {
             if (invoice.billingInfo.buildingType === "House") {
               leftRows.push({
-                text: "House Address:",
+                text: "Address:",
                 bold: true,
                 fontSize: 9,
                 margin: [0, 6, 0, 0],
@@ -1428,26 +1434,15 @@ function InvoicePageContent() {
 
           if (isPickupTbl && invoice.pickupInfo) {
             leftRows.push({
-              text: `Centre: ${invoice.pickupInfo.centerName}`,
+              text: "Pickup Centre:",
               bold: true,
               fontSize: 9,
               margin: [0, 6, 0, 0],
             });
-            leftRows.push(
-              labeled("City", invoice.pickupInfo.address?.city || "N/A"),
-            );
-            leftRows.push(
-              labeled(
-                "District",
-                invoice.pickupInfo.address?.district || "N/A",
-              ),
-            );
-            leftRows.push(
-              labeled(
-                "Province",
-                invoice.pickupInfo.address?.province || "N/A",
-              ),
-            );
+            leftRows.push(labeled("Centre", invoice.pickupInfo.centerName || "N/A"));
+            leftRows.push(labeled("City", invoice.pickupInfo.address?.city || "N/A"));
+            leftRows.push(labeled("District", invoice.pickupInfo.address?.district || "N/A"));
+            leftRows.push(labeled("Province", invoice.pickupInfo.address?.province || "N/A"));
           }
 
           const rightRows: any[] = [];
