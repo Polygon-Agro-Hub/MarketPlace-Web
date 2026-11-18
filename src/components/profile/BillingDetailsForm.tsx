@@ -1125,6 +1125,9 @@ const BillingDetailsForm = () => {
             : undefined,
     };
 
+    const phone2Trimmed = (data.phone2 || "").trim();
+    const hasPhone2 = phone2Trimmed.length > 0;
+
     try {
       const result = await saveBillingDetails({
         token,
@@ -1134,8 +1137,8 @@ const BillingDetailsForm = () => {
           billingName: data.billingName,
           phoneCode: data.phonecode1,
           phoneNumber: data.phone1,
-          phoneCode2: data.phonecode2,
-          phoneNumber2: data.phone2,
+          phoneCode2: hasPhone2 ? data.phonecode2 : null,
+          phoneNumber2: hasPhone2 ? phone2Trimmed : null,
           buildingType: data.buildingType,
           geoLatitude: data.geoLatitude,
           geoLongitude: data.geoLongitude,
@@ -1146,12 +1149,12 @@ const BillingDetailsForm = () => {
       const savedEntry: UserAddressEntry = {
         id: result.addressId,
         buildingType: result.buildingType,
-       billingTitle: normalizeTitle(data.billingTitle),
+        billingTitle: normalizeTitle(data.billingTitle),
         billingName: data.billingName,
         phoneCode: data.phonecode1,
         phoneNumber: data.phone1,
-        phoneCode2: data.phonecode2,
-        phoneNumber2: data.phone2,
+        phoneCode2: hasPhone2 ? data.phonecode2 : null,
+        phoneNumber2: hasPhone2 ? phone2Trimmed : null,
         geoLatitude: data.geoLatitude ?? undefined,
         geoLongitude: data.geoLongitude ?? undefined,
         address: { ...addressPayload, id: result.addressId },

@@ -211,8 +211,8 @@ export interface UserAddressEntry {
   billingName: string;
   phoneCode: string;
   phoneNumber: string;
-  phoneCode2?: string;
-  phoneNumber2?: string;
+  phoneCode2?: string | null;
+  phoneNumber2?: string | null;
   geoLatitude?: number;
   geoLongitude?: number;
   address: AddressDetail;
@@ -348,8 +348,8 @@ export const login = async (payload: LoginPayload): Promise<LoginResponse> => {
 
       throw new Error(
         d?.message ||
-          d?.error ||
-          `Login failed with status ${error.response.status}`,
+        d?.error ||
+        `Login failed with status ${error.response.status}`,
       );
     } else if (error.request) {
       throw new Error(
@@ -867,8 +867,8 @@ export const fetchProfile = async (
           title: resData.data.title || "",
           companyName: resData.data.companyName || "",
           buyerType: resData.data.buyerType || "",
-          docType:resData.data.docType ||"",
-          nic:resData.data.nic || "",
+          docType: resData.data.docType || "",
+          nic: resData.data.nic || "",
         };
       } else {
         throw new Error(resData.message || "Invalid response format");
@@ -1113,8 +1113,9 @@ export interface SaveAddressPayloadData {
   billingName: string;
   phoneCode: string;
   phoneNumber: string;
-  phoneCode2?: string;
-  phoneNumber2?: string;
+  // In the save payload type
+  phoneCode2?: string | null;
+  phoneNumber2?: string | null;
   buildingType: string;
   geoLatitude?: number | null;
   geoLongitude?: number | null;
