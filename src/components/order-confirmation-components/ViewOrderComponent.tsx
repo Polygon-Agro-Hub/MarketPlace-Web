@@ -56,7 +56,7 @@ interface ViewOrderComponentProps {
   open: boolean;
   onClose: () => void;
   details: OrderDetailsData;
-  summary: OrderSummaryData; 
+  summary: OrderSummaryData;
 }
 
 const pad2 = (n: number) => String(n).padStart(2, "0");
@@ -459,6 +459,14 @@ const ViewOrderComponent: React.FC<ViewOrderComponentProps> = ({
                 />
               )}
 
+              {/* ✅ ADD THIS — Service Fee (Dash only) */}
+              {summary.serviceFee !== undefined && (
+                <PriceRow
+                  label="Service Fee"
+                  value={`+ ${formatMoney(summary.serviceFee)}`}
+                />
+              )}
+
               <div className="flex items-center justify-between border-t border-gray-200 pt-5">
                 <span className="text-base font-bold text-gray-900">
                   Grand Total
@@ -470,7 +478,7 @@ const ViewOrderComponent: React.FC<ViewOrderComponentProps> = ({
 
               <div className="border-t border-gray-200 pt-4">
                 <PriceRow
-                  label="Paid Using Credit Balance"
+                  label="Paid Using Polygon wallet"
                   value={formatMoney(creditApplied)}
                 />
               </div>

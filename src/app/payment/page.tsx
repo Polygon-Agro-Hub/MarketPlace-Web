@@ -803,7 +803,7 @@ const Page: React.FC = () => {
                       <WalletMinimal className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: "#27AA48" }} />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-xs text-gray-500">Credit Applied</p>
+                      <p className="text-xs text-gray-500">Polygon Wallet Applied</p>
                       <p className="font-semibold text-sm sm:text-base text-[#27AA48] whitespace-nowrap">
                         Rs. {formatPrice(creditApplied)}
                       </p>
@@ -1092,10 +1092,10 @@ const Page: React.FC = () => {
             </div>
 
             {/* Confirm Order Button */}
-            {/* Credit Applied - only show if there's a Polygon Wallet */}
+            {/* Polygon Wallet Applied - only show if there's a Polygon Wallet */}
             {creditBalance > 0 && (
               <div className="flex justify-between items-center text-sm mb-3">
-                <span className="text-[#1C8732]">Credit Applied</span>
+                <span className="text-[#1C8732]">Polygon Wallet Applied</span>
                 <span className="font-medium text-[#1C8732]">
                   {useCredit ? `- Rs. ${formatPrice(creditApplied)}` : "- Rs. 0.00"}
                 </span>

@@ -24,6 +24,7 @@ export interface OrderSummaryData {
   discount?: number;
   couponDiscount?: number;
   deliveryFee?: number;
+  serviceFee?: number;
   couponApplied?: boolean;
   total: number;
   creditApplied?: number;
@@ -84,6 +85,7 @@ const UpdatedOrderSummary: React.FC<UpdatedOrderSummaryProps> = ({
     discount,
     couponDiscount,
     deliveryFee,
+    serviceFee,
     couponApplied,
     total,
     savedCard,
@@ -112,7 +114,7 @@ const UpdatedOrderSummary: React.FC<UpdatedOrderSummaryProps> = ({
     paymentType === "CASH_CREDIT"
       ? `Payable upon ${payWhen}`
       : paymentType === "FULLY_CREDIT" && !isRefundNote
-        ? "You've paid the full amount using your wallet. You won't be charged again."
+        ? "You've paid the full amount using your Polygon wallet. You won't be charged again."
         : null;
 
   const cardCharge = chargeAmount ?? remaining;
@@ -158,6 +160,12 @@ const UpdatedOrderSummary: React.FC<UpdatedOrderSummaryProps> = ({
             }
           />
         )}
+
+        {/* ✅ ADD THIS — Service Fee (Dash only) */}
+        {serviceFee !== undefined && (
+          <Row label="Service Fee" value={`+ ${formatMoney(serviceFee)}`} />
+        )}
+
         {couponApplied && (
           <p className="text-sm font-medium text-green-600">(Coupon Applied)</p>
         )}

@@ -497,6 +497,8 @@ const BillingDetailsForm = () => {
   const [showDeleteSuccessPopup, setShowDeleteSuccessPopup] = useState(false);
   const [houseCityAvailable, setHouseCityAvailable] = useState(true);
   const [apartmentCityAvailable, setApartmentCityAvailable] = useState(true);
+  const submitLockRef = useRef(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const isWholesale = useSelector((state: RootState) =>
     (state.auth.user?.buyerType ?? "").toLowerCase().includes("wholesale"),
   );
@@ -580,7 +582,7 @@ const BillingDetailsForm = () => {
     const type = entry.buildingType?.toLowerCase();
     return {
       saveAs: entry.address?.saveAs || "",
-      billingTitle: entry.billingTitle || "",
+      billingTitle: normalizeTitle(entry.billingTitle || ""),
       billingName: entry.billingName || "",
       buildingType: type || "",
       houseNo: type === "house" ? entry.address?.houseNo || "" : "",
@@ -718,10 +720,10 @@ const BillingDetailsForm = () => {
   };
 
   const billingTitleOptions = [
-    { value: "Mr.", label: "Mr" },
-    { value: "Mrs.", label: "Mrs" },
-    { value: "Ms.", label: "Ms" },
-    { value: "Rev.", label: "Rev" },
+    { value: "Mr", label: "Mr" },
+    { value: "Mrs", label: "Mrs" },
+    { value: "Ms", label: "Ms" },
+    { value: "Rev", label: "Rev" },
   ];
 
   const buildingTypeOptions = [
@@ -895,7 +897,7 @@ const BillingDetailsForm = () => {
 
     register("houseNo", {
       validate: (value) =>
-        buildingType === "house" && !value ? "House No is required" : true,
+        buildingType === "house" && !value ? "Plot No is required" : true,
     });
     register("houseStreet", {
       validate: (value) =>
@@ -973,16 +975,15 @@ const BillingDetailsForm = () => {
     }
   };
 
-  const normalizeTitle = (title: string): string => {
-    if (!title) return "";
-    return title.endsWith(".") ? title : `${title}.`;
-  };
+  const normalizeTitle = (title: string): string =>
+    (title || "").trim().replace(/\.+$/, "");
 
-  const onSubmit: SubmitHandler<BillingFormData> = async (data) => {
+  const doSubmit: SubmitHandler<BillingFormData> = async (data) => {
     setIsLoading(true);
     await trigger();
 
-    if (!isValid) {
+    const ok = await trigger();
+    if (!ok) {
       setIsLoading(false);
       return;
     }
@@ -996,10 +997,10 @@ const BillingDetailsForm = () => {
 
     if (
       !data.billingTitle ||
-      !["Rev.", "Mr.", "Ms.", "Mrs."].includes(data.billingTitle)
+      !["Rev", "Mr", "Ms", "Mrs"].includes(data.billingTitle)
     ) {
       setErrorMessage(
-        "Please select a valid billing title ( Mr., Ms., or Mrs. ,Rev.).",
+        "Please select a valid billing title (Mr, Ms, Mrs, or Rev).",
       );
       setShowErrorPopup(true);
       setIsLoading(false);
@@ -1125,17 +1126,20 @@ const BillingDetailsForm = () => {
             : undefined,
     };
 
+    const phone2Trimmed = (data.phone2 || "").trim();
+    const hasPhone2 = phone2Trimmed.length > 0;
+
     try {
       const result = await saveBillingDetails({
         token,
         data: {
           addressId: selectedAddressId,
-          billingTitle: data.billingTitle,
+          billingTitle: normalizeTitle(data.billingTitle),
           billingName: data.billingName,
           phoneCode: data.phonecode1,
           phoneNumber: data.phone1,
-          phoneCode2: data.phonecode2,
-          phoneNumber2: data.phone2,
+          phoneCode2: hasPhone2 ? data.phonecode2 : null,
+          phoneNumber2: hasPhone2 ? phone2Trimmed : null,
           buildingType: data.buildingType,
           geoLatitude: data.geoLatitude,
           geoLongitude: data.geoLongitude,
@@ -1146,12 +1150,12 @@ const BillingDetailsForm = () => {
       const savedEntry: UserAddressEntry = {
         id: result.addressId,
         buildingType: result.buildingType,
-        billingTitle: data.billingTitle,
+        billingTitle: normalizeTitle(data.billingTitle),
         billingName: data.billingName,
         phoneCode: data.phonecode1,
         phoneNumber: data.phone1,
-        phoneCode2: data.phonecode2,
-        phoneNumber2: data.phone2,
+        phoneCode2: hasPhone2 ? data.phonecode2 : null,
+        phoneNumber2: hasPhone2 ? phone2Trimmed : null,
         geoLatitude: data.geoLatitude ?? undefined,
         geoLongitude: data.geoLongitude ?? undefined,
         address: { ...addressPayload, id: result.addressId },
@@ -1180,6 +1184,18 @@ const BillingDetailsForm = () => {
       setShowErrorPopup(true);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const onSubmit: SubmitHandler<BillingFormData> = async (data) => {
+    if (submitLockRef.current) return; // blocks double clicks and Enter key
+    submitLockRef.current = true;
+    setIsSubmitting(true);
+    try {
+      await doSubmit(data);
+    } finally {
+      submitLockRef.current = false;
+      setIsSubmitting(false);
     }
   };
 
@@ -1973,25 +1989,25 @@ const BillingDetailsForm = () => {
           <div className="flex gap-4">
             <button
               type="button"
-              className={`px-6 py-2.5 text-[12px] md:text-[16px] font-medium rounded-lg leading-none ${isLoading || !canSave
+              className={`px-6 py-2.5 text-[12px] md:text-[16px] font-medium rounded-lg leading-none ${isLoading || isSubmitting || !canSave
                 ? "opacity-50 cursor-not-allowed text-[#9ca3af] bg-[#f9fafb]"
                 : "text-[#757E87] bg-[#F3F4F7] hover:bg-[#e1e2e5] cursor-pointer"
                 }`}
               onClick={() => setShowCancelConfirm(true)}
-              disabled={isLoading || !canSave}
+              disabled={isLoading || isSubmitting || !canSave}
             >
               Cancel
             </button>
 
             <button
               type="submit"
-              className={`px-6 py-2.5 text-[12px] md:text-[16px] font-medium rounded-lg text-white leading-none ${isLoading || !canSave
+              className={`px-6 py-2.5 text-[12px] md:text-[16px] font-medium rounded-lg text-white leading-none ${isLoading || isSubmitting || !canSave
                 ? "bg-gray-400 cursor-not-allowed opacity-50"
                 : "bg-[#3E206D] hover:bg-[#341a5a] cursor-pointer"
                 }`}
-              disabled={isLoading || !canSave}
+              disabled={isLoading || isSubmitting || !canSave}
             >
-              Save
+              {isSubmitting ? "Saving..." : "Save"}
             </button>
           </div>
         </div>

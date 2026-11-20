@@ -76,6 +76,7 @@ interface OrderSummary {
   createdAt: Date;
   canComplain: number;
   complaintStatus: string | null;
+  isFinalized: boolean;
 }
 
 interface DetailedOrder {
@@ -306,6 +307,11 @@ export default function OrderHistoryPage() {
         complaintStatus: order.complaintStatus
           ? String(order.complaintStatus).toLowerCase()
           : null,
+        isFinalized:
+          order.isFinalized === true ||
+          order.isFinalized === 1 ||
+          order.isFinalized === "1" ||
+          String(order.isFinalized).toLowerCase() === "true",
       }))
       .filter((order) =>
         ALLOWED_ORDER_STATUSES.includes(order.status.toLowerCase())
@@ -558,6 +564,18 @@ export default function OrderHistoryPage() {
     setShowComplaintSuccess(true);
   };
 
+  const handleViewInvoice = (order: OrderSummary) => {
+    if (order.isFinalized) {
+      router.push(
+        `/history/post-invoice?orderId=${order.orderId}` +
+        `&invoiceNo=${encodeURIComponent(order.invoiceNo)}` +
+        `&status=${encodeURIComponent(order.status)}`,
+      );
+    } else {
+      router.push(`/history/invoice?orderId=${order.orderId}`);
+    }
+  };
+
   const renderComplaintButton = (order: OrderSummary, mobile = false) => {
     const size = mobile ? "w-full text-sm px-4 py-2.5" : "text-xs lg:text-sm px-4 py-1.5";
     const base = `flex items-center justify-center gap-2 border rounded-lg cursor-pointer transition-colors ${size}`;
@@ -723,9 +741,7 @@ export default function OrderHistoryPage() {
                         </button>
                         {!isCancelled(order.status) && (
                           <button
-                            onClick={() =>
-                              router.push(`/history/invoice?orderId=${order.orderId}`)
-                            }
+                            onClick={() => handleViewInvoice(order)}
                             className="bg-[rgb(255,255,255)] border text-xs lg:text-sm cursor-pointer border-[rgb(209,213,219)] rounded-lg px-4 py-1.5 hover:bg-[rgb(62,32,109)] hover:text-[rgb(255,255,255)]"
                             disabled={isFetchingDetails}
                           >
@@ -772,9 +788,7 @@ export default function OrderHistoryPage() {
                         </button>
                         {!isCancelled(order.status) && (
                           <button
-                            onClick={() =>
-                              router.push(`/history/invoice?orderId=${order.orderId}`)
-                            }
+                            onClick={() => handleViewInvoice(order)}
                             className="w-full bg-[rgb(255,255,255)] border text-sm cursor-pointer border-[rgb(209,213,219)] rounded-lg px-4 py-2.5 hover:bg-[rgb(62,32,109)] hover:text-[rgb(255,255,255)] transition-colors"
                             disabled={isFetchingDetails}
                           >
@@ -1247,24 +1261,25 @@ function PickupOrderView({
             Pickup Information
           </h3>
           <div className="grid grid-cols-2 gap-4 text-sm">
-            <div className="space-y-1 text-sm text-[rgb(31,41,55)]">
-              <h4 className="font-medium text-[rgb(55,65,81)] mb-1">Centre:</h4>
-              <div className="space-y-1 text-sm">
-                <div>
-                  <span className="font-semibold">
-                    {order.pickupInfo?.centerName || "N/A"}
-                  </span>
-                </div>
-                <div className="text-sm">
-                  <p>
-                    {order.pickupInfo?.city || "N/A"},{" "}
-                    {order.pickupInfo?.district || "N/A"}
-                  </p>
-                  <p>
-                    {order.pickupInfo?.province || "N/A"} province,{" "}
-                    {order.pickupInfo?.country || "N/A"}
-                  </p>
-                </div>
+            <div className="text-sm text-[rgb(31,41,55)]">
+              <h4 className="font-bold mb-2">Pickup Centre :</h4>
+              <div className="space-y-1.5">
+                <p>
+                  <span className="text-[rgb(156,163,175)]">Centre : </span>
+                  <span>{order.pickupInfo?.centerName || "N/A"}</span>
+                </p>
+                <p>
+                  <span className="text-[rgb(156,163,175)]">City : </span>
+                  <span>{order.pickupInfo?.city || "N/A"}</span>
+                </p>
+                <p>
+                  <span className="text-[rgb(156,163,175)]">District : </span>
+                  <span>{order.pickupInfo?.district || "N/A"}</span>
+                </p>
+                <p>
+                  <span className="text-[rgb(156,163,175)]">Province : </span>
+                  <span>{order.pickupInfo?.province || "N/A"}</span>
+                </p>
               </div>
             </div>
             <div>
