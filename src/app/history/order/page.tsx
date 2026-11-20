@@ -76,6 +76,7 @@ interface OrderSummary {
   createdAt: Date;
   canComplain: number;
   complaintStatus: string | null;
+  isFinalized: boolean;
 }
 
 interface DetailedOrder {
@@ -306,6 +307,11 @@ export default function OrderHistoryPage() {
         complaintStatus: order.complaintStatus
           ? String(order.complaintStatus).toLowerCase()
           : null,
+        isFinalized:
+          order.isFinalized === true ||
+          order.isFinalized === 1 ||
+          order.isFinalized === "1" ||
+          String(order.isFinalized).toLowerCase() === "true",
       }))
       .filter((order) =>
         ALLOWED_ORDER_STATUSES.includes(order.status.toLowerCase())
@@ -558,6 +564,18 @@ export default function OrderHistoryPage() {
     setShowComplaintSuccess(true);
   };
 
+  const handleViewInvoice = (order: OrderSummary) => {
+    if (order.isFinalized) {
+      router.push(
+        `/history/post-invoice?orderId=${order.orderId}` +
+        `&invoiceNo=${encodeURIComponent(order.invoiceNo)}` +
+        `&status=${encodeURIComponent(order.status)}`,
+      );
+    } else {
+      router.push(`/history/invoice?orderId=${order.orderId}`);
+    }
+  };
+
   const renderComplaintButton = (order: OrderSummary, mobile = false) => {
     const size = mobile ? "w-full text-sm px-4 py-2.5" : "text-xs lg:text-sm px-4 py-1.5";
     const base = `flex items-center justify-center gap-2 border rounded-lg cursor-pointer transition-colors ${size}`;
@@ -723,9 +741,7 @@ export default function OrderHistoryPage() {
                         </button>
                         {!isCancelled(order.status) && (
                           <button
-                            onClick={() =>
-                              router.push(`/history/invoice?orderId=${order.orderId}`)
-                            }
+                            onClick={() => handleViewInvoice(order)}
                             className="bg-[rgb(255,255,255)] border text-xs lg:text-sm cursor-pointer border-[rgb(209,213,219)] rounded-lg px-4 py-1.5 hover:bg-[rgb(62,32,109)] hover:text-[rgb(255,255,255)]"
                             disabled={isFetchingDetails}
                           >
@@ -772,9 +788,7 @@ export default function OrderHistoryPage() {
                         </button>
                         {!isCancelled(order.status) && (
                           <button
-                            onClick={() =>
-                              router.push(`/history/invoice?orderId=${order.orderId}`)
-                            }
+                            onClick={() => handleViewInvoice(order)}
                             className="w-full bg-[rgb(255,255,255)] border text-sm cursor-pointer border-[rgb(209,213,219)] rounded-lg px-4 py-2.5 hover:bg-[rgb(62,32,109)] hover:text-[rgb(255,255,255)] transition-colors"
                             disabled={isFetchingDetails}
                           >
