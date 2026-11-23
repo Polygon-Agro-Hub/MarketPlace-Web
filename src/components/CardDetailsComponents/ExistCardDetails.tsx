@@ -1,11 +1,19 @@
 import React from 'react';
+import type { SavedCard } from '@/services/card-service';
 
-const ExistCardDetails = () => {
-    const onRemoveCard = () => {
-        console.log('Removing card...');
-        // Here you would typically call an API to remove the card.
-        // After successful API call, you might want to update the state in the parent component to show EmptyCardDetails.
-    }
+type Props = {
+  card: SavedCard;
+  onRemoveCard: () => void;
+  removing?: boolean;
+};
+
+const ExistCardDetails = ({ card, onRemoveCard, removing = false }: Props) => {
+  const expiry =
+    card.expiryMonth && card.expiryYear
+      ? `${String(card.expiryMonth).padStart(2, '0')}/${String(card.expiryYear).slice(-2)}`
+      : '--/--';
+  const brand = (card.scheme || 'CARD').toUpperCase();
+
   return (
     <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex flex-col gap-5 sm:gap-6">
 
@@ -32,15 +40,12 @@ const ExistCardDetails = () => {
 
       {/* Card Visual */}
       <div className="relative w-full max-w-[340px] sm:max-w-[400px] aspect-[1.586/1] rounded-2xl overflow-hidden shadow-lg bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        {/* Decorative gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-slate-700/20 to-slate-600/30" />
 
-        {/* Card content */}
         <div className="relative h-full flex flex-col justify-between p-5 sm:p-6 text-white">
 
           {/* Top row */}
           <div className="flex items-start justify-between">
-            {/* Chip + Contactless */}
             <div className="flex items-center gap-2">
               {/* Chip */}
               <div className="w-8 h-6 sm:w-10 sm:h-7 rounded-md bg-gradient-to-br from-yellow-300 to-yellow-500 relative overflow-hidden">
@@ -66,7 +71,6 @@ const ExistCardDetails = () => {
               </svg>
             </div>
 
-            {/* Primary badge */}
             <span className="text-[9px] sm:text-[10px] font-semibold tracking-wider uppercase bg-white/10 border border-white/20 rounded-full px-2.5 py-1 text-gray-200">
               Primary Card
             </span>
@@ -81,7 +85,7 @@ const ExistCardDetails = () => {
               <span className="text-gray-400">••••</span>
               <span className="text-gray-400">••••</span>
               <span className="text-gray-400">••••</span>
-              <span className="text-white">4821</span>
+              <span className="text-white">{card.last4}</span>
             </div>
           </div>
 
@@ -92,7 +96,7 @@ const ExistCardDetails = () => {
                 Card Holder
               </p>
               <p className="text-xs sm:text-sm font-medium tracking-wide text-white">
-                SAMANTHA KULARATHNA
+                {card.holderName || 'CARD HOLDER'}
               </p>
             </div>
             <div className="text-right">
@@ -100,7 +104,7 @@ const ExistCardDetails = () => {
                 Expires
               </p>
               <p className="text-xs sm:text-sm font-medium tracking-wide text-white">
-                08/27
+                {expiry}
               </p>
             </div>
           </div>
@@ -110,10 +114,10 @@ const ExistCardDetails = () => {
       {/* Brand + Status row */}
       <div className="flex flex-wrap items-center gap-2 sm:gap-3">
         <span className="inline-flex items-center justify-center h-6 sm:h-7 px-2 bg-gray-100 rounded text-xs sm:text-sm font-bold text-blue-700 italic tracking-tight">
-          VISA
+          {brand}
         </span>
         <span className="text-sm sm:text-base text-gray-700">
-          Card ending in <span className="font-semibold text-gray-900">4821</span>
+          Card ending in <span className="font-semibold text-gray-900">{card.last4}</span>
         </span>
         <span className="inline-flex items-center gap-1.5 bg-green-500 text-white text-[10px] sm:text-xs font-semibold rounded-full px-2.5 py-1">
           <span className="w-1.5 h-1.5 rounded-full bg-white" />
@@ -150,7 +154,8 @@ const ExistCardDetails = () => {
       <div>
         <button
           onClick={onRemoveCard}
-          className="inline-flex items-center gap-2 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white text-sm sm:text-base font-medium rounded-lg px-4 py-2.5 sm:px-5 sm:py-3 transition-colors duration-200"
+          disabled={removing}
+          className="inline-flex items-center gap-2 bg-red-500 hover:bg-red-600 active:bg-red-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm sm:text-base font-medium rounded-lg px-4 py-2.5 sm:px-5 sm:py-3 transition-colors duration-200"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -167,7 +172,7 @@ const ExistCardDetails = () => {
             <path d="M10 11v6M14 11v6" />
             <path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2" />
           </svg>
-          Remove Card
+          {removing ? 'Removing...' : 'Remove Card'}
         </button>
         <p className="text-xs sm:text-sm text-gray-500 mt-3 leading-relaxed max-w-xl">
           To add another card, delete your current active card above and link a
@@ -177,7 +182,6 @@ const ExistCardDetails = () => {
 
       {/* Feature footer */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 pt-2">
-        {/* Encrypted Protection */}
         <div className="flex items-start gap-3">
           <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
             <svg
@@ -204,7 +208,6 @@ const ExistCardDetails = () => {
           </div>
         </div>
 
-        {/* Fast Checkout */}
         <div className="flex items-start gap-3">
           <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
             <svg

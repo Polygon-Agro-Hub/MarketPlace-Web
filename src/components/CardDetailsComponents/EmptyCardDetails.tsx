@@ -2,17 +2,17 @@ import React from 'react';
 
 type EmptyCardDetailsProps = {
   onAddCard: () => void;
+  busy?: boolean;
 };
 
-export const EmptyCardDetails = ({ onAddCard }: EmptyCardDetailsProps) => {
+export const EmptyCardDetails = ({ onAddCard, busy = false }: EmptyCardDetailsProps) => {
   return (
     <div className="w-full flex justify-center px-4 py-8 sm:py-12">
       <div className="w-full max-w-3xl bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-10 sm:px-10 sm:py-16 flex flex-col items-center text-center">
-        
+
         {/* Card Icon with Plus Badge */}
         <div className="relative mb-6">
           <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gray-100 rounded-2xl flex items-center justify-center">
-            {/* Credit Card SVG */}
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
@@ -24,7 +24,6 @@ export const EmptyCardDetails = ({ onAddCard }: EmptyCardDetailsProps) => {
               <circle cx="17" cy="15" r="2" fill="#9ca3af" />
             </svg>
           </div>
-          {/* Plus Badge */}
           <div className="absolute -bottom-1 -right-1 w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-orange-500 border-2 border-white flex items-center justify-center">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -41,19 +40,17 @@ export const EmptyCardDetails = ({ onAddCard }: EmptyCardDetailsProps) => {
           </div>
         </div>
 
-        {/* Title */}
         <h2 className="text-lg sm:text-2xl font-semibold text-gray-900 mb-3">
           No Card Added Yet
         </h2>
 
-        {/* Description */}
         <p className="text-sm sm:text-base text-gray-500 max-w-md leading-relaxed mb-6">
           You don't have any saved payment cards linked to your account. Add a
           credit or debit card for faster, friction-free checkout.
         </p>
 
         {/* Note */}
-        <div className="inline-flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-full px-3 py-1.5 sm:px-4 sm:py-2 mb-6 sm:mb-8">
+        <div className="inline-flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-full px-3 py-1.5 sm:px-4 sm:py-2 mb-3">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
@@ -75,10 +72,17 @@ export const EmptyCardDetails = ({ onAddCard }: EmptyCardDetailsProps) => {
           </span>
         </div>
 
+        {/* Verification charge notice */}
+        <p className="text-xs sm:text-sm text-gray-500 max-w-md mb-6 sm:mb-8">
+          A small Rs. 10.00 verification payment is made when you add a card.
+          Tick "keep card" on the payment page to save it.
+        </p>
+
         {/* Add New Card Button */}
         <button
           onClick={onAddCard}
-          className="w-full sm:w-auto sm:min-w-[320px] inline-flex items-center justify-center gap-2 bg-[#3E206D] hover:bg-purple-900 active:bg-purple-950 text-white font-medium text-sm sm:text-base rounded-lg px-6 py-3 sm:py-3.5 transition-colors duration-200"
+          disabled={busy}
+          className="w-full sm:w-auto sm:min-w-[320px] inline-flex items-center justify-center gap-2 bg-[#3E206D] hover:bg-purple-900 active:bg-purple-950 disabled:opacity-60 disabled:cursor-not-allowed text-white font-medium text-sm sm:text-base rounded-lg px-6 py-3 sm:py-3.5 transition-colors duration-200"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -92,7 +96,7 @@ export const EmptyCardDetails = ({ onAddCard }: EmptyCardDetailsProps) => {
             <line x1="12" y1="5" x2="12" y2="19" />
             <line x1="5" y1="12" x2="19" y2="12" />
           </svg>
-          Add New Card
+          {busy ? 'Redirecting...' : 'Add New Card'}
         </button>
 
         {/* Supported Footer */}
@@ -101,22 +105,16 @@ export const EmptyCardDetails = ({ onAddCard }: EmptyCardDetailsProps) => {
             Supported:
           </span>
           <div className="flex items-center gap-1.5 sm:gap-2">
-            {/* Visa */}
             <span className="inline-flex items-center justify-center h-5 sm:h-6 px-1.5 bg-gray-100 rounded text-[10px] sm:text-xs font-bold text-blue-700 tracking-tight">
               VISA
             </span>
-            {/* Mastercard */}
             <span className="inline-flex items-center justify-center h-5 sm:h-6 w-8 sm:w-9 bg-gray-100 rounded">
               <svg viewBox="0 0 32 20" className="h-3 sm:h-3.5">
                 <circle cx="12" cy="10" r="7" fill="#EB001B" />
                 <circle cx="20" cy="10" r="7" fill="#F79E1B" fillOpacity="0.9" />
-                <path
-                  d="M16 4.5a7 7 0 000 11 7 7 0 000-11z"
-                  fill="#FF5F00"
-                />
+                <path d="M16 4.5a7 7 0 000 11 7 7 0 000-11z" fill="#FF5F00" />
               </svg>
             </span>
-            {/* 3D Secure */}
             <span className="inline-flex items-center gap-1 h-5 sm:h-6 px-1.5 bg-gray-100 rounded text-[10px] sm:text-xs font-medium text-gray-600">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
