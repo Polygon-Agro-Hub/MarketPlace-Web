@@ -97,6 +97,7 @@ const Page: React.FC = () => {
   const [awaitingPayment, setAwaitingPayment] = useState(false);
   const [showCardChoice, setShowCardChoice] = useState(false);
   const [cardChoice, setCardChoice] = useState<PaymentChoice>("new");
+  const [saveCard, setSaveCard] = useState(false);
 
 
   useEffect(() => {
@@ -530,7 +531,10 @@ const Page: React.FC = () => {
 
         // Second click, another card: the hosted checkout
         const adapter = PaymentGatewayFactory.getAdapter("payments_lk");
-        const session = await adapter.initiatePayment({ orderPayload: payload, token });
+        const session = await adapter.initiatePayment({
+          orderPayload: { ...payload, saveCard },
+          token,
+        });
 
         if (session?.checkoutUrl) {
           window.location.replace(session.checkoutUrl);
@@ -842,7 +846,13 @@ const Page: React.FC = () => {
         {/* Left Column - Payment Methods */}
         <div className="w-full lg:w-2/3">
           {showCardChoice && shouldUseGateway ? (
-            <SavedCardSelection token={token} value={cardChoice} onChange={setCardChoice} />
+            <SavedCardSelection
+              token={token}
+              value={cardChoice}
+              onChange={setCardChoice}
+              saveCard={saveCard}
+              onSaveCardChange={setSaveCard}
+            />
           ) : (
             <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 md:p-8">
               {creditBalance > 0 && (

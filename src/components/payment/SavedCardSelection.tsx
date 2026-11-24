@@ -9,6 +9,9 @@ type Props = {
   token: string | null;
   value: PaymentChoice;
   onChange: (choice: PaymentChoice) => void;
+  actionLabel?: string;
+  saveCard?: boolean;
+  onSaveCardChange?: (saveCard: boolean) => void;
   // Lets the parent know which card was loaded (null = no saved card)
   onCardLoaded?: (card: SavedCard | null) => void;
 };
@@ -23,9 +26,27 @@ const Radio = ({ checked }: { checked: boolean }) => (
   </span>
 );
 
-const SavedCardSelection: React.FC<Props> = ({ token, value, onChange, onCardLoaded }) => {
+const SavedCardSelection: React.FC<Props> = ({
+  token,
+  value,
+  onChange,
+  actionLabel = "Pay Now",
+  saveCard = false,
+  onSaveCardChange,
+  onCardLoaded,
+}) => {
   const [card, setCard] = useState<SavedCard | null>(null);
   const [loading, setLoading] = useState(true);
+  const [saveCardLocal, setSaveCardLocal] = useState(saveCard);
+
+  useEffect(() => {
+    setSaveCardLocal(saveCard);
+  }, [saveCard]);
+
+  const handleSaveCardChange = (checked: boolean) => {
+    setSaveCardLocal(checked);
+    onSaveCardChange?.(checked);
+  };
 
   // Keep the latest callbacks without re-running the load effect
   const onChangeRef = useRef(onChange);
@@ -80,33 +101,38 @@ const SavedCardSelection: React.FC<Props> = ({ token, value, onChange, onCardLoa
   return (
     <div className="flex-1 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm sm:p-8">
       {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h2 className="text-xl font-semibold text-[#1a1a2e] sm:text-2xl">Saved Card Info</h2>
-          <p className="mt-1 text-xs text-[#626D72] sm:text-sm">
-            Please visit My Account Section if you want to replace the card.
-          </p>
-        </div>
-        <span className="inline-flex w-fit items-center gap-2 rounded-full bg-gray-100 px-4 py-2 text-[11px] text-gray-600 sm:text-xs">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-3.5 w-3.5 text-gray-500"
-          >
-            <circle cx="12" cy="12" r="10" />
-            <line x1="12" y1="16" x2="12" y2="12" />
-            <line x1="12" y1="8" x2="12.01" y2="8" />
-          </svg>
-          Only 1 card can be saved at a time.
-        </span>
-      </div>
-
-      <hr className="my-5 border-gray-100" />
+      {card && (
+        <>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 className="text-xl font-semibold text-[#1a1a2e] sm:text-2xl">
+                Saved Card Info
+              </h2>
+              <p className="mt-1 text-xs text-[#626D72] sm:text-sm">
+                Please visit My Account Section if you want to replace the card.
+              </p>
+            </div>
+            <span className="inline-flex w-fit items-center gap-2 rounded-full bg-gray-100 px-4 py-2 text-[11px] text-gray-600 sm:text-xs">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-3.5 w-3.5 text-gray-500"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="16" x2="12" y2="12" />
+                <line x1="12" y1="8" x2="12.01" y2="8" />
+              </svg>
+              Only 1 card can be saved at a time.
+            </span>
+          </div>
+          <hr className="my-5 border-gray-100" />
+        </>
+      )}
 
       {loading ? (
         <div className="space-y-4">
@@ -213,66 +239,177 @@ const SavedCardSelection: React.FC<Props> = ({ token, value, onChange, onCardLoa
             tabIndex={0}
             onClick={() => onChange("new")}
             onKeyDown={selectOnKey("new")}
-            className={`cursor-pointer rounded-xl border p-4 transition-colors sm:p-5 ${
-              value === "new" ? "border-2 border-[#3E206D] bg-[#F7F5FD]" : "border-gray-200 bg-white"
+            className={`cursor-pointer rounded-xl border-2 p-4 transition-colors sm:p-5 ${
+              value === "new"
+                ? "border-[#3E206D] bg-white"
+                : "border-gray-200 bg-white"
             }`}
           >
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <Radio checked={value === "new"} />
-                <span className="text-sm font-semibold text-[#1a1a2e]">
-                  {card ? "Pay with Another Card" : "Pay with Card"}
-                </span>
-              </div>
-              <span className="text-[10px] text-gray-400">Credit or Debit card</span>
-            </div>
+            {!card ? (
+              <>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-5 w-5 text-[#3E206D]"
+                      aria-hidden="true"
+                    >
+                      <rect x="2" y="5" width="20" height="14" rx="2" />
+                      <line x1="2" y1="10" x2="22" y2="10" />
+                    </svg>
+                    <div>
+                      <p className="text-sm font-semibold text-[#1a1a2e] sm:text-base">
+                        Credit or Debit Card
+                      </p>
+                      <p className="mt-0.5 text-[10px] text-gray-500 sm:text-xs">
+                        Secure payment via online gateway
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 self-end sm:self-auto">
+                    <span className="inline-flex h-7 items-center rounded border border-gray-200 bg-white px-2.5 text-sm font-extrabold italic tracking-tight text-[#1A1F71]">
+                      VISA
+                    </span>
+                    <span className="inline-flex h-7 w-10 items-center justify-center rounded border border-gray-200 bg-white">
+                      <svg viewBox="0 0 32 20" className="h-3.5">
+                        <circle cx="12" cy="10" r="7" fill="#EB001B" />
+                        <circle cx="20" cy="10" r="7" fill="#F79E1B" fillOpacity="0.9" />
+                        <path d="M16 4.5a7 7 0 000 11 7 7 0 000-11z" fill="#FF5F00" />
+                      </svg>
+                    </span>
+                    <span className="inline-flex h-7 w-10 items-center justify-center rounded bg-[#2E77BC] text-[8px] font-bold text-white">
+                      AMEX
+                    </span>
+                  </div>
+                </div>
 
-            <div className="mt-4 flex flex-col gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3 sm:ml-[30px] sm:flex-row sm:items-center sm:justify-between sm:p-4">
-              <div className="flex items-start gap-3">
-                <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-[#EDE9FB]">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="#3E206D"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-4 w-4"
-                  >
-                    <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
-                    <polyline points="15 3 21 3 21 9" />
-                    <line x1="10" y1="14" x2="21" y2="3" />
-                  </svg>
-                </span>
-                <div>
-                  <p className="text-xs leading-snug text-gray-700">
+                <div className="mt-5 flex items-start gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3 sm:p-4">
+                  <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-[#E6F4EA]">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#059669"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-4 w-4"
+                    >
+                      <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+                      <polyline points="15 3 21 3 21 9" />
+                      <line x1="10" y1="14" x2="21" y2="3" />
+                    </svg>
+                  </span>
+                  <p className="text-xs leading-5 text-gray-700">
                     You will be redirected to the secure payment gateway to enter your card details
-                    upon clicking <span className="font-bold">Pay Now</span>.
-                  </p>
-                  <p className="mt-1 text-[10px] text-gray-500">
-                    Supports Visa, Mastercard, American Express, and other major debit/credit cards.
+                    upon clicking <span className="font-bold">{actionLabel}</span>.
+                    <span className="mt-1 block text-[10px] text-gray-500 sm:text-xs">
+                      Supports Visa, Mastercard, American Express, and other major debit/credit cards.
+                    </span>
                   </p>
                 </div>
-              </div>
 
-              {/* Brand badges */}
-              <div className="flex items-center gap-2 self-end sm:self-auto">
-                <span className="inline-flex h-7 items-center rounded border border-gray-200 bg-white px-2.5 text-sm font-extrabold italic tracking-tight text-[#1A1F71]">
-                  VISA
-                </span>
-                <span className="inline-flex h-7 w-10 items-center justify-center rounded border border-gray-200 bg-white">
-                  <svg viewBox="0 0 32 20" className="h-3.5">
-                    <circle cx="12" cy="10" r="7" fill="#EB001B" />
-                    <circle cx="20" cy="10" r="7" fill="#F79E1B" fillOpacity="0.9" />
-                    <path d="M16 4.5a7 7 0 000 11 7 7 0 000-11z" fill="#FF5F00" />
-                  </svg>
-                </span>
-                <span className="inline-flex h-7 w-10 items-center justify-center rounded bg-[#2E77BC] text-[8px] font-bold text-white">
-                  AMEX
-                </span>
-              </div>
-            </div>
+                <label className="mt-5 flex cursor-pointer items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={saveCardLocal}
+                    onChange={(event) => handleSaveCardChange(event.target.checked)}
+                    onClick={(event) => event.stopPropagation()}
+                    className="mt-0.5 h-4 w-4 rounded border-gray-400 text-[#3E206D] focus:ring-[#3E206D]"
+                  />
+                  <span>
+                    <span className="block text-sm font-semibold text-[#1a1a2e]">
+                      Save this card for faster checkout next time
+                    </span>
+                    <span className="mt-0.5 block text-[10px] text-gray-500 sm:text-xs">
+                      Card details are securely tokenized and encrypted. Only 1 card can be saved at a time.
+                    </span>
+                  </span>
+                </label>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <Radio checked={value === "new"} />
+                    <span className="text-sm font-semibold text-[#1a1a2e]">
+                      Pay with Another Card
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-gray-400">Credit or Debit card</span>
+                </div>
+
+                <div className="mt-4 flex flex-col gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3 sm:ml-[30px] sm:flex-row sm:items-center sm:justify-between sm:p-4">
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-[#EDE9FB]">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#3E206D"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="h-4 w-4"
+                      >
+                        <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+                        <polyline points="15 3 21 3 21 9" />
+                        <line x1="10" y1="14" x2="21" y2="3" />
+                      </svg>
+                    </span>
+                    <div>
+                      <p className="text-xs leading-snug text-gray-700">
+                        You will be redirected to the secure payment gateway to enter your card details
+                        upon clicking <span className="font-bold">{actionLabel}</span>.
+                      </p>
+                      <p className="mt-1 text-[10px] text-gray-500">
+                        Supports Visa, Mastercard, American Express, and other major debit/credit cards.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-end sm:self-auto">
+                    <span className="inline-flex h-7 items-center rounded border border-gray-200 bg-white px-2.5 text-sm font-extrabold italic tracking-tight text-[#1A1F71]">
+                      VISA
+                    </span>
+                    <span className="inline-flex h-7 w-10 items-center justify-center rounded border border-gray-200 bg-white">
+                      <svg viewBox="0 0 32 20" className="h-3.5">
+                        <circle cx="12" cy="10" r="7" fill="#EB001B" />
+                        <circle cx="20" cy="10" r="7" fill="#F79E1B" fillOpacity="0.9" />
+                        <path d="M16 4.5a7 7 0 000 11 7 7 0 000-11z" fill="#FF5F00" />
+                      </svg>
+                    </span>
+                    <span className="inline-flex h-7 w-10 items-center justify-center rounded bg-[#2E77BC] text-[8px] font-bold text-white">
+                      AMEX
+                    </span>
+                  </div>
+                </div>
+
+                <label className="mt-5 flex cursor-pointer items-start gap-3 sm:ml-[30px]">
+                  <input
+                    type="checkbox"
+                    checked={saveCardLocal}
+                    onChange={(event) => handleSaveCardChange(event.target.checked)}
+                    onClick={(event) => event.stopPropagation()}
+                    className="mt-0.5 h-4 w-4 rounded border-gray-400 text-[#3E206D] focus:ring-[#3E206D]"
+                  />
+                  <span>
+                    <span className="block text-sm font-semibold text-[#1a1a2e]">
+                      Save this card for faster checkout next time
+                    </span>
+                    <span className="mt-0.5 block text-[10px] text-gray-500">
+                      Card details are securely tokenized and encrypted. Only 1 card can be saved at a time.
+                    </span>
+                  </span>
+                </label>
+              </>
+            )}
           </div>
         </div>
       )}
