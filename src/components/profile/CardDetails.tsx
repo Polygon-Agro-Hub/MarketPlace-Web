@@ -20,6 +20,19 @@ const CardDetails = () => {
     const [error, setError] = React.useState('');
 
     React.useEffect(() => {
+        // Coming back from the gateway with the browser back button restores the
+        // page from cache, still in the "busy" state. Reset it when that happens.
+        const handlePageShow = (e: PageTransitionEvent) => {
+            if (e.persisted) {
+                setBusy(false);
+            }
+        };
+
+        window.addEventListener('pageshow', handlePageShow);
+        return () => window.removeEventListener('pageshow', handlePageShow);
+    }, []);
+
+    React.useEffect(() => {
         // Not logged in (or the store hasn't loaded the token yet): nothing to fetch
         if (!token) {
             setLoading(false);
