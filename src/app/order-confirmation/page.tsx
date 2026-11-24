@@ -30,6 +30,10 @@ import { updateCartInfo } from "@/store/slices/authSlice";
 import { sendSms, getCheckoutScheduleInfo } from "@/services/product-service";
 import { buildOrderConfirmationSms, splitSmsPhone } from "@/utils/order-sms";
 import Loader from "@/components/loader-spinner/Loader";
+import { getSavedCard, type SavedCard } from "@/services/card-service";
+import SavedCardSelection, {
+  type PaymentChoice,
+} from "@/components/payment/SavedCardSelection";
 
 const getPaymentPill = (
   paymentType: PaymentType,
@@ -96,6 +100,30 @@ const OrderConfirmationContent = () => {
   const [successVisible, setSuccessVisible] = useState(false);
   const [cancelSuccessVisible, setCancelSuccessVisible] = useState(false);
   const confirmationSmsSent = useRef(false);
+  const [savedCard, setSavedCard] = useState<SavedCard | null>(null);
+  const [showCardSelection, setShowCardSelection] = useState(false);
+  const [cardChoice, setCardChoice] = useState<PaymentChoice>("new");
+  const [saveCard, setSaveCard] = useState(false);
+
+  useEffect(() => {
+    if (!token) return;
+    let cancelled = false;
+
+    getSavedCard(token)
+      .then((card) => {
+        if (!cancelled) {
+          setSavedCard(card);
+          setCardChoice(card ? "saved" : "new");
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setSavedCard(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
 
   const notifyOrderConfirmed = async (paymentCompleted: boolean) => {
     if (confirmationSmsSent.current || !order || !token) return;
@@ -193,17 +221,34 @@ const OrderConfirmationContent = () => {
 
   const handleConfirm = async () => {
     if (!token || !processedOrderId || submitting) return;
+
+    const isCardPayment =
+      order?.summary.paymentType === "CARD" ||
+      order?.summary.paymentType === "CARD_CREDIT";
+
+    if (isCardPayment && !showCardSelection) {
+      setShowCardSelection(true);
+      setCardChoice(savedCard ? "saved" : "new");
+      return;
+    }
+
     try {
       setSubmitting(true);
       setActionError(null);
 
-      const result = await confirmOrder(token, processedOrderId);
+      const result = await confirmOrder(
+        token,
+        processedOrderId,
+        showCardSelection && cardChoice === "saved",
+        cardChoice === "new" && saveCard,
+      );
 
       if (result.paymentUrl) {
         router.replace(result.paymentUrl);
         return;
       }
 
+      setSubmitting(false);
       notifyOrderConfirmed(true);
       setSuccessVisible(true);
     } catch (err: any) {
@@ -248,7 +293,15 @@ const OrderConfirmationContent = () => {
   };
 
   return (
-    <main className="mx-auto w-full max-w-[1200px] px-4 py-8 sm:px-6 lg:px-8">
+    <main
+      aria-busy={submitting}
+      className="mx-auto w-full max-w-[1200px] px-4 py-8 sm:px-6 lg:px-8"
+    >
+      <Loader
+        isVisible={submitting}
+        overlayClassName="!z-[9999] !backdrop-blur-md bg-white/25"
+        portal
+      />
       {/* Status pill */}
       <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
         <span className="h-1.5 w-1.5 rounded-full bg-blue-600" />
@@ -289,11 +342,22 @@ const OrderConfirmationContent = () => {
 
       {/* Two columns */}
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_360px] lg:items-start">
-        {/* Left: schedule */}
-        <section
-          aria-label="Order schedule"
-          className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm"
-        >
+        {/* Left: card selection or schedule */}
+        {showCardSelection ? (
+          <SavedCardSelection
+            token={token}
+            value={cardChoice}
+            onChange={setCardChoice}
+            actionLabel="Confirm & Accept My Order"
+            saveCard={saveCard}
+            onSaveCardChange={setSaveCard}
+            onCardLoaded={setSavedCard}
+          />
+        ) : (
+          <section
+            aria-label="Order schedule"
+            className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm"
+          >
           <div className="flex items-center justify-between">
             <h2 className="flex items-center gap-1.5 text-base font-semibold text-gray-900">
               <CalendarCheck
@@ -339,7 +403,8 @@ const OrderConfirmationContent = () => {
               </div>
             </div>
           </div>
-        </section>
+          </section>
+        )}
 
         {/* Right: summary + payment method */}
         <aside className="space-y-4">
@@ -348,12 +413,25 @@ const OrderConfirmationContent = () => {
               This order has already been confirmed.
             </div>
           ) : (
-            <UpdatedOrderSummary
-              data={order.summary}
-              onConfirm={handleConfirm}
-              onCancel={handleCancel}
-              submitting={submitting}
-            />
+            <>
+              <UpdatedOrderSummary
+                data={{
+                  ...order.summary,
+                  savedCard: savedCard
+                    ? {
+                        brand:
+                          savedCard.scheme?.toLowerCase() === "visa"
+                            ? "visa"
+                            : "mastercard",
+                        last4: savedCard.last4,
+                      }
+                    : undefined,
+                }}
+                onConfirm={handleConfirm}
+                onCancel={handleCancel}
+                submitting={submitting}
+              />
+            </>
           )}
           <PaymentMethodCard
             paymentType={order.summary.paymentType}

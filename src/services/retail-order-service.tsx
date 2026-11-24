@@ -195,3 +195,40 @@ export const getOrderComplaint = async (token: string, orderId: string): Promise
   }
   return response.data.data;
 };
+
+export const getPostInvoice = async (
+  token: string | null,
+  processOrderId: string | number,
+): Promise<any> => {
+  try {
+    const response = await axios.get(
+      `/retail-order/postinvoice/${processOrderId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
+    if (
+      response.status >= 200 &&
+      response.status < 300 &&
+      response.data?.success
+    ) {
+      return response.data;
+    }
+    throw new Error(
+      response.data?.error ||
+        response.data?.message ||
+        "Failed to fetch post invoice",
+    );
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.error ||
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to fetch post invoice",
+    );
+  }
+};

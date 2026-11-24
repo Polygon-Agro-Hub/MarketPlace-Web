@@ -53,9 +53,9 @@ const CardBrandLogo: React.FC<{ brand: CardBrand }> = ({ brand }) => {
     );
   }
   return (
-    <span className="relative inline-block h-4 w-6" aria-hidden="true">
-      <span className="absolute left-0 top-0 h-4 w-4 rounded-full bg-[#EB001B]" />
-      <span className="absolute right-0 top-0 h-4 w-4 rounded-full bg-[#F79E1B] mix-blend-multiply" />
+    <span className="relative inline-flex h-5 w-7 shrink-0" aria-label="Mastercard">
+      <span className="absolute left-0 top-0.5 h-4 w-4 rounded-full bg-[#EB001B]" />
+      <span className="absolute right-0 top-0.5 h-4 w-4 rounded-full bg-[#F79E1B] mix-blend-multiply" />
     </span>
   );
 };
@@ -237,17 +237,23 @@ const UpdatedOrderSummary: React.FC<UpdatedOrderSummaryProps> = ({
       )}
 
       {/* Notice - saved card (CARD / CARD + CREDIT) */}
-      {/* {isCard && cardCharge > 0 && (
+      {isCard && cardCharge > 0 && savedCard && (
         <div className="mt-5 rounded-lg bg-indigo-50 px-3 py-3">
           <p className="text-sm text-gray-800">
-            You will be redirected to the secure payment gateway to pay{" "}
-            <strong>{formatMoney(cardCharge)}</strong> upon clicking confirm.
+            You will be charged <strong>{formatMoney(cardCharge)}</strong> upon clicking
+            confirm using the saved card number.
           </p>
-          <p className="mt-1 text-xs text-gray-500">
-            Supports Visa and Mastercard debit/credit cards.
-          </p>
+          <div className="mt-2 flex items-center gap-2">
+            <CardBrandLogo brand={savedCard.brand} />
+            <span className="text-sm font-medium text-gray-700">
+              {savedCard.brand === "visa" ? "Visa" : "Mastercard"}
+              <span className="ml-2 tracking-[0.12em]">
+                •••• {savedCard.last4}
+              </span>
+            </span>
+          </div>
         </div>
-      )} */}
+      )}
 
       {/* Actions */}
       <div className="mt-5 space-y-2">
@@ -262,7 +268,7 @@ const UpdatedOrderSummary: React.FC<UpdatedOrderSummaryProps> = ({
           type="button"
           onClick={onConfirm}
           disabled={submitting}
-          className="flex w-full cursor-pointer shadow-md items-center justify-center gap-1.5 rounded-lg bg-[#3E206D] py-3 text-sm font-semibold text-white transition-colors hover:bg-[#2f1854] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3E206D] focus-visible:ring-offset-2"
+          className="flex w-full cursor-pointer shadow-md items-center justify-center gap-1.5 rounded-lg bg-[#3E206D] py-3 text-sm font-semibold text-white transition-colors hover:bg-[#2f1854] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3E206D] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
         >
           {submitting ? "Processing..." : "Confirm & Accept My Order"}
           {!submitting && <ArrowRight className="h-4 w-4" />}

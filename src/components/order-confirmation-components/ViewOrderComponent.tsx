@@ -478,7 +478,7 @@ const ViewOrderComponent: React.FC<ViewOrderComponentProps> = ({
 
               <div className="border-t border-gray-200 pt-4">
                 <PriceRow
-                  label="Paid Using Credit Balance"
+                  label="Paid Using Polygon wallet"
                   value={formatMoney(creditApplied)}
                 />
               </div>

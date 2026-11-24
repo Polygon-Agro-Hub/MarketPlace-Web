@@ -148,11 +148,13 @@ export const getPendingConfirmationOrder = async (
 export const confirmOrder = async (
   token: string,
   processedOrderId: string,
+  useSavedCard = false,
+  saveCard = false,
 ): Promise<ConfirmOrderResult> => {
   try {
     const res = await axios.post(
       `/retail-order/order-confirmation/${processedOrderId}/confirm`,
-      {},
+      { useSavedCard, saveCard },
       {
         headers: {
           "Content-Type": "application/json",
