@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Slider from 'react-slick';
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Scale, SlidersHorizontal, Truck } from 'lucide-react';
 import PackageCard from './PackageCard';
 import { getPackageDetails } from '@/services/product-service';
 import { useViewport } from './hooks/useViewport';
@@ -205,36 +205,112 @@ const PackageSlider: React.FC<packagesProps> = ({ productData, onShowConfirmModa
         };
     };
 
+    const sectionIntro = (
+        <div className="w-full max-w-7xl px-5 sm:px-8">
+            <div className="mb-6 grid grid-cols-1 gap-4 border-b border-[#f0f0f0] pb-5 sm:grid-cols-3 sm:gap-6">
+                <div className="flex items-center gap-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#e8faf3] text-[#14a878]">
+                        <Scale size={17} aria-hidden="true" />
+                    </span>
+                    <div>
+                        <h3 className="text-sm font-bold text-[#171d27] sm:text-base">A little or a little more</h3>
+                        <p className="text-xs text-[#737373]">Choose the weight that works for you.</p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-3 sm:justify-center">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#edf4ff] text-[#3478f6]">
+                        <Truck size={17} aria-hidden="true" />
+                    </span>
+                    <div>
+                        <h3 className="text-sm font-bold text-[#171d27] sm:text-base">Your day, your delivery</h3>
+                        <p className="text-xs text-[#737373]">Choose home delivery or pickup.</p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-3 sm:justify-end">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#fff7e7] text-[#e99a16]">
+                        <SlidersHorizontal size={17} aria-hidden="true" />
+                    </span>
+                    <div>
+                        <h3 className="text-sm font-bold text-[#171d27] sm:text-base">Make it your kind of basket</h3>
+                        <p className="text-xs text-[#737373]">Choose produce to suit your taste.</p>
+                    </div>
+                </div>
+            </div>
+            <div className="mb-6">
+                <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[#ff5635]">
+                    Less planning, more cooking.
+                </p>
+                <h2 className="text-2xl font-bold tracking-tight text-[#171d27] sm:text-3xl">
+                    Good things come together.
+                </h2>
+                <p className="mt-1 text-sm text-[#46536a]">
+                    Start with a bundle, then add the little extras you love.
+                </p>
+            </div>
+
+            <div className="mb-6 flex flex-col justify-between gap-4 rounded-2xl bg-[#897a77] px-5 py-5 text-white sm:flex-row sm:items-center sm:px-7 sm:py-6">
+                <div>
+                    <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white/80">
+                        Everyday, made easier
+                    </p>
+                    <p className="text-xl font-semibold sm:text-2xl">
+                        One good basket. <span className="font-serif italic">Plenty of good meals.</span>
+                    </p>
+                </div>
+                <p className="max-w-sm text-xs leading-relaxed text-white/90 sm:text-sm">
+                    See what&apos;s inside each basket before adding. Pick the mix that suits your kitchen, your week and your appetite.
+                </p>
+            </div>
+        </div>
+    );
+
+    const selectedPackage = productData.find((packageItem) => packageItem.id === selectedPackageId);
+    const packageDetailsPopup = selectedPackage && (
+        <div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 px-4 py-6"
+            ref={modalRef}
+        >
+            <div className="w-full max-w-[500px]">
+                <PackageCard
+                    packageItem={selectedPackage}
+                    isSelected={true}
+                    packageDetails={packageDetails}
+                    onPackageClick={handlePackageClick}
+                    onClosePopup={handleClosePopup}
+                    onAddToCartStart={handlePackageAddToCartStart}
+                    onAddToCartSuccess={handlePackageAddToCartSuccess}
+                    onAddToCartError={handlePackageAddToCartError}
+                    isLoadingDetails={isLoadingDetails}
+                    errorDetails={errorDetails}
+                    onShowConfirmModal={onShowConfirmModal}
+                    onShowLoginPopup={onShowLoginPopup}
+                />
+            </div>
+        </div>
+    );
+
     // If we have very few items, render them without slider
     if (productData.length <= 1) {
         return (
-            <div className="flex flex-col items-center w-full my-5" ref={containerRef}>
-                <div className="flex items-center justify-center gap-2 w-full my-4 md:my-8 px-2 md:px-20">
-                    <div className="w-1/2 border-t-2 border-[#D7D7D7]"></div>
-                    <span className="bg-[#FF8F6666] text-[#FF4421] rounded-lg text-xs md:text-sm px-3 md:px-6 py-1">
-                        Packages
-                    </span>
-                    <div className="w-1/2 border-t-2 border-[#D7D7D7]"></div>
-                </div>
-
-                <div className="w-full flex justify-center px-4">
+            <div className="my-5 flex w-full flex-col items-center package-slider-container" ref={containerRef}>
+                {sectionIntro}
+                <div className="flex w-full justify-center px-4">
                     {productData.map((packageItem) => (
                         <div
                             key={packageItem.id}
-                            className="px-3 sm:px-4 md:px-6 py-3 mx-auto flex justify-center items-center"
+                            className="mx-auto flex w-full max-w-[340px] items-center justify-center px-2 py-3 sm:px-3"
                         >
-                            <div className="w-full max-w-[300px] mx-auto">
+                            <div className="mx-auto w-full">
                                 <PackageCard
                                     packageItem={packageItem}
-                                    isSelected={selectedPackageId === packageItem.id && !isMobile}
-                                    packageDetails={selectedPackageId === packageItem.id ? packageDetails : undefined}
+                                    isSelected={false}
+                                    packageDetails={undefined}
                                     onPackageClick={handlePackageClick}
                                     onClosePopup={handleClosePopup}
                                     onAddToCartStart={handlePackageAddToCartStart}
                                     onAddToCartSuccess={handlePackageAddToCartSuccess}
                                     onAddToCartError={handlePackageAddToCartError}
-                                    isLoadingDetails={isLoadingDetails && selectedPackageId === packageItem.id}
-                                    errorDetails={selectedPackageId === packageItem.id ? errorDetails : undefined}
+                                    isLoadingDetails={false}
                                     onShowConfirmModal={onShowConfirmModal}
                                     onShowLoginPopup={onShowLoginPopup}
                                 />
@@ -243,29 +319,7 @@ const PackageSlider: React.FC<packagesProps> = ({ productData, onShowConfirmModa
                     ))}
                 </div>
 
-                {isMobile && selectedPackageId && (
-                    <div
-                        className="fixed inset-0 bg-transparent bg-opacity-50 z-50 flex items-center justify-center"
-                        ref={modalRef}
-                    >
-                        <div className="bg-transparent w-full max-w-md overflow-hidden items-center justify-center flex px-12">
-                            <PackageCard
-                                packageItem={productData.find(p => p.id === selectedPackageId)!}
-                                isSelected={true}
-                                packageDetails={packageDetails}
-                                onPackageClick={handlePackageClick}
-                                onClosePopup={handleClosePopup}
-                                onAddToCartStart={handlePackageAddToCartStart}
-                                onAddToCartSuccess={handlePackageAddToCartSuccess}
-                                onAddToCartError={handlePackageAddToCartError}
-                                isLoadingDetails={isLoadingDetails}
-                                errorDetails={errorDetails}
-                                onShowConfirmModal={onShowConfirmModal}
-                                onShowLoginPopup={onShowLoginPopup}
-                            />
-                        </div>
-                    </div>
-                )}
+                {packageDetailsPopup}
 
                 <PurpleLoadingPopup isVisible={showLoading} />
                 <SuccessPopup
@@ -288,36 +342,27 @@ const PackageSlider: React.FC<packagesProps> = ({ productData, onShowConfirmModa
 
     return (
         <div className="flex flex-col items-center w-full my-5 package-slider-container" ref={containerRef}>
-            {/* Section Title */}
-            <div className="flex items-center justify-center gap-2 w-full my-4 md:my-8 px-2 md:px-20 max-w-[1800px] mx-auto">
-                <div className="flex-1 border-t-2 border-[#D7D7D7]"></div>
-                <span className="bg-[#FF8F6666] text-[#FF4421] rounded-lg text-xs md:text-sm px-3 md:px-6 py-1 whitespace-nowrap">
-                    Packages
-                </span>
-                <div className="flex-1 border-t-2 border-[#D7D7D7]"></div>
-            </div>
+            {sectionIntro}
 
-            {/* Slider Container with Max Width */}
-            <div className="w-full relative px-3 sm:px-6 md:px-10">
-                <div className="max-w-7xl mx-auto w-full">
+            <div className="relative w-full px-3 sm:px-6 md:px-10">
+                <div className="mx-auto w-full max-w-7xl">
                     <Slider {...getSliderSettings()}>
                         {productData.map((packageItem) => (
                             <div
                                 key={packageItem.id}
-                                className="px-3 sm:px-4 md:px-6 py-3 mx-auto flex justify-center items-center"
+                                className="mx-auto flex items-center justify-center px-2 py-3 sm:px-3"
                             >
-                                <div className="w-full max-w-[300px] mx-auto">
+                                <div className="mx-auto w-full">
                                     <PackageCard
                                         packageItem={packageItem}
-                                        isSelected={selectedPackageId === packageItem.id && !isMobile}
-                                        packageDetails={selectedPackageId === packageItem.id ? packageDetails : undefined}
+                                        isSelected={false}
+                                        packageDetails={undefined}
                                         onPackageClick={handlePackageClick}
                                         onClosePopup={handleClosePopup}
                                         onAddToCartStart={handlePackageAddToCartStart}
                                         onAddToCartSuccess={handlePackageAddToCartSuccess}
                                         onAddToCartError={handlePackageAddToCartError}
-                                        isLoadingDetails={isLoadingDetails && selectedPackageId === packageItem.id}
-                                        errorDetails={selectedPackageId === packageItem.id ? errorDetails : undefined}
+                                        isLoadingDetails={false}
                                         onShowConfirmModal={onShowConfirmModal}
                                         onShowLoginPopup={onShowLoginPopup}
                                     />
@@ -329,29 +374,7 @@ const PackageSlider: React.FC<packagesProps> = ({ productData, onShowConfirmModa
             </div>
 
 
-            {isMobile && selectedPackageId && (
-                <div
-                    className="fixed inset-0 bg-transparent bg-opacity-50 z-50 flex items-center justify-center"
-                    ref={modalRef}
-                >
-                    <div className="bg-transparent w-full max-w-md overflow-hidden items-center justify-center flex px-12">
-                        <PackageCard
-                            packageItem={productData.find(p => p.id === selectedPackageId)!}
-                            isSelected={true}
-                            packageDetails={packageDetails}
-                            onPackageClick={handlePackageClick}
-                            onClosePopup={handleClosePopup}
-                            onAddToCartStart={handlePackageAddToCartStart}
-                            onAddToCartSuccess={handlePackageAddToCartSuccess}
-                            onAddToCartError={handlePackageAddToCartError}
-                            isLoadingDetails={isLoadingDetails}
-                            errorDetails={errorDetails}
-                            onShowConfirmModal={onShowConfirmModal}
-                            onShowLoginPopup={onShowLoginPopup}
-                        />
-                    </div>
-                </div>
-            )}
+            {packageDetailsPopup}
 
             <PurpleLoadingPopup isVisible={showLoading} />
 

@@ -80,7 +80,6 @@ function HomeContent() {
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
   const [selectedPackageForCart, setSelectedPackageForCart] =
     useState<any>(null);
-  const [showLoginPopup, setShowLoginPopup] = useState(false);
 
   const router = useRouter();
 
@@ -207,17 +206,7 @@ function HomeContent() {
   };
 
   const handleShowLoginPopup = () => {
-    setShowLoginPopup(true);
-  };
-
-  const handleLoginClick = () => {
-    setShowLoginPopup(false);
     router.push("/signin");
-  };
-
-  const handleRegisterClick = () => {
-    setShowLoginPopup(false);
-    router.push("/signup");
   };
 
   const NoSearchResults = () => {
@@ -300,64 +289,6 @@ function HomeContent() {
           >
             Clear Search
           </button>
-        </div>
-      </div>
-    );
-  };
-
-  // Login popup component
-  const LoginPopup = () => {
-    if (!showLoginPopup) return null;
-
-    return (
-      <div className="fixed top-0 left-0 w-full h-full bg-black bg-black/50 flex items-center justify-center z-[9999] mb-[5%]">
-        <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4 relative">
-          <button
-            onClick={() => setShowLoginPopup(false)}
-            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 cursor-pointer"
-          >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-
-          <div className="text-center mb-6">
-            <h2 className="text-xl font-bold text-[#000000] mb-4">
-              Welcome, Guest! <span className="text-3xl">👋</span>
-            </h2>
-            <p className="text-[#8492A3] text-base leading-relaxed">
-              We're excited to have you here!
-              <br />
-              To unlock the best experience,
-              <br />
-              please log in or create a new account.
-            </p>
-          </div>
-
-          <div className="flex justify-center space-x-4">
-            <button
-              onClick={handleRegisterClick}
-              className="py-3 px-6 max-w-32 flex-1 rounded-2xl bg-[#EDE1FF] text-[#3E206D] text-sm sm:text-base font-semibold hover:bg-[#DCC7FF] transition-colors cursor-pointer"
-            >
-              Register
-            </button>
-            <button
-              onClick={handleLoginClick}
-              className="py-3 px-6 max-w-32 flex-1 rounded-2xl bg-[#3E206D] text-white font-semibold hover:bg-[#2D1A4F] text-sm sm:text-base transition-colors cursor-pointer"
-            >
-              Login
-            </button>
-          </div>
         </div>
       </div>
     );
@@ -619,7 +550,6 @@ function HomeContent() {
             </div>
           )}
 
-          <LoginPopup />
         </main>
       )}
     </>

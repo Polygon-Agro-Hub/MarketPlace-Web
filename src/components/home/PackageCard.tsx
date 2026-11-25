@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
+import { X } from 'lucide-react';
 import { packageAddToCart } from '@/services/product-service';
 import { getCartInfo } from '@/services/auth-service';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store';
 import { updateCartInfo } from '@/store/slices/authSlice';
-import vegebox from '../../../public/Vegetables_Box.png';
 
 interface PackageItem {
   id: number;
@@ -34,7 +34,6 @@ interface PackageProps {
   errorDetails?: string | null;
   onShowConfirmModal: (packageData: any) => void;
   onShowLoginPopup: () => void;
-  isSingleCardMobile?: boolean;
 }
 
 /**
@@ -89,7 +88,7 @@ const MarqueeText: React.FC<{ text: string; className?: string }> = ({ text, cla
           <span className="pr-8" aria-hidden="true">{text}</span>
         </div>
       ) : (
-        <span className="block text-center">{text}</span>
+        <span className="block text-left">{text}</span>
       )}
 
       <style>{`
@@ -127,8 +126,7 @@ const PackageCard: React.FC<PackageProps> = ({
   isLoadingDetails,
   errorDetails,
   onShowConfirmModal,
-  onShowLoginPopup,
-  isSingleCardMobile = false
+  onShowLoginPopup
 }) => {
   const dispatch = useDispatch();
   const token = useSelector((state: RootState) => state.auth.token) as string | null;
@@ -141,7 +139,6 @@ const PackageCard: React.FC<PackageProps> = ({
       return;
     }
 
-    // FIX: call onShowLoginPopup directly instead of wrapping it inside onAddToCartError
     if (!token || !user) {
       onShowLoginPopup();
       return;
@@ -171,11 +168,25 @@ const PackageCard: React.FC<PackageProps> = ({
   };
 
   const handleAddToCartClick = () => {
+    if (!token || !user) {
+      onShowLoginPopup();
+      return;
+    }
+
     onShowConfirmModal({
       packageItem,
       packageDetails,
       handlePackageAddToCart
     });
+  };
+
+  const handlePackageActionClick = () => {
+    if (!token || !user) {
+      onShowLoginPopup();
+      return;
+    }
+
+    onPackageClick(packageItem.id);
   };
 
   const formatPrice = (price: number): string => {
@@ -185,43 +196,14 @@ const PackageCard: React.FC<PackageProps> = ({
     return `${formattedInteger}.${decimalPart}`;
   };
 
-  const getCardHeight = () => {
-    if (isSingleCardMobile) {
-      return 'h-[400px] md:h-[320px] lg:h-[360px]';
-    }
-    return 'h-[200px] md:h-[320px] lg:h-[360px]';
-  };
-
-  const getSelectedCardHeight = () => {
-    if (isSingleCardMobile) {
-      return 'h-[500px] md:h-[400px] lg:h-[450px]';
-    }
-    return 'h-[380px] md:h-[400px] lg:h-[450px]';
-  };
-
-  const getScrollAreaHeight = () => {
-    if (isSingleCardMobile) {
-      return 'h-[280px] md:h-[200px] lg:h-[250px]';
-    }
-    return 'h-[200px] md:h-[200px] lg:h-[250px]';
-  };
-
-  const getImageContainerHeight = () => {
-    if (isSingleCardMobile) {
-      return 'h-[100px] md:h-[160px] lg:h-[180px]';
-    }
-    return 'h-[100px] md:h-[160px] lg:h-[240px]';
-  };
-
   return (
     <div className="w-full h-full">
       {!isSelected ? (
         <div
-          className={`flex flex-col items-center justify-between w-full ${getCardHeight()} border border-[#D7D7D7] rounded-3xl shadow-lg py-4 px-2 hover:shadow-xl transition-shadow duration-300 cursor-pointer`}
+          className="flex h-full min-h-[350px] flex-col overflow-hidden rounded-2xl border border-[#dedeea] bg-white shadow-sm transition-shadow duration-300 hover:shadow-lg cursor-pointer"
           onClick={() => onPackageClick(packageItem.id)}
         >
-          {/* Image container */}
-          <div className={`w-full ${getImageContainerHeight()} flex-shrink-0 overflow-hidden rounded-lg`}>
+          <div className="aspect-[16/9] w-full shrink-0 overflow-hidden">
             <Image
               src={packageItem.image}
               alt={packageItem.displayName}
@@ -232,76 +214,116 @@ const PackageCard: React.FC<PackageProps> = ({
             />
           </div>
 
-          {/* Content */}
-          <div className="flex flex-col items-center justify-center w-full flex-grow px-2 min-h-[80px] mt-2">
+          <div className="flex flex-1 flex-col px-4 pb-4 pt-4 sm:px-5">
             <MarqueeText
               text={packageItem.displayName}
-              className="font-bold text-sm lg:text-xl leading-tight mb-2"
+              className="mb-2 text-left text-base font-bold leading-tight text-[#171d27] sm:text-lg"
             />
-            <p className="text-[#3E206D] text-xs sm:text-lg font-bold">
-              Rs. {formatPrice(packageItem.subTotal)}
+            <p className="mb-3 text-xs leading-relaxed text-[#46536a] sm:text-sm">
+              A simple starting point for everyday cooking. Four vegetables for your next meal.
             </p>
+            <div className="mt-auto">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <p className="text-sm font-bold text-[#171d27] sm:text-base">
+                  Rs. {formatPrice(packageItem.subTotal)}
+                  <span className="ml-1 text-xs font-normal text-[#46536a]">/ basket</span>
+                </p>
+                <button
+                  type="button"
+                  className="shrink-0 text-[11px] font-medium text-[#ff5635] hover:underline sm:text-xs"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onPackageClick(packageItem.id);
+                  }}
+                >
+                  What&apos;s inside?
+                </button>
+              </div>
+              <button
+                type="button"
+                className="w-full rounded-full bg-[#171d27] px-4 py-2.5 text-xs font-medium text-white transition-colors hover:bg-[#303946] sm:text-sm"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handlePackageActionClick();
+                }}
+              >
+                Add {packageItem.displayName} +
+              </button>
+            </div>
           </div>
         </div>
       ) : (
         <div
-          className={`w-full ${getSelectedCardHeight()} bg-[#3E206D] rounded-3xl shadow-lg relative border border-gray-200 text-white flex flex-col mx-auto`}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${packageItem.displayName} package details`}
+          className="relative mx-auto flex max-h-[90vh] w-full flex-col overflow-hidden rounded-[22px] bg-white text-[#171d27] shadow-2xl"
           data-package-popup={packageItem.id}
         >
-          <div className="p-4 h-full flex flex-col flex-grow mt-1">
-            <div className="flex flex-row w-full justify-between mb-4">
-              <div className="flex items-start justify-start mr-4">
-                <div className="rounded-3xl bg-[#654D8A] px-2 pb-2 pt-1.5">
-                  <Image
-                    src={vegebox}
-                    alt="Vegetables box icon"
-                    width={22}
-                    height={22}
-                    className="object-contain rounded-[4px]"
-                  />
-                </div>
-              </div>
+          <div className="flex items-center justify-between border-b border-[#ececf0] px-5 py-4 sm:px-6">
+            <h2 className="pr-4 text-lg font-bold tracking-tight sm:text-xl">
+              {packageItem.displayName}
+            </h2>
+            <button
+              type="button"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#596579] text-white transition-colors hover:bg-[#414c5e]"
+              onClick={onClosePopup}
+              aria-label="Close package details"
+            >
+              <X size={19} />
+            </button>
+          </div>
 
-              <div className="flex items-end justify-end mr-4">
-                <h3 className="text-white font-bold text-xl text-center">
-                  Rs. {formatPrice(packageItem.subTotal)}{' '}
-                  <span className="text-sm font-normal">/ pack</span>
-                </h3>
-              </div>
+          <div className="overflow-y-auto px-5 pb-5 pt-4 sm:px-6 sm:pb-6">
+            <div className="mb-4 aspect-[2.1/1] w-full overflow-hidden rounded-xl">
+              <Image
+                src={packageItem.image}
+                alt={packageItem.displayName}
+                width={800}
+                height={380}
+                className="h-full w-full object-cover"
+                style={{ objectPosition: 'center' }}
+              />
             </div>
 
-            <div className={`px-8 pt-2 overflow-y-auto ${getScrollAreaHeight()} scrollbar mb-4`}>
+            <h3 className="mb-1 text-base font-semibold text-[#ff5635] sm:text-lg">
+              {packageItem.displayName}
+            </h3>
+            <p className="mb-4 text-sm leading-relaxed text-[#46536a]">
+              A simple starting point for everyday cooking. Four vegetables for your next meal.
+            </p>
+
+            <div className="mb-4 grid grid-cols-2 gap-x-6">
               {isLoadingDetails ? (
-                <div>Loading products...</div>
+                <div className="col-span-2 py-4 text-center text-sm text-[#46536a]">Loading products...</div>
               ) : errorDetails ? (
-                <div className="text-red-200 text-center py-8">{errorDetails}</div>
+                <div className="col-span-2 py-4 text-center text-sm text-red-600">{errorDetails}</div>
               ) : (
-                <ul className="space-y-2 px-1">
-                  {packageDetails?.map((item) => (
-                    <li
-                      key={item.id}
-                      className="flex justify-between items-center border-b border-white/30 py-1 text-sm"
-                    >
-                      <span className="flex-1 text-start truncate pr-2 mb-2">{item.displayName}</span>
-                      <span className="text-white text-start whitespace-nowrap mb-2">
-                        {item.quantity}
-                        {item.quantityType && <span className="ml-1">{item.quantityType}</span>}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
+                packageDetails?.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex min-w-0 items-center justify-between gap-2 border-b border-[#e7e7e7] py-2 text-xs sm:text-sm"
+                  >
+                    <span className="min-w-0 truncate">{item.displayName}</span>
+                    <span className="shrink-0 text-base font-medium text-[#ff5635]">
+                      {item.quantity}
+                      {item.quantityType && <span className="ml-1">{item.quantityType}</span>}
+                    </span>
+                  </div>
+                ))
               )}
             </div>
 
-            <div className="flex px-8 mt-4">
-              <button
-                className="w-full bg-white text-[#000000] py-2 rounded-xl font-normal hover:bg-gray-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                onClick={handleAddToCartClick}
-                disabled={isLoadingDetails}
-              >
-                {isLoadingDetails ? 'Loading...' : 'Add to Cart'}
-              </button>
-            </div>
+            <button
+              type="button"
+              className="w-full rounded-full bg-[#ff603d] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#f24e2c] disabled:cursor-not-allowed disabled:opacity-50 sm:text-base"
+              onClick={handleAddToCartClick}
+              disabled={isLoadingDetails || !packageDetails?.length}
+            >
+              {isLoadingDetails
+                ? 'Loading...'
+                : `Add to basket  ·  Rs. ${formatPrice(packageItem.subTotal)}`}
+            </button>
           </div>
         </div>
       )}
