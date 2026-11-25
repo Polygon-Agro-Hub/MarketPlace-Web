@@ -275,7 +275,7 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
     <>
       <div className="mx-auto w-full max-w-[1800px]">
         {!isSearchActive && (
-          <section className="mx-auto mb-6 w-full max-w-7xl px-2 sm:px-4">
+          <section className="mx-auto mb-6 w-full max-w-7xl">
             <div className="mb-5 flex items-center justify-between gap-4">
               <div>
                 <h2 className="text-xl font-bold tracking-tight text-[#171d27] sm:text-2xl">
@@ -427,7 +427,7 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
           </div>
         )}
 
-        <div className="relative left-1/2 right-1/2 -mx-[50vw] w-screen bg-[#f8f8fc]">
+        <div className="relative left-1/2 right-1/2 -mx-[50%] w-[100vw] max-w-none bg-[#f8f8fc]">
           <div
             ref={productSectionRef}
             className="mx-auto mt-4 w-full max-w-[1800px] scroll-mt-[180px] px-4 py-6 md:mt-0 lg:px-8"
@@ -441,7 +441,7 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
                 <p className="text-red-500">{error}</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-x-4 gap-y-16 sm:grid-cols-3 lg:grid-cols-5 lg:gap-x-16 lg:gap-y-20">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-12 sm:grid-cols-3 sm:gap-x-6 lg:grid-cols-4 xl:grid-cols-5 xl:gap-x-8 lg:gap-y-14">
                 {products.length > 0 ? (
                   products.map((product) => (
                     <ItemCard
