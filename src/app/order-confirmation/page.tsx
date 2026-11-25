@@ -248,10 +248,33 @@ const OrderConfirmationContent = () => {
         return;
       }
 
+      // Charge still settling: wait for the webhook to confirm the order (~60s)
+      if (result.processing) {
+        for (let i = 0; i < 30; i++) {
+          await new Promise((r) => setTimeout(r, 2000));
+          const fresh = await getOrderConfirmation(token, processedOrderId);
+          if (fresh.isConfirmed) {
+            setOrder(fresh);
+            setSubmitting(false);
+            notifyOrderConfirmed(true);
+            setSuccessVisible(true);
+            return;
+          }
+        }
+        throw new Error(
+          "Your payment is still processing. Please check your orders in a moment before trying again.",
+        );
+      }
+
       setSubmitting(false);
       notifyOrderConfirmed(true);
       setSuccessVisible(true);
     } catch (err: any) {
+      if (
+        ["NO_SAVED_CARD", "CARD_EXPIRED", "CARD_NOT_USABLE", "PAYMENT_DECLINED"].includes(err?.code)
+      ) {
+        setCardChoice("new");
+      }
       setActionError(
         err?.message || "Could not confirm your order. Please try again.",
       );
@@ -349,8 +372,6 @@ const OrderConfirmationContent = () => {
             value={cardChoice}
             onChange={setCardChoice}
             actionLabel="Confirm & Accept My Order"
-            saveCard={saveCard}
-            onSaveCardChange={setSaveCard}
             onCardLoaded={setSavedCard}
           />
         ) : (
@@ -358,51 +379,51 @@ const OrderConfirmationContent = () => {
             aria-label="Order schedule"
             className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm"
           >
-          <div className="flex items-center justify-between">
-            <h2 className="flex items-center gap-1.5 text-base font-semibold text-gray-900">
-              <CalendarCheck
-                className="h-4 w-4 text-blue-600"
-                aria-hidden="true"
-              />
-              Order Schedule
-            </h2>
-            <button
-              type="button"
-              onClick={() => setDetailsOpen(true)}
-              className="text-sm font-medium text-blue-600 underline underline-offset-2 hover:text-blue-800 cursor-pointer"
-            >
-              View Order Details
-            </button>
-          </div>
-
-          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="flex items-center gap-3 rounded-lg bg-gray-100 px-4 py-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black">
-                <CalendarDays
-                  className="h-4 w-4 text-white"
+            <div className="flex items-center justify-between">
+              <h2 className="flex items-center gap-1.5 text-base font-semibold text-gray-900">
+                <CalendarCheck
+                  className="h-4 w-4 text-blue-600"
                   aria-hidden="true"
                 />
-              </span>
-              <div>
-                <p className="text-xs text-gray-600">Schedule Date</p>
-                <p className="text-base font-semibold text-gray-900">
-                  {order.schedule.date}
-                </p>
-              </div>
+                Order Schedule
+              </h2>
+              <button
+                type="button"
+                onClick={() => setDetailsOpen(true)}
+                className="text-sm font-medium text-blue-600 underline underline-offset-2 hover:text-blue-800 cursor-pointer"
+              >
+                View Order Details
+              </button>
             </div>
 
-            <div className="flex items-center gap-3 rounded-lg bg-gray-100 px-4 py-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black">
-                <Clock className="h-4 w-4 text-white" aria-hidden="true" />
-              </span>
-              <div>
-                <p className="text-xs text-gray-600">Schedule Time Slot</p>
-                <p className="text-base font-semibold text-gray-900">
-                  {order.schedule.timeSlot}
-                </p>
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="flex items-center gap-3 rounded-lg bg-gray-100 px-4 py-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black">
+                  <CalendarDays
+                    className="h-4 w-4 text-white"
+                    aria-hidden="true"
+                  />
+                </span>
+                <div>
+                  <p className="text-xs text-gray-600">Schedule Date</p>
+                  <p className="text-base font-semibold text-gray-900">
+                    {order.schedule.date}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 rounded-lg bg-gray-100 px-4 py-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black">
+                  <Clock className="h-4 w-4 text-white" aria-hidden="true" />
+                </span>
+                <div>
+                  <p className="text-xs text-gray-600">Schedule Time Slot</p>
+                  <p className="text-base font-semibold text-gray-900">
+                    {order.schedule.timeSlot}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
           </section>
         )}
 
@@ -419,12 +440,12 @@ const OrderConfirmationContent = () => {
                   ...order.summary,
                   savedCard: savedCard
                     ? {
-                        brand:
-                          savedCard.scheme?.toLowerCase() === "visa"
-                            ? "visa"
-                            : "mastercard",
-                        last4: savedCard.last4,
-                      }
+                      brand:
+                        savedCard.scheme?.toLowerCase() === "visa"
+                          ? "visa"
+                          : "mastercard",
+                      last4: savedCard.last4,
+                    }
                     : undefined,
                 }}
                 onConfirm={handleConfirm}

@@ -32,6 +32,7 @@ import { getCheckoutScheduleInfo } from "@/services/product-service";
 import { sendSms } from "@/services/product-service";
 import { buildOrderPlacedSms } from "@/utils/order-sms";
 import SavedCardSelection, { PaymentChoice } from "@/components/payment/SavedCardSelection";
+import { markOrderSuccess, SUCCESS_ROUTE } from "@/utils/order-success";
 
 
 const PAYMENT_SESSION_KEY = "paymentSessionExpiresAt";
@@ -456,22 +457,23 @@ const Page: React.FC = () => {
 
       if (status.isCompleted && status.orderId) {
         setOrderId(status.orderId);
-        setOrderSubmitted(true);
+        setOrderSubmitted(true); // stops the session timer from redirecting to /cart
         localStorage.removeItem("deliveryCharge");
         sessionStorage.removeItem(PAYMENT_SESSION_KEY);
 
-        setIsError(false);
-        setModalMessage("Your order has been placed.");
-        setIsModalOpen(true);
-
+        // Refresh the cart without making the redirect wait long
         try {
-          const cartInfo = await getCartInfo(token);
-          dispatch(updateCartInfo(cartInfo));
+          const cartInfo = await Promise.race([
+            getCartInfo(token),
+            new Promise<null>((r) => setTimeout(() => r(null), 3000)),
+          ]);
+          if (cartInfo) dispatch(updateCartInfo(cartInfo));
         } catch (cartError) {
           console.error("Error fetching cart info:", cartError);
         }
 
-        redirectTimerRef.current = setTimeout(() => router.replace("/history/order"), 2500);
+        markOrderSuccess();             // set the mark right before navigating
+        router.replace(SUCCESS_ROUTE);
         return;
       }
 
@@ -850,8 +852,6 @@ const Page: React.FC = () => {
               token={token}
               value={cardChoice}
               onChange={setCardChoice}
-              saveCard={saveCard}
-              onSaveCardChange={setSaveCard}
             />
           ) : (
             <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 md:p-8">
