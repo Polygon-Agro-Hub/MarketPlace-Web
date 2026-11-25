@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
-import CategoryTile from "./CategoryTile";
-import Vegetables from "../../../public/images/Vegetables.png";
-import Fruits from "../../../public/images/Fruits.png";
-import Grains from "../../../public/images/Grains.png";
-import Spices from "../../../public/images/Spices.png";
+import Vegetables from "../../../public/new-Ui-Image/home/Vegetables-Mushrooms.png";
+import Fruits from "../../../public/new-Ui-Image/home/Fruits.png";
+import Grains from "../../../public/new-Ui-Image/home/Cereals & Pulses.png";
+import Spices from "../../../public/new-Ui-Image/home/Spices.png";
+import AllProduce from "../../../public/new-Ui-Image/home/AllProduce.png";
 import ItemCard from "../../components/item-card/ItemCard";
 import { getProductsByCategory } from "@/services/product-service";
 import { getCategoryCounts } from "@/services/product-service";
@@ -13,6 +14,7 @@ import { StaticImageData } from "next/image";
 import { useDispatch } from "react-redux";
 import { setCategoryResults } from "@/store/slices/searchSlice";
 import socketService from "@/services/socketService"; // NEW
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface Product {
   id: number;
@@ -47,6 +49,8 @@ interface Category {
 // Remove the searchTerm prop since we'll use Redux
 interface CategoryFilterProps { }
 
+const ALL_PRODUCT_CATEGORIES = ["Vegetables", "Fruits", "Cereals", "Spices"];
+
 export default function CategoryFilter({ }: CategoryFilterProps) {
   // Get search term from Redux instead of props
   const searchTerm = useSelector((state: RootState) => state.search.searchTerm);
@@ -54,15 +58,20 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
     (state: RootState) => state.search.isSearchActive,
   );
 
-  const [selectedCategory, setSelectedCategory] = useState("Vegetables");
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [displayedCategory, setDisplayedCategory] = useState("All");
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [countsLoading, setCountsLoading] = useState(true);
   const [refreshTick, setRefreshTick] = useState(0); // NEW — bumped on real-time catalog updates
+  const [showStickyCategoryNav, setShowStickyCategoryNav] = useState(false);
   const dispatch = useDispatch();
   const token = useSelector((state: RootState) => state.auth.token);
+  const categoryStripRef = useRef<HTMLDivElement>(null);
+  const categoryTabsRef = useRef<HTMLDivElement>(null);
+  const productSectionRef = useRef<HTMLDivElement>(null);
 
   const defaultCategories = [
     {
@@ -99,6 +108,23 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
       unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    const categoryTabs = categoryTabsRef.current;
+    if (isSearchActive || !categoryTabs) {
+      setShowStickyCategoryNav(false);
+      return;
+    }
+
+    const observer = new IntersectionObserver(([entry]) => {
+      setShowStickyCategoryNav(
+        !entry.isIntersecting && entry.boundingClientRect.top < 0,
+      );
+    });
+
+    observer.observe(categoryTabs);
+    return () => observer.disconnect();
+  }, [isSearchActive]);
 
   useEffect(() => {
     const fetchCategoryCounts = async () => {
@@ -173,15 +199,38 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
       setError(null);
 
       try {
-        const response = await getProductsByCategory(
-          selectedCategory,
-          searchTerm || undefined,
-          token || undefined,
+        const categoryResponses =
+          selectedCategory === "All"
+            ? await Promise.all(
+                ALL_PRODUCT_CATEGORIES.map((category) =>
+                  getProductsByCategory(
+                    category,
+                    searchTerm || undefined,
+                    token || undefined,
+                  ),
+                ),
+              )
+            : [
+                await getProductsByCategory(
+                  selectedCategory,
+                  searchTerm || undefined,
+                  token || undefined,
+                ),
+              ];
+        const fetchedProducts = categoryResponses.flatMap(
+          (response) => response.products ?? [],
         );
-        setProducts(response.products);
+        const uniqueProducts = Array.from(
+          new Map(
+            fetchedProducts.map(
+              (product): [number, Product] => [product.id, product],
+            ),
+          ).values(),
+        );
+        setProducts(uniqueProducts);
 
         // Always update category results state, regardless of results
-        dispatch(setCategoryResults(response.products.length > 0));
+        dispatch(setCategoryResults(uniqueProducts.length > 0));
       } catch (err) {
         console.error("Error fetching products:", err);
         setError("Failed to load products. Please try again.");
@@ -195,104 +244,275 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
     };
 
     fetchProducts();
-  }, [selectedCategory, searchTerm, dispatch, refreshTick]); // CHANGED — added refreshTick
+  }, [selectedCategory, searchTerm, dispatch, refreshTick, token]); // CHANGED — added refreshTick
 
   function handleCategorySelect(id: string): void {
     setSelectedCategory(id);
+    setDisplayedCategory(id);
+    requestAnimationFrame(() => {
+      productSectionRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
   }
+
+  const scrollCategories = (direction: -1 | 1) => {
+    categoryStripRef.current?.scrollBy({
+      left: direction * 280,
+      behavior: "smooth",
+    });
+  };
+
+  const categorySubtitles: Record<string, string> = {
+    Vegetables: "For the cooking pot",
+    Fruits: "Fresh from the farm",
+    Cereals: "A little fresh crunch",
+    Spices: "Condiments",
+  };
 
   return (
     <>
-      <div className="flex items-center justify-center gap-2 w-full my-4 md:my-8 px-2 md:px-20 max-w-[1800px] mx-auto">
-        <div className="w-1/2 border-t-2 border-[#D7D7D7]"></div>
-        <span className="bg-[#FF8F6666] text-[#FF4421] rounded-lg text-xs md:text-sm px-3 md:px-6 py-1 whitespace-nowrap">
-          Retail Types
-        </span>
-        <div className="w-1/2 border-t-2 border-[#D7D7D7]"></div>
-      </div>
+      <div className="mx-auto w-full max-w-[1800px]">
+        {!isSearchActive && (
+          <section className="mx-auto mb-6 w-full max-w-7xl px-2 sm:px-4">
+            <div className="mb-5 flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-bold tracking-tight text-[#171d27] sm:text-2xl">
+                  Shop by category
+                </h2>
+                <p className="mt-1 text-xs text-[#737373] sm:text-sm">
+                  Find what you need, or try something new.
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <button
+                  type="button"
+                  className="mr-1 hidden text-xs font-semibold text-[#59406f] hover:underline sm:block"
+                  onClick={() =>
+                    categoryStripRef.current?.scrollTo({
+                      left: categoryStripRef.current.scrollWidth,
+                      behavior: "smooth",
+                    })
+                  }
+                >
+                  View all categories
+                </button>
+                <button
+                  type="button"
+                  aria-label="Scroll categories left"
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-[#e7e7ec] bg-white text-[#737373] hover:bg-[#f8f7fc]"
+                  onClick={() => scrollCategories(-1)}
+                >
+                  <ChevronLeft size={17} />
+                </button>
+                <button
+                  type="button"
+                  aria-label="Scroll categories right"
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-[#e7e7ec] bg-white text-[#737373] hover:bg-[#f8f7fc]"
+                  onClick={() => scrollCategories(1)}
+                >
+                  <ChevronRight size={17} />
+                </button>
+              </div>
+            </div>
 
-      <div className="mx-auto w-full max-w-[1600px]">
-        <div className="flex flex-col">
-          {/* Only show the Types section and category tiles when not searching */}
-          {!isSearchActive && (
-            <>
+            <div
+              ref={categoryStripRef}
+              className="flex gap-3 overflow-x-auto scroll-smooth pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            >
+              <button
+                type="button"
+                onClick={() => handleCategorySelect("All")}
+                aria-pressed={displayedCategory === "All"}
+                className={`flex min-w-[280px] flex-[0_0_24%] items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-colors ${
+                  displayedCategory === "All"
+                    ? "border-[#ff704e] bg-[#fff8f5]"
+                    : "border-transparent bg-[#f8f8fc] hover:border-[#e6e2f5]"
+                }`}
+              >
+                <Image
+                  src={AllProduce}
+                  alt=""
+                  width={54}
+                  height={54}
+                  className="h-12 w-12 shrink-0 object-contain"
+                />
+                <div className="min-w-0">
+                  <h3 className="text-sm font-bold text-[#171d27]">All produce</h3>
+                  <p className="text-xs text-[#596579]">Your everyday shop</p>
+                </div>
+              </button>
+
               {countsLoading ? (
-                <div className="flex justify-center items-center py-4">
-                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#3E206D]"></div>
-                </div>
-              ) : (
-                <div className="grid grid-cols-4">
-                  {categories.map((category) => (
-                    <div
-                      key={category.id}
-                      className="aspect-[4/5] md:aspect-square"
-                    >
-                      <CategoryTile
-                        id={category.id}
-                        name={category.name}
-                        imageUrl={category.imageUrl}
-                        itemCount={category.itemCount}
-                        isSelected={selectedCategory === category.id}
-                        onSelect={handleCategorySelect}
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </>
-          )}
-
-          {/* Show search indicator if search is active */}
-          {isSearchActive && (
-            <div className="text-center mb-4">
-              <p className="text-sm text-gray-600">
-                Searching for "{searchTerm}"
-              </p>
-            </div>
-          )}
-        </div>
-
-        <div className="container mx-auto px-2 py-6 max-w-7xl mt-4 md:mt-0">
-          {loading ? (
-            <div className="flex justify-center items-center py-10">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#3E206D]"></div>
-            </div>
-          ) : error ? (
-            <div className="flex justify-center items-center py-10">
-              <p className="text-red-500">{error}</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-4 lg:gap-6">
-              {products.length > 0 ? (
-                products.map((product) => (
-                  <ItemCard
-                    key={product.id}
-                    id={product.id}
-                    name={product.displayName}
-                    originalPrice={product.normalPrice}
-                    currentPrice={product.discountedPrice}
-                    image={product.image}
-                    discount={product.discount}
-                    unitType={product.unitType}
-                    startValue={product.startValue}
-                    changeby={product.changeby}
-                    displayType={product.displayType}
-                    initialInCart={product.inCart}   // NEW
+                Array.from({ length: 4 }).map((_, index) => (
+                  <div
+                    key={index}
+                    className="h-[76px] min-w-[280px] flex-[0_0_24%] animate-pulse rounded-2xl bg-[#f7f7fc]"
                   />
                 ))
               ) : (
-                <div className="col-span-full text-center py-10">
-                  <p className="text-gray-500">
-                    {isSearchActive
-                      ? `No products found for "${searchTerm}" in ${selectedCategory}.`
-                      : "No products found in this category."}
-                  </p>
-                </div>
+                categories.map((category) => (
+                  <button
+                    key={category.id}
+                    type="button"
+                    onClick={() => handleCategorySelect(category.id)}
+                    aria-pressed={displayedCategory === category.id}
+                    className={`flex min-w-[280px] flex-[0_0_24%] items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-colors ${
+                      displayedCategory === category.id
+                        ? "border-[#ff704e] bg-[#fff8f5]"
+                        : "border-transparent bg-[#f8f8fc] hover:border-[#e6e2f5]"
+                    }`}
+                  >
+                    <Image
+                      src={category.imageUrl}
+                      alt=""
+                      width={54}
+                      height={54}
+                      className="h-12 w-12 shrink-0 object-contain"
+                    />
+                    <div className="min-w-0">
+                      <h3 className="truncate text-sm font-bold text-[#171d27]">
+                        {category.name}
+                      </h3>
+                      <p className="truncate text-xs text-[#596579]">
+                        {categorySubtitles[category.id]}
+                      </p>
+                    </div>
+                  </button>
+                ))
               )}
             </div>
-          )}
+
+            <div
+              ref={categoryTabsRef}
+              className="mt-4 flex gap-3 overflow-x-auto border-b border-[#e8e7e4] pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            >
+              <button
+                type="button"
+                onClick={() => handleCategorySelect("All")}
+                aria-pressed={displayedCategory === "All"}
+                className={`shrink-0 rounded-full border px-5 py-2 text-lg font-semibold sm:px-6 ${
+                  displayedCategory === "All"
+                    ? "border-[#ff603d] bg-[#ff603d] text-white"
+                    : "border-[#e1ddf5] bg-white text-[#34343b] hover:border-[#ff9a80]"
+                }`}
+              >
+                All Produce
+              </button>
+              {categories.map((category) => (
+                <button
+                  key={category.id}
+                  type="button"
+                  onClick={() => handleCategorySelect(category.id)}
+                  aria-pressed={displayedCategory === category.id}
+                  className={`shrink-0 rounded-full border px-5 py-2 text-lg font-semibold transition-colors sm:px-6 ${
+                    displayedCategory === category.id
+                      ? "border-[#ff603d] bg-[#ff603d] text-white"
+                      : "border-[#e1ddf5] bg-white text-[#34343b] hover:border-[#ff9a80]"
+                  }`}
+                >
+                  {category.name === "Cereals & Pulses"
+                    ? "Cereal & Pulses"
+                    : category.name}
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {isSearchActive && (
+          <div className="mb-4 text-center">
+            <p className="text-sm text-gray-600">Searching for "{searchTerm}"</p>
+          </div>
+        )}
+
+        <div className="relative left-1/2 right-1/2 -mx-[50vw] w-screen bg-[#f8f8fc]">
+          <div
+            ref={productSectionRef}
+            className="mx-auto mt-4 w-full max-w-[1800px] scroll-mt-[180px] px-4 py-6 md:mt-0 lg:px-8"
+          >
+            {loading ? (
+              <div className="flex justify-center items-center py-10">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#3E206D]"></div>
+              </div>
+            ) : error ? (
+              <div className="flex justify-center items-center py-10">
+                <p className="text-red-500">{error}</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-x-4 gap-y-16 sm:grid-cols-3 lg:grid-cols-5 lg:gap-x-16 lg:gap-y-20">
+                {products.length > 0 ? (
+                  products.map((product) => (
+                    <ItemCard
+                      key={product.id}
+                      id={product.id}
+                      name={product.displayName}
+                      originalPrice={product.normalPrice}
+                      currentPrice={product.discountedPrice}
+                      image={product.image}
+                      discount={product.discount}
+                      unitType={product.unitType}
+                      startValue={product.startValue}
+                      changeby={product.changeby}
+                      displayType={product.displayType}
+                      initialInCart={product.inCart}   // NEW
+                      homeCategoryStyle
+                    />
+                  ))
+                ) : (
+                  <div className="col-span-full text-center py-10">
+                    <p className="text-gray-500">
+                      {isSearchActive
+                        ? `No products found for "${searchTerm}" in ${selectedCategory}.`
+                        : "No products found in this category."}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
+
+      {showStickyCategoryNav && categories.length > 0 && !isSearchActive && (
+        <nav
+          aria-label="Product categories"
+          className="fixed inset-x-0 top-[88px] z-40 border-b border-[#e8e7e4] bg-white px-3 py-3 md:top-[124px]"
+        >
+          <div className="mx-auto flex max-w-[1800px] gap-3 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <button
+              type="button"
+              onClick={() => handleCategorySelect("All")}
+              aria-pressed={displayedCategory === "All"}
+              className={`shrink-0 rounded-full border px-5 py-2 text-lg font-semibold sm:px-6 ${
+                displayedCategory === "All"
+                  ? "border-[#ff603d] bg-[#ff603d] text-white"
+                  : "border-[#e1ddf5] bg-white text-[#34343b] hover:border-[#ff9a80]"
+              }`}
+            >
+              All Produce
+            </button>
+            {categories.map((category) => (
+              <button
+                key={category.id}
+                type="button"
+                onClick={() => handleCategorySelect(category.id)}
+                aria-pressed={displayedCategory === category.id}
+                className={`shrink-0 rounded-full border px-5 py-2 text-lg font-semibold transition-colors sm:px-6 ${
+                  displayedCategory === category.id
+                    ? "border-[#ff603d] bg-[#ff603d] text-white"
+                    : "border-[#e1ddf5] bg-white text-[#34343b] hover:border-[#ff9a80]"
+                }`}
+              >
+                {category.name === "Cereals & Pulses"
+                  ? "Cereal & Pulses"
+                  : category.name}
+              </button>
+            ))}
+          </div>
+        </nav>
+      )}
     </>
   );
 }
