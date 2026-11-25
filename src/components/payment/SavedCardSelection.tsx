@@ -10,8 +10,6 @@ type Props = {
   value: PaymentChoice;
   onChange: (choice: PaymentChoice) => void;
   actionLabel?: string;
-  saveCard?: boolean;
-  onSaveCardChange?: (saveCard: boolean) => void;
   // Lets the parent know which card was loaded (null = no saved card)
   onCardLoaded?: (card: SavedCard | null) => void;
 };
@@ -31,22 +29,10 @@ const SavedCardSelection: React.FC<Props> = ({
   value,
   onChange,
   actionLabel = "Pay Now",
-  saveCard = false,
-  onSaveCardChange,
   onCardLoaded,
 }) => {
   const [card, setCard] = useState<SavedCard | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saveCardLocal, setSaveCardLocal] = useState(saveCard);
-
-  useEffect(() => {
-    setSaveCardLocal(saveCard);
-  }, [saveCard]);
-
-  const handleSaveCardChange = (checked: boolean) => {
-    setSaveCardLocal(checked);
-    onSaveCardChange?.(checked);
-  };
 
   // Keep the latest callbacks without re-running the load effect
   const onChangeRef = useRef(onChange);
@@ -209,17 +195,17 @@ const SavedCardSelection: React.FC<Props> = ({
                       </div>
                     </div>
 
-                    {/* Holder + expiry */}
+                    {/* Email + expiry */}
                     <div className="flex items-end justify-between">
-                      <div>
+                      <div className="min-w-0 pr-2">
                         <p className="mb-0.5 text-[8px] font-medium uppercase tracking-widest text-gray-400">
-                          Card Holder
+                          Email
                         </p>
-                        <p className="text-[10px] font-semibold tracking-wide">
-                          {card.holderName || "CARD HOLDER"}
+                        <p className="truncate text-[10px] font-semibold tracking-wide">
+                          {card.email || "-"}
                         </p>
                       </div>
-                      <div className="text-right">
+                      <div className="flex-shrink-0 text-right">
                         <p className="mb-0.5 text-[8px] font-medium uppercase tracking-widest text-gray-400">
                           Expires
                         </p>
@@ -314,24 +300,6 @@ const SavedCardSelection: React.FC<Props> = ({
                     </span>
                   </p>
                 </div>
-
-                <label className="mt-5 flex cursor-pointer items-start gap-3">
-                  <input
-                    type="checkbox"
-                    checked={saveCardLocal}
-                    onChange={(event) => handleSaveCardChange(event.target.checked)}
-                    onClick={(event) => event.stopPropagation()}
-                    className="mt-0.5 h-4 w-4 rounded border-gray-400 text-[#3E206D] focus:ring-[#3E206D]"
-                  />
-                  <span>
-                    <span className="block text-sm font-semibold text-[#1a1a2e]">
-                      Save this card for faster checkout next time
-                    </span>
-                    <span className="mt-0.5 block text-[10px] text-gray-500 sm:text-xs">
-                      Card details are securely tokenized and encrypted. Only 1 card can be saved at a time.
-                    </span>
-                  </span>
-                </label>
               </>
             ) : (
               <>
@@ -390,24 +358,6 @@ const SavedCardSelection: React.FC<Props> = ({
                     </span>
                   </div>
                 </div>
-
-                <label className="mt-5 flex cursor-pointer items-start gap-3 sm:ml-[30px]">
-                  <input
-                    type="checkbox"
-                    checked={saveCardLocal}
-                    onChange={(event) => handleSaveCardChange(event.target.checked)}
-                    onClick={(event) => event.stopPropagation()}
-                    className="mt-0.5 h-4 w-4 rounded border-gray-400 text-[#3E206D] focus:ring-[#3E206D]"
-                  />
-                  <span>
-                    <span className="block text-sm font-semibold text-[#1a1a2e]">
-                      Save this card for faster checkout next time
-                    </span>
-                    <span className="mt-0.5 block text-[10px] text-gray-500">
-                      Card details are securely tokenized and encrypted. Only 1 card can be saved at a time.
-                    </span>
-                  </span>
-                </label>
               </>
             )}
           </div>
