@@ -275,7 +275,7 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
     <>
       <div className="mx-auto w-full max-w-[1800px]">
         {!isSearchActive && (
-          <section className="mx-auto mb-6 w-full max-w-7xl px-2 sm:px-4">
+          <section className="mx-auto mb-6 w-full max-w-7xl">
             <div className="mb-5 flex items-center justify-between gap-4">
               <div>
                 <h2 className="text-xl font-bold tracking-tight text-[#171d27] sm:text-2xl">
@@ -441,7 +441,7 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
                 <p className="text-red-500">{error}</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-x-4 gap-y-16 sm:grid-cols-3 lg:grid-cols-5 lg:gap-x-16 lg:gap-y-20">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-12 sm:grid-cols-3 sm:gap-x-6 lg:grid-cols-4 xl:grid-cols-5 xl:gap-x-8 lg:gap-y-14">
                 {products.length > 0 ? (
                   products.map((product) => (
                     <ItemCard

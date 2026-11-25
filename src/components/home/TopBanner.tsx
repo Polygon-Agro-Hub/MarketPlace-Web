@@ -147,9 +147,7 @@ const TopBanner: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-8">
-        <div className="animate-pulse">Loading slides...</div>
-      </div>
+      <div className="w-full aspect-[16/9] sm:aspect-[2/1] lg:aspect-[8/3] lg:max-h-[520px] animate-pulse bg-gray-200" />
     );
   }
 
@@ -171,11 +169,11 @@ const TopBanner: React.FC = () => {
 
   return (
     <div className="w-full flex flex-col">
-      <div className="relative w-full" style={{ aspectRatio: "8 / 3" }}>
+      <div className="relative w-full overflow-hidden aspect-[16/9] sm:aspect-[2/1] lg:aspect-[8/3] lg:max-h-[720px]">
         <img
           src={currentSlide.imageUrl}
           alt={currentSlide.details || "Slide image"}
-          className="w-full h-full object-fill"
+          className="h-full w-full object-cover object-center"
           loading="lazy"
           onError={(e) => {
             console.error("Image failed to load:", currentSlide.imageUrl);
@@ -185,10 +183,11 @@ const TopBanner: React.FC = () => {
 
         {orderNotification && showOrderPopup && (
           <div
-            className="absolute top-3 right-3 sm:top-6 sm:right-6 z-10
-                       w-[190px] sm:w-[280px] md:w-[340px] lg:w-[400px]
-                       rounded-2xl sm:rounded-3xl bg-[#1C2536] shadow-xl
-                       p-2.5 sm:p-4"
+            className="absolute top-2 right-2 sm:top-6 sm:right-6 z-10
+           w-[min(210px,calc(100%-1rem))] sm:w-[280px] md:w-[340px] lg:w-[400px]
+           max-w-[calc(100%-1rem)]
+           rounded-2xl sm:rounded-3xl bg-[#1C2536] shadow-xl
+           p-2.5 sm:p-4"
           >
             {/* Header */}
             <div className="flex items-start justify-between gap-2">
@@ -216,7 +215,12 @@ const TopBanner: React.FC = () => {
               aria-hidden="true"
               className="mt-3 hidden items-center gap-3 rounded-xl bg-[#EFE4FF] px-3 py-3 sm:flex"
             >
-              <Image src="/images/delivery_box_parcel.png" alt="Package" width={32} height={32} />
+              <Image
+                src="/images/delivery_box_parcel.png"
+                alt="Package"
+                width={32}
+                height={32}
+              />
 
               <div className="relative flex flex-1 items-start">
                 {/* connecting line */}
@@ -275,15 +279,15 @@ const TopBanner: React.FC = () => {
       </div>
 
       {slides.length > 1 && (
-        <div className="flex justify-center mt-3 sm:mt-4 space-x-2">
+        <div className="flex h-5 items-center justify-center gap-2 mt-2 sm:mt-3">
           {slides.map((slide, idx) => (
             <button
               key={slide.id}
               onClick={() => setCurrentIndex(idx)}
               className={`rounded-full transition-all duration-200 ${
                 idx === currentIndex
-                  ? "bg-[#3E206D] w-3 h-3 sm:w-4 sm:h-4"
-                  : "bg-gray-300 hover:bg-gray-400 w-2 h-2 sm:w-3 sm:h-3"
+                  ? "bg-[#3E206D] w-2.5 h-2.5 sm:w-3 sm:h-3"
+                  : "bg-gray-300 hover:bg-gray-400 w-2 h-2 sm:w-2.5 sm:h-2.5"
               }`}
               aria-label={`Go to slide ${idx + 1}`}
             />

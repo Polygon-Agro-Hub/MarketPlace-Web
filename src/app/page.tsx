@@ -10,6 +10,7 @@ import {
 import { useEffect, useState, Suspense } from "react";
 import Loading from "@/components/loadings/loading";
 import PackageSlider from "@/components/home/PackageSlider";
+import AdditionalInformation from "@/components/home/AdditionalInformation";
 import CategoryFilter from "@/components/type-filters/CategoryFilter";
 import { getAllProduct } from "@/services/product-service";
 import socketService from "@/services/socketService"; 
@@ -296,7 +297,7 @@ function HomeContent() {
 
   const HomeSkeleton = ({ isSearchActive = false }) => {
     return (
-      <main className="flex min-h-screen flex-col bg-gray-50 mb-[10%]">
+      <main className="flex min-h-screen flex-col overflow-x-clip">
         {!isSearchActive && (
           <div className="w-full h-[500px] bg-gray-200 animate-pulse relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"></div>
@@ -443,7 +444,7 @@ function HomeContent() {
       {loading ? (
         <HomeSkeleton isSearchActive={isSearchActive} />
       ) : (
-        <main className="flex min-h-screen flex-col">
+        <main className="flex min-h-screen flex-col overflow-x-clip">
           {!isSearchActive && (
             <div className="w-full">
               <TopBanner />
@@ -498,7 +499,7 @@ function HomeContent() {
                   (error ? (
                     <div className="text-red-500 text-center py-4">{error}</div>
                   ) : (
-                    <div className="w-full px-4 sm:px-3 lg:px-8">
+                    <div className="w-full px-4 sm:px-6 lg:px-8">
                       <PackageSlider
                         productData={productData}
                         onShowConfirmModal={handleShowConfirmModal}
@@ -512,6 +513,8 @@ function HomeContent() {
                     <CategoryFilter />
                   </div>
                 )}
+
+                {!isSearchActive && <AdditionalInformation />}
               </div>
             )}
           </div>

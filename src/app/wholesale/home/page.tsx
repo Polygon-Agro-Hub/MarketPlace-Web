@@ -16,6 +16,7 @@ import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
 import { X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import animationData from "../../../../public/noResults.json";
+import AdditionalInformation from "@/components/home/AdditionalInformation";
 
 interface Package {
   id: number;
@@ -343,7 +344,7 @@ function WholesaleHomeContent() {
         {isSearchActive && !hasPackageResults && !hasCategoryResults ? (
           // Show no results animation when both have no data
           <NoSearchResults />
-        ) : (
+         ) : (
           <>
             {/* Category filter section - show only if has results or not searching */}
             {(!isSearchActive || hasCategoryResults) && (
@@ -353,6 +354,8 @@ function WholesaleHomeContent() {
             )}
           </>
         )}
+
+        {!isSearchActive && <AdditionalInformation />}
       </main>
     </>
   );
