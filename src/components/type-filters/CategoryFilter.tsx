@@ -427,7 +427,7 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
           </div>
         )}
 
-        <div className="relative left-1/2 right-1/2 -mx-[50%] w-[100vw] max-w-none bg-[#f8f8fc]">
+        <div className="relative left-1/2 right-1/2 -mx-[50vw] w-screen bg-[#f8f8fc]">
           <div
             ref={productSectionRef}
             className="mx-auto mt-4 w-full max-w-[1800px] scroll-mt-[180px] px-4 py-6 md:mt-0 lg:px-8"
