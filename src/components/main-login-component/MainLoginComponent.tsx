@@ -2,10 +2,13 @@
 
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
-import { MapPin, ShoppingBag, Truck, X } from "lucide-react";
+import { ArrowLeft, MapPin, ShoppingBag, Truck, X } from "lucide-react";
 import LoginComponent from "@/components/main-login-component/LoginComponent";
+import CitySelection from "@/components/main-login-component/NewCitySelection";
+import type { CityResult } from "@/services/auth-service";
 
 type AuthTab = "login" | "signup";
+type SignupStep = "city" | "details";
 
 interface MainLoginComponentProps {
   isOpen: boolean;
@@ -30,10 +33,16 @@ const MainLoginComponent: React.FC<MainLoginComponentProps> = ({
   defaultTab = "login",
 }) => {
   const [activeTab, setActiveTab] = useState<AuthTab>(defaultTab);
+  const [signupStep, setSignupStep] = useState<SignupStep>("city");
+  const [confirmedCity, setConfirmedCity] = useState<CityResult | null>(null);
 
-  // Reset to the requested tab each time the modal opens
+  // Reset to the requested tab and first signup step each time the modal opens
   useEffect(() => {
-    if (isOpen) setActiveTab(defaultTab);
+    if (isOpen) {
+      setActiveTab(defaultTab);
+      setSignupStep("city");
+      setConfirmedCity(null);
+    }
   }, [isOpen, defaultTab]);
 
   // Close on Escape + lock body scroll while open
@@ -54,6 +63,11 @@ const MainLoginComponent: React.FC<MainLoginComponentProps> = ({
     };
   }, [isOpen, onClose]);
 
+  const handleCityConfirmed = (city: CityResult) => {
+    setConfirmedCity(city);
+    setSignupStep("details");
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -65,10 +79,11 @@ const MainLoginComponent: React.FC<MainLoginComponentProps> = ({
       aria-modal="true"
       aria-label="Log in or create an account"
     >
-      {/* Mobile: one scrollable column (auth on top, image card below).
-          Desktop: two columns (image left, auth right). */}
+      {/* Mobile: one scrollable column (auth on top, image card below), full height.
+          Desktop: two columns (image left, auth right) with FLEXIBLE height:
+          grows with content, capped at the viewport height, scrolls only past that. */}
       <div
-        className="relative flex h-full w-full flex-col overflow-y-auto bg-white md:max-h-[690px] md:max-w-[1040px] md:flex-row md:overflow-hidden md:rounded-[28px] md:shadow-2xl"
+        className="relative flex h-full w-full flex-col overflow-y-auto bg-white md:h-auto md:min-h-[700px] md:max-h-[calc(100vh-2rem)] md:max-w-[1040px] md:flex-row md:overflow-hidden md:rounded-[28px] md:shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* ===== Image panel: card below the form on mobile, left column on desktop ===== */}
@@ -138,7 +153,7 @@ const MainLoginComponent: React.FC<MainLoginComponentProps> = ({
         </div>
 
         {/* ===== Auth panel: top on mobile, right column on desktop ===== */}
-        <div className="relative order-1 flex shrink-0 flex-col px-5 pb-0 pt-5 sm:px-8 md:order-2 md:min-w-0 md:flex-1 md:shrink md:overflow-y-auto md:pb-8 md:pt-8 lg:px-12">
+        <div className="relative order-1 flex shrink-0 flex-col px-5 pb-0 pt-5 sm:px-8 md:order-2 md:min-h-0 md:min-w-0 md:flex-1 md:shrink md:overflow-y-auto md:pb-8 md:pt-8 lg:px-12">
           {/* Top bar: close (left) + logo (right) on mobile; centered logo on desktop */}
           <div className="flex items-center justify-between md:justify-center">
             {/* Close button */}
@@ -190,9 +205,15 @@ const MainLoginComponent: React.FC<MainLoginComponentProps> = ({
           </div>
 
           {/* Tab content */}
-          {/* OLD: <div className="mt-8 flex-1 font-bold"> (font-bold removed so the form text keeps its own weights) */}
-          {/* Mobile: bordered rounded card around the form. Desktop: plain, no card. */}
-          <div className="mt-5 rounded-[24px] border border-indigo-100 bg-white p-5 shadow-[0_4px_20px_rgba(99,102,241,0.08)] md:mt-8 md:flex-1 md:rounded-none md:border-0 md:p-0 md:shadow-none">
+          {/* Login: bordered rounded card on mobile, plain on desktop.
+              Signup: no card, because CitySelection already has its own cards. */}
+          <div
+            className={
+              activeTab === "login"
+                ? "mt-5 rounded-[24px] border border-indigo-100 bg-white p-5 shadow-[0_4px_20px_rgba(99,102,241,0.08)] md:mt-8 md:flex-1 md:rounded-none md:border-0 md:p-0 md:shadow-none"
+                : "mt-5 pb-6 md:mt-8 md:flex-1 md:pb-0"
+            }
+          >
             {activeTab === "login" && (
               <div role="tabpanel">
                 <LoginComponent />
@@ -200,7 +221,33 @@ const MainLoginComponent: React.FC<MainLoginComponentProps> = ({
             )}
 
             {activeTab === "signup" && (
-              <div role="tabpanel">{/* TODO: <SignupForm /> */}</div>
+              <div role="tabpanel">
+                {signupStep === "city" && (
+                  <CitySelection onCityConfirmed={handleCityConfirmed} />
+                )}
+
+                {signupStep === "details" && confirmedCity && (
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => setSignupStep("city")}
+                      className="mb-4 inline-flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-500 transition hover:text-gray-800"
+                    >
+                      <ArrowLeft size={16} />
+                      Change city
+                    </button>
+
+                    <p className="mb-4 text-sm text-gray-600">
+                      Delivering to{" "}
+                      <strong className="text-gray-900">
+                        {confirmedCity.city}
+                      </strong>
+                    </p>
+
+                    {/* TODO: <PersonalDetailsForm city={confirmedCity} /> */}
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>
