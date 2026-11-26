@@ -98,7 +98,7 @@ const Page: React.FC = () => {
   const [awaitingPayment, setAwaitingPayment] = useState(false);
   const [showCardChoice, setShowCardChoice] = useState(false);
   const [cardChoice, setCardChoice] = useState<PaymentChoice>("new");
-  const [saveCard, setSaveCard] = useState(false);
+  // const [saveCard, setSaveCard] = useState(false);
 
 
   useEffect(() => {
@@ -534,7 +534,7 @@ const Page: React.FC = () => {
         // Second click, another card: the hosted checkout
         const adapter = PaymentGatewayFactory.getAdapter("payments_lk");
         const session = await adapter.initiatePayment({
-          orderPayload: { ...payload, saveCard },
+          orderPayload: payload,
           token,
         });
 
