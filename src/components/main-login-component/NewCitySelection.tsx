@@ -38,6 +38,7 @@ const roboto = Roboto({
 
 interface CitySelectionProps {
   onCityConfirmed: (city: CityResult) => void;
+  initialCity?: CityResult | null;
 }
 
 // Available cities first (A–Z), then Coming Soon cities (A–Z)
@@ -47,12 +48,17 @@ const sortCities = (cities: CityResult[]): CityResult[] =>
     return a.city.localeCompare(b.city, undefined, { sensitivity: "base" });
   });
 
-export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
-  const [searchTerm, setSearchTerm] = useState("");
+export default function CitySelection({
+  onCityConfirmed,
+  initialCity = null,
+}: CitySelectionProps) {
+  const [searchTerm, setSearchTerm] = useState(initialCity?.city ?? "");
   const [results, setResults] = useState<CityResult[]>([]);
   const [allCities, setAllCities] = useState<CityResult[]>([]);
-  const [selectedCity, setSelectedCity] = useState<CityResult | null>(null);
-  const [status, setStatus] = useState<CityStatus>("idle");
+  const [selectedCity, setSelectedCity] = useState<CityResult | null>(initialCity);
+  const [status, setStatus] = useState<CityStatus>(
+    initialCity ? (initialCity.isAvailable ? "available" : "unavailable") : "idle",
+  );
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [isLoadingAll, setIsLoadingAll] = useState(false);

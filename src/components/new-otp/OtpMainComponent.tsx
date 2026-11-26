@@ -14,7 +14,6 @@ import {
   ShoppingBag,
   Truck,
 } from "lucide-react";
-// TODO: use your real verify function name and arguments
 import { sendOTPInSignup, verifyOTP } from "@/services/auth-service";
 import { Plus_Jakarta_Sans, Roboto } from "next/font/google";
 
@@ -173,7 +172,20 @@ const OtpMainComponent: React.FC<OtpMainComponentProps> = ({
     setVerifying(true);
     setError(null);
     try {
-      await verifyOTP(refId, code, phoneNumber, phoneCode); // TODO: match your API
+      const response = await verifyOTP(code, refId);
+      const statusCode = String(response?.statusCode ?? "");
+      if (statusCode !== "1000") {
+        if (statusCode === "1002" || statusCode === "1003") {
+          setTimeLeft(0);
+          throw new Error("Your verification code has expired.");
+        }
+        throw new Error(
+          statusCode === "1001"
+            ? "This code is invalid. Please check it and try again."
+            : response?.message || "Unable to verify the code. Please try again.",
+        );
+      }
+
       await onVerificationSuccess();
     } catch (err: any) {
       setError(err?.message || "Invalid code. Please try again.");

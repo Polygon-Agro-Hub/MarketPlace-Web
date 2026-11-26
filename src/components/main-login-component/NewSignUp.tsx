@@ -22,7 +22,6 @@ import {
   DeletedAccountInfo,
 } from "@/services/auth-service";
 import RestoreAccountPopup from "@/components/registration-components/Restoreaccountpopup";
-import { useRouter } from "next/navigation";
 import SuccessPopup from "@/components/toast-messages/success-message";
 import ErrorPopup from "@/components/toast-messages/error-message";
 import OtpMainComponent from "@/components/new-otp/OtpMainComponent";
@@ -63,6 +62,7 @@ interface CustomDropdownProps {
 
 interface NewSignUpProps {
   selectedCity?: CityResult;
+  onSignupComplete: () => void;
   onOtpActiveChange?: (active: boolean) => void;
 }
 
@@ -155,9 +155,9 @@ const SectionTitle = ({ children }: { children: React.ReactNode }) => (
 
 export default function NewSignUp({
   selectedCity,
+  onSignupComplete,
   onOtpActiveChange,
 }: NewSignUpProps) {
-  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isHome, setIsHome] = useState(true);
@@ -700,11 +700,11 @@ export default function NewSignUp({
         brFile: isHome ? null : brFile,
       });
       if (skipSuccessPopup) {
-        router.push("/signin");
+        onSignupComplete();
       } else {
         setShowSuccessPopup(true);
         setTimeout(() => {
-          router.push("/signin");
+          onSignupComplete();
         }, 2000);
       }
     } catch (err: any) {
@@ -736,7 +736,7 @@ export default function NewSignUp({
       setSuccess(null);
       setShowSuccessPopup(true);
       setTimeout(() => {
-        router.push("/signin");
+        onSignupComplete();
       }, 2000);
     } catch (err: any) {
       setLoading(false);

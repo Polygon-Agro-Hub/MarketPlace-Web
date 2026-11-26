@@ -54,9 +54,56 @@ const TopBanner: React.FC = () => {
 
   useEffect(() => {
     document.body.style.margin = "0";
-    getBannerDetails();
+    let cancelled = false;
+
+    const loadBanners = async () => {
+      try {
+        setLoading(true);
+        const data = await getRetaildBanners();
+        if (cancelled) return;
+
+        let formattedSlides: Slide[] = (
+          Array.isArray(data?.slides) ? data.slides : []
+        )
+          .filter(
+            (slide: any) =>
+              slide &&
+              typeof slide.image === "string" &&
+              slide.image.trim().length > 0,
+          )
+          .map((slide: any) => ({
+            id: slide.id,
+            imageUrl: slide.image,
+            details: slide.details,
+            type: slide.type,
+            indexId: slide.indexId,
+          }));
+
+        if (buyerType) {
+          formattedSlides = formattedSlides.filter(
+            (slide) => slide.type === buyerType,
+          );
+        }
+
+        formattedSlides.sort((a, b) => a.indexId - b.indexId);
+        setCurrentIndex(0);
+        setSlides(formattedSlides);
+        setError(null);
+      } catch (err) {
+        if (cancelled) return;
+        console.error("Error fetching banners:", err);
+        setCurrentIndex(0);
+        setSlides([]);
+        setError("Failed to load banners");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    void loadBanners();
 
     return () => {
+      cancelled = true;
       document.body.style.margin = "";
     };
   }, [buyerType]);
@@ -101,42 +148,6 @@ const TopBanner: React.FC = () => {
     return () => clearInterval(id);
   }, [orderNotification]);
 
-  async function getBannerDetails() {
-    try {
-      setLoading(true);
-      const data = await getRetaildBanners();
-
-      if (data && data.slides) {
-        let formattedSlides = data.slides.map((slide: any) => ({
-          id: slide.id,
-          imageUrl: slide.image,
-          details: slide.details,
-          type: slide.type,
-          indexId: slide.indexId,
-        }));
-
-        if (buyerType) {
-          formattedSlides = formattedSlides.filter(
-            (slide: Slide) => slide.type === buyerType,
-          );
-        }
-
-        formattedSlides.sort((a: Slide, b: Slide) => a.indexId - b.indexId);
-
-        setSlides(formattedSlides);
-        setError(null);
-      } else {
-        setSlides([]);
-      }
-    } catch (err) {
-      console.error("Error fetching banners:", err);
-      setError("Failed to load banners");
-      setSlides([]);
-    } finally {
-      setLoading(false);
-    }
-  }
-
   useEffect(() => {
     if (slides.length <= 1) return;
 
@@ -145,10 +156,6 @@ const TopBanner: React.FC = () => {
     }, 4000);
 
     return () => clearInterval(interval);
-  }, [slides]);
-
-  useEffect(() => {
-    setCurrentIndex(0);
   }, [slides]);
 
   if (loading) {
@@ -171,7 +178,7 @@ const TopBanner: React.FC = () => {
     );
   }
 
-  const currentSlide = slides[currentIndex];
+  const currentSlide = slides[currentIndex] ?? slides[0];
 
   return (
     <div className="flex w-full flex-col">

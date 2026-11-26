@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import { ArrowLeft, MapPin, ShoppingBag, Truck, X } from "lucide-react";
@@ -37,6 +37,8 @@ const MainLoginComponent: React.FC<MainLoginComponentProps> = ({
   const [activeTab, setActiveTab] = useState<AuthTab>(defaultTab);
   const [signupStep, setSignupStep] = useState<SignupStep>("city");
   const [confirmedCity, setConfirmedCity] = useState<CityResult | null>(null);
+  const modalScrollRef = useRef<HTMLDivElement>(null);
+  const authPanelScrollRef = useRef<HTMLDivElement>(null);
 
   // Reset to the requested tab and first signup step each time the modal opens
   useEffect(() => {
@@ -46,6 +48,17 @@ const MainLoginComponent: React.FC<MainLoginComponentProps> = ({
       setConfirmedCity(null);
     }
   }, [isOpen, defaultTab]);
+
+  useEffect(() => {
+    if (!isOpen || activeTab !== "signup") return;
+
+    const frame = requestAnimationFrame(() => {
+      modalScrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+      authPanelScrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [activeTab, signupStep, isOpen]);
 
   // Close on Escape + lock body scroll while open
   useEffect(() => {
@@ -71,6 +84,12 @@ const MainLoginComponent: React.FC<MainLoginComponentProps> = ({
     setSignupStep("details");
   };
 
+  const handleSignupComplete = () => {
+    setSignupStep("city");
+    setConfirmedCity(null);
+    setActiveTab("login");
+  };
+
   if (!isOpen) return null;
 
   return createPortal(
@@ -86,7 +105,8 @@ const MainLoginComponent: React.FC<MainLoginComponentProps> = ({
           Desktop: two columns (image left, auth right) with FLEXIBLE height:
           grows with content, capped at the viewport height, scrolls only past that. */}
       <div
-        className="relative flex h-full w-full flex-col overflow-y-auto bg-white md:h-auto md:min-h-[700px] md:max-h-[calc(100vh-2rem)] md:max-w-[1040px] md:flex-row md:overflow-hidden md:rounded-[28px] md:shadow-2xl"
+        ref={modalScrollRef}
+        className="relative flex h-full w-full flex-col overflow-y-auto bg-white md:h-auto md:min-h-[min(700px,calc(100dvh-2rem))] md:max-h-[calc(100dvh-2rem)] md:max-w-[1040px] md:flex-row md:overflow-hidden md:rounded-[28px] md:shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* ===== Image panel: card below the form on mobile, left column on desktop ===== */}
@@ -156,7 +176,10 @@ const MainLoginComponent: React.FC<MainLoginComponentProps> = ({
         </div>
 
         {/* ===== Auth panel: top on mobile, right column on desktop ===== */}
-        <div className="relative order-1 flex shrink-0 flex-col px-5 pb-0 pt-5 sm:px-8 md:order-2 md:min-h-0 md:min-w-0 md:flex-1 md:shrink md:overflow-y-auto md:pb-8 md:pt-8 lg:px-12">
+        <div
+          ref={authPanelScrollRef}
+          className="relative order-1 flex shrink-0 flex-col px-5 pb-0 pt-5 sm:px-8 md:order-2 md:min-h-0 md:min-w-0 md:flex-1 md:shrink md:overflow-y-auto md:pb-8 md:pt-8 lg:px-12 md:[scrollbar-width:thin] md:[scrollbar-color:#d6d3e8_transparent] md:[&::-webkit-scrollbar]:w-1.5 md:[&::-webkit-scrollbar-track]:bg-transparent md:[&::-webkit-scrollbar-track]:my-6 md:[&::-webkit-scrollbar-thumb]:rounded-full md:[&::-webkit-scrollbar-thumb]:bg-[#d6d3e8]"
+        >
           {/* Top bar: close (left) + logo (right) on mobile; centered logo on desktop */}
           <div className="flex items-center justify-between md:justify-center">
             {/* Close button */}
@@ -227,7 +250,10 @@ const MainLoginComponent: React.FC<MainLoginComponentProps> = ({
               <div role="tabpanel">
                 {/* Step 1: city selection */}
                 {signupStep === "city" && (
-                  <CitySelection onCityConfirmed={handleCityConfirmed} />
+                  <CitySelection
+                    initialCity={confirmedCity}
+                    onCityConfirmed={handleCityConfirmed}
+                  />
                 )}
 
                 {/* Step 2: personal details (shown after "Continue to Personal Details") */}
@@ -244,7 +270,10 @@ const MainLoginComponent: React.FC<MainLoginComponentProps> = ({
 
                     {/* Mobile: bordered rounded card. Desktop (md+): plain. */}
                     <div className="rounded-[24px] border border-[#E4DDFB] bg-white p-4 shadow-[0_4px_20px_rgba(99,102,241,0.08)] sm:p-5 md:rounded-none md:border-0 md:p-0 md:shadow-none">
-                      <NewSignUp selectedCity={confirmedCity} />
+                      <NewSignUp
+                        selectedCity={confirmedCity}
+                        onSignupComplete={handleSignupComplete}
+                      />
                     </div>
                   </div>
                 )}
