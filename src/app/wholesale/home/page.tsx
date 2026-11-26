@@ -283,7 +283,7 @@ function WholesaleHomeContent() {
         <SearchParamsHandler onSearchFromUrl={handleSearchFromUrl} />
       </Suspense>
 
-      <main className="flex min-h-screen flex-col">
+      <main className="flex min-h-screen flex-col overflow-x-clip">
         {/* Top banner - hide when search is active */}
         {!isSearchActive && (
           <div className="w-full md:my-8">

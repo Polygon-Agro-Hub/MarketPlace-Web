@@ -288,7 +288,7 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
               <div className="flex shrink-0 items-center gap-2">
                 <button
                   type="button"
-                  className="mr-1 hidden text-xs font-semibold text-[#59406f] hover:underline sm:block"
+                  className="mr-1 hidden text-xs font-semibold text-[#59406f] hover:underline sm:block cursor-pointer"
                   onClick={() =>
                     categoryStripRef.current?.scrollTo({
                       left: categoryStripRef.current.scrollWidth,
@@ -301,7 +301,7 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
                 <button
                   type="button"
                   aria-label="Scroll categories left"
-                  className="flex h-8 w-8 items-center justify-center rounded-full border border-[#e7e7ec] bg-white text-[#737373] hover:bg-[#f8f7fc]"
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-[#e7e7ec] bg-white text-[#737373] hover:bg-[#f8f7fc] cursor-pointer"
                   onClick={() => scrollCategories(-1)}
                 >
                   <ChevronLeft size={17} />
@@ -309,7 +309,7 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
                 <button
                   type="button"
                   aria-label="Scroll categories right"
-                  className="flex h-8 w-8 items-center justify-center rounded-full border border-[#e7e7ec] bg-white text-[#737373] hover:bg-[#f8f7fc]"
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-[#e7e7ec] bg-white text-[#737373] hover:bg-[#f8f7fc] cursor-pointer"
                   onClick={() => scrollCategories(1)}
                 >
                   <ChevronRight size={17} />

@@ -385,7 +385,7 @@ useEffect(() => {
         <button
           type="button"
           onClick={() => openMainLogin("login")}
-          className="whitespace-nowrap text-sm font-semibold text-[#252a34] hover:text-[#ff5635]"
+          className="whitespace-nowrap text-sm font-semibold text-[#252a34] hover:text-[#ff5635] cursor-pointer"
         >
           Log in
         </button>
@@ -393,7 +393,7 @@ useEffect(() => {
         <button
           type="button"
           onClick={() => openMainLogin("signup")}
-          className="whitespace-nowrap text-sm font-semibold text-[#252a34] hover:text-[#ff5635]"
+          className="whitespace-nowrap text-sm font-semibold text-[#252a34] hover:text-[#ff5635] cursor-pointer"
         >
           Sign up
         </button>

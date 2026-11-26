@@ -3,7 +3,6 @@ import axios from "@/lib/axios";
 interface LoginPayload {
   email: string;
   password: string;
-  buyerType: string;
 }
 
 interface LoginResponse {

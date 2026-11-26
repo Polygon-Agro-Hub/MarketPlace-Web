@@ -209,14 +209,14 @@ export default function CategoryFilterWholesale() {
   };
 
   const pillClass = (active: boolean) =>
-    `shrink-0 rounded-full border px-4 py-2 text-sm font-semibold transition-colors sm:px-6 sm:text-base ${
+    `shrink-0 rounded-full border px-4 py-2 text-sm font-semibold transition-colors sm:px-6 sm:text-base cursor-pointer ${
       active
         ? "border-[#ff603d] bg-[#ff603d] text-white"
         : "border-[#e1ddf5] bg-white text-[#34343b] hover:border-[#ff9a80]"
     }`;
 
   const tileClass = (active: boolean) =>
-    `flex min-w-[240px] flex-[0_0_24%] items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-colors sm:min-w-[280px] ${
+    `flex min-w-[240px] flex-[0_0_24%] items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-colors sm:min-w-[280px] cursor-pointer ${
       active
         ? "border-[#ff704e] bg-[#fff8f5]"
         : "border-transparent bg-[#f8f8fc] hover:border-[#e6e2f5]"
@@ -228,31 +228,31 @@ export default function CategoryFilterWholesale() {
         {!isSearchActive && (
           <section id="shop-by-category" className="mx-auto mb-6 w-full max-w-7xl scroll-mt-[118px] md:scroll-mt-[184px]">
             {/* Feature row (ain karanna ona nam meka delete karanna) */}
-            <div className="mb-6 grid grid-cols-1 gap-4 border-b border-[#f0f0f0] pb-5 md:grid-cols-3 md:gap-6">
+            <div className="mb-6 hidden grid-cols-1 gap-4 border-b border-[#f0f0f0] pb-5 sm:grid-cols-3 sm:gap-6 md:grid">
               <div className="flex items-center gap-3">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#e8faf3] text-[#14a878]">
                   <Scale size={17} aria-hidden="true" />
                 </span>
                 <div>
-                  <h3 className="text-sm font-bold text-[#171d27] md:text-base">A little or a little more</h3>
+                  <h3 className="text-sm font-bold text-[#171d27] sm:text-base">A little or a little more</h3>
                   <p className="text-xs text-[#737373]">Choose the weight that works for you.</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3 md:justify-center">
+              <div className="flex items-center gap-3 sm:justify-center">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#edf4ff] text-[#3478f6]">
                   <Truck size={17} aria-hidden="true" />
                 </span>
                 <div>
-                  <h3 className="text-sm font-bold text-[#171d27] md:text-base">Your day, your delivery</h3>
+                  <h3 className="text-sm font-bold text-[#171d27] sm:text-base">Your day, your delivery</h3>
                   <p className="text-xs text-[#737373]">Choose home delivery or pickup.</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3 md:justify-end">
+              <div className="flex items-center gap-3 sm:justify-end">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#fff7e7] text-[#e99a16]">
                   <SlidersHorizontal size={17} aria-hidden="true" />
                 </span>
                 <div>
-                  <h3 className="text-sm font-bold text-[#171d27] md:text-base">Make it your kind of basket</h3>
+                  <h3 className="text-sm font-bold text-[#171d27] sm:text-base">Make it your kind of basket</h3>
                   <p className="text-xs text-[#737373]">Choose produce to suit your taste.</p>
                 </div>
               </div>
@@ -270,7 +270,7 @@ export default function CategoryFilterWholesale() {
               <div className="flex shrink-0 items-center gap-2">
                 <button
                   type="button"
-                  className="mr-1 hidden text-xs font-semibold text-[#59406f] hover:underline sm:block"
+                  className="mr-1 hidden text-xs font-semibold text-[#59406f] hover:underline sm:block cursor-pointer"
                   onClick={() =>
                     categoryStripRef.current?.scrollTo({
                       left: categoryStripRef.current.scrollWidth,
@@ -283,7 +283,7 @@ export default function CategoryFilterWholesale() {
                 <button
                   type="button"
                   aria-label="Scroll categories left"
-                  className="flex h-8 w-8 items-center justify-center rounded-full border border-[#e7e7ec] bg-white text-[#737373] hover:bg-[#f8f7fc]"
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-[#e7e7ec] bg-white text-[#737373] hover:bg-[#f8f7fc] cursor-pointer"
                   onClick={() => scrollCategories(-1)}
                 >
                   <ChevronLeft size={17} />
@@ -291,7 +291,7 @@ export default function CategoryFilterWholesale() {
                 <button
                   type="button"
                   aria-label="Scroll categories right"
-                  className="flex h-8 w-8 items-center justify-center rounded-full border border-[#e7e7ec] bg-white text-[#737373] hover:bg-[#f8f7fc]"
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-[#e7e7ec] bg-white text-[#737373] hover:bg-[#f8f7fc] cursor-pointer"
                   onClick={() => scrollCategories(1)}
                 >
                   <ChevronRight size={17} />
@@ -370,7 +370,7 @@ export default function CategoryFilterWholesale() {
           </div>
         )}
 
-        <div className="relative left-1/2 right-1/2 -mx-[50vw] w-screen bg-[#f8f8fc]">
+        <div className="relative left-1/2 w-screen -translate-x-1/2 bg-[#f8f8fc]">
           <div
             ref={productSectionRef}
             className="mx-auto mt-4 w-full max-w-[1800px] scroll-mt-[290px] px-4 pb-6 pt-16 md:mt-0 lg:px-8"
