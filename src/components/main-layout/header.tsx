@@ -554,7 +554,7 @@ useEffect(() => {
             <button
               type="button"
               onClick={handleCartClick}
-              className="flex h-10 items-center gap-2 rounded-full bg-[#ff603d] px-3 text-white transition-colors hover:bg-[#ef4d2c] md:h-11 md:px-5"
+              className="flex h-10 items-center gap-2 rounded-full bg-[#ff603d] px-3 text-white transition-colors hover:bg-[#ef4d2c] md:h-11 md:px-5 cursor-pointer"
               aria-label={`My Cart, ${isHydrated ? cartState.count || 0 : 0} items`}
             >
               <FontAwesomeIcon icon={faBagShopping} className="text-lg" />

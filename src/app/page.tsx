@@ -77,11 +77,6 @@ function HomeContent() {
   const [selectedCategory, setSelectedCategory] = useState("fruits");
   const [localSearchInput, setLocalSearchInput] = useState("");
 
-  // Modal state
-  const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
-  const [selectedPackageForCart, setSelectedPackageForCart] =
-    useState<any>(null);
-
   const router = useRouter();
 
   useEffect(() => {
@@ -194,17 +189,6 @@ function HomeContent() {
       dispatch(setPackageResults(false));
     }
   }
-
-  // Modal handlers
-  const handleShowConfirmModal = (packageData: any) => {
-    setSelectedPackageForCart(packageData);
-    setShowConfirmModal(true);
-  };
-
-  const handleCloseConfirmModal = () => {
-    setShowConfirmModal(false);
-    setSelectedPackageForCart(null);
-  };
 
   const handleShowLoginPopup = () => {
     router.push("/signin");
@@ -498,7 +482,6 @@ function HomeContent() {
                     <div className="w-full px-4 sm:px-6 lg:px-8">
                       <PackageSlider
                         productData={productData}
-                        onShowConfirmModal={handleShowConfirmModal}
                         onShowLoginPopup={handleShowLoginPopup}
                       />
                     </div>
@@ -515,39 +498,6 @@ function HomeContent() {
             )}
           </div>
 
-          {showConfirmModal && selectedPackageForCart && (
-            <div className="fixed inset-0 bg-black/50 bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full mx-4">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                  Confirm Add to Cart
-                </h3>
-                <p className="text-gray-600 mb-6">
-                  Are you sure you want to add "
-                  {selectedPackageForCart.packageItem.displayName}" to your
-                  cart?
-                </p>
-                <div className="flex justify-end space-x-3">
-                  <button
-                    onClick={handleCloseConfirmModal}
-                    className="px-6 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (selectedPackageForCart.handlePackageAddToCart) {
-                        selectedPackageForCart.handlePackageAddToCart();
-                      }
-                      handleCloseConfirmModal();
-                    }}
-                    className="px-6 py-2 bg-[#3E206D] text-white rounded hover:bg-[#2D1850] transition-colors cursor-pointer"
-                  >
-                    Add to Cart
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
         </main>
       )}
     </>

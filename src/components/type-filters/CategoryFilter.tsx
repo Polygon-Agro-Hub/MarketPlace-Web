@@ -325,7 +325,7 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
                 type="button"
                 onClick={() => handleCategorySelect("All")}
                 aria-pressed={displayedCategory === "All"}
-                className={`flex min-w-[280px] flex-[0_0_24%] items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-colors ${
+                className={`flex min-w-[280px] flex-[0_0_24%] items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-colors cursor-pointer ${
                   displayedCategory === "All"
                     ? "border-[#ff704e] bg-[#fff8f5]"
                     : "border-transparent bg-[#f8f8fc] hover:border-[#e6e2f5]"
@@ -358,7 +358,7 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
                     type="button"
                     onClick={() => handleCategorySelect(category.id)}
                     aria-pressed={displayedCategory === category.id}
-                    className={`flex min-w-[280px] flex-[0_0_24%] items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-colors ${
+                    className={`flex min-w-[280px] flex-[0_0_24%] items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-colors cursor-pointer ${
                       displayedCategory === category.id
                         ? "border-[#ff704e] bg-[#fff8f5]"
                         : "border-transparent bg-[#f8f8fc] hover:border-[#e6e2f5]"
@@ -392,7 +392,7 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
                 type="button"
                 onClick={() => handleCategorySelect("All")}
                 aria-pressed={displayedCategory === "All"}
-                className={`shrink-0 rounded-full border px-5 py-2 text-lg font-semibold sm:px-6 ${
+                className={`shrink-0 rounded-full border px-5 py-2 text-lg font-semibold sm:px-6 cursor-pointer ${
                   displayedCategory === "All"
                     ? "border-[#ff603d] bg-[#ff603d] text-white"
                     : "border-[#e1ddf5] bg-white text-[#34343b] hover:border-[#ff9a80]"
@@ -406,7 +406,7 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
                   type="button"
                   onClick={() => handleCategorySelect(category.id)}
                   aria-pressed={displayedCategory === category.id}
-                  className={`shrink-0 rounded-full border px-5 py-2 text-lg font-semibold transition-colors sm:px-6 ${
+                  className={`shrink-0 rounded-full border px-5 py-2 text-lg font-semibold transition-colors sm:px-6 cursor-pointer ${
                     displayedCategory === category.id
                       ? "border-[#ff603d] bg-[#ff603d] text-white"
                       : "border-[#e1ddf5] bg-white text-[#34343b] hover:border-[#ff9a80]"
@@ -485,7 +485,7 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
               type="button"
               onClick={() => handleCategorySelect("All")}
               aria-pressed={displayedCategory === "All"}
-              className={`shrink-0 rounded-full border px-5 py-2 text-lg font-semibold sm:px-6 ${
+              className={`shrink-0 rounded-full border px-5 py-2 text-lg font-semibold sm:px-6 cursor-pointer ${
                 displayedCategory === "All"
                   ? "border-[#ff603d] bg-[#ff603d] text-white"
                   : "border-[#e1ddf5] bg-white text-[#34343b] hover:border-[#ff9a80]"
@@ -499,7 +499,7 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
                 type="button"
                 onClick={() => handleCategorySelect(category.id)}
                 aria-pressed={displayedCategory === category.id}
-                className={`shrink-0 rounded-full border px-5 py-2 text-lg font-semibold transition-colors sm:px-6 ${
+                className={`shrink-0 rounded-full border px-5 py-2 text-lg font-semibold transition-colors sm:px-6 cursor-pointer ${
                   displayedCategory === category.id
                     ? "border-[#ff603d] bg-[#ff603d] text-white"
                     : "border-[#e1ddf5] bg-white text-[#34343b] hover:border-[#ff9a80]"
