@@ -1374,9 +1374,7 @@ export default function SignupForm({ selectedCity }: SignupFormProps) {
                                         >
                                             I agree to the{" "}
                                             <Link
-                                                href="/terms-and-conditions"
-                                                target="_blank"
-                                                rel="noopener noreferrer"
+                                                href="/terms-conditions"
                                                 className="text-black underline underline-offset-4 decoration-1 font-medium"
                                             >
                                                 Terms &amp; Conditions

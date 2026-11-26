@@ -21,6 +21,7 @@ const excludedRoutes = [
   '/exclude/exclude',
   '/dash-password-update',
   '/privacy-policy',
+  '/terms-conditions',
 ];
 
 const publicRoutes = [
@@ -35,6 +36,7 @@ const publicRoutes = [
   '/error/451',
   '/unsubscribe',
   '/privacy-policy',
+  '/terms-conditions',
   '/', // Root route should be accessible without auth
 ];
 
