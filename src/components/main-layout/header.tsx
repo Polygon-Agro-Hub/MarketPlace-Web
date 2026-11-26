@@ -18,15 +18,22 @@ import { logout, updateCreditBalance } from "../../store/slices/authSlice";
 import socketService from "@/services/socketService";
 import { clearCart } from "@/store/slices/cartSlice";
 import { useRouter, usePathname } from "next/navigation";
-import { LogOut, ChevronUp, ChevronDown, WalletMinimal } from "lucide-react";
+import {
+  LogOut,
+  ChevronUp,
+  ChevronDown,
+  MapPin,
+} from "lucide-react";
 import {
   clearSearch,
   resetAndSearch,
+  setSearchTerm,
 } from "../../store/slices/searchSlice";
 import { X } from "lucide-react";
 import Image from "next/image";
 import glogo from "../../../public/glogo.png";
 import { CreditBalancePill } from "@/components/creditupdate/CreditBalancePill";
+import MainLoginComponent from "@/components/main-login-component/MainLoginComponent";
 
 interface HeaderProps {
   onSearch?: (searchTerm: string) => void;
@@ -63,6 +70,13 @@ const Header = ({ onSearch, searchValue }: HeaderProps = {}) => {
   const pathname = usePathname();
   const [showSignupModal, setShowSignupModal] = useState(false);
   const [selectedBuyerType, setSelectedBuyerType] = useState("");
+  const [isMainLoginOpen, setIsMainLoginOpen] = useState(false);
+  const [mainLoginDefaultTab, setMainLoginDefaultTab] = useState<
+    "login" | "signup"
+  >("login");
+  const [activeHeaderSection, setActiveHeaderSection] = useState<string | null>(
+    null,
+  );
 
   const dispatch = useDispatch();
   const searchTerm = useSelector((state: RootState) => state.search.searchTerm);
@@ -194,6 +208,11 @@ useEffect(() => {
     setLocalSearchInput(e.target.value);
   };
 
+  const handleMobileSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    dispatch(setSearchTerm(localSearchInput.trim()));
+  };
+
   const handleSearchSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
@@ -280,14 +299,33 @@ useEffect(() => {
     return user?.buyerType === "Wholesale" ? "/wholesale/home" : "/";
   };
   const homeUrl = getHomeUrl();
-  const isOnHomePage =
-    pathname === homeUrl ||
-    (pathname === "/" && homeUrl === "/") ||
-    (pathname === "/wholesale/home" && homeUrl === "/wholesale/home");
+
+  const handleSectionNavigation = (
+    event: React.MouseEvent<HTMLAnchorElement>,
+    sectionId: string,
+  ) => {
+    event.preventDefault();
+    setIsMenuOpen(false);
+    setActiveHeaderSection(sectionId);
+    if (isSearchActive) dispatch(clearSearch());
+
+    const section =
+      pathname === homeUrl ? document.getElementById(sectionId) : null;
+    if (section) {
+      section.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+
+    router.push(`${homeUrl}#${sectionId}`);
+  };
 
   const isAuthenticated = () => {
     return isHydrated && token && isTokenValid;
   };
+
+  useEffect(() => {
+    if (isHydrated && token && isTokenValid) setIsMainLoginOpen(false);
+  }, [isHydrated, token, isTokenValid]);
 
   const getUserInfo = () => {
     return isHydrated ? user : null;
@@ -336,53 +374,29 @@ useEffect(() => {
   };
 
 
+  const openMainLogin = (tab: "login" | "signup") => {
+    setMainLoginDefaultTab(tab);
+    setIsMainLoginOpen(true);
+  };
+
   const renderAuthButtons = () => {
-    if (!isHydrated) {
-      return (
-        <>
-          <Link
-            href="/signup"
-            className="text-sm bg-gray-700 rounded-full px-4 py-1 hover:bg-gray-600"
-          >
-            Signup
-          </Link>
-          <Link
-            href="/signin"
-            className="text-sm bg-gray-700 rounded-full px-4 py-1 hover:bg-gray-600"
-          >
-            Login
-          </Link>
-        </>
-      );
-    }
-
-    if (getUserInfo()) {
-      return (
-        <Link
-          href="/"
-          className="text-sm flex items-center gap-2"
-          onClick={handleLogout}
-        >
-          <LogOut />
-          Logout
-        </Link>
-      );
-    }
-
     return (
       <>
-        <Link
-          href="/signup"
-          className="text-sm bg-gray-700 rounded-full px-4 py-1 hover:bg-gray-600"
+        <button
+          type="button"
+          onClick={() => openMainLogin("login")}
+          className="whitespace-nowrap text-sm font-semibold text-[#252a34] hover:text-[#ff5635]"
         >
-          Signup
-        </Link>
-        <Link
-          href="/signin"
-          className="text-sm bg-gray-700 rounded-full px-4 py-1 hover:bg-gray-600"
+          Log in
+        </button>
+        <span className="text-sm text-[#596579]">/</span>
+        <button
+          type="button"
+          onClick={() => openMainLogin("signup")}
+          className="whitespace-nowrap text-sm font-semibold text-[#252a34] hover:text-[#ff5635]"
         >
-          Login
-        </Link>
+          Sign up
+        </button>
       </>
     );
   };
@@ -391,18 +405,26 @@ useEffect(() => {
     if (!isHydrated) {
       return (
         <>
-          <Link
-            href="/signin"
+          <button
+            type="button"
+            onClick={() => {
+              setIsMenuOpen(false);
+              openMainLogin("login");
+            }}
             className="py-4 px-6 hover:bg-purple-800 flex items-center gap-2"
           >
             Login
-          </Link>
-          <Link
-            href="/signup"
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setIsMenuOpen(false);
+              openMainLogin("signup");
+            }}
             className="py-4 px-6 hover:bg-purple-800 flex items-center gap-2"
           >
             Signup
-          </Link>
+          </button>
         </>
       );
     }
@@ -421,18 +443,26 @@ useEffect(() => {
 
     return (
       <>
-        <Link
-          href="/signin"
+        <button
+          type="button"
+          onClick={() => {
+            setIsMenuOpen(false);
+            openMainLogin("login");
+          }}
           className="py-4 px-6 border-b border-[#828282] hover:bg- flex items-center gap-2"
         >
           Login
-        </Link>
-        <Link
-          href="/signup"
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setIsMenuOpen(false);
+            openMainLogin("signup");
+          }}
           className="py-4 px-6 border-b border-[#828282] hover:bg-purple-800 flex items-center gap-2"
         >
           Signup
-        </Link>
+        </button>
       </>
     );
   };
@@ -442,18 +472,175 @@ useEffect(() => {
       className={`fixed top-0 left-0 w-full z-50 transition-transform duration-500 ease-in-out ${showHeader ? "translate-y-0" : "-translate-y-full"
         }`}
     >
-      {!isMobile && (
-        <div className="bg-[#2C2C2C] text-gray-300 py-2 px-4 sm:px-7">
-          <div className="mx-auto flex flex-col sm:flex-row justify-between items-center gap-2 sm:gap-0">
-            <span className="text-xs sm:text-sm italic text-center sm:text-left">
-              Call us for any query or help 011 431 3433
-            </span>
-            <div className="flex gap-2">{renderAuthButtons()}</div>
+      <div className="bg-[#171d27] px-4 py-2 text-white md:px-7">
+        <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-2 text-[11px] md:justify-start md:text-sm">
+          <span className="flex items-center gap-2 whitespace-nowrap">
+            <span className="text-emerald-400" aria-hidden="true">●</span>
+            <span>Call us for any query or help</span>
+          </span>
+          <a
+            href="tel:+94114313433"
+            className="ml-auto flex shrink-0 items-center gap-1 whitespace-nowrap hover:underline md:ml-0 md:gap-2"
+          >
+            <span aria-hidden="true">☎</span>
+            +94 11 431 3433
+          </a>
+        </div>
+      </div>
+
+      <header className="bg-white px-3 py-3 shadow-sm md:px-5 md:py-4">
+        <div className="mx-auto flex max-w-[1600px] items-center gap-3 md:gap-6">
+          <Link href={homeUrl} className="shrink-0">
+            <Image
+              src={glogo}
+              alt="Polygon"
+              className="h-12 w-auto object-contain md:h-11"
+            />
+          </Link>
+
+          {isAuthenticated() && (
+            <div className="hidden min-w-[144px] shrink-0 items-center gap-2 rounded-full bg-[#f7f7fc] px-3 py-2 text-xs text-[#46536a] md:flex">
+              <MapPin size={17} className="shrink-0 text-[#ff5635]" aria-hidden="true" />
+              <span>
+                <span className="block leading-none">Deliver To :</span>
+                <span className="mt-1 block max-w-36 truncate font-semibold text-[#171d27]">
+                  {user?.nearesCity || "Select your city"}
+                </span>
+              </span>
+            </div>
+          )}
+
+          {!isMobile && (
+            <div className="mx-auto hidden min-w-0 w-full max-w-2xl flex-1 md:block">
+              <form onSubmit={handleSearchSubmit}>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Try tomatoes, bananas or broccoli..."
+                    value={localSearchInput}
+                    onChange={handleSearchChange}
+                    onKeyPress={handleSearchKeyPress}
+                    className="w-full rounded-full border border-[#dedcff] bg-[#f8f7ff] py-2.5 pl-11 pr-10 text-sm text-[#3E206D] placeholder-[#596579] focus:outline-none focus:ring-2 focus:ring-[#dedcff]"
+                  />
+                  <FontAwesomeIcon
+                    icon={faMagnifyingGlass}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-[#46536a]"
+                  />
+                  {isSearchActive && searchTerm ? (
+                    <button
+                      type="button"
+                      onClick={handleResetSearch}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-[#3E206D]"
+                      aria-label="Clear search"
+                    >
+                      <X size={16} />
+                    </button>
+                  ) : null}
+                </div>
+              </form>
+            </div>
+          )}
+
+          <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-4">
+            {!isAuthenticated() && !isMobile && (
+              <div className="flex items-center gap-2">
+                <FontAwesomeIcon icon={faUser} className="text-sm text-[#171d27]" />
+                <div className="flex items-center gap-1">
+                  {renderAuthButtons()}
+                </div>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={handleCartClick}
+              className="flex h-10 items-center gap-2 rounded-full bg-[#ff603d] px-3 text-white transition-colors hover:bg-[#ef4d2c] md:h-11 md:px-5"
+              aria-label={`My Cart, ${isHydrated ? cartState.count || 0 : 0} items`}
+            >
+              <FontAwesomeIcon icon={faBagShopping} className="text-lg" />
+              <span className="text-xs font-semibold md:text-sm">My Cart</span>
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-white/25 px-1 text-xs font-bold">
+                {isHydrated ? cartState.count || 0 : 0}
+              </span>
+            </button>
+
+            {isAuthenticated() && (
+              <div className="group relative">
+                <Link
+                  href="/account"
+                  className="flex h-10 items-center gap-2 rounded-full border-0 p-0 text-[#171d27] md:h-12 md:border md:py-1 md:pl-1 md:pr-4"
+                >
+                  {profileImage && (
+                    <img
+                      src={profileImage}
+                      alt=""
+                      className="hidden h-9 w-9 rounded-full object-cover md:block"
+                    />
+                  )}
+                  <span className={`flex h-10 w-10 items-center justify-center rounded-full bg-[#e94c27] text-xs font-bold text-white md:h-9 md:w-9 ${profileImage ? "md:hidden" : ""}`}>
+                    {`${user?.firstName?.[0] || ""}${user?.lastName?.[0] || ""}`}
+                  </span>
+                  <span className="hidden max-w-28 truncate text-sm font-semibold md:inline">
+                    {[user?.firstName, user?.lastName].filter(Boolean).join(" ")}
+                  </span>
+                </Link>
+                <div className="invisible absolute right-0 top-full z-[70] pt-2 opacity-0 transition-opacity group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
+                  <Link
+                    href="/logout"
+                    onClick={handleLogout}
+                    className="block min-w-32 rounded-lg border border-[#e5e7eb] bg-white px-4 py-3 text-sm font-medium text-[#171d27] shadow-lg hover:bg-[#f8f8fc]"
+                  >
+                    Logout
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            {isMobile && (
+              <button
+                type="button"
+                onClick={toggleMenu}
+                className="p-2 text-xl text-[#171d27]"
+                aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+              >
+                <FontAwesomeIcon icon={isMenuOpen ? faTimes : faBars} />
+              </button>
+            )}
           </div>
         </div>
-      )}
+        <div className="mx-2 mt-2 md:hidden">
+          <form onSubmit={handleMobileSearchSubmit}>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Try tomatoes, bananas or broccoli..."
+                value={localSearchInput}
+                onChange={handleSearchChange}
+                className="w-full rounded-full border border-[#dedcff] bg-[#f8f7ff] py-2.5 pl-11 pr-10 text-sm text-[#3E206D] placeholder-[#596579] focus:outline-none focus:ring-2 focus:ring-[#dedcff]"
+              />
+              <button
+                type="submit"
+                aria-label="Search"
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-[#46536a]"
+              >
+                <FontAwesomeIcon icon={faMagnifyingGlass} />
+              </button>
+              {isSearchActive && searchTerm ? (
+                <button
+                  type="button"
+                  onClick={handleResetSearch}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[#3E206D]"
+                  aria-label="Clear search"
+                >
+                  <X size={16} />
+                </button>
+              ) : null}
+            </div>
+          </form>
+        </div>
+      </header>
 
-      <header className="bg-[#FFFFFF] text-white py-5 px-5 shadow-md">
+      <header className="hidden">
         <div className="mx-auto flex justify-between items-center gap-3">
           <div className="text-2xl font-bold flex items-center">
             <Link href={getHomeUrl()}>
@@ -768,6 +955,62 @@ useEffect(() => {
         </div>
       </header>
 
+      <nav className="bg-white px-2 md:px-6">
+        <div className="mx-auto flex min-h-10 max-w-[1600px] items-center gap-2 overflow-x-auto px-2 text-[11px] font-semibold md:gap-6 md:text-sm">
+          <a
+            href={`${homeUrl}#shop-by-category`}
+            onClick={(event) =>
+              handleSectionNavigation(event, "shop-by-category")
+            }
+            className={`shrink-0 border-b-2 py-2 transition-colors ${
+              activeHeaderSection === "shop-by-category"
+                ? "border-[#ff603d] text-[#ff5635]"
+                : "border-transparent text-[#555] hover:text-[#ff5635]"
+            }`}
+          >
+            Fresh produce
+          </a>
+          <a
+            href={`${homeUrl}#how-it-works`}
+            onClick={(event) => handleSectionNavigation(event, "how-it-works")}
+            className={`shrink-0 border-b-2 py-2 transition-colors ${
+              activeHeaderSection === "how-it-works"
+                ? "border-[#ff603d] text-[#ff5635]"
+                : "border-transparent text-[#555] hover:border-[#ff603d] hover:text-[#ff5635]"
+            }`}
+          >
+            How it works
+          </a>
+          {user?.buyerType !== "Wholesale" && (
+            <a
+              href={`${homeUrl}#everyday-bundles`}
+              onClick={(event) =>
+                handleSectionNavigation(event, "everyday-bundles")
+              }
+              className={`shrink-0 border-b-2 py-2 transition-colors ${
+                activeHeaderSection === "everyday-bundles"
+                  ? "border-[#ff603d] text-[#ff5635]"
+                  : "border-transparent text-[#555] hover:border-[#ff603d] hover:text-[#ff5635]"
+              }`}
+            >
+              Everyday bundles
+            </a>
+          )}
+          <a
+            href={`${homeUrl}#need-a-hand`}
+            onClick={(event) => handleSectionNavigation(event, "need-a-hand")}
+            className={`ml-auto shrink-0 border-b-2 py-2 transition-colors ${
+              activeHeaderSection === "need-a-hand"
+                ? "border-[#ff603d] text-[#ff5635]"
+                : "border-transparent text-[#555] hover:border-[#ff603d] hover:text-[#ff5635]"
+            }`}
+          >
+            Need a hand?
+          </a>
+        </div>
+        <div className="-mx-4 h-[3px] bg-gradient-to-r from-[#F5F5F5] via-[#F5F5F5] to-[#F5F5F5] sm:-mx-6" />
+      </nav>
+
       {isMobile && isMenuOpen && (
         <div className="relative flex w-full justify-end mobile-menu-container">
           <div className="absolute z-50">
@@ -883,6 +1126,11 @@ useEffect(() => {
           </div>
         </div>
       )}
+      <MainLoginComponent
+        isOpen={isMainLoginOpen}
+        onClose={() => setIsMainLoginOpen(false)}
+        defaultTab={mainLoginDefaultTab}
+      />
     </div>
   );
 };

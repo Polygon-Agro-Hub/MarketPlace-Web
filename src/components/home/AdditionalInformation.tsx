@@ -72,7 +72,7 @@ const AdditionalInformation: React.FC = () => {
     <section className="w-full bg-white">
       <div className="max-w-7xl mx-auto flex flex-col">
         {/* ===== Top: How it works ===== */}
-        <div className="px-5 sm:px-6 md:px-10 py-8 md:py-16 grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-16 items-start border-b border-gray-200 lg:border-b-0">
+        <div id="how-it-works" className="scroll-mt-[118px] md:scroll-mt-[184px] px-5 sm:px-6 md:px-10 py-8 md:py-16 grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-16 items-start border-b border-gray-200 lg:border-b-0">
           {/* Left */}
           <div className="max-w-md lg:max-w-md w-full">
             <p className="text-[11px] md:text-xs font-bold tracking-[0.15em] md:tracking-[0.2em] text-emerald-700 uppercase">
@@ -117,7 +117,7 @@ const AdditionalInformation: React.FC = () => {
         </div>
 
         {/* ===== Bottom: FAQ ===== */}
-        <div className="px-5 sm:px-6 md:px-10 py-8 md:py-16 grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-16 items-start">
+        <div id="need-a-hand" className="scroll-mt-[118px] md:scroll-mt-[184px] px-5 sm:px-6 md:px-10 py-8 md:py-16 grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-16 items-start">
           {/* Left */}
           <div className="max-w-lg w-full">
             <p className="text-[11px] md:text-xs font-bold tracking-[0.15em] md:tracking-[0.2em] text-emerald-700 uppercase">

@@ -286,13 +286,13 @@ function WholesaleHomeContent() {
       <main className="flex min-h-screen flex-col">
         {/* Top banner - hide when search is active */}
         {!isSearchActive && (
-          <div className="mt-0 my-8 w-full">
+          <div className="w-full md:my-8">
             <TopBanner />
           </div>
         )}
 
         {/* Mobile search bar */}
-        <div className="w-full px-4 md:hidden ">
+        <div className="hidden">
           <div className="flex-1 max-w-xl mx-auto mt-6">
             <form onSubmit={handleSearchSubmit}>
               <div className="relative">

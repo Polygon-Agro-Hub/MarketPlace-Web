@@ -223,7 +223,7 @@ const PackageSlider: React.FC<packagesProps> = ({
   };
 
   const sectionIntro = (
-    <div className="w-full max-w-7xl">
+    <div id="everyday-bundles" className="w-full max-w-7xl scroll-mt-[118px] md:scroll-mt-[184px]">
       <div className="mb-6 grid grid-cols-1 gap-4 border-b border-[#f0f0f0] pb-5 sm:grid-cols-3 sm:gap-6">
         <div className="flex items-center gap-3">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#e8faf3] text-[#14a878]">

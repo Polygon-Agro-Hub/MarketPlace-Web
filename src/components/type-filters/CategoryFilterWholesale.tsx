@@ -226,33 +226,33 @@ export default function CategoryFilterWholesale() {
     <>
       <div className="mx-auto w-full max-w-[1800px]">
         {!isSearchActive && (
-          <section className="mx-auto mb-6 w-full max-w-7xl">
+          <section id="shop-by-category" className="mx-auto mb-6 w-full max-w-7xl scroll-mt-[118px] md:scroll-mt-[184px]">
             {/* Feature row (ain karanna ona nam meka delete karanna) */}
-            <div className="mb-6 grid grid-cols-1 gap-4 border-b border-[#f0f0f0] pb-5 sm:grid-cols-3 sm:gap-6">
+            <div className="mb-6 grid grid-cols-1 gap-4 border-b border-[#f0f0f0] pb-5 md:grid-cols-3 md:gap-6">
               <div className="flex items-center gap-3">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#e8faf3] text-[#14a878]">
                   <Scale size={17} aria-hidden="true" />
                 </span>
                 <div>
-                  <h3 className="text-sm font-bold text-[#171d27] sm:text-base">A little or a little more</h3>
+                  <h3 className="text-sm font-bold text-[#171d27] md:text-base">A little or a little more</h3>
                   <p className="text-xs text-[#737373]">Choose the weight that works for you.</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3 sm:justify-center">
+              <div className="flex items-center gap-3 md:justify-center">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#edf4ff] text-[#3478f6]">
                   <Truck size={17} aria-hidden="true" />
                 </span>
                 <div>
-                  <h3 className="text-sm font-bold text-[#171d27] sm:text-base">Your day, your delivery</h3>
+                  <h3 className="text-sm font-bold text-[#171d27] md:text-base">Your day, your delivery</h3>
                   <p className="text-xs text-[#737373]">Choose home delivery or pickup.</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3 sm:justify-end">
+              <div className="flex items-center gap-3 md:justify-end">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#fff7e7] text-[#e99a16]">
                   <SlidersHorizontal size={17} aria-hidden="true" />
                 </span>
                 <div>
-                  <h3 className="text-sm font-bold text-[#171d27] sm:text-base">Make it your kind of basket</h3>
+                  <h3 className="text-sm font-bold text-[#171d27] md:text-base">Make it your kind of basket</h3>
                   <p className="text-xs text-[#737373]">Choose produce to suit your taste.</p>
                 </div>
               </div>
@@ -421,7 +421,7 @@ export default function CategoryFilterWholesale() {
       {showStickyCategoryNav && categories.length > 0 && !isSearchActive && (
         <nav
           aria-label="Product categories"
-          className="fixed inset-x-0 top-[88px] z-40 border-b border-[#e8e7e4] bg-white px-3 py-3 shadow-sm md:top-[124px]"
+          className="fixed inset-x-0 top-[106px] z-[60] border-b border-[#e8e7e4] bg-white px-3 py-3 shadow-sm md:top-[159px]"
         >
           <div className="mx-auto flex max-w-[1800px] gap-3 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <button type="button" onClick={() => handleCategorySelect("All")} aria-pressed={selectedCategory === "All"} className={pillClass(selectedCategory === "All")}>

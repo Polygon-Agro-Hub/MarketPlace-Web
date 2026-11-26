@@ -275,7 +275,7 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
     <>
       <div className="mx-auto w-full max-w-[1800px]">
         {!isSearchActive && (
-          <section className="mx-auto mb-6 w-full max-w-7xl">
+          <section id="shop-by-category" className="mx-auto mb-6 w-full max-w-7xl scroll-mt-[118px] md:scroll-mt-[184px]">
             <div className="mb-5 flex items-center justify-between gap-4">
               <div>
                 <h2 className="text-xl font-bold tracking-tight text-[#171d27] sm:text-2xl">
@@ -478,7 +478,7 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
       {showStickyCategoryNav && categories.length > 0 && !isSearchActive && (
         <nav
           aria-label="Product categories"
-          className="fixed inset-x-0 top-[88px] z-40 border-b border-[#e8e7e4] bg-white px-3 py-3 md:top-[124px]"
+          className="fixed inset-x-0 top-[106px] z-[60] border-b border-[#e8e7e4] bg-white px-3 py-3 md:top-[159px]"
         >
           <div className="mx-auto flex max-w-[1800px] gap-3 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <button

@@ -7,7 +7,13 @@ import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 import { RootState } from "@/store";
-import { ArrowRight, Check, Clock, Package, ShoppingBag } from "lucide-react";
+import {
+  ArrowRight,
+  Check,
+  Clock,
+  Package,
+  ShoppingBag,
+} from "lucide-react";
 import Image from "next/image";
 
 interface Slide {
@@ -147,17 +153,17 @@ const TopBanner: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="w-full aspect-[16/9] sm:aspect-[2/1] lg:aspect-[8/3] lg:max-h-[520px] animate-pulse bg-gray-200" />
+      <div className="w-full aspect-[3/2] animate-pulse bg-gray-200 md:aspect-[2/1] lg:aspect-[8/3]" />
     );
   }
 
   if (error) {
-    return <div className="text-red-600 text-center py-4">{error}</div>;
+    return <div className="py-4 text-center text-red-600">{error}</div>;
   }
 
   if (!slides.length) {
     return (
-      <div className="text-center py-4 text-gray-500">
+      <div className="py-4 text-center text-gray-500">
         {buyerType
           ? `No banners available for ${buyerType} users`
           : "No banners available"}
@@ -168,12 +174,12 @@ const TopBanner: React.FC = () => {
   const currentSlide = slides[currentIndex];
 
   return (
-    <div className="w-full flex flex-col">
-      <div className="relative w-full overflow-hidden aspect-[16/9] sm:aspect-[2/1] lg:aspect-[8/3] lg:max-h-[720px]">
+    <div className="flex w-full flex-col">
+      <div className="relative w-full overflow-hidden">
         <img
           src={currentSlide.imageUrl}
           alt={currentSlide.details || "Slide image"}
-          className="h-full w-full object-cover object-center"
+          className="block h-auto w-full"
           loading="lazy"
           onError={(e) => {
             console.error("Image failed to load:", currentSlide.imageUrl);
@@ -278,7 +284,7 @@ const TopBanner: React.FC = () => {
         )}
       </div>
 
-      {slides.length > 1 && (
+      {/* {slides.length > 1 && (
         <div className="flex h-5 items-center justify-center gap-2 mt-2 sm:mt-3">
           {slides.map((slide, idx) => (
             <button
@@ -293,7 +299,7 @@ const TopBanner: React.FC = () => {
             />
           ))}
         </div>
-      )}
+      )} */}
     </div>
   );
 };
