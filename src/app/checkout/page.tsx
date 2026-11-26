@@ -22,7 +22,7 @@ import { updateCartInfo } from "@/store/slices/authSlice";
 import { ChevronDown, XCircle, LocateFixed, AlertTriangle, X, Info } from "lucide-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCircleInfo } from "@fortawesome/free-solid-svg-icons";
-import PackageHandlingModal from "@/components/checkout/PackageHandlingModal";
+// import PackageHandlingModal from "@/components/checkout/PackageHandlingModal";
 import {
   dayOptions,
   validPeriodOptions,

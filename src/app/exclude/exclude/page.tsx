@@ -25,6 +25,7 @@ import BoxIcon from "../../../../public/icons/box-solid.png";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCircleInfo } from "@fortawesome/free-solid-svg-icons";
 import CustomizationHelpModal from "@/components/profile/CustomizationHelpModal";
+import { createPortal } from "react-dom";
 
 interface Item {
   displayName: string;
@@ -33,6 +34,8 @@ interface Item {
 
 type IncludeState = "include" | "none";
 type ExcludeState = "exclude" | "none";
+
+const MAX_EXCLUDE_ITEMS = 5;
 
 interface ItemState {
   displayName: string;
@@ -88,6 +91,7 @@ export default function ExcludeItems() {
   const [skipping, setSkipping] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const isSearching = searchQuery.trim().length > 0;
+  const [showLimitPopup, setShowLimitPopup] = useState(false);
 
   // ── Fetch ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -112,6 +116,7 @@ export default function ExcludeItems() {
             ? excludedData.items.map((i: Item) => i.displayName)
             : [],
         );
+
         const includedNames = new Set<string>(
           includedData.status && Array.isArray(includedData.items)
             ? includedData.items.map((i: Item) => i.displayName)
@@ -170,15 +175,32 @@ export default function ExcludeItems() {
   };
 
   const handleExcludeToggle = (displayName: string) => {
+    const target = items.find((i) => i.displayName === displayName);
+    console.log("exclude click", displayName, "count:", items.filter(i => i.excludeToggle === "exclude").length);
+    if (!target) return;
+    if (target.includeToggle === "include") return;
+
+    // Selecting (not deselecting) → check the limit first
+    if (target.excludeToggle !== "exclude") {
+      const currentExcludeCount = items.filter(
+        (i) => i.excludeToggle === "exclude",
+      ).length;
+
+      if (currentExcludeCount >= MAX_EXCLUDE_ITEMS) {
+        setShowLimitPopup(true);
+        return;
+      }
+    }
+
     setItems((prev) =>
-      prev.map((item) => {
-        if (item.displayName !== displayName) return item;
-        if (item.includeToggle === "include") return item;
-        return {
-          ...item,
-          excludeToggle: item.excludeToggle === "exclude" ? "none" : "exclude",
-        };
-      }),
+      prev.map((item) =>
+        item.displayName === displayName
+          ? {
+            ...item,
+            excludeToggle: item.excludeToggle === "exclude" ? "none" : "exclude",
+          }
+          : item,
+      ),
     );
   };
 
@@ -234,6 +256,8 @@ export default function ExcludeItems() {
       setSaving(false);
     }
   };
+
+
 
   const handleSkip = async () => {
     if (!authToken || saving || skipping) return;
@@ -558,8 +582,8 @@ export default function ExcludeItems() {
             onClick={handleContinue}
             disabled={!hasChanges || saving}
             className={`${baseBtn} ${!hasChanges || saving
-                ? "bg-[#A9A9A9] text-white cursor-not-allowed"
-                : "bg-[#3E206D] hover:bg-[#341a5a] text-white cursor-pointer"
+              ? "bg-[#A9A9A9] text-white cursor-not-allowed"
+              : "bg-[#3E206D] hover:bg-[#341a5a] text-white cursor-pointer"
               }`}
             aria-label="Save and continue"
           >
@@ -573,8 +597,8 @@ export default function ExcludeItems() {
               onClick={handleSkip}
               disabled={skipping || saving}
               className={`${baseBtn} bg-[#3E206D] text-white ${skipping || saving
-                  ? "opacity-60 cursor-not-allowed"
-                  : "hover:bg-[#341a5a] cursor-pointer"
+                ? "opacity-60 cursor-not-allowed"
+                : "hover:bg-[#341a5a] cursor-pointer"
                 }`}
               aria-label="Skip for now"
             >
@@ -584,6 +608,44 @@ export default function ExcludeItems() {
         </div>
       </div>
       <CustomizationHelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
+      {showLimitPopup &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 px-4"
+            onClick={() => setShowLimitPopup(false)}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="limit-popup-title"
+          >
+            <div
+              className="w-full max-w-sm rounded-xl bg-white p-6 text-center shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#FEF7F7]">
+                <FiX className="text-[#EF4444]" size={24} />
+              </div>
+              <h3
+                id="limit-popup-title"
+                className="mb-2 text-[18px] md:text-[20px] font-bold text-[#001535]"
+              >
+                Selection Limit Reached!
+              </h3>
+              <p className="mb-5 text-[13px] md:text-[14px] text-[#4C5160] leading-relaxed">
+                You can select a maximum of 5 exclude items. Please deselect an item
+                before selecting another.
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowLimitPopup(false)}
+                className="h-11 w-full rounded-lg bg-[#3E206D] font-semibold text-white hover:bg-[#341a5a] cursor-pointer"
+              >
+                OK
+              </button>
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

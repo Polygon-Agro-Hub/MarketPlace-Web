@@ -3,6 +3,11 @@ export const dayOptions = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 
 export const MAX_RECURRING_WEEKS = 4; // 28 days
 
+// TEMPORARY: Management can only deliver orders from 12 Dec 2026.
+// Must match TEMP_MIN_DELIVERY_DATE in the backend schedule utility.
+// Remove this constant and the max logic below once normal delivery resumes.
+export const TEMP_MIN_DELIVERY_DATE = "2026-12-12";
+
 export const validPeriodOptions = Array.from(
   { length: MAX_RECURRING_WEEKS - 1 },
   (_, i) => {
@@ -39,21 +44,29 @@ export const parseDateStr = (dateStr: string): Date => {
   return new Date(y, m - 1, d, 0, 0, 0, 0);
 };
 
+const formatDateStr = (d: Date): string =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+// TEMPORARY: never earlier than the management's delivery start date.
+const applyTempMin = (d: Date): Date => {
+  const tempMin = parseDateStr(TEMP_MIN_DELIVERY_DATE);
+  return d < tempMin ? tempMin : d;
+};
+
 export const getMinDeliveryDate = (): Date => {
   const now = new Date();
   const extraDays = now.getHours() >= 18 ? 4 : 3;
   const minDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + extraDays);
   minDate.setHours(0, 0, 0, 0);
-  return minDate;
+  return applyTempMin(minDate); // TEMPORARY
 };
 
-export const getMinDateStr = (): string => {
-  const d = getMinDeliveryDate();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-};
+export const getMinDateStr = (): string => formatDateStr(getMinDeliveryDate());
 
 export const getMinRecurringDate = (earliestDate?: string | null): Date => {
-  if (earliestDate) return parseDateStr(earliestDate);
+  // Server value already includes the temporary minimum; still guard it.
+  if (earliestDate) return applyTempMin(parseDateStr(earliestDate)); // TEMPORARY
+
   const now = new Date();
   const base = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   base.setHours(0, 0, 0, 0);
@@ -67,16 +80,16 @@ export const getMinRecurringDate = (earliestDate?: string | null): Date => {
     if (dow === 0) minDate.setDate(minDate.getDate() + 1);
     else if (dow === 6) minDate.setDate(minDate.getDate() + 2);
   }
-  return minDate;
+  return applyTempMin(minDate); // TEMPORARY
 };
 
+// First date that falls on `dayCode` and is on or after `minDate`.
 export const getFirstOccurrence = (dayCode: string, minDate: Date): Date => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const diff = (dayNameToIndex[dayCode] - today.getDay() + 7) % 7;
-  const occurrence = new Date(today);
+  const start = new Date(minDate);
+  start.setHours(0, 0, 0, 0);
+  const diff = (dayNameToIndex[dayCode] - start.getDay() + 7) % 7;
+  const occurrence = new Date(start);
   occurrence.setDate(occurrence.getDate() + diff);
-  if (occurrence < minDate) occurrence.setDate(occurrence.getDate() + 7);
   return occurrence;
 };
 
@@ -110,7 +123,6 @@ export const generateScheduledOrderDates = (
   dates.sort((a, b) => a.getTime() - b.getTime());
   return dates;
 };
-
 
 export const getOrdinal = (n: number): string => {
   const s = ["th", "st", "nd", "rd"];
