@@ -291,7 +291,9 @@ useEffect(() => {
     dispatch(logout());
     dispatch(clearCart());
     setShowLogoutModal(false);
-    router.replace("/signin");
+    setIsMenuOpen(false);
+    setMainLoginDefaultTab("login");
+    setIsMainLoginOpen(true);
   };
 
   const getHomeUrl = () => {
