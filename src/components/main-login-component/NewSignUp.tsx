@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useRef, FormEvent } from "react";
+import React, { useState, useRef, useEffect, FormEvent } from "react";
 import {
   Eye,
   EyeOff,
@@ -25,7 +25,7 @@ import RestoreAccountPopup from "@/components/registration-components/Restoreacc
 import { useRouter } from "next/navigation";
 import SuccessPopup from "@/components/toast-messages/success-message";
 import ErrorPopup from "@/components/toast-messages/error-message";
-import OTPComponent from "@/components/otp-registration/OTPComponent";
+import OtpMainComponent from "@/components/new-otp/OtpMainComponent";
 import { CityResult } from "@/services/auth-service";
 import PhoneCodeDropdown, {
   validatePhoneNumber,
@@ -63,6 +63,7 @@ interface CustomDropdownProps {
 
 interface NewSignUpProps {
   selectedCity?: CityResult;
+  onOtpActiveChange?: (active: boolean) => void;
 }
 
 /* ── Shared style tokens ── */
@@ -152,7 +153,10 @@ const SectionTitle = ({ children }: { children: React.ReactNode }) => (
   </div>
 );
 
-export default function NewSignUp({ selectedCity }: NewSignUpProps) {
+export default function NewSignUp({
+  selectedCity,
+  onOtpActiveChange,
+}: NewSignUpProps) {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -173,6 +177,13 @@ export default function NewSignUp({ selectedCity }: NewSignUpProps) {
   );
   const [showRestorePopup, setShowRestorePopup] = useState(false);
   const [restoreConfirmed, setRestoreConfirmed] = useState(false);
+
+  // Tell the parent modal when the OTP screen is showing, so it can hide itself
+  useEffect(() => {
+    onOtpActiveChange?.(showOTPVerification);
+    return () => onOtpActiveChange?.(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showOTPVerification]);
 
   const getInitialFormData = () => ({
     title: "",
@@ -584,23 +595,26 @@ export default function NewSignUp({ selectedCity }: NewSignUpProps) {
   };
 
   const sendOtpAndContinue = async () => {
-    const res = await sendOTPInSignup(
+    const res: any = await sendOTPInSignup(
       formData.phoneNumber,
       formData.phoneCode,
       { email: formData.email },
     );
+    console.log("sendOTPInSignup response:", res); // remove once confirmed
+
+    // Always set these so the number/email pill and timer have data
+    setOtpReferenceId(
+      res?.referenceId ?? res?.reference_id ?? res?.data?.referenceId ?? "",
+    );
+    setFullPhoneNumber(`${formData.phoneCode}${formData.phoneNumber}`);
+    setShowOTPVerification(true);
+
     setSuccess(
       formData.phoneCode !== "+94"
         ? `Verification code has been sent to ${formData.email}`
         : `OTP code has been sent to ${formData.phoneCode}${formData.phoneNumber}`,
     );
     setShowSuccessPopup(true);
-
-    if (res && res.referenceId) {
-      setOtpReferenceId(res.referenceId);
-      setFullPhoneNumber(`${formData.phoneCode}${formData.phoneNumber}`);
-      setShowOTPVerification(true);
-    }
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -717,6 +731,13 @@ export default function NewSignUp({ selectedCity }: NewSignUpProps) {
         brFile: isHome ? null : brFile,
       });
       setLoading(false);
+
+      // Clear the "OTP sent" text so the popup shows the account-created title
+      setSuccess(null);
+      setShowSuccessPopup(true);
+      setTimeout(() => {
+        router.push("/signin");
+      }, 2000);
     } catch (err: any) {
       setLoading(false);
       setShowOTPVerification(false);
@@ -729,9 +750,8 @@ export default function NewSignUp({ selectedCity }: NewSignUpProps) {
   };
 
   const handleOTPVerificationFailure = () => {
-    setShowOTPVerification(false);
-    setErrorMessage("OTP verification failed. Please try again.");
-    setShowErrorPopup(true);
+    // Intentionally empty: OtpMainComponent shows its own error and clears the
+    // boxes, so the user can retry without leaving the OTP screen.
   };
 
   const handleOTPExpired = () => {
@@ -772,22 +792,41 @@ export default function NewSignUp({ selectedCity }: NewSignUpProps) {
   };
 
   if (showOTPVerification) {
+    const isEmailMode = formData.phoneCode !== "+94";
     return (
-      <OTPComponent
-        phoneNumber={fullPhoneNumber}
+      <OtpMainComponent
+        phoneNumber={formData.phoneNumber}
         phoneCode={formData.phoneCode}
         email={formData.email}
         referenceId={otpReferenceId}
-        mode={formData.phoneCode !== "+94" ? "email" : "phone"}
-        contactValue={
-          formData.phoneCode !== "+94" ? formData.email : fullPhoneNumber
-        }
-        initialTimer={formData.phoneCode !== "+94" ? 240 : 60}
+        mode={isEmailMode ? "email" : "phone"}
+        contactValue={isEmailMode ? formData.email : fullPhoneNumber}
+        initialTimer={isEmailMode ? 240 : 60}
+        onBack={() => setShowOTPVerification(false)}
         onVerificationSuccess={handleOTPVerificationSuccess}
         onVerificationFailure={handleOTPVerificationFailure}
         onResendOTP={handleOTPResend}
         onOTPExpired={handleOTPExpired}
-      />
+      >
+        {/* Popups live inside the portal so they stay visible while the
+            parent signup modal is hidden */}
+        <SuccessPopup
+          isVisible={showSuccessPopup}
+          onClose={() => setShowSuccessPopup(false)}
+          title={
+            success
+              ? "OTP Sent Successfully"
+              : "Your account created successfully!"
+          }
+          description={success as any}
+        />
+        <ErrorPopup
+          isVisible={showErrorPopup}
+          onClose={() => setShowErrorPopup(false)}
+          title="Error!"
+          description={errorMessage}
+        />
+      </OtpMainComponent>
     );
   }
 
