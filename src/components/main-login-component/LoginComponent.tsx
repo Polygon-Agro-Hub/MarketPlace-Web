@@ -31,7 +31,6 @@ const roboto = Roboto({
 
 const LoginComponent = () => {
   const router = useRouter();
-  const [userType, setUserType] = useState("Retail");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -44,6 +43,7 @@ const LoginComponent = () => {
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [wholesaleStatus, setWholesaleStatus] = useState<WholesaleStatus | null>(null);
+  // const [userType, setUserType] = useState("Retail");
 
   // Load saved credentials from localStorage on component mount
   useEffect(() => {
@@ -107,7 +107,7 @@ const LoginComponent = () => {
 
     try {
       setIsLoading(true);
-      const data = await login({ email, password, buyerType: userType });
+      const data = await login({ email, password });
 
       setShowSuccessPopup(true);
 

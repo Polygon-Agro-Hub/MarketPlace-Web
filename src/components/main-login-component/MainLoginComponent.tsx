@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import { ArrowLeft, MapPin, ShoppingBag, Truck, X } from "lucide-react";
 import LoginComponent from "@/components/main-login-component/LoginComponent";
@@ -72,7 +73,7 @@ const MainLoginComponent: React.FC<MainLoginComponentProps> = ({
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     // Mobile: full screen. Desktop (md+): centered modal with dark backdrop.
     <div
       className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 md:px-6 md:py-4"
@@ -252,7 +253,8 @@ const MainLoginComponent: React.FC<MainLoginComponentProps> = ({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
 

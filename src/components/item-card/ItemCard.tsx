@@ -953,7 +953,7 @@ const ItemCard = ({
                       homeCategoryStyle
                         ? showQuantitySelector
                           ? "absolute -bottom-4 left-1/2 flex min-h-9 min-w-24 -translate-x-1/2 items-center justify-center rounded-full bg-[#171d27] px-3 text-xs font-medium text-white shadow-md disabled:opacity-50"
-                          : "absolute -bottom-5 left-1/2 flex h-11 w-11 -translate-x-1/2 items-center justify-center rounded-full bg-[#171d27] text-white shadow-md transition-colors hover:bg-[#303946] disabled:cursor-not-allowed disabled:opacity-60 sm:h-12 sm:w-12"
+                          : "absolute -bottom-5 left-1/2 flex h-11 w-11 -translate-x-1/2 cursor-pointer items-center justify-center rounded-full bg-[#171d27] text-white shadow-md transition-colors hover:bg-[#303946] disabled:cursor-not-allowed disabled:opacity-60 sm:h-12 sm:w-12"
                         : `whitespace-nowrap w-full max-w-[180px] sm:max-w-[200px] md:max-w-[220px] py-2 px-1.5 rounded-lg md:rounded-xl flex items-center justify-center gap-1 text-xs md:text-sm transition-all duration-200 ${
                             isInCart
                               ? "bg-[#EDE1FF] text-gray-500 cursor-not-allowed"

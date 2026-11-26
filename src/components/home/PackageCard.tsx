@@ -32,7 +32,6 @@ interface PackageProps {
   onAddToCartError?: (message: string) => void;
   isLoadingDetails: boolean;
   errorDetails?: string | null;
-  onShowConfirmModal: (packageData: any) => void;
   onShowLoginPopup: () => void;
 }
 
@@ -125,7 +124,6 @@ const PackageCard: React.FC<PackageProps> = ({
   onAddToCartError,
   isLoadingDetails,
   errorDetails,
-  onShowConfirmModal,
   onShowLoginPopup
 }) => {
   const dispatch = useDispatch();
@@ -133,12 +131,7 @@ const PackageCard: React.FC<PackageProps> = ({
   // FIX: typed as object | null, not string | null — avoids silent truthy/falsy bugs
   const user = useSelector((state: RootState) => state.auth.user) as object | null;
 
-  const handlePackageAddToCart = async () => {
-    if (!packageDetails || packageDetails.length === 0) {
-      onAddToCartError?.('Package details are empty');
-      return;
-    }
-
+  const addPackageToCart = async () => {
     if (!token || !user) {
       onShowLoginPopup();
       return;
@@ -167,17 +160,22 @@ const PackageCard: React.FC<PackageProps> = ({
     }
   };
 
+  const handlePackageAddToCart = async () => {
+    if (!packageDetails || packageDetails.length === 0) {
+      onAddToCartError?.('Package details are empty');
+      return;
+    }
+
+    await addPackageToCart();
+  };
+
   const handleAddToCartClick = () => {
     if (!token || !user) {
       onShowLoginPopup();
       return;
     }
 
-    onShowConfirmModal({
-      packageItem,
-      packageDetails,
-      handlePackageAddToCart
-    });
+    void handlePackageAddToCart();
   };
 
   const handlePackageActionClick = () => {
@@ -186,7 +184,7 @@ const PackageCard: React.FC<PackageProps> = ({
       return;
     }
 
-    onPackageClick(packageItem.id);
+    void addPackageToCart();
   };
 
   const formatPrice = (price: number): string => {
@@ -241,7 +239,7 @@ const PackageCard: React.FC<PackageProps> = ({
               </div>
               <button
                 type="button"
-                className="w-full rounded-full bg-[#171d27] px-4 py-2.5 text-xs font-medium text-white transition-colors hover:bg-[#303946] sm:text-sm"
+                className="w-full rounded-full bg-[#171d27] px-4 py-2.5 text-xs font-medium text-white transition-colors hover:bg-[#303946] sm:text-sm cursor-pointer"
                 onClick={(event) => {
                   event.stopPropagation();
                   handlePackageActionClick();

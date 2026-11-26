@@ -13,7 +13,7 @@ import PackageSlider from "@/components/home/PackageSlider";
 import AdditionalInformation from "@/components/home/AdditionalInformation";
 import CategoryFilter from "@/components/type-filters/CategoryFilter";
 import { getAllProduct } from "@/services/product-service";
-import socketService from "@/services/socketService"; 
+import socketService from "@/services/socketService";
 import TopBanner from "@/components/home/TopBanner";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -77,11 +77,6 @@ function HomeContent() {
   const [selectedCategory, setSelectedCategory] = useState("fruits");
   const [localSearchInput, setLocalSearchInput] = useState("");
 
-  // Modal state
-  const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
-  const [selectedPackageForCart, setSelectedPackageForCart] =
-    useState<any>(null);
-
   const router = useRouter();
 
   useEffect(() => {
@@ -121,7 +116,7 @@ function HomeContent() {
     }
   }, [searchTerm]);
 
- useEffect(() => {
+  useEffect(() => {
     const unsubscribe = socketService.onCatalogUpdate((data) => {
       fetchAllPackages(searchTerm);
     });
@@ -194,17 +189,6 @@ function HomeContent() {
       dispatch(setPackageResults(false));
     }
   }
-
-  // Modal handlers
-  const handleShowConfirmModal = (packageData: any) => {
-    setSelectedPackageForCart(packageData);
-    setShowConfirmModal(true);
-  };
-
-  const handleCloseConfirmModal = () => {
-    setShowConfirmModal(false);
-    setSelectedPackageForCart(null);
-  };
 
   const handleShowLoginPopup = () => {
     router.push("/signin");
@@ -337,9 +321,7 @@ function HomeContent() {
           </div>
         )}
 
-        <div
-          className={`w-full px-4 sm:hidden ${isSearchActive ? "mt-4" : "mt-4"}`}
-        >
+        <div className="hidden">
           <div className="flex-1 max-w-xl mx-auto">
             <div className="relative shadow-lg">
               <div className="h-10 bg-gray-200 rounded-[10px] animate-pulse"></div>
@@ -451,41 +433,39 @@ function HomeContent() {
             </div>
           )}
 
-          <div
-            className={`w-full px-4 sm:hidden ${isSearchActive ? "mt-4" : "mt-4"}`}
-          >
+          <div className="hidden">
             <div className="flex-1 max-w-xl mx-auto mt-6">
               <form onSubmit={handleSearchSubmit}>
                 <div className="relative">
-  <input
-    type="text"
-    placeholder="Search for Product"
-    value={localSearchInput}
-    onChange={handleSearchChange}
-    onKeyPress={handleSearchKeyPress}
-    className="italic w-full py-2 px-4 rounded-[10px] text-[#3E206D] focus:outline-none bg-[#EFE4FF] border-0 ring-0 focus:ring-0"
-  />
-  {isSearchActive && searchTerm ? (
-    <button
-      type="button"
-      onClick={handleResetSearch}
-      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-[#3E206D] transition-colors"
-    >
-      <X size={16} color="#3E206D" className="cursor-pointer" />
-    </button>
-  ) : (
-    <button
-      type="submit"
-      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-[#3E206D]"
-    >
-      <FontAwesomeIcon
-        icon={faMagnifyingGlass}
-        color="#3E206D"
-        className="cursor-pointer"
-      />
-    </button>
-  )}
-</div>
+                  <input
+                    type="text"
+                    placeholder="Search for Product"
+                    value={localSearchInput}
+                    onChange={handleSearchChange}
+                    onKeyPress={handleSearchKeyPress}
+                    className="italic w-full py-2 px-4 rounded-[10px] text-[#3E206D] focus:outline-none bg-[#EFE4FF] border-0 ring-0 focus:ring-0"
+                  />
+                  {isSearchActive && searchTerm ? (
+                    <button
+                      type="button"
+                      onClick={handleResetSearch}
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-[#3E206D] transition-colors"
+                    >
+                      <X size={16} color="#3E206D" className="cursor-pointer" />
+                    </button>
+                  ) : (
+                    <button
+                      type="submit"
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-[#3E206D]"
+                    >
+                      <FontAwesomeIcon
+                        icon={faMagnifyingGlass}
+                        color="#3E206D"
+                        className="cursor-pointer"
+                      />
+                    </button>
+                  )}
+                </div>
               </form>
             </div>
           </div>
@@ -502,7 +482,6 @@ function HomeContent() {
                     <div className="w-full px-4 sm:px-6 lg:px-8">
                       <PackageSlider
                         productData={productData}
-                        onShowConfirmModal={handleShowConfirmModal}
                         onShowLoginPopup={handleShowLoginPopup}
                       />
                     </div>
@@ -518,40 +497,6 @@ function HomeContent() {
               </div>
             )}
           </div>
-
-          {showConfirmModal && selectedPackageForCart && (
-            <div className="fixed inset-0 bg-black/50 bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full mx-4">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                  Confirm Add to Cart
-                </h3>
-                <p className="text-gray-600 mb-6">
-                  Are you sure you want to add "
-                  {selectedPackageForCart.packageItem.displayName}" to your
-                  cart?
-                </p>
-                <div className="flex justify-end space-x-3">
-                  <button
-                    onClick={handleCloseConfirmModal}
-                    className="px-6 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (selectedPackageForCart.handlePackageAddToCart) {
-                        selectedPackageForCart.handlePackageAddToCart();
-                      }
-                      handleCloseConfirmModal();
-                    }}
-                    className="px-6 py-2 bg-[#3E206D] text-white rounded hover:bg-[#2D1850] transition-colors cursor-pointer"
-                  >
-                    Add to Cart
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
 
         </main>
       )}

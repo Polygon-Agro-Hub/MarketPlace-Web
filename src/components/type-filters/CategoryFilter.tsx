@@ -275,7 +275,7 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
     <>
       <div className="mx-auto w-full max-w-[1800px]">
         {!isSearchActive && (
-          <section className="mx-auto mb-6 w-full max-w-7xl">
+          <section id="shop-by-category" className="mx-auto mb-6 w-full max-w-7xl scroll-mt-[118px] md:scroll-mt-[184px]">
             <div className="mb-5 flex items-center justify-between gap-4">
               <div>
                 <h2 className="text-xl font-bold tracking-tight text-[#171d27] sm:text-2xl">
@@ -288,7 +288,7 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
               <div className="flex shrink-0 items-center gap-2">
                 <button
                   type="button"
-                  className="mr-1 hidden text-xs font-semibold text-[#59406f] hover:underline sm:block"
+                  className="mr-1 hidden text-xs font-semibold text-[#59406f] hover:underline sm:block cursor-pointer"
                   onClick={() =>
                     categoryStripRef.current?.scrollTo({
                       left: categoryStripRef.current.scrollWidth,
@@ -301,7 +301,7 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
                 <button
                   type="button"
                   aria-label="Scroll categories left"
-                  className="flex h-8 w-8 items-center justify-center rounded-full border border-[#e7e7ec] bg-white text-[#737373] hover:bg-[#f8f7fc]"
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-[#e7e7ec] bg-white text-[#737373] hover:bg-[#f8f7fc] cursor-pointer"
                   onClick={() => scrollCategories(-1)}
                 >
                   <ChevronLeft size={17} />
@@ -309,7 +309,7 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
                 <button
                   type="button"
                   aria-label="Scroll categories right"
-                  className="flex h-8 w-8 items-center justify-center rounded-full border border-[#e7e7ec] bg-white text-[#737373] hover:bg-[#f8f7fc]"
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-[#e7e7ec] bg-white text-[#737373] hover:bg-[#f8f7fc] cursor-pointer"
                   onClick={() => scrollCategories(1)}
                 >
                   <ChevronRight size={17} />
@@ -325,7 +325,7 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
                 type="button"
                 onClick={() => handleCategorySelect("All")}
                 aria-pressed={displayedCategory === "All"}
-                className={`flex min-w-[280px] flex-[0_0_24%] items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-colors ${
+                className={`flex min-w-[280px] flex-[0_0_24%] items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-colors cursor-pointer ${
                   displayedCategory === "All"
                     ? "border-[#ff704e] bg-[#fff8f5]"
                     : "border-transparent bg-[#f8f8fc] hover:border-[#e6e2f5]"
@@ -358,7 +358,7 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
                     type="button"
                     onClick={() => handleCategorySelect(category.id)}
                     aria-pressed={displayedCategory === category.id}
-                    className={`flex min-w-[280px] flex-[0_0_24%] items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-colors ${
+                    className={`flex min-w-[280px] flex-[0_0_24%] items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-colors cursor-pointer ${
                       displayedCategory === category.id
                         ? "border-[#ff704e] bg-[#fff8f5]"
                         : "border-transparent bg-[#f8f8fc] hover:border-[#e6e2f5]"
@@ -392,7 +392,7 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
                 type="button"
                 onClick={() => handleCategorySelect("All")}
                 aria-pressed={displayedCategory === "All"}
-                className={`shrink-0 rounded-full border px-5 py-2 text-lg font-semibold sm:px-6 ${
+                className={`shrink-0 rounded-full border px-5 py-2 text-lg font-semibold sm:px-6 cursor-pointer ${
                   displayedCategory === "All"
                     ? "border-[#ff603d] bg-[#ff603d] text-white"
                     : "border-[#e1ddf5] bg-white text-[#34343b] hover:border-[#ff9a80]"
@@ -406,7 +406,7 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
                   type="button"
                   onClick={() => handleCategorySelect(category.id)}
                   aria-pressed={displayedCategory === category.id}
-                  className={`shrink-0 rounded-full border px-5 py-2 text-lg font-semibold transition-colors sm:px-6 ${
+                  className={`shrink-0 rounded-full border px-5 py-2 text-lg font-semibold transition-colors sm:px-6 cursor-pointer ${
                     displayedCategory === category.id
                       ? "border-[#ff603d] bg-[#ff603d] text-white"
                       : "border-[#e1ddf5] bg-white text-[#34343b] hover:border-[#ff9a80]"
@@ -478,14 +478,14 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
       {showStickyCategoryNav && categories.length > 0 && !isSearchActive && (
         <nav
           aria-label="Product categories"
-          className="fixed inset-x-0 top-[88px] z-40 border-b border-[#e8e7e4] bg-white px-3 py-3 md:top-[124px]"
+          className="fixed inset-x-0 top-[106px] z-[60] border-b border-[#e8e7e4] bg-white px-3 py-3 md:top-[159px]"
         >
           <div className="mx-auto flex max-w-[1800px] gap-3 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <button
               type="button"
               onClick={() => handleCategorySelect("All")}
               aria-pressed={displayedCategory === "All"}
-              className={`shrink-0 rounded-full border px-5 py-2 text-lg font-semibold sm:px-6 ${
+              className={`shrink-0 rounded-full border px-5 py-2 text-lg font-semibold sm:px-6 cursor-pointer ${
                 displayedCategory === "All"
                   ? "border-[#ff603d] bg-[#ff603d] text-white"
                   : "border-[#e1ddf5] bg-white text-[#34343b] hover:border-[#ff9a80]"
@@ -499,7 +499,7 @@ export default function CategoryFilter({ }: CategoryFilterProps) {
                 type="button"
                 onClick={() => handleCategorySelect(category.id)}
                 aria-pressed={displayedCategory === category.id}
-                className={`shrink-0 rounded-full border px-5 py-2 text-lg font-semibold transition-colors sm:px-6 ${
+                className={`shrink-0 rounded-full border px-5 py-2 text-lg font-semibold transition-colors sm:px-6 cursor-pointer ${
                   displayedCategory === category.id
                     ? "border-[#ff603d] bg-[#ff603d] text-white"
                     : "border-[#e1ddf5] bg-white text-[#34343b] hover:border-[#ff9a80]"
