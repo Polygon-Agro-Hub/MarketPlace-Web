@@ -132,13 +132,13 @@ const PhoneCodeDropdown: React.FC<PhoneCodeDropdownProps> = ({
                 className={`h-10 w-full border rounded-md px-4 py-2 focus:outline-none focus:ring-1 cursor-pointer border-gray-300 focus:ring-purple-500 focus:border-purple-500 ${className} ${selectedValue ? "text-black" : "text-gray-500"} flex items-center justify-between bg-white`}
             >
                 <div className="flex items-center gap-2 flex-1">
-                    {selectedOption?.flag && (
+                    {/* {selectedOption?.flag && (
                         <img
                             src={selectedOption.flag}
                             alt=""
                             className="w-7 h-6 object-cover flex-shrink-0"
                         />
-                    )}
+                    )} */}
                     <span className="font-medium text-m mr-1">
                         {selectedOption ? selectedOption.label : "Code"}
                     </span>

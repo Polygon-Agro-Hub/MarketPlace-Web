@@ -915,17 +915,17 @@ export default function NewSignUp({ selectedCity }: NewSignUpProps) {
 
                     {/* Phone row */}
                     <div className="flex items-start gap-2 md:gap-3">
-                        <div className="w-[96px] flex-shrink-0 md:w-[110px]">
+                        <div className="w-[96px] flex-shrink-0 md:w-[100px]">
                             <PhoneCodeDropdown
-                                selectedValue={formData.phoneCode}
-                                onSelect={(value) => {
-                                    handleChange({
-                                        target: { name: "phoneCode", value },
-                                    } as React.ChangeEvent<HTMLSelectElement>);
-                                    checkPhoneLive("phoneNumber", value, formData.phoneNumber);
-                                }}
-                                className="cursor-pointer"
-                            />
+    selectedValue={formData.phoneCode}
+    onSelect={(value) => {
+        handleChange({
+            target: { name: "phoneCode", value },
+        } as React.ChangeEvent<HTMLSelectElement>);
+        checkPhoneLive("phoneNumber", value, formData.phoneNumber);
+    }}
+    className="cursor-pointer !rounded-full"
+/>
                         </div>
 
                         <div className="min-w-0 flex-1">
