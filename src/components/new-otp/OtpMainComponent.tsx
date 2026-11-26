@@ -16,6 +16,17 @@ import {
 } from "lucide-react";
 // TODO: use your real verify function name and arguments
 import { sendOTPInSignup, verifyOTP } from "@/services/auth-service";
+import { Plus_Jakarta_Sans, Roboto } from "next/font/google";
+
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+});
+
+const roboto = Roboto({
+  subsets: ["latin"],
+  weight: ["400", "500", "700"],
+});
 
 const OTP_LENGTH = 5;
 
@@ -290,13 +301,13 @@ const OtpMainComponent: React.FC<OtpMainComponentProps> = ({
 
           {/* OTP form */}
           <div className="flex-1 pb-6 pt-8 md:pb-0">
-            <h1 className="text-[26px] font-bold leading-tight tracking-tight text-[#111827] md:text-[34px]">
+            <h1 className={`${roboto.className} text-[30px] font-[700] leading-tight tracking-tight text-[#111827] md:text-[34px]`}>
               {isEmail
                 ? "Verify your email address"
                 : "Verify your mobile number"}
             </h1>
 
-            <p className="mt-3 text-sm text-[#4B5563] md:text-base">
+            <p className={`${roboto.className} mt-3 text-[14px] text-[#4B5563] md:text-base`}>
               We&apos;ve sent a 5-digit verification code via{" "}
               {isEmail ? "Email" : "SMS"} to:
             </p>

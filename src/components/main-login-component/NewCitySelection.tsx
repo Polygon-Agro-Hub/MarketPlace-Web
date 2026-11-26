@@ -22,8 +22,19 @@ import {
   CityResult,
 } from "@/services/auth-service";
 import ErrorPopup from "@/components/toast-messages/error-message";
+import { Plus_Jakarta_Sans, Roboto } from "next/font/google";
 
 type CityStatus = "idle" | "not-found" | "available" | "unavailable";
+
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+});
+
+const roboto = Roboto({
+  subsets: ["latin"],
+  weight: ["400", "500", "700"],
+});
 
 interface CitySelectionProps {
   onCityConfirmed: (city: CityResult) => void;
@@ -169,15 +180,15 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
       <div className="w-full font-[Inter,sans-serif]">
         {/* ── Header ── */}
         <div className="flex items-start justify-between gap-2 md:gap-3">
-          <h1 className="text-[20px] font-bold leading-tight tracking-tight text-[#111827] md:text-[34px]">
+          <h1 className={`${jakarta.className} text-[24px] font-[700] text-[#161C26] leading-tight`}>
             Create your account
           </h1>
           <span className="mt-0.5 inline-flex flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-[#FF6B35] bg-white px-2.5 py-1 text-[11px] font-semibold text-[#FF6B35] md:mt-1 md:gap-2 md:px-4 md:py-1.5 md:text-sm">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#FF6B35] md:h-2 md:w-2" />
+            <span className="h-1 w-1 rounded-full bg-[#FF6B35] md:h-2 md:w-2" />
             Step 1 of 2
           </span>
         </div>
-        <p className="mb-4 mt-1 text-[13px] leading-snug text-[#4B5563] md:mb-6 md:text-base">
+        <p className={`${jakarta.className} text-[13px] text-[#475469] mt-1 mb-8`}>
           Confirm your delivery zone to browse fresh harvest produce.
         </p>
 
@@ -199,7 +210,7 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
                 strokeWidth={2.5}
               />
             </div>
-            <span className="text-[11px] font-bold uppercase tracking-wide text-[#111827] md:text-sm">
+            <span className={`${roboto.className} text-[11px] font-bold uppercase tracking-wide text-[#111827] md:text-sm`}>
               Select Your City
             </span>
           </div>
