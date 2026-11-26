@@ -21,7 +21,7 @@ export default function MainLayout({
   return (
     <>
       {isHeaderLoaded ? <Header /> : <HeaderSkeleton />}
-      <main className="pt-[210px] md:pt-[178px]">{children}</main>
+      <main className="pt-[88px] md:pt-[126px]">{children}</main>
       <Footer />
     </>
   )
