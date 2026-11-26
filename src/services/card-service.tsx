@@ -6,7 +6,7 @@ export type SavedCard = {
   last4: string;
   expiryMonth: number | null;
   expiryYear: number | null;
-  holderName: string;
+  email: string;
 };
 
 const auth = (token: string) => ({

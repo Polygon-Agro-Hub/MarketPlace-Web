@@ -17,6 +17,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faLock } from "@fortawesome/free-solid-svg-icons";
 import SuccessPopup from "@/components/toast-messages/success-message";
 import ErrorPopup from "@/components/toast-messages/error-message";
+import Link from "next/link";
 
 const Page = () => {
   const router = useRouter();
@@ -403,12 +404,14 @@ const Page = () => {
                 className="inline-block align-middle mr-1 -mt-0.5 w-3 h-3"
               />
               By proceeding, you agree to our{" "}
-              <a
-                href="#"
+              <Link
+                href="/terms-conditions"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-[#3E206D] hover:underline whitespace-nowrap"
               >
                 Terms &amp; Conditions
-              </a>
+              </Link>
             </p>
           </div>
 

@@ -147,26 +147,32 @@ export const getPendingConfirmationOrder = async (
 
 export const confirmOrder = async (
   token: string,
-  processedOrderId: string,
+  processedOrderId: string | number,
   useSavedCard = false,
   saveCard = false,
-): Promise<ConfirmOrderResult> => {
+): Promise<{
+  confirmed?: boolean;
+  paymentUrl?: string;
+  processing?: boolean;
+  reference?: string;
+}> => {
   try {
     const res = await axios.post(
-      `/retail-order/order-confirmation/${processedOrderId}/confirm`,
+      `/retail-order/order-confirmation/${processedOrderId}/confirm`, // <- keep your existing path
       { useSavedCard, saveCard },
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      },
+      { headers: { Authorization: `Bearer ${token}` }, timeout: 60000 },
     );
-    return res.data.data;
+    // 200 and 202 both land here; data is { confirmed } | { paymentUrl } | { processing, reference }
+    return res.data?.data ?? {};
   } catch (error: any) {
-    throw error.response?.data || { message: "Failed to confirm order." };
+    const body = error?.response?.data;
+    const err: any = new Error(body?.message || error?.message || "Failed to confirm order.");
+    err.code = body?.code; // keep the code so the page can react to it
+    err.status = error?.response?.status;
+    throw err;
   }
 };
+
 
 export const cancelOrder = async (token: string, processedOrderId: string) => {
   try {

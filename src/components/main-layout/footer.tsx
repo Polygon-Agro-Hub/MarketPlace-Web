@@ -102,9 +102,9 @@ function DesktopFooter() {
               </Link>
             </li>
             <li className="mb-2">
-              <a href="#" className="text-[#DBDBDB] hover:text-blue-300">
+              <Link href="/terms-conditions" className="text-[#DBDBDB] hover:text-blue-300">
                 Terms & Conditions
-              </a>
+              </Link>
             </li>
           </ul>
         </div>
@@ -208,12 +208,12 @@ function DesktopFooter() {
           </div>
         </div>
         <div className="flex space-x-6">
-          <a
-            href="#"
+          <Link
+            href="/terms-conditions"
             className="text-sm text-[#DBDBDB] hover:text-white underline"
           >
             Terms & Conditions
-          </a>
+          </Link>
           <Link
             href="/privacy-policy"
             className="text-sm text-[#DBDBDB] hover:text-white underline"
@@ -295,12 +295,12 @@ function MobileFooter() {
               </Link>
             </li>
             <li>
-              <a
-                href="#"
+              <Link
+                href="/terms-conditions"
                 className="text-sm text-[#DBDBDB] hover:text-blue-300"
               >
                 Terms & Conditions
-              </a>
+              </Link>
             </li>
           </ul>
         </div>
@@ -394,12 +394,12 @@ function MobileFooter() {
         </div>
 
         <div className="flex justify-between">
-          <a
-            href="#"
+          <Link
+            href="/terms-conditions"
             className="text-xs text-[#DBDBDB] hover:text-white underline"
           >
             Terms & Conditions
-          </a>
+          </Link>
           <Link
             href="/privacy-policy"
             className="text-xs text-[#DBDBDB] hover:text-white underline"
