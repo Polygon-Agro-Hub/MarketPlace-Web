@@ -1213,7 +1213,7 @@ export default function NewSignUp({ selectedCity }: NewSignUpProps) {
                         formData.companyPhoneNumber,
                       );
                     }}
-                    className="cursor-pointer"
+                    className="cursor-pointer !rounded-full"
                   />
                 </div>
 
