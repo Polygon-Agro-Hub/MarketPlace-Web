@@ -164,32 +164,42 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
   const displayList = useMemo(() => sortCities(results), [results]);
 
   return (
-    <div className="w-full">
+    // Mobile: bordered rounded card. Desktop (md+): plain, no border.
+    <div className="w-full rounded-[24px] border border-[#E4DDFB] bg-white p-4 shadow-[0_4px_20px_rgba(99,102,241,0.08)] sm:p-5 md:rounded-none md:border-0 md:p-0 md:shadow-none">
       <div className="w-full font-[Inter,sans-serif]">
         {/* ── Header ── */}
-        <div className="flex items-start justify-between gap-3">
-          <h1 className="text-[28px] sm:text-[34px] font-bold leading-tight tracking-tight text-[#111827]">
+        <div className="flex items-start justify-between gap-2 md:gap-3">
+          <h1 className="text-[20px] font-bold leading-tight tracking-tight text-[#111827] md:text-[34px]">
             Create your account
           </h1>
-          <span className="mt-1 flex-shrink-0 inline-flex items-center gap-2 rounded-full border border-[#FF6B35] bg-white px-4 py-1.5 text-sm font-semibold text-[#FF6B35] whitespace-nowrap">
-            <span className="h-2 w-2 rounded-full bg-[#FF6B35]" />
+          <span className="mt-0.5 inline-flex flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-[#FF6B35] bg-white px-2.5 py-1 text-[11px] font-semibold text-[#FF6B35] md:mt-1 md:gap-2 md:px-4 md:py-1.5 md:text-sm">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#FF6B35] md:h-2 md:w-2" />
             Step 1 of 2
           </span>
         </div>
-        <p className="mt-1 mb-6 text-base text-[#4B5563]">
+        <p className="mb-4 mt-1 text-[13px] leading-snug text-[#4B5563] md:mb-6 md:text-base">
           Confirm your delivery zone to browse fresh harvest produce.
         </p>
 
         {/* ── City selection card ── */}
         <div
           ref={dropdownRef}
-          className="rounded-3xl border border-[#E4DDFB] bg-white p-5 shadow-[0_2px_10px_rgba(139,92,246,0.08)]"
+          className="rounded-2xl border border-[#E4DDFB] bg-white p-3 shadow-[0_2px_10px_rgba(139,92,246,0.08)] md:rounded-3xl md:p-5"
         >
-          <div className="flex items-center gap-3 mb-4">
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#FF6B35]">
-              <MapPin size={15} className="text-white" strokeWidth={2.5} />
+          <div className="mb-3 flex items-center gap-2 md:mb-4 md:gap-3">
+            <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[#FF6B35] md:h-7 md:w-7">
+              <MapPin
+                size={12}
+                className="text-white md:hidden"
+                strokeWidth={2.5}
+              />
+              <MapPin
+                size={15}
+                className="hidden text-white md:block"
+                strokeWidth={2.5}
+              />
             </div>
-            <span className="text-sm font-bold uppercase tracking-wide text-[#111827]">
+            <span className="text-[11px] font-bold uppercase tracking-wide text-[#111827] md:text-sm">
               Select Your City
             </span>
           </div>
@@ -197,7 +207,7 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
           {/* Pill input */}
           <div
             onClick={() => inputRef.current?.focus()}
-            className="flex items-center gap-2 rounded-full border border-[#DDD6FE] bg-[#F7F5FF] px-5 py-3 focus-within:border-[#8639FF] focus-within:ring-2 focus-within:ring-[#8639FF]/20 transition"
+            className="flex items-center gap-2 rounded-full border border-[#DDD6FE] bg-[#F7F5FF] px-4 py-2.5 transition focus-within:border-[#8639FF] focus-within:ring-2 focus-within:ring-[#8639FF]/20 md:px-5 md:py-3"
           >
             <input
               ref={inputRef}
@@ -214,7 +224,7 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
                 }
               }}
               placeholder="Choose your delivery area..."
-              className="flex-1 min-w-0 bg-transparent border-none outline-none text-base text-[#111827] placeholder-[#6B7280]"
+              className="min-w-0 flex-1 border-none bg-transparent text-sm text-[#111827] placeholder-[#6B7280] outline-none md:text-base"
             />
 
             <button
@@ -227,7 +237,7 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
                   handleArrowClick();
                 }
               }}
-              className="flex-shrink-0 text-[#111827] hover:text-[#8639FF] transition-colors cursor-pointer"
+              className="flex-shrink-0 cursor-pointer text-[#111827] transition-colors hover:text-[#8639FF]"
               aria-label={searchTerm ? "Clear" : "Show all cities"}
             >
               {showSpinner ? (
@@ -247,7 +257,7 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
           {isDropdownOpen && (
             <div className="mt-3">
               {showSpinner ? (
-                <div className="px-3 py-3 flex items-center gap-2 text-sm text-gray-500">
+                <div className="flex items-center gap-2 px-3 py-3 text-sm text-gray-500">
                   <Loader2 size={14} className="animate-spin" />
                   {isLoadingAll ? "Loading cities..." : "Searching..."}
                 </div>
@@ -256,7 +266,7 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
                   City Not Found
                 </div>
               ) : displayList.length === 0 ? null : (
-                <ul className="max-h-52 overflow-y-auto rounded-2xl border border-[#EEE9F5] bg-white p-1 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full">
+                <ul className="max-h-52 overflow-y-auto rounded-2xl border border-[#EEE9F5] bg-white p-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar]:w-2">
                   {displayList.map((city) => (
                     <li key={city.id}>
                       <button
@@ -293,18 +303,18 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
 
           {/* Status banners */}
           {status === "available" && selectedCity && (
-            <div className="mt-3 flex items-center gap-2 rounded-2xl border border-[#D2ECE1] bg-[#EEFAF3] px-4 py-2.5">
+            <div className="mt-3 flex items-center gap-2 rounded-2xl border border-[#D2ECE1] bg-[#EEFAF3] px-3 py-2 md:px-4 md:py-2.5">
               <Info size={16} className="flex-shrink-0 text-[#229777]" />
-              <p className="text-sm font-medium text-[#229777]">
+              <p className="text-[13px] font-medium text-[#229777] md:text-sm">
                 Great news! We deliver to {selectedCity.city}!
               </p>
             </div>
           )}
 
           {status === "unavailable" && selectedCity && (
-            <div className="mt-3 flex items-start gap-2 rounded-2xl border border-[#FFDCB5] bg-[#FEF6ED] px-4 py-2.5">
+            <div className="mt-3 flex items-start gap-2 rounded-2xl border border-[#FFDCB5] bg-[#FEF6ED] px-3 py-2 md:px-4 md:py-2.5">
               <Info size={16} className="mt-0.5 flex-shrink-0 text-[#EC6821]" />
-              <p className="text-sm text-[#EC6821]">
+              <p className="text-[13px] text-[#EC6821] md:text-sm">
                 Delivery not available in {selectedCity.city} yet, but
                 we&apos;re working on it and coming to your area soon!
               </p>
@@ -313,11 +323,11 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
         </div>
 
         {/* ── Hotline pill ── */}
-        <div className="flex justify-center my-5">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#DCE3EC] bg-[#F1F5F9] px-5 py-2.5 text-sm text-[#374151]">
-            <Phone size={15} className="text-[#4B5563]" />
+        <div className="my-4 flex justify-center md:my-5">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#DCE3EC] bg-[#F1F5F9] px-4 py-2 text-xs text-[#374151] md:px-5 md:py-2.5 md:text-sm">
+            <Phone size={14} className="text-[#4B5563]" />
             <span>
-              Need Help? <span className="mx-1 text-gray-400">|</span>
+              Need Help? <span className="mx-0.5 text-gray-400 md:mx-1">|</span>
               <strong className="font-bold text-[#111827]">
                 Hotline: 011 431 3433
               </strong>
@@ -326,16 +336,16 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
         </div>
 
         {/* ── Can't find your city ── */}
-        <div className="mb-5 rounded-3xl bg-[#F8F7FF] p-5">
-          <div className="flex items-start gap-4">
-            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-[#13805F]">
-              <CircleHelp size={18} className="text-white" />
+        <div className="mb-4 rounded-2xl bg-[#F8F7FF] p-4 md:mb-5 md:rounded-3xl md:p-5">
+          <div className="flex items-start gap-3 md:gap-4">
+            <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-[#13805F] md:h-8 md:w-8">
+              <CircleHelp size={16} className="text-white" />
             </div>
             <div>
-              <p className="mb-2 text-base font-semibold text-[#111827]">
+              <p className="mb-1.5 text-sm font-semibold text-[#111827] md:mb-2 md:text-base">
                 Can&apos;t find your city?
               </p>
-              <p className="text-[15px] leading-relaxed text-[#1F2937]">
+              <p className="text-[13px] leading-relaxed text-[#1F2937] md:text-[15px]">
                 We&apos;re expanding our delivery network every day!
                 <br />
                 If your city isn&apos;t listed, please contact our support team
@@ -346,16 +356,16 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
         </div>
 
         {/* ── Important Delivery Zone Policy ── */}
-        <div className="mb-6 rounded-3xl bg-[#F0FBF5] p-5">
-          <div className="flex items-start gap-4">
-            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-[#13805F]">
-              <Info size={18} className="text-white" />
+        <div className="mb-5 rounded-2xl bg-[#F0FBF5] p-4 md:mb-6 md:rounded-3xl md:p-5">
+          <div className="flex items-start gap-3 md:gap-4">
+            <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-[#13805F] md:h-8 md:w-8">
+              <Info size={16} className="text-white" />
             </div>
             <div>
-              <p className="mb-2 text-base font-semibold text-[#0B4F3A]">
+              <p className="mb-1.5 text-sm font-semibold text-[#0B4F3A] md:mb-2 md:text-base">
                 Important Delivery Zone Policy
               </p>
-              <p className="text-[15px] leading-relaxed text-[#4B5563]">
+              <p className="text-[13px] leading-relaxed text-[#4B5563] md:text-[15px]">
                 Please select your actual delivery location carefully to ensure
                 accurate product availability and delivery coverage.{" "}
                 <strong className="font-bold text-[#374151]">
@@ -374,14 +384,14 @@ export default function CitySelection({ onCityConfirmed }: CitySelectionProps) {
           type="button"
           onClick={handleConfirm}
           disabled={isConfirmDisabled}
-          className={`flex w-full items-center justify-center gap-2 rounded-full py-4 text-lg font-semibold transition-all duration-200 ${
+          className={`flex w-full items-center justify-center gap-2 rounded-full py-3 text-[15px] font-semibold transition-all duration-200 md:py-4 md:text-lg ${
             isConfirmDisabled
               ? "cursor-not-allowed bg-[#EBEEF2] text-gray-500"
               : "cursor-pointer bg-[#FF6B35] text-white shadow-md hover:bg-[#F25A22]"
           }`}
         >
           Continue to Personal Details
-          <ArrowRight size={20} />
+          <ArrowRight size={18} />
         </button>
       </div>
 
