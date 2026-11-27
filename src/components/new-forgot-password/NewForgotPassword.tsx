@@ -349,8 +349,8 @@ const NewForgotPassword: React.FC<NewForgotPasswordProps> = ({ onBack }) => {
       aria-label="Forgot password"
     >
       <div className="relative flex h-full w-full flex-col overflow-y-auto bg-white md:h-auto md:min-h-[640px] md:max-h-[calc(100vh-2rem)] md:max-w-[1040px] md:flex-row md:overflow-hidden md:rounded-[28px] md:shadow-2xl">
-        {/* ===== Left image panel ===== */}
-        <div className="relative order-2 mx-5 mb-6 mt-6 h-[360px] shrink-0 overflow-hidden rounded-[28px] md:order-1 md:m-0 md:h-auto md:w-[46%] md:rounded-none">
+        {/* ===== Left image panel (below the form on mobile) ===== */}
+        <div className="relative order-2 mx-5 mb-6 mt-6 h-[320px] shrink-0 overflow-hidden rounded-[28px] md:order-1 md:m-0 md:h-auto md:w-[46%] md:rounded-none">
           <Image
             src="/images/MobileResponsiveBg.png"
             alt="Fresh vegetables in a wooden crate"
@@ -431,9 +431,10 @@ const NewForgotPassword: React.FC<NewForgotPasswordProps> = ({ onBack }) => {
 
           <div className="border-t border-[#DDD6FE]" />
 
-          <div className="flex-1 pb-6 pt-6 md:pb-0">
+          {/* Form (rounded bordered card on mobile) */}
+          <div className="mt-4 rounded-[28px] border border-[#DDD6FE] p-5 md:mt-0 md:flex-1 md:rounded-none md:border-0 md:p-0 md:pt-6">
             <h1
-              className={`${roboto.className} text-[30px] font-bold leading-tight tracking-tight text-[#111827] md:text-[34px]`}
+              className={`${roboto.className} text-[26px] font-bold leading-tight tracking-tight text-[#111827] md:text-[34px]`}
             >
               Let&apos;s get you back in.
             </h1>
