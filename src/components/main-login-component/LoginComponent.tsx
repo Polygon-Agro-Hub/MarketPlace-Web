@@ -1,9 +1,13 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { login, WholesaleStatus, WholesaleStatusInfo } from "@/services/auth-service";
+import {
+  login,
+  WholesaleStatus,
+} from "@/services/auth-service";
 import WholesalePendingPopup from "@/components/login-components/WholesalePendingPopup";
 import WholesaleRejectedPopup from "@/components/login-components/WholesaleRejectedPopup";
+import NewForgotPassword from "@/components/new-forgot-password/NewForgotPassword"; // adjust path
 import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
 import { setCredentials } from "@/store/slices/authSlice";
@@ -13,7 +17,7 @@ import SuccessPopup from "@/components/toast-messages/success-message";
 import ErrorPopup from "@/components/toast-messages/error-message";
 // OLD: import { Lock, Mail } from "lucide-react";
 import { ArrowRight } from "lucide-react";
-import Link from "next/link";
+// OLD (Link no longer used in new design): import Link from "next/link";
 import { Plus_Jakarta_Sans, Roboto } from "next/font/google";
 // OLD (images removed): import LoginImg from "../../../public/newbg.png";
 // OLD (images removed): import Image from "next/image";
@@ -42,7 +46,9 @@ const LoginComponent = () => {
   const [showErrorPopup, setShowErrorPopup] = useState(false);
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
-  const [wholesaleStatus, setWholesaleStatus] = useState<WholesaleStatus | null>(null);
+  const [wholesaleStatus, setWholesaleStatus] =
+    useState<WholesaleStatus | null>(null);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   // const [userType, setUserType] = useState("Retail");
 
   // Load saved credentials from localStorage on component mount
@@ -490,6 +496,10 @@ const LoginComponent = () => {
         onClose={() => setWholesaleStatus(null)}
       />
 
+      {showForgotPassword && (
+        <NewForgotPassword onBack={() => setShowForgotPassword(false)} />
+      )}
+
       <div className="w-full">
         <h2
           className={`${jakarta.className} text-[24px] font-[700] text-[#161C26] leading-tight`}
@@ -583,12 +593,13 @@ const LoginComponent = () => {
               Remember me
             </span>
           </label>
-          <Link
-            href="/forget-password"
-            className="font-medium text-[#0B4DFF] hover:underline"
+          <button
+            type="button"
+            onClick={() => setShowForgotPassword(true)}
+            className="font-medium text-[#0B4DFF] hover:underline cursor-pointer"
           >
             Forgot password?
-          </Link>
+          </button>
         </div>
 
         {/* Submit */}

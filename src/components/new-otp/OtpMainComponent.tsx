@@ -42,6 +42,10 @@ interface OtpMainComponentProps {
   onVerificationFailure?: () => void;
   onResendOTP: (newReferenceId: string) => void;
   onOTPExpired?: () => void;
+
+  resendRequest?: () => Promise<string>;
+  backLabel?: string;
+  submitLabel?: string;
   children?: React.ReactNode; // e.g. success / error popups
 }
 
@@ -71,6 +75,9 @@ const OtpMainComponent: React.FC<OtpMainComponentProps> = ({
   onVerificationFailure,
   onResendOTP,
   onOTPExpired,
+  resendRequest,
+  backLabel = "Back to registration",
+  submitLabel = "Verify & Complete Registration",
   children,
 }) => {
   const isEmail = mode === "email";
@@ -182,7 +189,8 @@ const OtpMainComponent: React.FC<OtpMainComponentProps> = ({
         throw new Error(
           statusCode === "1001"
             ? "This code is invalid. Please check it and try again."
-            : response?.message || "Unable to verify the code. Please try again.",
+            : response?.message ||
+                "Unable to verify the code. Please try again.",
         );
       }
 
@@ -202,8 +210,15 @@ const OtpMainComponent: React.FC<OtpMainComponentProps> = ({
     setResending(true);
     setError(null);
     try {
-      const res: any = await sendOTPInSignup(phoneNumber, phoneCode, { email });
-      const newRef = res?.referenceId ?? res?.reference_id ?? "";
+      let newRef = "";
+      if (resendRequest) {
+        newRef = await resendRequest();
+      } else {
+        const res: any = await sendOTPInSignup(phoneNumber, phoneCode, {
+          email,
+        });
+        newRef = res?.referenceId ?? res?.reference_id ?? "";
+      }
       if (newRef) {
         setRefId(newRef);
         onResendOTP(newRef);
@@ -297,7 +312,7 @@ const OtpMainComponent: React.FC<OtpMainComponentProps> = ({
               className="inline-flex cursor-pointer items-center gap-2 text-sm font-medium text-[#4B5563] transition hover:text-[#111827] focus:outline-none md:text-base"
             >
               <ArrowLeft size={18} />
-              Back to registration
+              {backLabel}
             </button>
             <Image
               src="/images/POLYGON LOGO26.png"
@@ -313,13 +328,17 @@ const OtpMainComponent: React.FC<OtpMainComponentProps> = ({
 
           {/* OTP form */}
           <div className="flex-1 pb-6 pt-8 md:pb-0">
-            <h1 className={`${roboto.className} text-[30px] font-[700] leading-tight tracking-tight text-[#111827] md:text-[34px]`}>
+            <h1
+              className={`${roboto.className} text-[30px] font-[700] leading-tight tracking-tight text-[#111827] md:text-[34px]`}
+            >
               {isEmail
                 ? "Verify your email address"
                 : "Verify your mobile number"}
             </h1>
 
-            <p className={`${roboto.className} mt-3 text-[14px] text-[#4B5563] md:text-base`}>
+            <p
+              className={`${roboto.className} mt-3 text-[14px] text-[#4B5563] md:text-base`}
+            >
               We&apos;ve sent a 5-digit verification code via{" "}
               {isEmail ? "Email" : "SMS"} to:
             </p>
