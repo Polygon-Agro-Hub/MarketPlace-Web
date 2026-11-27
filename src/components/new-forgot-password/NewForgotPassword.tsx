@@ -16,8 +16,9 @@ import { Roboto } from "next/font/google";
 import { sendResetEmail, sendOTP } from "@/services/auth-service";
 import SuccessPopup from "@/components/toast-messages/success-message";
 import ErrorPopup from "@/components/toast-messages/error-message";
-import OtpMainComponent from "@/components/new-otp/OtpMainComponent"; // adjust path
-import ResetPassword from "@/components/new-forgot-password/ResetPassword"; // adjust path
+import OtpMainComponent from "@/components/new-otp/OtpMainComponent";
+import OtpEmailComponent from "@/components/new-otp/OtpEmailComponent";
+import ResetPassword from "@/components/new-forgot-password/ResetPassword";
 
 const roboto = Roboto({
   subsets: ["latin"],
@@ -74,6 +75,7 @@ const NewForgotPassword: React.FC<NewForgotPasswordProps> = ({ onBack }) => {
     phone: string;
     dialCode: string;
   } | null>(null);
+
   const [showReset, setShowReset] = useState(false);
 
   useEffect(() => setMounted(true), []);
@@ -86,20 +88,6 @@ const NewForgotPassword: React.FC<NewForgotPasswordProps> = ({ onBack }) => {
       document.body.style.overflow = prev;
     };
   }, []);
-
-  // Warn before leaving while the email timer is running
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue =
-        "You have an active timer running. Are you sure you want to leave?";
-      return e.returnValue;
-    };
-    if (countdown > 0 && resetMethod === "email") {
-      window.addEventListener("beforeunload", handleBeforeUnload);
-    }
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [countdown, resetMethod]);
 
   // Resend countdown
   useEffect(() => {
@@ -128,7 +116,7 @@ const NewForgotPassword: React.FC<NewForgotPasswordProps> = ({ onBack }) => {
 
   const startResendTimer = () => {
     setIsResendDisabled(true);
-    setCountdown(180);
+    setCountdown(180); // 3 minutes — matches backend OTP expiry
   };
 
   const validateEmail = (value: string) => {
@@ -176,7 +164,7 @@ const NewForgotPassword: React.FC<NewForgotPasswordProps> = ({ onBack }) => {
         const res = await sendResetEmail(email);
         setModalMessage(
           res.message ||
-            "If an account exists, a password reset link has been sent.",
+            "If an account exists, a password reset OTP has been sent.",
         );
         if (
           res.message &&
@@ -185,12 +173,12 @@ const NewForgotPassword: React.FC<NewForgotPasswordProps> = ({ onBack }) => {
         ) {
           setIsError(true);
           setIsEmailSent(false);
+          setIsModalOpen(true);
         } else {
           setIsEmailSent(true);
           setIsError(false);
           startResendTimer();
         }
-        setIsModalOpen(true);
       } else {
         const parsed = parsePhone(phoneInput);
         if (parsed.error || !parsed.dialCode) {
@@ -242,40 +230,6 @@ const NewForgotPassword: React.FC<NewForgotPasswordProps> = ({ onBack }) => {
     }
   };
 
-  const handleResendEmail = async () => {
-    if (isResendDisabled || isSendingEmail) return;
-    const err = validateEmail(email);
-    if (err) {
-      setEmailError(err);
-      return;
-    }
-    try {
-      setIsSendingEmail(true);
-      const res = await sendResetEmail(email);
-      if (
-        res.message &&
-        (res.message.includes("dont have a account with us") ||
-          res.message.includes("do not have a account with us"))
-      ) {
-        setModalMessage(res.message);
-        setIsError(true);
-        setIsEmailSent(false);
-      } else {
-        setModalMessage(res.message || "Password reset link has been resent.");
-        setIsError(false);
-        startResendTimer();
-      }
-    } catch (err: any) {
-      setModalMessage(err.message || "Failed to resend reset code");
-      setIsError(true);
-      setIsEmailSent(false);
-      console.error(err);
-    } finally {
-      setIsSendingEmail(false);
-      setIsModalOpen(true);
-    }
-  };
-
   const handleBack = () => {
     if (onBack) onBack();
     else router.push("/signin");
@@ -300,10 +254,42 @@ const NewForgotPassword: React.FC<NewForgotPasswordProps> = ({ onBack }) => {
 
   const showArrow = buttonText === "Send OTP";
 
-  // Keep these after all hooks
-  if (showReset) return <ResetPassword onBack={onBack} />;
+  // ===== Email OTP screen =====
+  if (resetMethod === "email" && isEmailSent) {
+    return (
+      <OtpEmailComponent
+        email={email}
+        contactValue={email}
+        referenceId=""
+        mode="email"
+        initialTimer={180}
+        backLabel="Back to forgot password"
+        submitLabel="Verify OTP"
+        onBack={() => {
+          setIsEmailSent(false);
+          setIsResendDisabled(false);
+          setCountdown(0);
+        }}
+        resendRequest={async () => {
+          // Backend sends a fresh OTP to the same email; no referenceId needed
+          await sendResetEmail(email);
+          return "";
+        }}
+        onOTPExpired={() => {
+          /* component disables inputs and shows "Resend Code" */
+        }}
+        onVerificationSuccess={() => {
+          setIsEmailSent(false);
+          setIsResendDisabled(false);
+          setCountdown(0);
+          setShowReset(true);
+        }}
+      />
+    );
+  }
 
-  if (otpData) {
+  // ===== SMS OTP screen =====
+  if (resetMethod === "sms" && isOTPSent && otpData) {
     return (
       <OtpMainComponent
         phoneNumber={otpData.phone}
@@ -329,7 +315,6 @@ const NewForgotPassword: React.FC<NewForgotPasswordProps> = ({ onBack }) => {
           setOtpData((prev) => (prev ? { ...prev, referenceId: newRef } : prev))
         }
         onVerificationSuccess={() => {
-          // otpPhoneOnly is kept because ResetPassword reads it
           localStorage.removeItem("otpReferenceId");
           localStorage.removeItem("otpCountryCode");
           setShowReset(true);
@@ -337,6 +322,9 @@ const NewForgotPassword: React.FC<NewForgotPasswordProps> = ({ onBack }) => {
       />
     );
   }
+
+  // ===== Reset password screen =====
+  if (showReset) return <ResetPassword onBack={onBack} />;
 
   if (!mounted) return null;
 
@@ -582,32 +570,6 @@ const NewForgotPassword: React.FC<NewForgotPasswordProps> = ({ onBack }) => {
               {buttonText}
               {showArrow && <ArrowRight size={18} />}
             </button>
-
-            {/* Resend (email only) */}
-            {resetMethod === "email" && isEmailSent && (
-              <div className="mt-4 flex flex-col items-center gap-2">
-                {isResendDisabled && (
-                  <span
-                    className={`${roboto.className} text-sm font-medium text-[#4B5563]`}
-                  >
-                    {String(Math.floor(countdown / 60)).padStart(2, "0")}:
-                    {String(countdown % 60).padStart(2, "0")}
-                  </span>
-                )}
-                <button
-                  type="button"
-                  onClick={handleResendEmail}
-                  disabled={isResendDisabled || isSendingEmail}
-                  className={`${roboto.className} text-sm font-semibold text-[#FF6232] underline underline-offset-2 ${
-                    isResendDisabled || isSendingEmail
-                      ? "cursor-not-allowed opacity-50"
-                      : "cursor-pointer"
-                  }`}
-                >
-                  {isSendingEmail ? "Sending..." : "Resend again"}
-                </button>
-              </div>
-            )}
           </div>
         </div>
       </div>

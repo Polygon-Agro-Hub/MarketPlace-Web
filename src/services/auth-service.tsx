@@ -509,7 +509,7 @@ export const sendResetEmail = async (
   email: string,
 ): Promise<{ message: string }> => {
   try {
-    const response = await axios.post("/auth/forgot-password", { email });
+    const response = await axios.post("/auth/forgot-password",  { email }, { timeout: 30000 });
     return response.data;
   } catch (error: any) {
     if (error.response) {
@@ -1882,3 +1882,12 @@ export const deleteAccount = async (
     }
   }
 };
+
+export async function verifyResetOtp(email: string, otp: string) {
+  const { data } = await axios.post(
+    "/auth/verify-reset-email-otp",
+    { email, otp },
+    { timeout: 15000 },
+  );
+  return data;
+}
