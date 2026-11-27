@@ -1,230 +1,312 @@
 "use client";
 import React, { useRef, useState } from "react";
 import {
-    ShieldX, Upload, Trash2, Eye, FileText, Image as ImageIcon,
-    CheckCircle2, FilePlus2, Loader2,
+  ShieldX,
+  Upload,
+  Trash2,
+  File as FileIcon,
+  Check,
+  X,
+  CheckCircle2,
+  Loader2,
 } from "lucide-react";
 import { resubmitWholesaleBr, WholesaleStatusInfo } from "@/services/auth-service";
 import { formatReviewDate } from "./wholesaleUtils";
+import { Roboto } from "next/font/google";
+
+const roboto = Roboto({
+  subsets: ["latin"],
+  weight: ["400", "500", "700"],
+});
 
 const BR_ALLOWED_TYPES = ["image/jpeg", "image/png", "application/pdf"];
-const BR_MAX_SIZE = 5 * 1024 * 1024;
+const BR_MAX_SIZE = 10 * 1024 * 1024;
 
 interface Props {
-    isOpen: boolean;
-    info: WholesaleStatusInfo | null;
-    email: string;
-    password: string;
-    onResubmitted: (info: WholesaleStatusInfo) => void;
-    onClose: () => void;
+  isOpen: boolean;
+  info: WholesaleStatusInfo | null;
+  email: string;
+  password: string;
+  onResubmitted: (info: WholesaleStatusInfo) => void;
+  onClose: () => void;
 }
 
 export default function WholesaleRejectedPopup({
-    isOpen, info, email, password, onResubmitted, onClose,
+  isOpen,
+  info,
+  email,
+  password,
+  onResubmitted,
 }: Props) {
-    const [file, setFile] = useState<File | null>(null);
-    const [error, setError] = useState("");
-    const [isDragging, setIsDragging] = useState(false);
-    const [submitting, setSubmitting] = useState(false);
-    const inputRef = useRef<HTMLInputElement>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [error, setError] = useState("");
+  const [isDragging, setIsDragging] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-    if (!isOpen || !info) return null;
+  if (!isOpen || !info) return null;
 
-    const handleSelect = (f?: File | null) => {
-        if (!f) return;
-        if (!BR_ALLOWED_TYPES.includes(f.type)) {
-            setError("Only JPG, PNG or PDF files are allowed");
-            return;
-        }
-        if (f.size > BR_MAX_SIZE) {
-            setError("File size must be 5MB or less");
-            return;
-        }
-        setError("");
-        setFile(f);
-    };
+  const handleSelect = (f?: File | null) => {
+    if (!f) return;
+    if (!BR_ALLOWED_TYPES.includes(f.type)) {
+      setError("Only JPG, PNG or PDF files are allowed");
+      return;
+    }
+    if (f.size > BR_MAX_SIZE) {
+      setError("File size must be 10MB or less");
+      return;
+    }
+    setError("");
+    setFile(f);
+  };
 
-    const handleRemove = () => {
-        setFile(null);
-        if (inputRef.current) inputRef.current.value = "";
-    };
+  const handleRemove = () => {
+    setFile(null);
+    if (inputRef.current) inputRef.current.value = "";
+  };
 
-    const handleView = () => {
-        if (!file) return;
-        const url = URL.createObjectURL(file);
-        window.open(url, "_blank", "noopener,noreferrer");
-        // Revoke after the new tab has had time to load it
-        setTimeout(() => URL.revokeObjectURL(url), 60_000);
-    };
+  const handleResubmit = async () => {
+    if (!file) {
+      setError("Please upload your business registration document");
+      return;
+    }
+    setSubmitting(true);
+    setError("");
+    try {
+      const newInfo = await resubmitWholesaleBr(email, password, file);
+      handleRemove();
+      onResubmitted(newInfo);
+    } catch (err: any) {
+      setError(err.message || "Failed to resubmit documents");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
-    const handleResubmit = async () => {
-        if (!file) {
-            setError("Please upload your business registration document");
-            return;
-        }
-        setSubmitting(true);
-        setError("");
-        try {
-            const newInfo = await resubmitWholesaleBr(email, password, file);
-            handleRemove();
-            onResubmitted(newInfo);
-        } catch (err: any) {
-            setError(err.message || "Failed to resubmit documents");
-        } finally {
-            setSubmitting(false);
-        }
-    };
+  const canSubmit = !!file && !submitting;
 
-    return (
-        <div className="fixed inset-0 z-50 overflow-y-auto overscroll-contain bg-black/50">
-            <div className="flex min-h-full items-center justify-center p-4">
-                <div className="w-full max-w-lg rounded-2xl bg-white p-4 shadow-xl sm:p-6">
-                    <div className="flex justify-center">
-                        <div className="relative flex h-16 w-16 [@media(max-height:700px)]:h-12 [@media(max-height:700px)]:w-12 items-center justify-center rounded-2xl bg-red-50 border border-red-100">
-                            <ShieldX className="h-8 w-8 [@media(max-height:700px)]:h-6 [@media(max-height:700px)]:w-6 text-red-500" />
-                        </div>
-                    </div>
-
-                    <h3 className="mt-3 text-center text-xl font-bold text-[#0F172A]">
-                        Verification Unsuccessful
-                    </h3>
-                    <p className="mt-2 text-center text-sm text-gray-500">
-                        Your wholesale account application could not be approved due to issues
-                        found with the submitted documentation. Please review the details below
-                        and resubmit valid documents.
-                    </p>
-
-                    <div className="mt-5 [@media(max-height:700px)]:mt-3 rounded-xl border border-gray-200 bg-gray-50 p-4 [@media(max-height:700px)]:p-3 text-sm space-y-3 [@media(max-height:700px)]:space-y-2">
-                        <div className="flex items-center justify-between">
-                            <span className="text-gray-500">Review Status</span>
-                            <span className="flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-2.5 py-0.5 text-xs font-semibold text-red-700">
-                                <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
-                                Action Required
-                            </span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <span className="text-gray-500">Reviewed Date</span>
-                            <span className="font-medium text-gray-800">
-                                {formatReviewDate(info.reviewedAt)}
-                            </span>
-                        </div>
-                        <div className="flex items-center justify-between gap-4">
-                            <span className="text-gray-500 flex-shrink-0">Submitted Document</span>
-                            <span className="flex items-center gap-1 text-emerald-700 font-medium min-w-0">
-                                <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
-                                <span className="truncate">{info.fileName ?? "Business Registration"}</span>
-                            </span>
-                        </div>
-                    </div>
-
-                    {/* Upload */}
-                    <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-3">
-                        <div className="flex items-center gap-2 mb-3">
-                            <span className="text-xs font-semibold text-gray-700 uppercase">
-                                Business Registration (BR)
-                            </span>
-                            <span className="text-[10px] border border-purple-300 text-purple-700 bg-white rounded px-1.5 py-0.5">
-                                Business Only
-                            </span>
-                        </div>
-
-                        <input
-                            ref={inputRef}
-                            type="file"
-                            accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
-                            className="hidden"
-                            onChange={(e) => handleSelect(e.target.files?.[0])}
-                        />
-
-                        {!file ? (
-                            <div
-                                onClick={() => inputRef.current?.click()}
-                                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-                                onDragLeave={() => setIsDragging(false)}
-                                onDrop={(e) => {
-                                    e.preventDefault();
-                                    setIsDragging(false);
-                                    handleSelect(e.dataTransfer.files?.[0]);
-                                }}
-                                className={`flex flex-col items-center justify-center gap-1 border-2 border-dashed rounded-lg py-6 [@media(max-height:700px)]:py-4 cursor-pointer bg-white transition-colors ${
-                                    isDragging ? "border-[#3E206D] bg-purple-50" : "border-gray-300"
-                                }`}
-                            >
-                                <Upload className="w-5 h-5 text-[#3E206D]" />
-                                <span className="text-sm font-medium text-[#3E206D] underline">
-                                    Click to browse or drag and drop
-                                </span>
-                                <span className="text-xs text-gray-400">
-                                    Supported formats: JPG, PNG, or PDF (Max 5MB)
-                                </span>
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-3 border border-green-300 bg-white rounded-lg p-3">
-                                <div className="w-10 h-10 rounded-md bg-red-50 flex items-center justify-center flex-shrink-0">
-                                    {file.type === "application/pdf" ? (
-                                        <FileText className="w-5 h-5 text-red-500" />
-                                    ) : (
-                                        <ImageIcon className="w-5 h-5 text-red-500" />
-                                    )}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium truncate">{file.name}</p>
-                                    <span className="text-xs text-gray-400">
-                                        {(file.size / (1024 * 1024)).toFixed(1)} MB
-                                    </span>
-                                </div>
-                                <div className="flex items-center gap-1 flex-shrink-0">
-                                    <button
-                                        type="button"
-                                        onClick={handleView}
-                                        title="View file"
-                                        aria-label="View file"
-                                        className="p-1 text-[#3E206D] hover:text-purple-800 cursor-pointer"
-                                    >
-                                        <Eye className="w-4 h-4" />
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={handleRemove}
-                                        title="Remove file"
-                                        aria-label="Remove file"
-                                        className="p-1 text-red-500 hover:text-red-700 cursor-pointer"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-
-                        {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
-                    </div>
-
-                    <button
-                        type="button"
-                        onClick={handleResubmit}
-                        disabled={submitting}
-                        className="mt-5 [@media(max-height:700px)]:mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-[#3E206D] py-3 font-semibold text-white hover:bg-purple-800 transition-colors disabled:opacity-50 cursor-pointer"
-                    >
-                        {submitting ? (
-                            <>
-                                <Loader2 className="h-4 w-4 animate-spin" /> Submitting...
-                            </>
-                        ) : (
-                            <>
-                                <FilePlus2 className="h-4 w-4" /> Resubmit Documents
-                            </>
-                        )}
-                    </button>
-
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="mt-2 w-full py-2 text-sm text-gray-500 hover:text-gray-700 cursor-pointer"
-                    >
-                        Close
-                    </button>
-                </div>
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto overscroll-contain bg-black/60">
+      <div className="flex min-h-full items-center justify-center p-4">
+        <div className="w-full max-w-xl rounded-3xl bg-white px-6 pb-6 pt-10 shadow-xl">
+          {/* Icon box with red X badge */}
+          <div className="flex justify-center">
+            <div
+              className="relative flex items-center justify-center"
+              style={{
+                width: 80,
+                height: 80,
+                borderRadius: 20,
+                backgroundColor: "#FFF7F8",
+                border: "1.5px solid #FFB3BF",
+              }}
+            >
+              <ShieldX
+                className="h-8 w-8"
+                style={{ color: "#FF3B5C" }}
+                strokeWidth={1.8}
+              />
+              <span
+                className="absolute flex items-center justify-center"
+                style={{
+                  right: -8,
+                  bottom: -8,
+                  width: 26,
+                  height: 26,
+                  borderRadius: "9999px",
+                  backgroundColor: "#FF3B5C",
+                  border: "2px solid #fff",
+                }}
+              >
+                <X className="h-3.5 w-3.5 text-white" strokeWidth={3} />
+              </span>
             </div>
+          </div>
+
+          <h3
+            className={`${roboto.className} mt-6 text-center text-[24px] font-bold text-[#111827]`}
+          >
+            Verification Unsuccessful!
+          </h3>
+          <p
+            className={`${roboto.className} mt-3 text-center text-[14px] leading-relaxed text-slate-600`}
+          >
+            Your wholesale account application could not be approved due to
+            issues found with the submitted documentation. Please review the
+            reason below and resubmit valid documents.
+          </p>
+
+          {/* Review info card */}
+          <div className="mt-6 space-y-4 rounded-2xl border border-[#E4DFF7] bg-white p-5">
+            <div className="flex items-center justify-between">
+              <span
+                className={`${roboto.className} text-[12px] font-medium text-slate-600`}
+              >
+                Review Status
+              </span>
+              <span
+                className={`${roboto.className} flex items-center gap-2 rounded-full border border-[#FF6232] bg-white px-3 py-1 text-[12px] font-semibold text-[#FF6232]`}
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-[#FF6232]" />
+                Action Required
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span
+                className={`${roboto.className} text-[12px] font-medium text-slate-600`}
+              >
+                Reviewed Date
+              </span>
+              <span
+                className={`${roboto.className} text-[12px] font-semibold text-black`}
+              >
+                {formatReviewDate(info.reviewedAt)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <span
+                className={`${roboto.className} flex-shrink-0 text-[12px] font-medium text-slate-600`}
+              >
+                Submitted Document
+              </span>
+              <span
+                className={`${roboto.className} flex min-w-0 items-center gap-1.5 text-[12px] font-semibold text-[#15896B]`}
+              >
+                <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
+                <span className="truncate">
+                  {info.fileName ?? "Business Registration"}
+                </span>
+              </span>
+            </div>
+          </div>
+
+          {/* Upload card */}
+          <div className="mt-4 rounded-2xl border border-[#E4DFF7] bg-white p-5">
+            <span
+              className={`${roboto.className} block text-[13px] font-medium uppercase tracking-wide text-[#111827]`}
+            >
+              Business Registration (BR)
+            </span>
+
+            <input
+              ref={inputRef}
+              type="file"
+              accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
+              className="hidden"
+              onChange={(e) => handleSelect(e.target.files?.[0])}
+            />
+
+            {!file ? (
+              <div
+                onClick={() => inputRef.current?.click()}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDragging(true);
+                }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setIsDragging(false);
+                  handleSelect(e.dataTransfer.files?.[0]);
+                }}
+                className={`mt-4 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-[1.5px] border-dashed px-4 py-7 transition-colors ${
+                  isDragging
+                    ? "border-[#FF6232] bg-[#FFF6F2]"
+                    : "border-[#CFC8F0] bg-[#FAF9FF]"
+                }`}
+              >
+                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-sm">
+                  <Upload className="h-5 w-5 text-[#FF6232]" />
+                </span>
+                <span
+                  className={`${roboto.className} mt-1 text-[14px] text-slate-700`}
+                >
+                  <span className="font-bold text-[#FF6232]">Click to browse</span>{" "}
+                  or drag and drop
+                </span>
+                <span
+                  className={`${roboto.className} text-[12px] text-slate-600`}
+                >
+                  Supported formats: JPG, PNG, or PDF (Max 10MB)
+                </span>
+              </div>
+            ) : (
+              <div className="mt-4 flex items-center gap-3 rounded-xl border border-[#E4DFF7] bg-white p-3">
+                <div className="relative flex-shrink-0">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-[#E4DFF7] bg-white">
+                    <FileIcon className="h-5 w-5 text-[#111827]" />
+                  </div>
+                  <span
+                    className="absolute flex items-center justify-center"
+                    style={{
+                      right: -6,
+                      bottom: -6,
+                      width: 20,
+                      height: 20,
+                      borderRadius: "9999px",
+                      backgroundColor: "#FF6232",
+                      border: "2px solid #fff",
+                    }}
+                  >
+                    <Check className="h-3 w-3 text-white" strokeWidth={3} />
+                  </span>
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <p
+                    className={`${roboto.className} truncate text-[14px] font-bold text-[#111827]`}
+                  >
+                    {file.name}
+                  </p>
+                  <span
+                    className={`${roboto.className} text-[12px] text-slate-500`}
+                  >
+                    {(file.size / (1024 * 1024)).toFixed(1)} MB •{" "}
+                    {file.type === "application/pdf"
+                      ? "PDF document"
+                      : "Image file"}
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleRemove}
+                  title="Remove file"
+                  aria-label="Remove file"
+                  className="flex h-9 w-9 flex-shrink-0 cursor-pointer items-center justify-center rounded-lg border border-red-500 bg-white text-red-500 transition-colors hover:bg-red-50"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+
+            {error && (
+              <p className={`${roboto.className} mt-3 text-[12px] text-red-600`}>
+                {error}
+              </p>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={handleResubmit}
+            disabled={!canSubmit}
+            className={`${roboto.className} mt-5 flex w-full items-center justify-center gap-2 rounded-full py-4 text-xl font-semibold transition-colors ${
+              canSubmit
+                ? "cursor-pointer bg-[#FF6232] text-white hover:bg-[#e8561f]"
+                : "cursor-not-allowed bg-[#E5E7EB] text-[#94A3B8]"
+            }`}
+          >
+            {submitting ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" /> Submitting...
+              </>
+            ) : (
+              "Resubmit"
+            )}
+          </button>
         </div>
-    );
+      </div>
+    </div>
+  );
 }
