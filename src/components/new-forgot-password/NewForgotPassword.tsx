@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   ArrowRight,
-  Mail,
   MapPin,
   MessageSquare,
   ShoppingBag,
@@ -18,6 +17,7 @@ import { sendResetEmail, sendOTP } from "@/services/auth-service";
 import SuccessPopup from "@/components/toast-messages/success-message";
 import ErrorPopup from "@/components/toast-messages/error-message";
 import OtpMainComponent from "@/components/new-otp/OtpMainComponent"; // adjust path
+import ResetPassword from "@/components/new-forgot-password/ResetPassword"; // adjust path
 
 const roboto = Roboto({
   subsets: ["latin"],
@@ -51,11 +51,6 @@ interface NewForgotPasswordProps {
 const NewForgotPassword: React.FC<NewForgotPasswordProps> = ({ onBack }) => {
   const router = useRouter();
 
-  const [otpData, setOtpData] = useState<{
-    referenceId: string;
-    phone: string;
-    dialCode: string;
-  } | null>(null);
   const [mounted, setMounted] = useState(false);
   const [resetMethod, setResetMethod] = useState<"email" | "sms">("email");
   const [email, setEmail] = useState("");
@@ -73,6 +68,13 @@ const NewForgotPassword: React.FC<NewForgotPasswordProps> = ({ onBack }) => {
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [isSendingOTP, setIsSendingOTP] = useState(false);
   const [isOTPSent, setIsOTPSent] = useState(false);
+
+  const [otpData, setOtpData] = useState<{
+    referenceId: string;
+    phone: string;
+    dialCode: string;
+  } | null>(null);
+  const [showReset, setShowReset] = useState(false);
 
   useEffect(() => setMounted(true), []);
 
@@ -215,7 +217,7 @@ const NewForgotPassword: React.FC<NewForgotPasswordProps> = ({ onBack }) => {
           return;
         }
 
-                setIsSendingOTP(true);
+        setIsSendingOTP(true);
         const res = await sendOTP(local, parsed.dialCode);
         setIsOTPSent(true);
         if (res && res.referenceId)
@@ -298,7 +300,10 @@ const NewForgotPassword: React.FC<NewForgotPasswordProps> = ({ onBack }) => {
 
   const showArrow = buttonText === "Send OTP";
 
-    if (otpData) {
+  // Keep these after all hooks
+  if (showReset) return <ResetPassword onBack={onBack} />;
+
+  if (otpData) {
     return (
       <OtpMainComponent
         phoneNumber={otpData.phone}
@@ -324,10 +329,10 @@ const NewForgotPassword: React.FC<NewForgotPasswordProps> = ({ onBack }) => {
           setOtpData((prev) => (prev ? { ...prev, referenceId: newRef } : prev))
         }
         onVerificationSuccess={() => {
-          // Same cleanup as the old OTP page; otpPhoneOnly is kept for the next page
+          // otpPhoneOnly is kept because ResetPassword reads it
           localStorage.removeItem("otpReferenceId");
           localStorage.removeItem("otpCountryCode");
-          router.push("/reset-password-phone");
+          setShowReset(true);
         }}
       />
     );
@@ -343,7 +348,7 @@ const NewForgotPassword: React.FC<NewForgotPasswordProps> = ({ onBack }) => {
       aria-modal="true"
       aria-label="Forgot password"
     >
-      <div className="relative flex h-full w-full flex-col overflow-y-auto bg-white md:h-auto md:min-h-[700px] md:max-h-[calc(100vh-2rem)] md:max-w-[1040px] md:flex-row md:overflow-hidden md:rounded-[28px] md:shadow-2xl">
+      <div className="relative flex h-full w-full flex-col overflow-y-auto bg-white md:h-auto md:min-h-[640px] md:max-h-[calc(100vh-2rem)] md:max-w-[1040px] md:flex-row md:overflow-hidden md:rounded-[28px] md:shadow-2xl">
         {/* ===== Left image panel ===== */}
         <div className="relative order-2 mx-5 mb-6 mt-6 h-[360px] shrink-0 overflow-hidden rounded-[28px] md:order-1 md:m-0 md:h-auto md:w-[46%] md:rounded-none">
           <Image
