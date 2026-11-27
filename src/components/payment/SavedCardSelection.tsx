@@ -16,9 +16,8 @@ type Props = {
 
 const Radio = ({ checked }: { checked: boolean }) => (
   <span
-    className={`flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-full border-2 ${
-      checked ? "border-[#3E206D] bg-[#3E206D]" : "border-gray-300 bg-white"
-    }`}
+    className={`flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-full border-2 ${checked ? "border-[#3E206D] bg-[#3E206D]" : "border-gray-300 bg-white"
+      }`}
   >
     {checked && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
   </span>
@@ -135,9 +134,8 @@ const SavedCardSelection: React.FC<Props> = ({
               tabIndex={0}
               onClick={() => onChange("saved")}
               onKeyDown={selectOnKey("saved")}
-              className={`cursor-pointer rounded-xl border-2 p-4 transition-colors sm:p-5 ${
-                value === "saved" ? "border-[#3E206D] bg-[#F7F5FD]" : "border-gray-200 bg-white"
-              }`}
+              className={`cursor-pointer rounded-xl border-2 p-4 transition-colors sm:p-5 ${value === "saved" ? "border-[#3E206D] bg-[#F7F5FD]" : "border-gray-200 bg-white"
+                }`}
             >
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
@@ -225,11 +223,10 @@ const SavedCardSelection: React.FC<Props> = ({
             tabIndex={0}
             onClick={() => onChange("new")}
             onKeyDown={selectOnKey("new")}
-            className={`cursor-pointer rounded-xl border-2 p-4 transition-colors sm:p-5 ${
-              value === "new"
+            className={`cursor-pointer rounded-xl border-2 p-4 transition-colors sm:p-5 ${value === "new"
                 ? "border-[#3E206D] bg-white"
                 : "border-gray-200 bg-white"
-            }`}
+              }`}
           >
             {!card ? (
               <>
@@ -298,6 +295,17 @@ const SavedCardSelection: React.FC<Props> = ({
                     <span className="mt-1 block text-[10px] text-gray-500 sm:text-xs">
                       Supports Visa, Mastercard, American Express, and other major debit/credit cards.
                     </span>
+                  </p>
+                </div>
+
+                {/* Save-card note (label only, no checkbox) */}
+                <div className="mt-4">
+                  <p className="text-xs font-semibold text-[#1a1a2e]">
+                    Save this card for faster checkout next time
+                  </p>
+                  <p className="mt-0.5 text-[10px] text-gray-500 sm:text-xs">
+                    Card details are securely tokenized and encrypted. Only 1 card can be saved at a
+                    time.
                   </p>
                 </div>
               </>

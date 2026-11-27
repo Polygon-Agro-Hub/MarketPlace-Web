@@ -23,9 +23,13 @@ import HeartIcon from "../../../public/icons/heart-solid.png";
 import CancerIcon from "../../../public/icons/xmark-solid.png";
 import BoxIcon from "../../../public/icons/box-solid.png";
 import NeedHelpLink from "@/components/profile/NeedHelpLink";
+import { createPortal } from "react-dom";
+
 
 type IncludeState = "include" | "none";
 type ExcludeState = "exclude" | "none";
+
+const MAX_EXCLUDE_ITEMS = 5;
 
 interface ItemState {
   displayName: string;
@@ -81,6 +85,7 @@ const UpdatePreferences = ({ setSelectedMenu }: UpdatePreferencesProps) => {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [showLimitPopup, setShowLimitPopup] = useState(false);
 
   useEffect(() => {
     const fetchItems = async () => {
@@ -171,15 +176,31 @@ const UpdatePreferences = ({ setSelectedMenu }: UpdatePreferencesProps) => {
   };
 
   const handleExcludeToggle = (displayName: string) => {
+    const target = items.find((i) => i.displayName === displayName);
+    if (!target) return;
+    if (target.includeToggle === "include") return;
+
+    // Selecting (not deselecting) → check the limit first
+    if (target.excludeToggle !== "exclude") {
+      const currentExcludeCount = items.filter(
+        (i) => i.excludeToggle === "exclude",
+      ).length;
+
+      if (currentExcludeCount >= MAX_EXCLUDE_ITEMS) {
+        setShowLimitPopup(true);
+        return;
+      }
+    }
+
     setItems((prev) =>
-      prev.map((item) => {
-        if (item.displayName !== displayName) return item;
-        if (item.includeToggle === "include") return item;
-        return {
-          ...item,
-          excludeToggle: item.excludeToggle === "exclude" ? "none" : "exclude",
-        };
-      }),
+      prev.map((item) =>
+        item.displayName === displayName
+          ? {
+            ...item,
+            excludeToggle: item.excludeToggle === "exclude" ? "none" : "exclude",
+          }
+          : item,
+      ),
     );
   };
 
@@ -563,6 +584,44 @@ const UpdatePreferences = ({ setSelectedMenu }: UpdatePreferencesProps) => {
           </div>
         </div>
       </div>
+      {showLimitPopup &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 px-4"
+            onClick={() => setShowLimitPopup(false)}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="limit-popup-title"
+          >
+            <div
+              className="w-full max-w-sm rounded-xl bg-white p-6 text-center shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#FEF7F7]">
+                <FiX className="text-[#EF4444]" size={24} />
+              </div>
+              <h3
+                id="limit-popup-title"
+                className="mb-2 text-[18px] md:text-[20px] font-bold text-[#001535]"
+              >
+                Selection Limit Reached!
+              </h3>
+              <p className="mb-5 text-[13px] md:text-[14px] text-[#4C5160] leading-relaxed">
+                You can select a maximum of 5 exclude items. Please deselect an item
+                before selecting another.
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowLimitPopup(false)}
+                className="h-11 w-full rounded-lg bg-[#3E206D] font-semibold text-white hover:bg-[#341a5a] cursor-pointer"
+              >
+                OK
+              </button>
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 };
