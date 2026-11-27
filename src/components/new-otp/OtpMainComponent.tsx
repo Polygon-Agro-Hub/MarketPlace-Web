@@ -15,12 +15,7 @@ import {
   Truck,
 } from "lucide-react";
 import { sendOTPInSignup, verifyOTP } from "@/services/auth-service";
-import { Plus_Jakarta_Sans, Roboto } from "next/font/google";
-
-const jakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-});
+import { Roboto } from "next/font/google";
 
 const roboto = Roboto({
   subsets: ["latin"],
@@ -42,7 +37,7 @@ interface OtpMainComponentProps {
   onVerificationFailure?: () => void;
   onResendOTP: (newReferenceId: string) => void;
   onOTPExpired?: () => void;
-
+  /** Custom resend (e.g. forgot-password). Must return the new reference id. */
   resendRequest?: () => Promise<string>;
   backLabel?: string;
   submitLabel?: string;
@@ -244,8 +239,8 @@ const OtpMainComponent: React.FC<OtpMainComponentProps> = ({
       aria-label="Verify your account"
     >
       <div className="relative flex h-full w-full flex-col overflow-y-auto bg-white md:h-auto md:min-h-[700px] md:max-h-[calc(100vh-2rem)] md:max-w-[1040px] md:flex-row md:overflow-hidden md:rounded-[28px] md:shadow-2xl">
-        {/* ===== Left image panel ===== */}
-        <div className="relative order-2 mx-5 mb-6 mt-6 h-[360px] shrink-0 overflow-hidden rounded-[28px] md:order-1 md:m-0 md:h-auto md:w-[46%] md:rounded-none">
+        {/* ===== Left image panel (below the form on mobile) ===== */}
+        <div className="relative order-2 mx-5 mb-6 mt-6 h-[320px] shrink-0 overflow-hidden rounded-[28px] md:order-1 md:m-0 md:h-auto md:w-[46%] md:rounded-none">
           <Image
             src="/images/MobileResponsiveBg.png"
             alt="Fresh vegetables in a wooden crate"
@@ -326,10 +321,10 @@ const OtpMainComponent: React.FC<OtpMainComponentProps> = ({
 
           <div className="border-t border-[#DDD6FE]" />
 
-          {/* OTP form */}
-          <div className="flex-1 pb-6 pt-8 md:pb-0">
+          {/* OTP form (rounded bordered card on mobile) */}
+          <div className="mt-4 rounded-[28px] border border-[#DDD6FE] p-5 md:mt-0 md:flex-1 md:rounded-none md:border-0 md:p-0 md:pt-8">
             <h1
-              className={`${roboto.className} text-[30px] font-[700] leading-tight tracking-tight text-[#111827] md:text-[34px]`}
+              className={`${roboto.className} text-[24px] font-[700] leading-tight tracking-tight text-[#111827] md:text-[34px]`}
             >
               {isEmail
                 ? "Verify your email address"
@@ -430,7 +425,7 @@ const OtpMainComponent: React.FC<OtpMainComponentProps> = ({
                 </>
               ) : (
                 <>
-                  Verify &amp; Complete Registration
+                  {submitLabel}
                   <ArrowRight size={18} />
                 </>
               )}
