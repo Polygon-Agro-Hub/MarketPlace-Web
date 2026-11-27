@@ -96,7 +96,7 @@ const ExistCardDetails = ({ card, onRemoveCard, removing = false }: Props) => {
                 Card Holder
               </p>
               <p className="text-xs sm:text-sm font-medium tracking-wide text-white">
-                {card.holderName || 'CARD HOLDER'}
+              {card.email || '-'}
               </p>
             </div>
             <div className="text-right">

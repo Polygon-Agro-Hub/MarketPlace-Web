@@ -72,10 +72,10 @@ export const EmptyCardDetails = ({ onAddCard, busy = false }: EmptyCardDetailsPr
           </span>
         </div>
 
-        {/* Verification charge notice */}
         <p className="text-xs sm:text-sm text-gray-500 max-w-md mb-6 sm:mb-8">
-          A small Rs. 10.00 verification payment is made when you add a card.
-          Tick "keep card" on the payment page to save it.
+          A Rs. 10.00 verification payment is made when you add a card. Tick "Keep my
+          card on file" on the payment page. If you don't, the card isn't saved and
+          the Rs. 10.00 is refunded.
         </p>
 
         {/* Add New Card Button */}

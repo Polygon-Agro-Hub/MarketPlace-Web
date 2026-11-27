@@ -31,6 +31,9 @@ import { PaymentGatewayFactory } from "@/services/payment/payment.factory";
 import { getCheckoutScheduleInfo } from "@/services/product-service";
 import { sendSms } from "@/services/product-service";
 import { buildOrderPlacedSms } from "@/utils/order-sms";
+import SavedCardSelection, { PaymentChoice } from "@/components/payment/SavedCardSelection";
+import { markOrderSuccess, SUCCESS_ROUTE } from "@/utils/order-success";
+
 
 const PAYMENT_SESSION_KEY = "paymentSessionExpiresAt";
 const PAYMENT_SESSION_DURATION_MS = 5 * 60 * 1000;
@@ -93,6 +96,9 @@ const Page: React.FC = () => {
   const orderSubmittedRef = useRef(false);
   const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [awaitingPayment, setAwaitingPayment] = useState(false);
+  const [showCardChoice, setShowCardChoice] = useState(false);
+  const [cardChoice, setCardChoice] = useState<PaymentChoice>("new");
+  // const [saveCard, setSaveCard] = useState(false);
 
 
   useEffect(() => {
@@ -104,6 +110,8 @@ const Page: React.FC = () => {
       if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
     };
   }, []);
+
+
 
 
   useEffect(() => {
@@ -431,10 +439,65 @@ const Page: React.FC = () => {
     void sendSms(smsPhone.code, smsPhone.number, message);
   };
 
+  const payWithSavedCard = async (payload: OrderPayload) => {
+    if (!token) throw new Error("Authentication required. Please log in again.");
+    const adapter: any = PaymentGatewayFactory.getAdapter("payments_lk");
+
+    // Same endpoint; the flag tells the backend to charge the saved card
+    const session = await adapter.initiatePayment({
+      orderPayload: { ...payload, useSavedCard: true },
+      token,
+    });
+    if (!session?.reference) throw new Error("Could not start the card payment.");
+
+    // The webhook finalises the order; poll until it does (up to ~60s)
+    for (let i = 0; i < 30; i++) {
+      await new Promise((r) => setTimeout(r, 2000));
+      const status = await adapter.checkOrderStatus(session.reference, token);
+
+      if (status.isCompleted && status.orderId) {
+        setOrderId(status.orderId);
+        setOrderSubmitted(true); // stops the session timer from redirecting to /cart
+        localStorage.removeItem("deliveryCharge");
+        sessionStorage.removeItem(PAYMENT_SESSION_KEY);
+
+        // Refresh the cart without making the redirect wait long
+        try {
+          const cartInfo = await Promise.race([
+            getCartInfo(token),
+            new Promise<null>((r) => setTimeout(() => r(null), 3000)),
+          ]);
+          if (cartInfo) dispatch(updateCartInfo(cartInfo));
+        } catch (cartError) {
+          console.error("Error fetching cart info:", cartError);
+        }
+
+        markOrderSuccess();             // set the mark right before navigating
+        router.replace(SUCCESS_ROUTE);
+        return;
+      }
+
+      const s = String(status.sessionStatus || "").toUpperCase();
+      if (s === "FAILED" || s === "EXPIRED") {
+        const err: any = new Error(
+          "Your bank declined the saved card payment. Please pay with another card."
+        );
+        err.code = "CARD_DECLINED";
+        throw err;
+      }
+      if (s === "NEEDS_REVIEW") {
+        throw new Error("Payment received but the order needs review. Please contact support.");
+      }
+    }
+
+    throw new Error(
+      "Payment is taking longer than expected. Please check your orders before trying again."
+    );
+  };
+
   const handleSubmitOrder = async (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
-    let gatewayTab: Window | null = null;
 
     try {
       if (!token) {
@@ -456,8 +519,24 @@ const Page: React.FC = () => {
       }
 
       if (shouldUseGateway) {
+        // First click: show the saved card / another card choice instead of paying
+        if (!showCardChoice) {
+          setShowCardChoice(true);
+          return; // finally resets isSubmitting
+        }
+
+        // Second click, saved card selected: charge it, no redirect
+        if (cardChoice === "saved") {
+          await payWithSavedCard(payload);
+          return;
+        }
+
+        // Second click, another card: the hosted checkout
         const adapter = PaymentGatewayFactory.getAdapter("payments_lk");
-        const session = await adapter.initiatePayment({ orderPayload: payload, token });
+        const session = await adapter.initiatePayment({
+          orderPayload: payload,
+          token,
+        });
 
         if (session?.checkoutUrl) {
           window.location.replace(session.checkoutUrl);
@@ -525,6 +604,13 @@ const Page: React.FC = () => {
       if (error.code === "ITEMS_UNAVAILABLE") {
         setShowUnavailableModal(true);
         return; // don't fall through to the generic error modal
+      }
+
+      // Saved card can't be used: switch the screen to "Pay with Another Card"
+      if (
+        ["NO_SAVED_CARD", "CARD_EXPIRED", "CARD_NOT_USABLE", "CARD_DECLINED"].includes(error.code)
+      ) {
+        setCardChoice("new");
       }
 
       const errorMsg = error.message || "Order submission failed. Please try again.";
@@ -619,6 +705,10 @@ const Page: React.FC = () => {
   const shouldUseGateway = !isFullyCoveredByCredit && paymentMethod === "card" && isEarliestDateOrder;
   const showCashOption = displayValues.grandTotal <= cashPaymentLimit && !isFinalizeImdt;
   const isCashExpanded = paymentMethod === "cash" && showCashOption;
+
+  useEffect(() => {
+    if (!shouldUseGateway) setShowCardChoice(false);
+  }, [shouldUseGateway]);
 
   useEffect(() => {
     if (!showCashOption && paymentMethod === "cash") {
@@ -757,252 +847,257 @@ const Page: React.FC = () => {
       <div className="flex flex-col lg:flex-row gap-6 mt-6 lg:mt-8">
         {/* Left Column - Payment Methods */}
         <div className="w-full lg:w-2/3">
-          <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 md:p-8">
-            {creditBalance > 0 && (
-              <div className="mb-5 p-4 sm:p-5 bg-white">
-                <div className="flex justify-between items-center mb-4 flex-wrap gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-16 h-16 flex items-center justify-center flex-shrink-0">
-                      <Image
-                        src={creditWalletImage}
-                        alt="Polygon Wallet"
-                        width={64}
-                        height={64}
-                        className="object-contain"
-                      />
-                    </div>
-                    <div>
-                      <p className="text-[#252525] font-bold">Pay using your Polygon Wallet</p>
-                      <p className="text-sm text-gray-500">Apply credit to reduce payment.</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setUseCredit((prev) => !prev)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition cursor-pointer ${useCredit ? "bg-[#34C759]" : "bg-gray-300"
-                        }`}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${useCredit ? "translate-x-6" : "translate-x-1"
-                          }`}
-                      />
-                    </button>
-                    <span className="text-sm font-semibold text-[#1B7331]">Use My Polygon Wallet</span>
-                  </div>
-                </div>
-
-                <div
-                  className={`grid grid-cols-2 gap-2 sm:gap-4 rounded-[10px] border p-3 sm:p-4 ${useCredit
-                    ? "bg-[#F6FCF5] border-[#AEC9AB]"
-                    : "bg-gray-50 border-gray-200"
-                    }`}
-                >
-                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white flex items-center justify-center flex-shrink-0">
-                      <WalletMinimal className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: "#27AA48" }} />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs text-gray-500">Polygon Wallet Applied</p>
-                      <p className="font-semibold text-sm sm:text-base text-[#27AA48] whitespace-nowrap">
-                        Rs. {formatPrice(creditApplied)}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 sm:gap-3 min-w-0 border-l border-gray-200 pl-2 sm:pl-4">
-                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white flex items-center justify-center flex-shrink-0">
-                      <ReceiptText className="w-5 h-5 sm:w-6 sm:h-6 text-[#354052]" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs text-gray-500">Remaining to Pay</p>
-                      <p className="font-semibold text-sm sm:text-base text-gray-900 whitespace-nowrap">
-                        Rs. {formatPrice(remainingAfterCredit)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {useCredit && remainingAfterCredit > 0 && (
-                  <div className="mt-4">
-                    <p className="font-bold text-sm text-[#252525]">Choose a payment method for the remaining amount.</p>
-                    <p className="text-sm text-gray-500 mt-1">
-                      You need to pay{" "}
-                      <span className="font-semibold text-[#3E206D]">Rs. {formatPrice(remainingAfterCredit)}</span> to
-                      complete your order.
-                    </p>
-                  </div>
-                )}
-                {isFullyCoveredByCredit && (
-                  <>
-                    <div className="border-t border-gray-200 my-4" />
-                    <div className="flex items-center gap-3 bg-[#F5FBF5] border border-[#6DD087] rounded-[10px] p-4">
-                      <div className="w-7 h-7 rounded-full bg-[#1C8732] flex items-center justify-center flex-shrink-0">
-                        <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none">
-                          <path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
+          {showCardChoice && shouldUseGateway ? (
+            <SavedCardSelection
+              token={token}
+              value={cardChoice}
+              onChange={setCardChoice}
+            />
+          ) : (
+            <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 md:p-8">
+              {creditBalance > 0 && (
+                <div className="mb-5 p-4 sm:p-5 bg-white">
+                  <div className="flex justify-between items-center mb-4 flex-wrap gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-16 h-16 flex items-center justify-center flex-shrink-0">
+                        <Image
+                          src={creditWalletImage}
+                          alt="Polygon Wallet"
+                          width={64}
+                          height={64}
+                          className="object-contain"
+                        />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-[#252525]">
-                          {creditBalance > displayValues.grandTotal
-                            ? "Your Polygon Wallet is more than enough to pay for this order."
-                            : "Your Polygon Wallet is enough to pay for this order."}
-                        </p>
-                        <p className="text-xs text-[#5A6B5D]">
-                          {creditBalance - creditApplied > 0 ? (
-                            <>
-                              You will save{" "}
-                              <span className="font-semibold text-[#1C8732]">
-                                Rs. {formatPrice(
-                                  Math.max(0, (Number(creditBalance) || 0) - (Number(creditApplied) || 0))
-                                )}
-                              </span>{" "}
-                              in your Polygon Wallet.
-                            </>
-                          ) : (
-                            "No additional payment is required."
-                          )}
+                        <p className="text-[#252525] font-bold">Pay using your Polygon Wallet</p>
+                        <p className="text-sm text-gray-500">Apply credit to reduce payment.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setUseCredit((prev) => !prev)}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition cursor-pointer ${useCredit ? "bg-[#34C759]" : "bg-gray-300"
+                          }`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${useCredit ? "translate-x-6" : "translate-x-1"
+                            }`}
+                        />
+                      </button>
+                      <span className="text-sm font-semibold text-[#1B7331]">Use My Polygon Wallet</span>
+                    </div>
+                  </div>
+
+                  <div
+                    className={`grid grid-cols-2 gap-2 sm:gap-4 rounded-[10px] border p-3 sm:p-4 ${useCredit
+                      ? "bg-[#F6FCF5] border-[#AEC9AB]"
+                      : "bg-gray-50 border-gray-200"
+                      }`}
+                  >
+                    <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white flex items-center justify-center flex-shrink-0">
+                        <WalletMinimal className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: "#27AA48" }} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs text-gray-500">Polygon Wallet Applied</p>
+                        <p className="font-semibold text-sm sm:text-base text-[#27AA48] whitespace-nowrap">
+                          Rs. {formatPrice(creditApplied)}
                         </p>
                       </div>
                     </div>
-                  </>
-                )}
-              </div>
-            )}
 
-            {creditBalance > 0 && !isFullyCoveredByCredit && (
-              <div className="border-t border-[#CBCFD5] my-5 sm:my-6" />
-            )}
-
-            {!isFullyCoveredByCredit && (
-              <>
-                <h1 className="text-medium sm:text-lg font-semibold mb-4 sm:mb-6">
-                  Select Payment Method
-                </h1>
-
-                {/* Credit / Debit Card */}
-                <div
-                  onClick={() => setPaymentMethod("card")}
-                  className={`mb-4 flex items-center gap-4 rounded-lg border px-5 py-4 cursor-pointer transition bg-white ${paymentMethod === "card"
-                    ? "border-[#3E206D]"
-                    : "border-gray-300 hover:bg-gray-50"
-                    }`}
-                >
-                  {/* Radio */}
-                  <div className="w-5 h-5 rounded-full border-2 border-[#3E206D] flex items-center justify-center flex-shrink-0">
-                    {paymentMethod === "card" && (
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#3E206D]" />
-                    )}
-                  </div>
-
-                  {/* Title + subtitle */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-base font-medium text-gray-900">Credit / Debit Card</span>
-                      <span className="text-xs font-medium text-[#1B7A4B] bg-[#E8F8F0] border border-[#B7E8D0] rounded-full px-2.5 py-0.5">
-                        Instant
-                      </span>
+                    <div className="flex items-center gap-2 sm:gap-3 min-w-0 border-l border-gray-200 pl-2 sm:pl-4">
+                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white flex items-center justify-center flex-shrink-0">
+                        <ReceiptText className="w-5 h-5 sm:w-6 sm:h-6 text-[#354052]" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs text-gray-500">Remaining to Pay</p>
+                        <p className="font-semibold text-sm sm:text-base text-gray-900 whitespace-nowrap">
+                          Rs. {formatPrice(remainingAfterCredit)}
+                        </p>
+                      </div>
                     </div>
-                    <p className="text-sm text-gray-500 mt-0.5">
-                      Pay securely via IPG Gateway with Visa, Mastercard, or Amex
-                    </p>
                   </div>
 
-                  {/* Card logos */}
-                  <div className="hidden sm:flex items-center gap-4 pr-4 lg:pr-16 flex-shrink-0">
-                    {/* Visa */}
-                    <svg width="60" height="20" viewBox="0 0 60 20" aria-label="Visa">
-                      <text
-                        x="0"
-                        y="17"
-                        fontFamily="Arial, Helvetica, sans-serif"
-                        fontSize="22"
-                        fontWeight="900"
-                        fontStyle="italic"
-                        fill="#1434CB"
-                        letterSpacing="-1"
-                      >
-                        VISA
-                      </text>
-                    </svg>
-                    {/* Mastercard */}
-                    <svg width="40" height="26" viewBox="0 0 40 26" aria-label="Mastercard">
-                      <circle cx="13" cy="13" r="12" fill="#EB001B" />
-                      <circle cx="27" cy="13" r="12" fill="#F79E1B" />
-                    </svg>
-                  </div>
+                  {useCredit && remainingAfterCredit > 0 && (
+                    <div className="mt-4">
+                      <p className="font-bold text-sm text-[#252525]">Choose a payment method for the remaining amount.</p>
+                      <p className="text-sm text-gray-500 mt-1">
+                        You need to pay{" "}
+                        <span className="font-semibold text-[#3E206D]">Rs. {formatPrice(remainingAfterCredit)}</span> to
+                        complete your order.
+                      </p>
+                    </div>
+                  )}
+                  {isFullyCoveredByCredit && (
+                    <>
+                      <div className="border-t border-gray-200 my-4" />
+                      <div className="flex items-center gap-3 bg-[#F5FBF5] border border-[#6DD087] rounded-[10px] p-4">
+                        <div className="w-7 h-7 rounded-full bg-[#1C8732] flex items-center justify-center flex-shrink-0">
+                          <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none">
+                            <path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-[#252525]">
+                            {creditBalance > displayValues.grandTotal
+                              ? "Your Polygon Wallet is more than enough to pay for this order."
+                              : "Your Polygon Wallet is enough to pay for this order."}
+                          </p>
+                          <p className="text-xs text-[#5A6B5D]">
+                            {creditBalance - creditApplied > 0 ? (
+                              <>
+                                You will save{" "}
+                                <span className="font-semibold text-[#1C8732]">
+                                  Rs. {formatPrice(
+                                    Math.max(0, (Number(creditBalance) || 0) - (Number(creditApplied) || 0))
+                                  )}
+                                </span>{" "}
+                                in your Polygon Wallet.
+                              </>
+                            ) : (
+                              "No additional payment is required."
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
+              )}
 
-                {/* Pay by Cash */}
-                <div>
+              {creditBalance > 0 && !isFullyCoveredByCredit && (
+                <div className="border-t border-[#CBCFD5] my-5 sm:my-6" />
+              )}
+
+              {!isFullyCoveredByCredit && (
+                <>
+                  <h1 className="text-medium sm:text-lg font-semibold mb-4 sm:mb-6">
+                    Select Payment Method
+                  </h1>
+
+                  {/* Credit / Debit Card */}
                   <div
-                    onClick={() => showCashOption && setPaymentMethod("cash")}
-                    className={`flex items-center gap-4 border px-5 py-4 transition ${isCashExpanded ? "rounded-t-lg" : "rounded-lg"
-                      } ${showCashOption
-                        ? `cursor-pointer bg-white hover:bg-gray-50 ${paymentMethod === "cash" ? "border-[#3E206D]" : "border-gray-300"
-                        }`
-                        : "bg-gray-50 border-gray-200 cursor-not-allowed"
+                    onClick={() => setPaymentMethod("card")}
+                    className={`mb-4 flex items-center gap-4 rounded-lg border px-5 py-4 cursor-pointer transition bg-white ${paymentMethod === "card"
+                      ? "border-[#3E206D]"
+                      : "border-gray-300 hover:bg-gray-50"
                       }`}
                   >
-                    <div
-                      className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${showCashOption ? "border-[#3E206D]" : "border-gray-300"
-                        }`}
-                    >
-                      {paymentMethod === "cash" && showCashOption && (
+                    {/* Radio */}
+                    <div className="w-5 h-5 rounded-full border-2 border-[#3E206D] flex items-center justify-center flex-shrink-0">
+                      {paymentMethod === "card" && (
                         <div className="w-2.5 h-2.5 rounded-full bg-[#3E206D]" />
                       )}
                     </div>
-                    <span className={`text-base font-medium ${!showCashOption ? "text-gray-400" : "text-gray-900"}`}>
-                      Pay by Cash
-                    </span>
-                    {!showCashOption && (
-                      <span className="text-xs font-medium text-red-500 bg-red-50 px-2 py-1 rounded-md">
-                        Not Available
-                      </span>
-                    )}
+
+                    {/* Title + subtitle */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-base font-medium text-gray-900">Credit / Debit Card</span>
+                        <span className="text-xs font-medium text-[#1B7A4B] bg-[#E8F8F0] border border-[#B7E8D0] rounded-full px-2.5 py-0.5">
+                          Instant
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-500 mt-0.5">
+                        Pay securely via IPG Gateway with Visa, Mastercard, or Amex
+                      </p>
+                    </div>
+
+                    {/* Card logos */}
+                    <div className="hidden sm:flex items-center gap-4 pr-4 lg:pr-16 flex-shrink-0">
+                      {/* Visa */}
+                      <svg width="60" height="20" viewBox="0 0 60 20" aria-label="Visa">
+                        <text
+                          x="0"
+                          y="17"
+                          fontFamily="Arial, Helvetica, sans-serif"
+                          fontSize="22"
+                          fontWeight="900"
+                          fontStyle="italic"
+                          fill="#1434CB"
+                          letterSpacing="-1"
+                        >
+                          VISA
+                        </text>
+                      </svg>
+                      {/* Mastercard */}
+                      <svg width="40" height="26" viewBox="0 0 40 26" aria-label="Mastercard">
+                        <circle cx="13" cy="13" r="12" fill="#EB001B" />
+                        <circle cx="27" cy="13" r="12" fill="#F79E1B" />
+                      </svg>
+                    </div>
                   </div>
 
-                  {isCashExpanded && (
-                    <div className="rounded-b-lg border border-t-0 border-[#3E206D] bg-gray-50/30 p-5">
-                      <div className="text-gray-700 space-y-3">
-                        <div className="flex gap-2">
-                          <span className="flex-shrink-0">-</span>
-                          <span>You can pay in cash upon doorstep delivery or at our centre when collecting your parcel.</span>
-                        </div>
-                        <div className="flex gap-2">
-                          <span className="flex-shrink-0">-</span>
-                          <span>Before agreeing to receive the parcel, check if your delivery status has been updated to “Out of Delivery” or “Ready to Pickup”.</span>
-                        </div>
-                        <div className="flex gap-2">
-                          <span className="flex-shrink-0">-</span>
-                          <span>Before receiving, confirm that the airway bill shows that the parcel from Polygon Holdings.</span>
-                        </div>
-                        <div className="flex gap-2">
-                          <span className="flex-shrink-0">-</span>
-                          <span>Before you make the payment to the courier, confirm your order number, sender information and order number on the parcel.</span>
+                  {/* Pay by Cash */}
+                  <div>
+                    <div
+                      onClick={() => showCashOption && setPaymentMethod("cash")}
+                      className={`flex items-center gap-4 border px-5 py-4 transition ${isCashExpanded ? "rounded-t-lg" : "rounded-lg"
+                        } ${showCashOption
+                          ? `cursor-pointer bg-white hover:bg-gray-50 ${paymentMethod === "cash" ? "border-[#3E206D]" : "border-gray-300"
+                          }`
+                          : "bg-gray-50 border-gray-200 cursor-not-allowed"
+                        }`}
+                    >
+                      <div
+                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${showCashOption ? "border-[#3E206D]" : "border-gray-300"
+                          }`}
+                      >
+                        {paymentMethod === "cash" && showCashOption && (
+                          <div className="w-2.5 h-2.5 rounded-full bg-[#3E206D]" />
+                        )}
+                      </div>
+                      <span className={`text-base font-medium ${!showCashOption ? "text-gray-400" : "text-gray-900"}`}>
+                        Pay by Cash
+                      </span>
+                      {!showCashOption && (
+                        <span className="text-xs font-medium text-red-500 bg-red-50 px-2 py-1 rounded-md">
+                          Not Available
+                        </span>
+                      )}
+                    </div>
+
+                    {isCashExpanded && (
+                      <div className="rounded-b-lg border border-t-0 border-[#3E206D] bg-gray-50/30 p-5">
+                        <div className="text-gray-700 space-y-3">
+                          <div className="flex gap-2">
+                            <span className="flex-shrink-0">-</span>
+                            <span>You can pay in cash upon doorstep delivery or at our centre when collecting your parcel.</span>
+                          </div>
+                          <div className="flex gap-2">
+                            <span className="flex-shrink-0">-</span>
+                            <span>Before agreeing to receive the parcel, check if your delivery status has been updated to “Out of Delivery” or “Ready to Pickup”.</span>
+                          </div>
+                          <div className="flex gap-2">
+                            <span className="flex-shrink-0">-</span>
+                            <span>Before receiving, confirm that the airway bill shows that the parcel from Polygon Holdings.</span>
+                          </div>
+                          <div className="flex gap-2">
+                            <span className="flex-shrink-0">-</span>
+                            <span>Before you make the payment to the courier, confirm your order number, sender information and order number on the parcel.</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
+                </>
+              )}
+              {!showCashOption && !isFullyCoveredByCredit && (
+                <div className="pb-4 mt-4">
+                  <div className="flex items-start gap-2 bg-[#F5F8FD] border border-[#E1E8F8] rounded-lg p-3 text-sm text-[#41519E]">
+                    <svg className="w-4 h-4 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" />
+                      <path d="M12 8v.01M12 11v5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                    </svg>
+                    <span>{cashUnavailableMessage}</span>
+                  </div>
                 </div>
-              </>
-            )}
-            {!showCashOption && !isFullyCoveredByCredit && (
-              <div className="pb-4 mt-4">
-                <div className="flex items-start gap-2 bg-[#F5F8FD] border border-[#E1E8F8] rounded-lg p-3 text-sm text-[#41519E]">
-                  <svg className="w-4 h-4 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" />
-                    <path d="M12 8v.01M12 11v5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                  </svg>
-                  <span>{cashUnavailableMessage}</span>
-                </div>
-              </div>
-            )}
-          </div>
-
-
+              )}
+            </div>
+          )}
         </div>
-
         <div className="w-full lg:w-1/3">
           <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 shadow-sm">
             <h2 className="font-semibold text-lg mb-4">Your Order</h2>
@@ -1192,7 +1287,7 @@ const Page: React.FC = () => {
               ) : orderSubmitted ? (
                 "Order Submitted"
               ) : paymentMethod === "card" && !isFullyCoveredByCredit ? (
-                "Proceed to Payment"
+                showCardChoice ? "Pay Now" : "Proceed to Payment"
               ) : (
                 "Confirm Order"
               )}

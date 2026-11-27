@@ -22,7 +22,7 @@ import { updateCartInfo } from "@/store/slices/authSlice";
 import { ChevronDown, XCircle, LocateFixed, AlertTriangle, X, Info } from "lucide-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCircleInfo } from "@fortawesome/free-solid-svg-icons";
-import PackageHandlingModal from "@/components/checkout/PackageHandlingModal";
+// import PackageHandlingModal from "@/components/checkout/PackageHandlingModal";
 import {
   dayOptions,
   validPeriodOptions,
@@ -267,8 +267,8 @@ const Page: React.FC = () => {
   const [isCityDropdownOpen, setIsCityDropdownOpen] = useState(false);
   const cityDropdownRef = useRef<HTMLDivElement>(null);
 
-  const [showPackagePopup, setShowPackagePopup] = useState(false);
-  const [packageHandlingOption, setPackageHandlingOption] = useState<"review" | "finalize">("review");
+  // const [showPackagePopup, setShowPackagePopup] = useState(false);
+  // const [packageHandlingOption, setPackageHandlingOption] = useState<"review" | "finalize">("review");
   const cartPackages = useSelector((state: RootState) => state.cartItems.packages);
   const isWholesale = useSelector((state: RootState) =>
     (state.auth.user?.buyerType ?? "").toLowerCase().includes("wholesale"),
@@ -1366,11 +1366,11 @@ const Page: React.FC = () => {
       }
     }
 
-    // 6. Package handling popup, then payment
-    if (hasPackages) {
-      setShowPackagePopup(true);
-      return;
-    }
+    // // 6. Package handling popup, then payment
+    // if (hasPackages) {
+    //   setShowPackagePopup(true);
+    //   return;
+    // }
 
     await proceedToPayment();
   };
@@ -1471,7 +1471,7 @@ const Page: React.FC = () => {
             scheduleInfoRef.current?.earliestDate ??
             scheduleInfo?.earliestDate ??
             getMinDateStr(),
-          isFinalizeImdt: hasPackages && packageHandlingOption === "finalize" ? 1 : 0,
+          isFinalizeImdt: hasPackages ? 1 : 0,
         } as any),
       );
 
@@ -1487,10 +1487,10 @@ const Page: React.FC = () => {
     }
   };
 
-  const handlePackagePopupContinue = async () => {
-    setShowPackagePopup(false);
-    await proceedToPayment();
-  };
+  // const handlePackagePopupContinue = async () => {
+  //   setShowPackagePopup(false);
+  //   await proceedToPayment();
+  // };
 
   const formatPrice = (price: number): string => {
     // Convert to fixed decimal first, then add commas
@@ -1535,7 +1535,7 @@ const Page: React.FC = () => {
       />
       <form onSubmit={handleSubmit}>
         <div className="px-2 sm:px-4 md:px-8 lg:px-12 py-3 sm:py-5 pt-10 sm:pt-12">
-          {showPackagePopup && (
+          {/* {showPackagePopup && (
             <PackageHandlingModal
               option={packageHandlingOption}
               onOptionChange={setPackageHandlingOption}
@@ -1543,7 +1543,7 @@ const Page: React.FC = () => {
               onContinue={handlePackagePopupContinue}
               isLoading={isLoading}
             />
-          )}
+          )} */}
           {showOrderListModal && (
             <OrderListModal
               orders={generatedOrders}

@@ -14,7 +14,7 @@ export class PaymentsLkAdapter implements IPaymentGatewayAdapter {
 
   async initiatePayment(
     request: PaymentRequestData
-  ): Promise<UnifiedCheckoutSession> {
+  ): Promise<UnifiedCheckoutSession & { reference?: string }> {
     const { orderPayload, token } = request;
 
     if (!token) {
@@ -48,11 +48,18 @@ export class PaymentsLkAdapter implements IPaymentGatewayAdapter {
       );
     } catch (error: any) {
       const responseData = error.response?.data;
-      if (responseData?.code === "ITEMS_UNAVAILABLE") {
-        const customErr: any = new Error(
-          responseData.message || "Some items are no longer available"
-        );
-        customErr.code = "ITEMS_UNAVAILABLE";
+
+      // NEW: keep the backend error code so the page can react to it
+      const KNOWN_CODES = [
+        "ITEMS_UNAVAILABLE",
+        "NO_SAVED_CARD",
+        "CARD_EXPIRED",
+        "CARD_NOT_USABLE",
+        "CHARGE_FAILED",
+      ];
+      if (responseData?.code && KNOWN_CODES.includes(responseData.code)) {
+        const customErr: any = new Error(responseData.message || "Payment failed");
+        customErr.code = responseData.code;
         throw customErr;
       }
 
